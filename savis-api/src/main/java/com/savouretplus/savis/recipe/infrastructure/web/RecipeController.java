@@ -1,0 +1,66 @@
+package com.savouretplus.savis.recipe.infrastructure.web;
+
+import java.net.URI;
+import java.util.UUID;
+
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
+
+import com.savouretplus.savis.recipe.application.RecipeService;
+import com.savouretplus.savis.recipe.infrastructure.web.dto.IngredientRequirementRequest;
+import com.savouretplus.savis.recipe.infrastructure.web.dto.RecipeCreateRequest;
+import com.savouretplus.savis.recipe.infrastructure.web.dto.RecipeResponse;
+import com.savouretplus.savis.recipe.infrastructure.web.dto.RecipeUpdateRequest;
+
+import jakarta.validation.Valid;
+import lombok.AllArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+
+@RestController
+@RequestMapping("/api/recipes")
+@AllArgsConstructor
+@Slf4j
+public class RecipeController {
+
+    private final RecipeService recipeService;
+
+    @PostMapping()
+    public ResponseEntity<UUID> createRecipe(@Valid @RequestBody RecipeCreateRequest request) {
+        UUID recipeId = recipeService.createRecipe(request.title());
+        return ResponseEntity.created(URI.create("/api/recipes/" + recipeId)).build();
+    }
+
+    @GetMapping("/{recipeId}")
+    public ResponseEntity<RecipeResponse> getRecipe(@PathVariable UUID recipeId) {
+        RecipeResponse response = RecipeResponse.from(recipeService.getRecipe(recipeId));
+        return ResponseEntity.ok(response);
+    }
+
+    @PatchMapping("/{recipeId}")
+    public ResponseEntity<UUID> updateRecipe(@PathVariable UUID recipeId,
+            @Valid @RequestBody RecipeUpdateRequest request) {
+        log.info("Updating recipe {} with title '{}' and instructions '{}'", recipeId, request.title(),
+                request.instructions());
+
+        UUID updatedRecipeId = recipeService.updateRecipe(recipeId, request.title(), request.instructions());
+
+        return ResponseEntity.ok().body(updatedRecipeId);
+    }
+
+    @PostMapping("/{recipeId}/ingredients")
+    public ResponseEntity<Void> addIngredient(@PathVariable UUID recipeId,
+            @Valid @RequestBody IngredientRequirementRequest request) {
+
+        recipeService.addIngredient(recipeId, request.ingredientName(), request.amount(), request.unitEnum(),
+                request.selectedOfferId());
+
+        return ResponseEntity.ok().build();
+    }
+
+}
