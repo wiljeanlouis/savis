@@ -1,49 +1,55 @@
 package com.savouretplus.savis.recipe.domain.model;
 
-import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
 import com.savouretplus.savis.common.Money;
 import com.savouretplus.savis.recipe.domain.port.PriceCalculator;
 
+import lombok.Builder;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
-import lombok.Setter;
 
 @Getter
-@Setter
+@Builder
 @EqualsAndHashCode(of = "uuid")
 public class Recipe {
-
     private final UUID uuid;
     private Long id;
     private String title;
     private String instructions;
     private final List<IngredientRequirement> ingredients;
+    private Minute cookingMinutes;
+    private Minute preparationMinutes;
+    private Integer servings;
+    private String imageUrl;
 
     public static Recipe from(String title) {
-        return new Recipe(UUID.randomUUID(), title, "", Collections.emptyList());
+        return Recipe.builder()
+                .uuid(UUID.randomUUID())
+                .title(title)
+                .instructions(String.format("Instructions for %s", title))
+                .cookingMinutes(Minute.of(0))
+                .preparationMinutes(Minute.of(0))
+                .ingredients(Collections.emptyList())
+                .build();
     }
 
-    public Recipe(UUID uuid, String title, String instructions, List<IngredientRequirement> ingredients) {
-        this.uuid = uuid;
-        this.title = title;
-        this.instructions = instructions;
-        this.ingredients = new ArrayList<>(ingredients);
+    @Builder
+    public static class RecipeUpdateDetails {
+        private Optional<String> title;
+        private Optional<String> instructions;
+        private Optional<Minute> cookingMinutes;
+        private Optional<Minute> preparationMinutes;
     }
 
-    public void updateDetails(String updatedTitle, String updatedInstructions) {
-        if(updatedTitle == null || updatedTitle.isBlank()) {
-            throw new IllegalArgumentException("Le titre ne peut pas être vide");
-        }
-        if(updatedInstructions == null || updatedInstructions.isBlank()) {
-            throw new IllegalArgumentException("Les instructions ne peuvent pas être vides");
-        }
-
-        this.title = updatedTitle;
-        this.instructions = updatedInstructions;
+    public void updateDetails(RecipeUpdateDetails details) {
+        details.title.ifPresent(title -> this.title = title);
+        details.instructions.ifPresent(instructions -> this.instructions = instructions);
+        details.cookingMinutes.ifPresent(cookingMinutes -> this.cookingMinutes = cookingMinutes);
+        details.preparationMinutes.ifPresent(preparationMinutes -> this.preparationMinutes = preparationMinutes);
     }
 
     public List<IngredientRequirement> ingredients() {
@@ -52,7 +58,7 @@ public class Recipe {
 
     public void addIngredient(String name, double value, Unit unit, UUID selectedOfferId) {
         if (ingredients.stream().anyMatch(i -> i.ingredientName().equals(name))) {
-            throw new IllegalStateException("L'ingrédient existe déjà");
+            throw new IllegalStateException("Ingredient already exists in the recipe");
         }
         this.ingredients.add(new IngredientRequirement(null, name, new Quantity(value, unit), selectedOfferId));
     }

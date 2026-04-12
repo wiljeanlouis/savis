@@ -10,6 +10,8 @@ public record RecipeResponse(
         UUID uuid,
         String title,
         String instructions,
+        Integer cookingMinutes,
+        Integer preparationMinutes,
         List<IngredientRequirement> ingredients) {
 
     public static RecipeResponse from(Recipe recipe) {
@@ -17,6 +19,8 @@ public record RecipeResponse(
                 recipe.getUuid(),
                 recipe.getTitle(),
                 recipe.getInstructions(),
+                recipe.getCookingMinutes() != null ? recipe.getCookingMinutes().value() : null,
+                recipe.getPreparationMinutes() != null ? recipe.getPreparationMinutes().value() : null,
                 recipe.getIngredients());
     }
 

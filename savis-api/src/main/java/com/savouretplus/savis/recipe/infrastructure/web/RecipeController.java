@@ -33,13 +33,17 @@ public class RecipeController {
 
     @PostMapping()
     public ResponseEntity<UUID> createRecipe(@Valid @RequestBody RecipeCreateRequest request) {
+
         UUID recipeId = recipeService.createRecipe(request.title());
+
         return ResponseEntity.created(URI.create("/api/recipes/" + recipeId)).build();
     }
 
     @GetMapping("/{recipeId}")
     public ResponseEntity<RecipeResponse> getRecipe(@PathVariable UUID recipeId) {
+
         RecipeResponse response = RecipeResponse.from(recipeService.getRecipe(recipeId));
+
         return ResponseEntity.ok(response);
     }
 
@@ -49,15 +53,29 @@ public class RecipeController {
         log.info("Updating recipe {} with title '{}' and instructions '{}'", recipeId, request.title(),
                 request.instructions());
 
-        UUID updatedRecipeId = recipeService.updateRecipe(recipeId, request.title(), request.instructions());
 
-        return ResponseEntity.ok().body(updatedRecipeId);
+        UUID recipeUuid = recipeService.updateRecipe(recipeId, request.toCommand());
+
+        return ResponseEntity.ok().body(recipeUuid);
     }
 
     @DeleteMapping("/{recipeId}")
     public ResponseEntity<Void> deleteRecipe(@PathVariable UUID recipeId) {
+
         recipeService.deleteRecipe(recipeId);
+
         return ResponseEntity.noContent().build();
+    }
+
+    @GetMapping()
+    public ResponseEntity<Iterable<RecipeResponse>> listRecipes() {
+
+        Iterable<RecipeResponse> responses = recipeService.listRecipes()
+                .stream()
+                .map(RecipeResponse::from)
+                .toList();
+
+        return ResponseEntity.ok(responses);
     }
 
     @PostMapping("/{recipeId}/ingredients")

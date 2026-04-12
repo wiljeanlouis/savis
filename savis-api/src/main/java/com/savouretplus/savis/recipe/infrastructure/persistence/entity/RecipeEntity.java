@@ -32,6 +32,12 @@ public class RecipeEntity {
     @Column(nullable = false)
     private String instructions;
 
+    @Column(nullable = false)
+    private Integer cookingMinutes;
+
+    @Column(nullable = false)
+    private Integer preparationMinutes;
+
     @OneToMany(cascade = CascadeType.ALL, orphanRemoval = true)
     private List<IngredientRequirementEntity> ingredients;
 

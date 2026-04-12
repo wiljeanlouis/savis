@@ -1,10 +1,13 @@
 package com.savouretplus.savis.recipe.application;
 
+import java.util.List;
 import java.util.UUID;
 
 import org.springframework.stereotype.Service;
 
 import com.savouretplus.savis.common.Money;
+import com.savouretplus.savis.recipe.application.command.RecipeUpdateCommand;
+import com.savouretplus.savis.recipe.domain.model.Minute;
 import com.savouretplus.savis.recipe.domain.model.Recipe;
 import com.savouretplus.savis.recipe.domain.model.Unit;
 import com.savouretplus.savis.recipe.domain.port.PriceCalculator;
@@ -31,13 +34,19 @@ class RecipeServiceImpl implements RecipeService {
     @Override
     public Recipe getRecipe(UUID recipeId) {
         return repository.findByUuid(recipeId)
-                .orElseThrow(() -> new RuntimeException("Recette non trouvée"));
+                .orElseThrow(() -> new RuntimeException("Recipe not found"));
     }
 
     @Override
-    public UUID updateRecipe(UUID recipeId, String title, String instructions) {
+    public UUID updateRecipe(UUID recipeId, RecipeUpdateCommand updateCommand) {
         Recipe recipe = getRecipe(recipeId);
-        recipe.updateDetails(title, instructions);
+        Recipe.RecipeUpdateDetails details = Recipe.RecipeUpdateDetails.builder()
+                .title(updateCommand.getOptionalTitle())
+                .instructions(updateCommand.getOptionalInstructions())
+                .cookingMinutes(updateCommand.getOptionalCookingMinutes().map(Minute::of))
+                .preparationMinutes(updateCommand.getOptionalPreparationMinutes().map(Minute::of))
+                .build();
+        recipe.updateDetails(details);
         repository.save(recipe);
         return recipe.getUuid();
     }
@@ -46,6 +55,11 @@ class RecipeServiceImpl implements RecipeService {
     public void deleteRecipe(UUID recipeId) {
         Recipe recipe = getRecipe(recipeId);
         repository.delete(recipe);
+    }
+
+    @Override
+    public List<Recipe> listRecipes() {
+        return repository.findAll();
     }
 
     @Override

@@ -1,8 +1,10 @@
 package com.savouretplus.savis.recipe.application;
 
+import java.util.List;
 import java.util.UUID;
 
 import com.savouretplus.savis.common.Money;
+import com.savouretplus.savis.recipe.application.command.RecipeUpdateCommand;
 import com.savouretplus.savis.recipe.domain.model.Recipe;
 import com.savouretplus.savis.recipe.domain.model.Unit;
 
@@ -11,9 +13,11 @@ public interface RecipeService {
 
     Recipe getRecipe(UUID recipeId);
 
-    UUID updateRecipe(UUID recipeId, String title, String instructions);
+    UUID updateRecipe(UUID recipeId, RecipeUpdateCommand updateCommand);
 
     void deleteRecipe(UUID recipeId);
+
+    List<Recipe> listRecipes();
 
     Money calculateTotalCost(UUID recipeId);
 

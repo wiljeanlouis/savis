@@ -14,9 +14,13 @@ import com.savouretplus.savis.recipe.infrastructure.persistence.entity.RecipeEnt
 public interface RecipeMapper {
 
     @Mapping(source = "entity.ingredients", target = "ingredients")
+    @Mapping(source = "entity.cookingMinutes", target = "cookingMinutes.value")
+    @Mapping(source = "entity.preparationMinutes", target = "preparationMinutes.value")
     Recipe toDomain(RecipeEntity entity);
 
     @Mapping(source = "recipe.ingredients", target = "ingredients")
+    @Mapping(source = "recipe.cookingMinutes.value", target = "cookingMinutes")
+    @Mapping(source = "recipe.preparationMinutes.value", target = "preparationMinutes")
     RecipeEntity fromDomain(Recipe recipe);
 
     List<IngredientRequirement> map(List<IngredientRequirementEntity> entities);

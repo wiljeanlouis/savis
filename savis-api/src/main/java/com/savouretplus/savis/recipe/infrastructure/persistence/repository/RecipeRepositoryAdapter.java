@@ -1,5 +1,6 @@
 package com.savouretplus.savis.recipe.infrastructure.persistence.repository;
 
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -16,25 +17,33 @@ import lombok.AllArgsConstructor;
 @AllArgsConstructor
 public class RecipeRepositoryAdapter implements RecipeRepository {
 
-    private final JpaRecipeEntityRepository jpaRecipeEntityRepository;
+    private final JpaRecipeEntityRepository jpaRepository;
     private final RecipeMapper recipeMapper;
 
     @Override
     public Optional<Recipe> findByUuid(UUID uuid) {
-        return jpaRecipeEntityRepository.findByUuid(uuid)
+        return jpaRepository.findByUuid(uuid)
                 .map(recipeMapper::toDomain);
     }
 
     @Override
     public void save(Recipe recipe) {
         RecipeEntity entity = recipeMapper.fromDomain(recipe);
-        jpaRecipeEntityRepository.save(entity);
+        jpaRepository.save(entity);
     }
 
     @Override
     public void delete(Recipe recipe) {
         RecipeEntity entity = recipeMapper.fromDomain(recipe);
-        jpaRecipeEntityRepository.deleteById(entity.getId());
+        jpaRepository.deleteById(entity.getId());
+    }
+
+    @Override
+    public List<Recipe> findAll() {
+        return jpaRepository.findAll()
+                .stream()
+                .map(recipeMapper::toDomain)
+                .toList();
     }
 
 }
