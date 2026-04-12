@@ -10,4 +10,6 @@ public interface RecipeRepository {
     Optional<Recipe> findByUuid(UUID uuid);
 
     void save(Recipe recipe);
+
+    void delete(Recipe recipe);
 }

@@ -31,4 +31,10 @@ public class RecipeRepositoryAdapter implements RecipeRepository {
         jpaRecipeEntityRepository.save(entity);
     }
 
+    @Override
+    public void delete(Recipe recipe) {
+        RecipeEntity entity = recipeMapper.fromDomain(recipe);
+        jpaRecipeEntityRepository.deleteById(entity.getId());
+    }
+
 }

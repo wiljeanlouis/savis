@@ -44,12 +44,13 @@ class RecipeServiceImpl implements RecipeService {
 
     @Override
     public void deleteRecipe(UUID recipeId) {
-        // TODO Auto-generated method stub
+        Recipe recipe = getRecipe(recipeId);
+        repository.delete(recipe);
     }
 
     @Override
     public Money calculateTotalCost(UUID recipeId) {
-        Recipe recipe = repository.findByUuid(recipeId).orElseThrow();
+        Recipe recipe = getRecipe(recipeId);
         return recipe.calculateTotal(priceCalculator);
     }
 
