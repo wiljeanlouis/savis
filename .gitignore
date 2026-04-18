@@ -35,4 +35,4 @@ build/
 .vscode/
 
 ### 
-application.properties
+application-prod.properties

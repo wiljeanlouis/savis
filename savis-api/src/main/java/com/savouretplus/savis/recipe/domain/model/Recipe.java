@@ -1,5 +1,6 @@
 package com.savouretplus.savis.recipe.domain.model;
 
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
@@ -13,17 +14,26 @@ import lombok.EqualsAndHashCode;
 import lombok.Getter;
 
 @Getter
-@Builder
+@Builder()
 @EqualsAndHashCode(of = "uuid")
 public class Recipe {
     private final UUID uuid;
+
     private Long id;
+
     private String title;
+
     private String instructions;
-    private final List<IngredientRequirement> ingredients;
+
+    @Builder.Default
+    private final List<IngredientRequirement> ingredients = new ArrayList<>();
+
     private Minute cookingMinutes;
+
     private Minute preparationMinutes;
+
     private Integer servings;
+
     private String imageUrl;
 
     public static Recipe from(String title) {
@@ -33,7 +43,6 @@ public class Recipe {
                 .instructions(String.format("Instructions for %s", title))
                 .cookingMinutes(Minute.of(0))
                 .preparationMinutes(Minute.of(0))
-                .ingredients(Collections.emptyList())
                 .build();
     }
 
