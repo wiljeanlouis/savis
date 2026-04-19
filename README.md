@@ -13,3 +13,9 @@ The system will also serve as the basis for other future functionalities:
 * automatic cost calculation
 * margin analysis
 * order automation.
+
+
+## Architecture :
+**SAVIS** has a client-server architecture. It is separated in the following modules :
+* [SAVIS API](savis-api/README.md): the server that exposes all the endpoints
+* [SAVIS Admin](savis-admin/README.md): the client that offers the UI needed by admin users to manage SAVIS
