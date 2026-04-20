@@ -1,12 +1,15 @@
-import { Breadcrumb, BreadcrumbItem, BreadcrumbLink, BreadcrumbList, BreadcrumbPage, BreadcrumbSeparator } from "@/shared/ui/breadcrumb";
+import React from "react";
+import { Breadcrumb, BreadcrumbList } from "@/shared/ui/breadcrumb";
 import { Separator } from "@/shared/ui/separator"
 import { SidebarTrigger } from "@/shared/ui/sidebar"
-import { useLocation } from "react-router";
+import { useMatches } from "react-router";
+
+interface RouteHandle {
+  breadcrumb?: () => React.ReactNode;
+}
 
 export const Header = () => {
-  const location = useLocation();
-  const title = location.state?.title || "No title";
-  const pathnames = location.pathname.split('/').filter((x) => x);
+  const matches = useMatches();
 
   return (
     <header className="flex h-(--header-height) shrink-0 items-center gap-2 border-b transition-[width,height] ease-linear group-has-data-[collapsible=icon]/sidebar-wrapper:h-(--header-height)">
@@ -14,27 +17,14 @@ export const Header = () => {
         <SidebarTrigger className="-ml-1" />
         <Separator
           orientation="vertical"
-          className="mx-2 data-[orientation=vertical]:h-4"
+          className="mx-2 data-[orientation=vertical]:h-6"
         />
         <Breadcrumb>
           <BreadcrumbList>
-            {/* {pathnames.map((value, index) => {
-              const to = `/${pathnames.slice(0, index + 1).join('/')}`;
-
-              return (
-                <>
-                  <BreadcrumbItem className="hidden md:block" key={to}>
-                    <BreadcrumbLink href={to}>
-                      {value}
-                    </BreadcrumbLink>
-                  </BreadcrumbItem>
-                  <BreadcrumbSeparator className="hidden md:block" />
-                </>
-              );
-            })} */}
-            <BreadcrumbItem>
-              <BreadcrumbPage>{title}</BreadcrumbPage>
-            </BreadcrumbItem>
+            {matches
+              .filter((match) => match.handle && (match.handle as RouteHandle).breadcrumb)
+              .map((match) => (match.handle as RouteHandle).breadcrumb!())
+            }
           </BreadcrumbList>
         </Breadcrumb>
       </div>

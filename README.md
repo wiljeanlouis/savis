@@ -1,4 +1,6 @@
 # SAVIS
+
+## Purpose and functionalities
 **SAVIS** is the information system for **SavouretPlus** which will be used to:
 
 * manage the **product catalog**
@@ -15,7 +17,7 @@ The system will also serve as the basis for other future functionalities:
 * order automation.
 
 
-## Architecture :
+## Architecture
 **SAVIS** has a client-server architecture. It is separated in the following modules :
 * [SAVIS API](savis-api/README.md): the server that exposes all the endpoints
 * [SAVIS Admin](savis-admin/README.md): the client that offers the UI needed by admin users to manage SAVIS
