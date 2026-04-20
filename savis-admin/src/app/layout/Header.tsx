@@ -1,4 +1,4 @@
-import React from "react";
+import React, { Fragment } from "react";
 import { Breadcrumb, BreadcrumbList } from "@/shared/ui/breadcrumb";
 import { Separator } from "@/shared/ui/separator"
 import { SidebarTrigger } from "@/shared/ui/sidebar"
@@ -21,9 +21,15 @@ export const Header = () => {
         />
         <Breadcrumb>
           <BreadcrumbList>
-            {matches
-              .filter((match) => match.handle && (match.handle as RouteHandle).breadcrumb)
-              .map((match) => (match.handle as RouteHandle).breadcrumb!())
+            {
+              matches
+                .filter((match) => match.handle && (match.handle as RouteHandle).breadcrumb)
+                .map(
+                  (match, index) =>
+                    <Fragment key={index}>
+                      {(match.handle as RouteHandle).breadcrumb!()}
+                    </Fragment>
+                )
             }
           </BreadcrumbList>
         </Breadcrumb>
