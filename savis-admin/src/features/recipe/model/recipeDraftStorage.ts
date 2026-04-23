@@ -1,6 +1,8 @@
+import type { Recipe } from "../types"
+
 const KEY = "recipe-draft"
 
-export const saveDraft = (data: any) => {
+export const saveDraft = (data: Recipe) => {
   localStorage.setItem(KEY, JSON.stringify(data))
 }
 

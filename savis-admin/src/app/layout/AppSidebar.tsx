@@ -16,6 +16,7 @@ import {
 import { HugeiconsIcon } from "@hugeicons/react"
 import { DashboardSquare01Icon, Menu01Icon, ChartHistogramIcon, Folder01Icon, UserGroupIcon, Camera01Icon, File01Icon, Settings05Icon, HelpCircleIcon, SearchIcon, Database01Icon, Analytics01Icon, CommandIcon, Dish02Icon } from "@hugeicons/core-free-icons"
 import { Link } from "react-router"
+import { ModeToggle } from "./components/ModeToggle"
 
 const data = {
   user: {
@@ -102,9 +103,10 @@ export const AppSidebar = ({ ...props }: React.ComponentProps<typeof Sidebar>) =
         {/* <NavDocuments items={data.documents} />
         <NavSecondary items={data.navSecondary} className="mt-auto" /> */}
       </SidebarContent>
-      {/* <SidebarFooter>
-        <NavUser user={data.user} />
-      </SidebarFooter> */}
+      <SidebarFooter>
+        <ModeToggle />
+        {/* <NavUser user={data.user} /> */}
+      </SidebarFooter>
     </Sidebar>
   )
 }

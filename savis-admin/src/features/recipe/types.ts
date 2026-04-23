@@ -1,14 +1,16 @@
 export interface RecipeIngredient {
-  ingredientId: string
-  quantity: number
-  unit: string
+  ingredientId: string;
+  quantity: number;
+  unit: string;
 }
 
 export interface Recipe {
-  id: string;
+  id?: string;
   title: string;
   description: string;
-  image: string;
-  ingredients: RecipeIngredient[];
+  imageUrl: string;
   instructions: string;
+  ingredients: RecipeIngredient[];
+  cookingMinutes: number;
+  preparationMinutes: number;
 }

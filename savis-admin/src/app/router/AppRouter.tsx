@@ -76,7 +76,7 @@ const router = createBrowserRouter([
               </BreadcrumbItem>
               <BreadcrumbSeparator className="hidden md:block" />
               <BreadcrumbItem>
-                <BreadcrumbPage>Ajout recette</BreadcrumbPage>
+                <BreadcrumbPage>Nouvelle recette</BreadcrumbPage>
               </BreadcrumbItem>
             </>
           )

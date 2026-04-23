@@ -4,7 +4,7 @@ import { SidebarGroup, SidebarGroupContent, SidebarMenu, SidebarMenuButton, Side
 import { HugeiconsIcon } from "@hugeicons/react"
 import { PlusSignCircleIcon, SearchIcon } from "@hugeicons/core-free-icons"
 
-export const NavMain = ({items}: {items: any[]}) => {
+export const NavMain = ({ items }: { items: any[] }) => {
   return (
     <SidebarGroup>
       <SidebarGroupContent className="flex flex-col gap-2">
@@ -23,7 +23,7 @@ export const NavMain = ({items}: {items: any[]}) => {
               variant="outline"
             >
               <HugeiconsIcon icon={SearchIcon} strokeWidth={2} />
-              <span className="sr-only">Inbox</span>
+              <span className="sr-only">Search</span>
             </Button>
           </SidebarMenuItem>
         </SidebarMenu>

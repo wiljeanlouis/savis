@@ -39,7 +39,11 @@ export const MainLayout = () => {
         <AppSidebar variant="inset" />
         <SidebarInset>
           <Header />
-          <Outlet />
+          <div className="flex flex-1 flex-col gap-4 p-4">
+            <div className="mx-auto w-full max-w-6xl space-y-6">
+              <Outlet />
+            </div>
+          </div>
         </SidebarInset>
       </SidebarProvider>
     </TooltipProvider>

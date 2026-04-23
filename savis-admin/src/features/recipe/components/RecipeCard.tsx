@@ -10,12 +10,12 @@ import {
 } from "@/shared/ui/card"
 import type { Recipe } from "../types"
 
-export function RecipeCard({ id, title, description, image, ingredients, instructions }: Recipe) {
+export function RecipeCard({ id, title, description, imageUrl, ingredients, instructions }: Recipe) {
   return (
     <Card className="relative mx-auto w-full max-w-sm pt-0 flex flex-col justify-between">
       <div className="absolute inset-0 z-30 aspect-video bg-black/35" />
       <img
-        src={image}
+        src={imageUrl}
         alt={title}
         className="relative z-20 aspect-video w-full object-cover"
       />
@@ -31,8 +31,6 @@ export function RecipeCard({ id, title, description, image, ingredients, instruc
       <CardFooter>
         <Button variant="destructive" className="w-full">View Recipe</Button>
       </CardFooter>
-
-
     </Card>
   )
 }

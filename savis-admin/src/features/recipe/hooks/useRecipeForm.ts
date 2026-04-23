@@ -1,56 +1,79 @@
-import { useEffect, useState } from "react"
-import { type RecipeIngredient } from "../types"
-import { saveDraft, loadDraft, clearDraft } from "../model/recipeDraftStorage"
-import { useCreateRecipe } from "./useCreateRecipe"
+import { useEffect, useState } from "react";
+import type { RecipeIngredient } from "../types";
+import { saveDraft, loadDraft, clearDraft } from "../model/recipeDraftStorage";
+import { useCreateRecipe } from "./useCreateRecipe";
 
 export const useRecipeForm = () => {
-  const draft = loadDraft()
+  const draft = loadDraft();
 
-  const [title, setTitle] = useState(draft?.title || "")
-  const [ingredients, setIngredients] = useState<RecipeIngredient[]>(
-    draft?.ingredients || []
-  )
+  const [form, setForm] = useState({
+    title: draft?.title || ("" as string),
+    description: draft?.description || ("" as string),
+    imageUrl: draft?.imageUrl || ("" as string),
+    instructions: draft?.instructions || ("" as string),
+    ingredients: draft?.ingredients || ([] as RecipeIngredient[]),
+    cookingMinutes: draft?.cookingMinutes || (0 as number),
+    preparationMinutes: draft?.preparationMinutes || (0 as number),
+  });
 
-  const mutation = useCreateRecipe()
+  const mutation = useCreateRecipe();
 
-  // autosave
   useEffect(() => {
-    saveDraft({ title, ingredients })
-  }, [title, ingredients])
+    saveDraft(form);
+  }, [form]);
+
+  const updateField = (field: string, value: any) => {
+    setForm((prev) => ({
+      ...prev,
+      [field]: value,
+    }));
+  };
 
   const addIngredient = () => {
-    setIngredients(prev => [
+    setForm((prev) => ({
       ...prev,
-      { ingredientId: "", quantity: 0, unit: "" }
-    ])
-  }
+      ingredients: [
+        ...prev.ingredients,
+        { ingredientId: "", quantity: 0, unit: "" },
+      ],
+    }));
+  };
 
   const updateIngredient = (index: number, updated: RecipeIngredient) => {
-    setIngredients(prev =>
-      prev.map((item, i) => (i === index ? updated : item))
-    )
-  }
+    setForm((prev) => ({
+      ...prev,
+      ingredients: [
+        ...prev.ingredients.map((item: RecipeIngredient, i: number) =>
+          i === index ? updated : item,
+        ),
+      ],
+    }));
+  };
 
   const removeIngredient = (index: number) => {
-    setIngredients(prev => prev.filter((_, i) => i !== index))
-  }
+    setForm((prev) => ({
+      ...prev,
+      ingredients: [
+        ...prev.ingredients.filter(
+          (_: RecipeIngredient, i: number) => i !== index,
+        ),
+      ],
+    }));
+  };
 
-  const submit = async () => {
-    await mutation.mutateAsync({
-      title,
-      ingredients
-    })
-    clearDraft()
-  }
+  const submit = async (e: React.SubmitEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    await mutation.mutateAsync(form);
+    clearDraft();
+  };
 
   return {
-    title,
-    setTitle,
-    ingredients,
+    form,
+    updateField,
     addIngredient,
     updateIngredient,
     removeIngredient,
     submit,
-    isLoading: mutation.isPending
-  }
-}
+    isLoading: mutation.isPending,
+  };
+};

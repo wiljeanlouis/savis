@@ -1,6 +1,9 @@
 import { Input } from "@/shared/ui/input"
 import { type RecipeIngredient } from "../types"
 import { Button } from "@/shared/ui/button"
+import { Field } from "@/shared/ui/field"
+import { Select } from "@/shared/ui/select"
+import { SelectTrigger, SelectValue, SelectContent, SelectGroup, SelectItem } from "@/shared/ui/select"
 
 interface Props {
   value: RecipeIngredient
@@ -10,33 +13,48 @@ interface Props {
 
 export const IngredientInput = ({ value, onChange, onRemove }: Props) => {
   return (
-    <div style={{ display: "flex", gap: "8px", marginBottom: "8px" }}>
-      <Input
-        placeholder="Ingredient ID"
-        value={value.ingredientId}
-        onChange={e =>
-          onChange({ ...value, ingredientId: e.target.value })
-        }
-      />
+    <div className="grid grid-cols-3 gap-4">
+      <Field className="col-span-2">
+        <Input
+          placeholder="Ingredient ID"
+          value={value.ingredientId}
+          onChange={e =>
+            onChange({ ...value, ingredientId: e.target.value })
+          }
+        />
+      </Field>
 
-      <Input
-        type="number"
-        placeholder="Quantity"
-        value={value.quantity}
-        onChange={e =>
-          onChange({ ...value, quantity: Number(e.target.value) })
-        }
-      />
-
-      <Input
-        placeholder="Unit"
-        value={value.unit}
-        onChange={e =>
-          onChange({ ...value, unit: e.target.value })
-        }
-      />
-
-      <Button onClick={onRemove}>X</Button>
+      <div className="flex items-center gap-2">
+        <Field>
+          <Input
+            type="number"
+            placeholder="Quantity"
+            value={value.quantity}
+            onChange={e =>
+              onChange({ ...value, quantity: Number(e.target.value) })
+            }
+          />
+        </Field>
+        <Field>
+          <Select value={value.unit} onValueChange={e =>
+            onChange({ ...value, unit: e })
+          }>
+            <SelectTrigger className="w-32" id="recipe-form-exp-year-f59">
+              <SelectValue placeholder="Unité" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectGroup>
+                <SelectItem key="grams" value="GRAM">g</SelectItem>
+                <SelectItem key="kilograms" value="KILOGRAM">kg</SelectItem>
+                <SelectItem key="liters" value="LITER">L</SelectItem>
+                <SelectItem key="milliliters" value="MILLILITER">mL</SelectItem>
+                <SelectItem key="piece" value="PIECE">pièce</SelectItem>
+              </SelectGroup>
+            </SelectContent>
+          </Select>
+        </Field>
+        <Button variant="destructive" onClick={onRemove}>X</Button>
+      </div>
     </div>
   )
 }
