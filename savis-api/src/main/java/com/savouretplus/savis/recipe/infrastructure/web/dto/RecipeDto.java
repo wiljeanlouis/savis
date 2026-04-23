@@ -11,7 +11,7 @@ import jakarta.validation.constraints.NotNull;
 
 public record RecipeDto(
         UUID uuid,
-        @NotBlank String title,
+        @NotBlank String name,
         @NotBlank String description,
         @NotBlank String imageUrl,
         String instructions,
@@ -22,7 +22,7 @@ public record RecipeDto(
     public static RecipeDto from(Recipe recipe) {
         return new RecipeDto(
                 recipe.getUuid(),
-                recipe.getTitle(),
+                recipe.getName(),
                 recipe.getDescription(),
                 recipe.getImageUrl(),
                 recipe.getInstructions(),
@@ -35,7 +35,7 @@ public record RecipeDto(
 
     public RecipeCommand toCommand() {
         return RecipeCommand.builder()
-                .title(title)
+                .name(name)
                 .description(description)
                 .imageUrl(imageUrl)
                 .instructions(instructions)

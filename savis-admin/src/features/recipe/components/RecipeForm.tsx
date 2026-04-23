@@ -5,6 +5,9 @@ import { Button } from "@/shared/ui/button"
 import type { RecipeIngredient } from "../types"
 import { FieldGroup, FieldSet, FieldLegend, FieldDescription, Field, FieldLabel } from "@/shared/ui/field"
 import { Textarea } from "@/shared/ui/textarea"
+import { Image } from "@hugeicons/core-free-icons"
+import { HugeiconsIcon } from "@hugeicons/react"
+import PictureFrame from "./PictureFrame"
 
 export const RecipeForm = () => {
   const {
@@ -15,7 +18,8 @@ export const RecipeForm = () => {
     removeIngredient,
     submit,
     isLoading
-  } = useRecipeForm()
+  } = useRecipeForm();
+
 
   return (
     <>
@@ -32,14 +36,14 @@ export const RecipeForm = () => {
                 <FieldGroup>
 
                   <Field>
-                    <FieldLabel htmlFor="recipe-form-title">
-                      Titre
+                    <FieldLabel htmlFor="recipe-form-name">
+                      Nom
                     </FieldLabel>
                     <Input
-                      id="recipe-form-title"
+                      id="recipe-form-name"
                       placeholder="Boeuf bourgignon"
-                      value={form.title}
-                      onChange={e => updateField("title", e.target.value)}
+                      value={form.name}
+                      onChange={e => updateField("name", e.target.value)}
                       required
                     />
                   </Field>
@@ -95,7 +99,7 @@ export const RecipeForm = () => {
                         required
                       />
                       <FieldDescription>
-                        en minutes
+                        minutes
                       </FieldDescription>
                     </Field>
 
@@ -111,7 +115,7 @@ export const RecipeForm = () => {
                         required
                       />
                       <FieldDescription>
-                        en minutes
+                        minutes
                       </FieldDescription>
                     </Field>
                   </FieldGroup>
@@ -123,7 +127,7 @@ export const RecipeForm = () => {
               <FieldSet>
                 <FieldLegend>Ingrédients</FieldLegend>
                 <FieldDescription>
-                  La liste d'ingrédients qu'il faut pour préparer la recette.
+                  La liste des ingrédients de la recette.
                 </FieldDescription>
                 <FieldGroup>
                   {form.ingredients.map((ingredient: RecipeIngredient, index: number) => (
@@ -148,9 +152,7 @@ export const RecipeForm = () => {
               </Field>
             </div>
 
-            <div>
-              {form.imageUrl ? <img className="relative z-20 aspect-video w-full object-cover" src={form.imageUrl} alt="recipe image" /> : ""}
-            </div>
+            <PictureFrame imageUrl={form.imageUrl} />
           </div>
         </FieldGroup>
       </form>

@@ -10,13 +10,13 @@ import {
 } from "@/shared/ui/card"
 import type { Recipe } from "../types"
 
-export function RecipeCard({ title, description, imageUrl }: Recipe) {
+export function RecipeCard({ name, description, imageUrl }: Recipe) {
   return (
     <Card className="relative mx-auto w-full max-w-sm pt-0 flex flex-col justify-between">
       <div className="absolute inset-0 z-30 aspect-video bg-black/35" />
       <img
         src={imageUrl}
-        alt={title}
+        alt={name}
         className="relative z-20 aspect-video w-full object-cover"
       />
 
@@ -24,7 +24,7 @@ export function RecipeCard({ title, description, imageUrl }: Recipe) {
         <CardAction>
           <Badge variant="secondary">Featured</Badge>
         </CardAction>
-        <CardTitle>{title}</CardTitle>
+        <CardTitle>{name}</CardTitle>
         <CardDescription>{description}</CardDescription>
       </CardHeader>
 

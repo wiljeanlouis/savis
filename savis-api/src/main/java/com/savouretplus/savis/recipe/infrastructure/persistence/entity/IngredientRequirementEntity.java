@@ -21,7 +21,7 @@ public class IngredientRequirementEntity {
 
     private String ingredientName;
 
-    private double amount;
+    private double quantity;
 
     private String unit;
 

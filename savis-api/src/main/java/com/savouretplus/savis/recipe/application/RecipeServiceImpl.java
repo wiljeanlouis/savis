@@ -26,7 +26,7 @@ class RecipeServiceImpl implements RecipeService {
     @Override
     public UUID createRecipe(RecipeCommand recipeCommand) {
         Recipe recipe = Recipe.create(
-                recipeCommand.title(),
+                recipeCommand.name(),
                 recipeCommand.description(),
                 recipeCommand.imageUrl(),
                 recipeCommand.instructions(),
@@ -54,7 +54,7 @@ class RecipeServiceImpl implements RecipeService {
         Recipe updatedRecipe = new Recipe(
                 recipe.getUuid(),
                 recipe.getId(),
-                updateCommand.title(),
+                updateCommand.name(),
                 updateCommand.description(),
                 updateCommand.imageUrl(),
                 updateCommand.instructions(),

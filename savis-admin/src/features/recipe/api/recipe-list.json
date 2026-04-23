@@ -1,7 +1,7 @@
 [
     {
       "id": "1",
-      "title": "Spaghetti Bolognese",
+      "name": "Spaghetti Bolognese",
       "description": "A classic Italian pasta dish with rich meat sauce.",
       "imageUrl": "https://images.unsplash.com/photo-1473093295043-cdd812d0e601?w=900&auto=format&fit=crop&q=60&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxzZWFyY2h8OHx8cmVjZXR0ZXxlbnwwfHwwfHx8MA%3D%3D",
       "ingredients": [
@@ -13,7 +13,7 @@
     },
     {
       "id": "2",
-      "title": "Chicken Curry",
+      "name": "Chicken Curry",
       "description": "A flavorful curry dish with tender chicken pieces.",
       "imageUrl": "https://images.unsplash.com/photo-1708782344490-9026aaa5eec7?q=80&w=1480&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
       "ingredients": [
@@ -25,7 +25,7 @@
     },
     {
       "id": "3",
-      "title"   : "Vegetable Stir-Fry",
+      "name"   : "Vegetable Stir-Fry",
       "description": "A quick and healthy stir-fry with fresh vegetables.",
       "imageUrl": "https://images.unsplash.com/photo-1766323106504-6b44debfa313?q=80&w=2340&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
       "ingredients": [
@@ -37,7 +37,7 @@
     },
     {
       "id": "4",
-      "title": "Caesar Salad",
+      "name": "Caesar Salad",
       "description": "A classic salad with crisp romaine lettuce and creamy dressing.",
       "imageUrl": "https://images.unsplash.com/photo-1512621776951-a57141f2eefd?q=80&w=2340&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
       "ingredients": [
@@ -49,7 +49,7 @@
     },
     {
       "id": "5",
-      "title": "Pancakes",
+      "name": "Pancakes",
       "description": "Fluffy pancakes perfect for breakfast.",
       "imageUrl": "https://images.unsplash.com/photo-1587339144367-f1cacbecac82?w=900&auto=format&fit=crop&q=60&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxzZWFyY2h8M3x8UGFuY2FrZXN8ZW58MHx8MHx8fDA%3D",
       "ingredients": [
@@ -61,7 +61,7 @@
     },
     {
       "id": "6",
-      "title": "Grilled Salmon",
+      "name": "Grilled Salmon",
       "description": "A simple and delicious grilled salmon recipe.",
       "imageUrl": "https://images.unsplash.com/photo-1504674900247-0877df9cc836?q=80&w=2340&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
       "ingredients": [
@@ -73,7 +73,7 @@
     },
     {
       "id": "7",
-      "title": "Chocolate Chip Cookies",
+      "name": "Chocolate Chip Cookies",
       "description": "Classic cookies loaded with chocolate chips.",
       "imageUrl": "https://images.unsplash.com/photo-1563805042-7684c019e1cb?q=80&w=2340&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
       "ingredients": [
@@ -85,7 +85,7 @@
     },
     {
       "id": "8",
-      "title": "Beef Tacos",
+      "name": "Beef Tacos",
       "description": "Tasty tacos filled with seasoned beef and fresh toppings.",
       "imageUrl": "https://images.unsplash.com/photo-1600891964599-f61ba0e24092?q=80&w=2340&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
       "ingredients": [
@@ -97,7 +97,7 @@
     },
     {
       "id": "9",
-      "title": "Margherita Pizza",
+      "name": "Margherita Pizza",
       "description": "A simple and delicious pizza topped with fresh tomatoes, mozzarella, and basil.", 
       "imageUrl": "https://images.unsplash.com/photo-1513104890138-7c749659a591?q=80&w=2340&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
       "ingredients": [
@@ -108,7 +108,7 @@
       "instructions": "Preheat the oven to 220°C. Spread tomato sauce over the pizza base, then top with sliced mozzarella and fresh basil leaves. Bake for 10-12 minutes until the crust is golden and the cheese is bubbly."
     },{
       "id": "10",
-      "title": "Lemon Garlic Shrimp",
+      "name": "Lemon Garlic Shrimp",
       "description": "A quick and flavorful shrimp dish with a zesty lemon garlic sauce.",
       "imageUrl": "https://images.unsplash.com/photo-1640703935493-0c9161d82607?w=900&auto=format&fit=crop&q=60&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxzZWFyY2h8OHx8TGVtb24lMjBHYXJsaWMlMjBTaHJpbXB8ZW58MHx8MHx8fDA%3D",
       "ingredients": [

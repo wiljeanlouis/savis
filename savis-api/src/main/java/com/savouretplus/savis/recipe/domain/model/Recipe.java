@@ -3,7 +3,6 @@ package com.savouretplus.savis.recipe.domain.model;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
-import java.util.Optional;
 import java.util.UUID;
 
 import com.savouretplus.savis.common.Money;
@@ -19,7 +18,7 @@ public class Recipe {
 
     private final Long id;
 
-    private final String title;
+    private final String name;
 
     private final String description;
 
@@ -35,11 +34,11 @@ public class Recipe {
 
     private final Integer servings;
 
-    public Recipe(UUID uuid, Long id, String title, String description, String imageUrl, String instructions,
+    public Recipe(UUID uuid, Long id, String name, String description, String imageUrl, String instructions,
             Integer cookingMinutes, Integer preparationMinutes, Integer servings) {
         this.uuid = uuid;
         this.id = id;
-        this.title = title;
+        this.name = name;
         this.description = description;
         this.imageUrl = imageUrl;
         this.instructions = instructions;
@@ -48,10 +47,10 @@ public class Recipe {
         this.servings = servings;
     }
 
-    public static Recipe create(String title, String description, String imageUrl, String instructions,
+    public static Recipe create(String name, String description, String imageUrl, String instructions,
             Integer cookingMinutes,
             Integer preparationMinutes) {
-        return new Recipe(UUID.randomUUID(), null, title, description, imageUrl, instructions, cookingMinutes,
+        return new Recipe(UUID.randomUUID(), null, name, description, imageUrl, instructions, cookingMinutes,
                 preparationMinutes, 1);
     }
 

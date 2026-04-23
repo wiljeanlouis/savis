@@ -27,7 +27,7 @@ public class RecipeEntity {
     private UUID uuid;
 
     @Column(unique = true, nullable = false)
-    private String title;
+    private String name;
 
     @Column(nullable = false)
     private String description;

@@ -7,7 +7,7 @@ export const useRecipeForm = () => {
   const draft = loadDraft();
 
   const [form, setForm] = useState({
-    title: draft?.title || ("" as string),
+    name: draft?.name || ("" as string),
     description: draft?.description || ("" as string),
     imageUrl: draft?.imageUrl || ("" as string),
     instructions: draft?.instructions || ("" as string),

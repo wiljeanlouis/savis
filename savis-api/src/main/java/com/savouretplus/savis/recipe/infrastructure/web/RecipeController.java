@@ -50,7 +50,7 @@ public class RecipeController {
     @PutMapping("/{recipeId}")
     public ResponseEntity<UUID> updateRecipe(@PathVariable UUID recipeId,
             @Valid @RequestBody RecipeDto request) {
-        log.info("Updating recipe {} with title '{}' and instructions '{}'", recipeId, request.title(),
+        log.info("Updating recipe {} with name '{}' and instructions '{}'", recipeId, request.name(),
                 request.instructions());
 
 

@@ -15,7 +15,7 @@ public interface IngredientRequirementMapper {
     @Mapping(source = "entity", target = "quantity", qualifiedByName = "toQuantity")
     IngredientRequirement toDomain(IngredientRequirementEntity entity);
 
-    @Mapping(source = "requirement.quantity.value", target = "amount")
+    @Mapping(source = "requirement.quantity.value", target = "quantity")
     @Mapping(source = "requirement.quantity.unit", target = "unit")
     IngredientRequirementEntity fromDomain(IngredientRequirement requirement);
 
@@ -25,7 +25,7 @@ public interface IngredientRequirementMapper {
             return null;
         }
         Unit unit = Unit.valueOf(entity.getUnit());
-        return new Quantity(entity.getAmount(), unit);
+        return new Quantity(entity.getQuantity(), unit);
     }
 }
 
