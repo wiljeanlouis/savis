@@ -10,7 +10,7 @@ import {
 } from "@/shared/ui/card"
 import type { Recipe } from "../types"
 
-export function RecipeCard({ id, title, description, imageUrl, ingredients, instructions }: Recipe) {
+export function RecipeCard({ title, description, imageUrl }: Recipe) {
   return (
     <Card className="relative mx-auto w-full max-w-sm pt-0 flex flex-col justify-between">
       <div className="absolute inset-0 z-30 aspect-video bg-black/35" />

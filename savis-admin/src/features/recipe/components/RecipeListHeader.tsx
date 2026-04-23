@@ -5,7 +5,7 @@ import { HugeiconsIcon } from "@hugeicons/react";
 import { Search01Icon } from "@hugeicons/core-free-icons";
 import { Link } from "react-router";
 import { ButtonGroup } from "@/shared/ui/button-group";
-import { Field, FieldLabel } from "@/shared/ui/field";
+import { Field } from "@/shared/ui/field";
 
 export const RecipeListHeader = () => {
     return (

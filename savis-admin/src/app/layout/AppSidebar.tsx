@@ -1,9 +1,6 @@
 import * as React from "react"
 
-import { NavDocuments } from "@/app/layout/components/nav-documents"
 import { NavMain } from "@/app/layout/components/NavMain"
-import { NavSecondary } from "@/app/layout/components/nav-secondary"
-import { NavUser } from "@/app/layout/components/nav-user"
 import {
   Sidebar,
   SidebarContent,
@@ -14,7 +11,7 @@ import {
   SidebarMenuItem,
 } from "@/shared/ui/sidebar"
 import { HugeiconsIcon } from "@hugeicons/react"
-import { DashboardSquare01Icon, Menu01Icon, ChartHistogramIcon, Folder01Icon, UserGroupIcon, Camera01Icon, File01Icon, Settings05Icon, HelpCircleIcon, SearchIcon, Database01Icon, Analytics01Icon, CommandIcon, Dish02Icon } from "@hugeicons/core-free-icons"
+import { DashboardSquare01Icon, File01Icon, Settings05Icon, HelpCircleIcon, Database01Icon, Analytics01Icon, Dish02Icon } from "@hugeicons/core-free-icons"
 import { Link } from "react-router"
 import { ModeToggle } from "./components/ModeToggle"
 
