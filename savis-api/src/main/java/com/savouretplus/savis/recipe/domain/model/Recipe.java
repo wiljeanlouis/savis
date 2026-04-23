@@ -9,56 +9,50 @@ import java.util.UUID;
 import com.savouretplus.savis.common.Money;
 import com.savouretplus.savis.recipe.domain.port.PriceCalculator;
 
-import lombok.Builder;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
 
 @Getter
-@Builder()
 @EqualsAndHashCode(of = "uuid")
 public class Recipe {
     private final UUID uuid;
 
-    private Long id;
+    private final Long id;
 
-    private String title;
+    private final String title;
 
-    private String instructions;
+    private final String description;
 
-    @Builder.Default
+    private final String imageUrl;
+
+    private final String instructions;
+
     private final List<IngredientRequirement> ingredients = new ArrayList<>();
 
-    private Minute cookingMinutes;
+    private final Minute cookingMinutes;
 
-    private Minute preparationMinutes;
+    private final Minute preparationMinutes;
 
-    private Integer servings;
+    private final Integer servings;
 
-    private String imageUrl;
-
-    public static Recipe from(String title) {
-        return Recipe.builder()
-                .uuid(UUID.randomUUID())
-                .title(title)
-                .instructions(String.format("Instructions for %s", title))
-                .cookingMinutes(Minute.of(0))
-                .preparationMinutes(Minute.of(0))
-                .build();
+    public Recipe(UUID uuid, Long id, String title, String description, String imageUrl, String instructions,
+            Integer cookingMinutes, Integer preparationMinutes, Integer servings) {
+        this.uuid = uuid;
+        this.id = id;
+        this.title = title;
+        this.description = description;
+        this.imageUrl = imageUrl;
+        this.instructions = instructions;
+        this.cookingMinutes = cookingMinutes != null ? Minute.of(cookingMinutes) : null;
+        this.preparationMinutes = preparationMinutes != null ? Minute.of(preparationMinutes) : null;
+        this.servings = servings;
     }
 
-    @Builder
-    public static class RecipeUpdateDetails {
-        private Optional<String> title;
-        private Optional<String> instructions;
-        private Optional<Minute> cookingMinutes;
-        private Optional<Minute> preparationMinutes;
-    }
-
-    public void updateDetails(RecipeUpdateDetails details) {
-        details.title.ifPresent(title -> this.title = title);
-        details.instructions.ifPresent(instructions -> this.instructions = instructions);
-        details.cookingMinutes.ifPresent(cookingMinutes -> this.cookingMinutes = cookingMinutes);
-        details.preparationMinutes.ifPresent(preparationMinutes -> this.preparationMinutes = preparationMinutes);
+    public static Recipe create(String title, String description, String imageUrl, String instructions,
+            Integer cookingMinutes,
+            Integer preparationMinutes) {
+        return new Recipe(UUID.randomUUID(), null, title, description, imageUrl, instructions, cookingMinutes,
+                preparationMinutes, 1);
     }
 
     public List<IngredientRequirement> ingredients() {

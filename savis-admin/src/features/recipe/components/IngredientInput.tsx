@@ -16,10 +16,10 @@ export const IngredientInput = ({ value, onChange, onRemove }: Props) => {
     <div className="grid grid-cols-3 gap-4">
       <Field className="col-span-2">
         <Input
-          placeholder="Ingredient ID"
-          value={value.ingredientId}
+          placeholder="Ingredient Name"
+          value={value.ingredientName}
           onChange={e =>
-            onChange({ ...value, ingredientId: e.target.value })
+            onChange({ ...value, ingredientName: e.target.value })
           }
         />
       </Field>

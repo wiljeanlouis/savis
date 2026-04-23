@@ -30,6 +30,12 @@ public class RecipeEntity {
     private String title;
 
     @Column(nullable = false)
+    private String description;
+
+    @Column(nullable = false)
+    private String imageUrl;
+
+    @Column(nullable = true)
     private String instructions;
 
     @Column(nullable = false)
@@ -37,6 +43,9 @@ public class RecipeEntity {
 
     @Column(nullable = false)
     private Integer preparationMinutes;
+
+    @Column(nullable = false)
+    private Integer servings;
 
     @OneToMany(cascade = CascadeType.ALL, orphanRemoval = true)
     private List<IngredientRequirementEntity> ingredients;

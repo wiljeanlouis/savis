@@ -1,6 +1,5 @@
 package com.savouretplus.savis.recipe.domain.model;
 
-import java.util.Optional;
 import java.util.UUID;
 
 import org.junit.jupiter.api.Assertions;
@@ -12,58 +11,50 @@ import com.savouretplus.savis.recipe.domain.port.PriceCalculator;
 public class RecipeTest {
 
     @Test
-    void testFrom() {
+    void testCreate() {
         String title = "Test Recipe";
-        Recipe recipe = Recipe.from(title);
-
+        String description = "This is a test recipe.";
+        String imageUrl = "http://example.com/image.jpg";
+        String instructions = "1. Do this. 2. Do that.";
+        Integer cookingMinutes = 30;
+        Integer preparationMinutes = 15;
+        Recipe recipe = Recipe.create(title, description, imageUrl, instructions, cookingMinutes, preparationMinutes);
         Assertions.assertNotNull(recipe.getUuid());
         Assertions.assertEquals(recipe.getTitle(), title);
+        Assertions.assertEquals(recipe.getDescription(), description);
+        Assertions.assertEquals(recipe.getImageUrl(), imageUrl);
+        Assertions.assertEquals(recipe.getInstructions(), instructions);
+        Assertions.assertEquals(recipe.getCookingMinutes().value(), cookingMinutes);
+        Assertions.assertEquals(recipe.getPreparationMinutes().value(), preparationMinutes);
     }
 
-    @Test
-    void testUpdateDetails() {
-        Recipe recipe = Recipe.from("Original Title");
-        Recipe.RecipeUpdateDetails details = Recipe.RecipeUpdateDetails.builder()
-                .title(Optional.of("Updated Title"))
-                .instructions(Optional.of("Updated Instructions"))
-                .cookingMinutes(Optional.of(Minute.of(10)))
-                .preparationMinutes(Optional.of(Minute.of(5)))
-                .build();
-
-        recipe.updateDetails(details);
-
-        Assertions.assertEquals(recipe.getTitle(), "Updated Title");
-        Assertions.assertEquals(recipe.getInstructions(), "Updated Instructions");
-        Assertions.assertEquals(recipe.getCookingMinutes().value(), 10);
-        Assertions.assertEquals(recipe.getPreparationMinutes().value(), 5);
-    }
 
     @Test
     void testAddIngredient() {
-        Recipe recipe = Recipe.from("Test Recipe");
-        recipe.addIngredient("Flour", 200, Unit.GRAMS, null);
+        Recipe recipe = new Recipe( UUID.randomUUID(), 1L, "Oeufs brouillés", "Oeufs brouillés", "Instructions", "image.jpg", 1, 2, 3);
+        recipe.addIngredient("Flour", 200, Unit.GRAM, null);
 
         Assertions.assertEquals(1, recipe.ingredients().size());
         Assertions.assertEquals("Flour", recipe.ingredients().get(0).ingredientName());
         Assertions.assertEquals(200, recipe.ingredients().get(0).quantity().value());
-        Assertions.assertEquals(Unit.GRAMS, recipe.ingredients().get(0).quantity().unit());
+        Assertions.assertEquals(Unit.GRAM, recipe.ingredients().get(0).quantity().unit());
     }
 
     @Test
     void testAddIngredient_ShouldThrowIllegalStateExceptionWhenAddingDuplicateIngredient() {
-        Recipe recipe = Recipe.from("Test Recipe");
-        recipe.addIngredient("Sugar", 100, Unit.GRAMS, null);
+        Recipe recipe = new Recipe( UUID.randomUUID(), 1L, "Oeufs brouillés", "Oeufs brouillés", "Instructions", "image.jpg", 1, 2, 3);
+        recipe.addIngredient("Sugar", 100, Unit.GRAM, null);
 
         Assertions.assertThrows(IllegalStateException.class, () -> {
-            recipe.addIngredient("Sugar", 50, Unit.GRAMS, null);
+            recipe.addIngredient("Sugar", 50, Unit.GRAM, null);
         });
     }
 
     @Test
     void testCalculateTotal() {
-        Recipe recipe = Recipe.from("Test Recipe");
-        recipe.addIngredient("Flour", 200, Unit.GRAMS, UUID.fromString("59960a6c-9491-473a-87e9-3244396096d6"));
-        recipe.addIngredient("Sugar", 100, Unit.GRAMS, UUID.fromString("59960a6c-9491-473a-87e9-3244396096d1"));
+        Recipe recipe = new Recipe( UUID.randomUUID(), 1L, "Oeufs brouillés", "Oeufs brouillés", "Instructions", "image.jpg", 1, 2, 3);
+        recipe.addIngredient("Flour", 200, Unit.GRAM, UUID.fromString("59960a6c-9491-473a-87e9-3244396096d6"));
+        recipe.addIngredient("Sugar", 100, Unit.GRAM, UUID.fromString("59960a6c-9491-473a-87e9-3244396096d1"));
 
         PriceCalculator priceCalculator = (offerUuid) -> {
             if (offerUuid.toString().equals("59960a6c-9491-473a-87e9-3244396096d6")) {

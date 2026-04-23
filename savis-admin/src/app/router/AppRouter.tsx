@@ -1,4 +1,4 @@
-import { createBrowserRouter, RouterProvider } from "react-router"
+import { createBrowserRouter, Link, RouterProvider } from "react-router"
 import { DashboardPage } from "@/features/dashboard/pages/DashboardPage"
 import { MainLayout } from "@/app/layout/MainLayout"
 import { RecipeList } from "@/features/recipe/pages/RecipeList"
@@ -17,7 +17,9 @@ const router = createBrowserRouter([
           breadcrumb: () => (
             <>
               <BreadcrumbItem className="hidden md:block">
-                <BreadcrumbLink href="/">Home</BreadcrumbLink>
+               <BreadcrumbLink asChild>
+                  <Link to="/">Home</Link>
+                </BreadcrumbLink>
               </BreadcrumbItem>
               <BreadcrumbSeparator className="hidden md:block"/>
               <BreadcrumbItem>
@@ -34,7 +36,9 @@ const router = createBrowserRouter([
           breadcrumb: () => (
             <>
               <BreadcrumbItem className="hidden md:block">
-                <BreadcrumbLink href="/">Home</BreadcrumbLink>
+               <BreadcrumbLink asChild>
+                  <Link to="/">Home</Link>
+                </BreadcrumbLink>
               </BreadcrumbItem>
               <BreadcrumbSeparator className="hidden md:block" />
               <BreadcrumbItem>
@@ -51,7 +55,9 @@ const router = createBrowserRouter([
           breadcrumb: () => (
             <>
               <BreadcrumbItem className="hidden md:block">
-                <BreadcrumbLink href="/">Home</BreadcrumbLink>
+                <BreadcrumbLink asChild>
+                  <Link to="/">Home</Link>
+                </BreadcrumbLink>
               </BreadcrumbItem>
               <BreadcrumbSeparator className="hidden md:block" />
               <BreadcrumbItem>
@@ -68,11 +74,15 @@ const router = createBrowserRouter([
           breadcrumb: () => (
             <>
               <BreadcrumbItem className="hidden md:block">
-                <BreadcrumbLink href="/">Home</BreadcrumbLink>
+                <BreadcrumbLink asChild>
+                  <Link to="/">Home</Link>
+                </BreadcrumbLink>
               </BreadcrumbItem>
               <BreadcrumbSeparator className="hidden md:block" />
               <BreadcrumbItem className="hidden md:block">
-                <BreadcrumbLink href="/recipes">Recettes</BreadcrumbLink>
+                <BreadcrumbLink asChild>
+                  <Link to="/recipes">Recettes</Link>
+                </BreadcrumbLink>
               </BreadcrumbItem>
               <BreadcrumbSeparator className="hidden md:block" />
               <BreadcrumbItem>

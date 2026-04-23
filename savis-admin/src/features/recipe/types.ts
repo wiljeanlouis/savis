@@ -1,7 +1,8 @@
 export interface RecipeIngredient {
-  ingredientId: string;
+  ingredientName: string;
   quantity: number;
   unit: string;
+  selectedOfferId?: string;
 }
 
 export interface Recipe {

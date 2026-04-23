@@ -13,9 +13,6 @@ import com.savouretplus.savis.recipe.infrastructure.persistence.entity.RecipeEnt
 @Mapper(componentModel = "spring", uses = IngredientRequirementMapper.class)
 public interface RecipeMapper {
 
-    @Mapping(source = "entity.ingredients", target = "ingredients")
-    @Mapping(source = "entity.cookingMinutes", target = "cookingMinutes.value")
-    @Mapping(source = "entity.preparationMinutes", target = "preparationMinutes.value")
     Recipe toDomain(RecipeEntity entity);
 
     @Mapping(source = "recipe.ingredients", target = "ingredients")

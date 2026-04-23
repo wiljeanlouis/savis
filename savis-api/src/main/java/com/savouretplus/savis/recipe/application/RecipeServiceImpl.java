@@ -6,8 +6,7 @@ import java.util.UUID;
 import org.springframework.stereotype.Service;
 
 import com.savouretplus.savis.common.Money;
-import com.savouretplus.savis.recipe.application.command.RecipeUpdateCommand;
-import com.savouretplus.savis.recipe.domain.model.Minute;
+import com.savouretplus.savis.recipe.application.command.RecipeCommand;
 import com.savouretplus.savis.recipe.domain.model.Recipe;
 import com.savouretplus.savis.recipe.domain.model.Unit;
 import com.savouretplus.savis.recipe.domain.port.PriceCalculator;
@@ -25,8 +24,19 @@ class RecipeServiceImpl implements RecipeService {
     private final PriceCalculator priceCalculator;
 
     @Override
-    public UUID createRecipe(String title) {
-        Recipe recipe = Recipe.from(title);
+    public UUID createRecipe(RecipeCommand recipeCommand) {
+        Recipe recipe = Recipe.create(
+                recipeCommand.title(),
+                recipeCommand.description(),
+                recipeCommand.imageUrl(),
+                recipeCommand.instructions(),
+                recipeCommand.cookingMinutes(),
+                recipeCommand.preparationMinutes());
+
+        recipeCommand.ingredients()
+                .forEach(ingredientCommand -> recipe.addIngredient(ingredientCommand.ingredientName(),
+                        ingredientCommand.quantity(), ingredientCommand.unitEnum(), ingredientCommand.selectedOfferId()));
+
         repository.save(recipe);
         return recipe.getUuid();
     }
@@ -38,17 +48,26 @@ class RecipeServiceImpl implements RecipeService {
     }
 
     @Override
-    public UUID updateRecipe(UUID recipeId, RecipeUpdateCommand updateCommand) {
+    public UUID updateRecipe(UUID recipeId, RecipeCommand updateCommand) {
         Recipe recipe = getRecipe(recipeId);
-        Recipe.RecipeUpdateDetails details = Recipe.RecipeUpdateDetails.builder()
-                .title(updateCommand.getOptionalTitle())
-                .instructions(updateCommand.getOptionalInstructions())
-                .cookingMinutes(updateCommand.getOptionalCookingMinutes().map(Minute::of))
-                .preparationMinutes(updateCommand.getOptionalPreparationMinutes().map(Minute::of))
-                .build();
-        recipe.updateDetails(details);
-        repository.save(recipe);
-        return recipe.getUuid();
+
+        Recipe updatedRecipe = new Recipe(
+                recipe.getUuid(),
+                recipe.getId(),
+                updateCommand.title(),
+                updateCommand.description(),
+                updateCommand.imageUrl(),
+                updateCommand.instructions(),
+                updateCommand.cookingMinutes(),
+                updateCommand.preparationMinutes(),
+                recipe.getServings());
+
+        updateCommand.ingredients()
+                .forEach(ingredientCommand -> updatedRecipe.addIngredient(ingredientCommand.ingredientName(),
+                        ingredientCommand.quantity(), ingredientCommand.unitEnum(), ingredientCommand.selectedOfferId()));
+
+        repository.save(updatedRecipe);
+        return updatedRecipe.getUuid();
     }
 
     @Override
@@ -69,9 +88,9 @@ class RecipeServiceImpl implements RecipeService {
     }
 
     @Override
-    public void addIngredient(UUID recipeId, String ingredientName, double amount, Unit unit, UUID selectedOfferId) {
+    public void addIngredient(UUID recipeId, String ingredientName, double quantity, Unit unit, UUID selectedOfferId) {
         Recipe recipe = getRecipe(recipeId);
-        recipe.addIngredient(ingredientName, amount, unit, selectedOfferId);
+        recipe.addIngredient(ingredientName, quantity, unit, selectedOfferId);
         repository.save(recipe);
     }
 

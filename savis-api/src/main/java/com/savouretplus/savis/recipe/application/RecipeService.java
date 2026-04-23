@@ -4,16 +4,16 @@ import java.util.List;
 import java.util.UUID;
 
 import com.savouretplus.savis.common.Money;
-import com.savouretplus.savis.recipe.application.command.RecipeUpdateCommand;
+import com.savouretplus.savis.recipe.application.command.RecipeCommand;
 import com.savouretplus.savis.recipe.domain.model.Recipe;
 import com.savouretplus.savis.recipe.domain.model.Unit;
 
 public interface RecipeService {
-    UUID createRecipe(String title);
+    UUID createRecipe(RecipeCommand recipeCommand);
 
     Recipe getRecipe(UUID recipeId);
 
-    UUID updateRecipe(UUID recipeId, RecipeUpdateCommand updateCommand);
+    UUID updateRecipe(UUID recipeId, RecipeCommand recipeCommand);
 
     void deleteRecipe(UUID recipeId);
 

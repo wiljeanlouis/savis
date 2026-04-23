@@ -1,6 +1,6 @@
 package com.savouretplus.savis.recipe.infrastructure.web.dto;
 
-import com.savouretplus.savis.recipe.application.command.RecipeUpdateCommand;
+import com.savouretplus.savis.recipe.application.command.RecipeCommand;
 
 public record RecipeUpdateRequest(
                 String title,
@@ -8,8 +8,8 @@ public record RecipeUpdateRequest(
                 Integer cookingMinutes,
                 Integer preparationMinutes) {
 
-        public RecipeUpdateCommand toCommand() {
-                return RecipeUpdateCommand.builder()
+        public RecipeCommand toCommand() {
+                return RecipeCommand.builder()
                                 .title(title)
                                 .instructions(instructions)
                                 .cookingMinutes(cookingMinutes)
