@@ -39,4 +39,8 @@ application-prod.properties
 
 ### savis-admin
 */node_modules
+*.log
+*/coverage
+*/dist
+*/build
 

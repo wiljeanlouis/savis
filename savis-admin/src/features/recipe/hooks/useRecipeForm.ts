@@ -11,7 +11,9 @@ import { useLoaderData, useNavigate } from "react-router";
 
 export const useRecipeForm = () => {
   const data = useLoaderData<Recipe | null>();
+
   const draft = loadDraft();
+
   const initForm: Recipe | null = data?.id ? data : draft;
 
   const [form, setForm] = useState({
@@ -84,8 +86,7 @@ export const useRecipeForm = () => {
     await navigate(-1);
   };
 
-  const submit = async (e: React.SubmitEvent<HTMLFormElement>) => {
-    e.preventDefault();
+  const submit = async () => {
     try {
       await mutation.mutateAsync(form);
       await clearDraftAndNavigateBack();

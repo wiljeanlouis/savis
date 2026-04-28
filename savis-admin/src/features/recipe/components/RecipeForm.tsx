@@ -56,15 +56,16 @@ export const RecipeForm = () => {
     );
   }
 
+  const submitForm = async (e: React.SubmitEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    await submit();
+  };
+
   return (
     <>
       <h1 className="text-2xl font-semibold">{formTitle}</h1>
 
-      <form
-        onSubmit={(e) => {
-          void submit(e);
-        }}
-      >
+      <form onSubmit={submitForm}>
         <FieldGroup>
           <div className="grid grid-cols-3 gap-4">
             <div className="space-y-10 col-span-2">
