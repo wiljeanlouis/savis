@@ -1,8 +1,9 @@
-import { AppSidebar } from "@/app/layout/AppSidebar"
-import { SidebarInset, SidebarProvider } from "@/shared/ui/sidebar"
-import { Header } from "@/app/layout/Header"
-import { Outlet } from "react-router"
-import { TooltipProvider } from "@/shared/ui/tooltip"
+import { AppSidebar } from "@/app/layout/AppSidebar";
+import { SidebarInset, SidebarProvider } from "@/shared/ui/sidebar";
+import { Header } from "@/app/layout/Header";
+import { Outlet } from "react-router";
+import { TooltipProvider } from "@/shared/ui/tooltip";
+import { Toaster } from "@/shared/ui/sonner";
 
 // export const MainLayout = ({ children }: { children: React.ReactNode }) => {
 //   return (
@@ -42,10 +43,11 @@ export const MainLayout = () => {
           <div className="flex flex-1 flex-col gap-4 p-4">
             <div className="mx-auto w-full max-w-6xl space-y-6">
               <Outlet />
+              <Toaster position="top-center" />
             </div>
           </div>
         </SidebarInset>
       </SidebarProvider>
     </TooltipProvider>
-  )
-}
+  );
+};

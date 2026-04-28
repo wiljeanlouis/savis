@@ -1,16 +1,26 @@
-import type { Recipe } from "../types"
+import type { Recipe } from "../types";
 
-const KEY = "recipe-draft"
+const KEY = "recipe-draft";
 
-export const saveDraft = (data: Recipe) => {
-  localStorage.setItem(KEY, JSON.stringify(data))
-}
+const saveDraft = (data: Recipe) => {
+  localStorage.setItem(data.id ?? KEY, JSON.stringify(data));
+};
 
-export const loadDraft = () => {
-  const raw = localStorage.getItem(KEY)
-  return raw ? JSON.parse(raw) : null
-}
+const loadDraft = (id?: string): Recipe | null => {
+  const raw = localStorage.getItem(id ?? KEY);
+  return raw ? (JSON.parse(raw) as Recipe) : null;
+};
 
-export const clearDraft = () => {
-  localStorage.removeItem(KEY)
-}
+const clearDraft = (id?: string) => {
+  localStorage.removeItem(id ?? KEY);
+};
+
+const hasDraft = (id?: string) => {
+  const draft = loadDraft(id ?? KEY);
+
+  if (draft) return true; // Draft exists
+
+  return false; // No draft found
+};
+
+export { saveDraft, loadDraft, clearDraft, hasDraft };

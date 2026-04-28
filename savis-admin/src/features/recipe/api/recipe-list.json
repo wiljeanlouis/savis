@@ -1,121 +1,122 @@
 [
-    {
-      "id": "1",
-      "name": "Spaghetti Bolognese",
-      "description": "A classic Italian pasta dish with rich meat sauce.",
-      "imageUrl": "https://images.unsplash.com/photo-1473093295043-cdd812d0e601?w=900&auto=format&fit=crop&q=60&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxzZWFyY2h8OHx8cmVjZXR0ZXxlbnwwfHwwfHx8MA%3D%3D",
-      "ingredients": [
-        { "ingredientId": "1", "quantity": 200, "unit": "g" },
-        { "ingredientId": "2", "quantity": 100, "unit": "g" },
-        { "ingredientId": "3", "quantity": 1, "unit": "cup" }
-      ],
-      "instructions": "Cook the spaghetti according to package instructions. In a separate pan, sauté the meat and add the sauce. Combine and serve."
-    },
-    {
-      "id": "2",
-      "name": "Chicken Curry",
-      "description": "A flavorful curry dish with tender chicken pieces.",
-      "imageUrl": "https://images.unsplash.com/photo-1708782344490-9026aaa5eec7?q=80&w=1480&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
-      "ingredients": [
-        { "ingredientId": "4", "quantity": 300, "unit": "g" },
-        { "ingredientId": "5", "quantity": 1, "unit": "tbsp" },
-        { "ingredientId": "6", "quantity": 1, "unit": "cup" }
-      ],
-      "instructions": "In a large pan, sauté the chicken until cooked through. Add the curry paste and cook for a minute. Stir in the coconut milk and simmer for 20 minutes."
-    },
-    {
-      "id": "3",
-      "name"   : "Vegetable Stir-Fry",
-      "description": "A quick and healthy stir-fry with fresh vegetables.",
-      "imageUrl": "https://images.unsplash.com/photo-1766323106504-6b44debfa313?q=80&w=2340&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
-      "ingredients": [
-        { "ingredientId": "7", "quantity": 1, "unit": "cup" },
-        { "ingredientId": "8", "quantity": 1, "unit": "tbsp" },
-        { "ingredientId": "9", "quantity": 1, "unit": "tbsp" }
-      ],
-      "instructions": "Heat the oil in a wok over high heat. Add the vegetables and stir-fry for 2-3 minutes. Add the sauce and cook for another minute."
-    },
-    {
-      "id": "4",
-      "name": "Caesar Salad",
-      "description": "A classic salad with crisp romaine lettuce and creamy dressing.",
-      "imageUrl": "https://images.unsplash.com/photo-1512621776951-a57141f2eefd?q=80&w=2340&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
-      "ingredients": [
-        { "ingredientId": "10", "quantity": 1, "unit": "head" },
-        { "ingredientId": "11", "quantity": 1, "unit": "tbsp" },
-        { "ingredientId": "12", "quantity": 1, "unit": "cup" }
-      ],
-      "instructions": "Rinse the lettuce and pat dry. In a large bowl, whisk together the dressing ingredients. Add the lettuce and toss to coat."
-    },
-    {
-      "id": "5",
-      "name": "Pancakes",
-      "description": "Fluffy pancakes perfect for breakfast.",
-      "imageUrl": "https://images.unsplash.com/photo-1587339144367-f1cacbecac82?w=900&auto=format&fit=crop&q=60&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxzZWFyY2h8M3x8UGFuY2FrZXN8ZW58MHx8MHx8fDA%3D",
-      "ingredients": [
-        { "ingredientId": "13", "quantity": 200, "unit": "g" },
-        { "ingredientId": "14", "quantity": 300, "unit": "ml" },
-        { "ingredientId": "15", "quantity": 2, "unit": "pcs" }
-      ],
-      "instructions": "In a bowl, mix the flour, milk, and eggs until smooth. Heat a non-stick pan over medium heat and pour in the batter. Cook until bubbles form, then flip and cook until golden brown."
-    },
-    {
-      "id": "6",
-      "name": "Grilled Salmon",
-      "description": "A simple and delicious grilled salmon recipe.",
-      "imageUrl": "https://images.unsplash.com/photo-1504674900247-0877df9cc836?q=80&w=2340&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
-      "ingredients": [
-        { "ingredientId": "16", "quantity": 2, "unit": "fillets" },
-        { "ingredientId": "17", "quantity": 1, "unit": "tbsp" },
-        { "ingredientId": "18", "quantity": 1, "unit": "tsp" }
-      ],
-      "instructions": "Preheat the grill to medium-high heat. Brush the salmon fillets with olive oil and season with salt and pepper. Grill for 4-5 minutes on each side until cooked through."
-    },
-    {
-      "id": "7",
-      "name": "Chocolate Chip Cookies",
-      "description": "Classic cookies loaded with chocolate chips.",
-      "imageUrl": "https://images.unsplash.com/photo-1563805042-7684c019e1cb?q=80&w=2340&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
-      "ingredients": [
-        { "ingredientId": "19", "quantity": 200, "unit": "g" },
-        { "ingredientId": "20", "quantity": 100, "unit": "g" },
-        { "ingredientId": "21", "quantity": 1, "unit": "cup" }
-      ],
-      "instructions": "Preheat the oven to 180°C. In a bowl, cream together the butter and sugars. Add the eggs and vanilla extract, then mix in the flour and chocolate chips. Drop spoonfuls of dough onto a baking sheet and bake for 10-12 minutes until golden brown."
-    },
-    {
-      "id": "8",
-      "name": "Beef Tacos",
-      "description": "Tasty tacos filled with seasoned beef and fresh toppings.",
-      "imageUrl": "https://images.unsplash.com/photo-1600891964599-f61ba0e24092?q=80&w=2340&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
-      "ingredients": [
-        { "ingredientId": "22", "quantity": 300, "unit": "g" },
-        { "ingredientId": "23", "quantity": 1, "unit": "tbsp" },
-        { "ingredientId": "24", "quantity": 1, "unit": "cup" }
-      ],
-      "instructions": "In a skillet, cook the ground beef until browned. Add the taco seasoning and water, and simmer until the sauce thickens. Serve the beef in taco shells with your favorite toppings."
-    },
-    {
-      "id": "9",
-      "name": "Margherita Pizza",
-      "description": "A simple and delicious pizza topped with fresh tomatoes, mozzarella, and basil.", 
-      "imageUrl": "https://images.unsplash.com/photo-1513104890138-7c749659a591?q=80&w=2340&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
-      "ingredients": [
-        { "ingredientId": "25", "quantity": 1, "unit": "pizza base" },
-        { "ingredientId": "26", "quantity": 100, "unit": "g" },
-        { "ingredientId": "27", "quantity": 5, "unit": "pcs" }
-      ],
-      "instructions": "Preheat the oven to 220°C. Spread tomato sauce over the pizza base, then top with sliced mozzarella and fresh basil leaves. Bake for 10-12 minutes until the crust is golden and the cheese is bubbly."
-    },{
-      "id": "10",
-      "name": "Lemon Garlic Shrimp",
-      "description": "A quick and flavorful shrimp dish with a zesty lemon garlic sauce.",
-      "imageUrl": "https://images.unsplash.com/photo-1640703935493-0c9161d82607?w=900&auto=format&fit=crop&q=60&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxzZWFyY2h8OHx8TGVtb24lMjBHYXJsaWMlMjBTaHJpbXB8ZW58MHx8MHx8fDA%3D",
-      "ingredients": [
-        { "ingredientId": "28", "quantity": 300, "unit": "g" },
-        { "ingredientId": "29", "quantity": 2, "unit": "tbsp" },
-        { "ingredientId": "30", "quantity": 1, "unit": "tbsp" }
-      ],
-      "instructions": "In a skillet, melt the butter over medium heat. Add the minced garlic and cook for 1 minute until fragrant. Add the shrimp and cook until pink, then stir in the lemon juice and parsley. Serve immediately."
-    }
-  ]
+  {
+    "id": "1",
+    "name": "Spaghetti Bolognese",
+    "description": "A classic Italian pasta dish with rich meat sauce.",
+    "imageUrl": "https://images.unsplash.com/photo-1473093295043-cdd812d0e601?w=900&auto=format&fit=crop&q=60&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxzZWFyY2h8OHx8cmVjZXR0ZXxlbnwwfHwwfHx8MA%3D%3D",
+    "ingredients": [
+      { "ingredientName": "1", "quantity": 200, "unit": "g" },
+      { "ingredientName": "2", "quantity": 100, "unit": "g" },
+      { "ingredientName": "3", "quantity": 1, "unit": "cup" }
+    ],
+    "instructions": "Cook the spaghetti according to package instructions. In a separate pan, sauté the meat and add the sauce. Combine and serve."
+  },
+  {
+    "id": "2",
+    "name": "Chicken Curry",
+    "description": "A flavorful curry dish with tender chicken pieces.",
+    "imageUrl": "https://images.unsplash.com/photo-1708782344490-9026aaa5eec7?q=80&w=1480&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
+    "ingredients": [
+      { "ingredientName": "4", "quantity": 300, "unit": "g" },
+      { "ingredientName": "5", "quantity": 1, "unit": "tbsp" },
+      { "ingredientName": "6", "quantity": 1, "unit": "cup" }
+    ],
+    "instructions": "In a large pan, sauté the chicken until cooked through. Add the curry paste and cook for a minute. Stir in the coconut milk and simmer for 20 minutes."
+  },
+  {
+    "id": "3",
+    "name": "Vegetable Stir-Fry",
+    "description": "A quick and healthy stir-fry with fresh vegetables.",
+    "imageUrl": "https://images.unsplash.com/photo-1766323106504-6b44debfa313?q=80&w=2340&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
+    "ingredients": [
+      { "ingredientName": "7", "quantity": 1, "unit": "cup" },
+      { "ingredientName": "8", "quantity": 1, "unit": "tbsp" },
+      { "ingredientName": "9", "quantity": 1, "unit": "tbsp" }
+    ],
+    "instructions": "Heat the oil in a wok over high heat. Add the vegetables and stir-fry for 2-3 minutes. Add the sauce and cook for another minute."
+  },
+  {
+    "id": "4",
+    "name": "Caesar Salad",
+    "description": "A classic salad with crisp romaine lettuce and creamy dressing.",
+    "imageUrl": "https://images.unsplash.com/photo-1512621776951-a57141f2eefd?q=80&w=2340&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
+    "ingredients": [
+      { "ingredientName": "10", "quantity": 1, "unit": "head" },
+      { "ingredientName": "11", "quantity": 1, "unit": "tbsp" },
+      { "ingredientName": "12", "quantity": 1, "unit": "cup" }
+    ],
+    "instructions": "Rinse the lettuce and pat dry. In a large bowl, whisk together the dressing ingredients. Add the lettuce and toss to coat."
+  },
+  {
+    "id": "5",
+    "name": "Pancakes",
+    "description": "Fluffy pancakes perfect for breakfast.",
+    "imageUrl": "https://images.unsplash.com/photo-1587339144367-f1cacbecac82?w=900&auto=format&fit=crop&q=60&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxzZWFyY2h8M3x8UGFuY2FrZXN8ZW58MHx8MHx8fDA%3D",
+    "ingredients": [
+      { "ingredientName": "13", "quantity": 200, "unit": "g" },
+      { "ingredientName": "14", "quantity": 300, "unit": "ml" },
+      { "ingredientName": "15", "quantity": 2, "unit": "pcs" }
+    ],
+    "instructions": "In a bowl, mix the flour, milk, and eggs until smooth. Heat a non-stick pan over medium heat and pour in the batter. Cook until bubbles form, then flip and cook until golden brown."
+  },
+  {
+    "id": "6",
+    "name": "Grilled Salmon",
+    "description": "A simple and delicious grilled salmon recipe.",
+    "imageUrl": "https://images.unsplash.com/photo-1504674900247-0877df9cc836?q=80&w=2340&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
+    "ingredients": [
+      { "ingredientName": "16", "quantity": 2, "unit": "fillets" },
+      { "ingredientName": "17", "quantity": 1, "unit": "tbsp" },
+      { "ingredientName": "18", "quantity": 1, "unit": "tsp" }
+    ],
+    "instructions": "Preheat the grill to medium-high heat. Brush the salmon fillets with olive oil and season with salt and pepper. Grill for 4-5 minutes on each side until cooked through."
+  },
+  {
+    "id": "7",
+    "name": "Chocolate Chip Cookies",
+    "description": "Classic cookies loaded with chocolate chips.",
+    "imageUrl": "https://images.unsplash.com/photo-1563805042-7684c019e1cb?q=80&w=2340&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
+    "ingredients": [
+      { "ingredientName": "19", "quantity": 200, "unit": "g" },
+      { "ingredientName": "20", "quantity": 100, "unit": "g" },
+      { "ingredientName": "21", "quantity": 1, "unit": "cup" }
+    ],
+    "instructions": "Preheat the oven to 180°C. In a bowl, cream together the butter and sugars. Add the eggs and vanilla extract, then mix in the flour and chocolate chips. Drop spoonfuls of dough onto a baking sheet and bake for 10-12 minutes until golden brown."
+  },
+  {
+    "id": "8",
+    "name": "Beef Tacos",
+    "description": "Tasty tacos filled with seasoned beef and fresh toppings.",
+    "imageUrl": "https://images.unsplash.com/photo-1600891964599-f61ba0e24092?q=80&w=2340&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
+    "ingredients": [
+      { "ingredientName": "22", "quantity": 300, "unit": "g" },
+      { "ingredientName": "23", "quantity": 1, "unit": "tbsp" },
+      { "ingredientName": "24", "quantity": 1, "unit": "cup" }
+    ],
+    "instructions": "In a skillet, cook the ground beef until browned. Add the taco seasoning and water, and simmer until the sauce thickens. Serve the beef in taco shells with your favorite toppings."
+  },
+  {
+    "id": "9",
+    "name": "Margherita Pizza",
+    "description": "A simple and delicious pizza topped with fresh tomatoes, mozzarella, and basil.",
+    "imageUrl": "https://images.unsplash.com/photo-1513104890138-7c749659a591?q=80&w=2340&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
+    "ingredients": [
+      { "ingredientName": "25", "quantity": 1, "unit": "pizza base" },
+      { "ingredientName": "26", "quantity": 100, "unit": "g" },
+      { "ingredientName": "27", "quantity": 5, "unit": "pcs" }
+    ],
+    "instructions": "Preheat the oven to 220°C. Spread tomato sauce over the pizza base, then top with sliced mozzarella and fresh basil leaves. Bake for 10-12 minutes until the crust is golden and the cheese is bubbly."
+  },
+  {
+    "id": "10",
+    "name": "Lemon Garlic Shrimp",
+    "description": "A quick and flavorful shrimp dish with a zesty lemon garlic sauce.",
+    "imageUrl": "https://images.unsplash.com/photo-1640703935493-0c9161d82607?w=900&auto=format&fit=crop&q=60&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxzZWFyY2h8OHx8TGVtb24lMjBHYXJsaWMlMjBTaHJpbXB8ZW58MHx8MHx8fDA%3D",
+    "ingredients": [
+      { "ingredientName": "28", "quantity": 300, "unit": "g" },
+      { "ingredientName": "29", "quantity": 2, "unit": "tbsp" },
+      { "ingredientName": "30", "quantity": 1, "unit": "tbsp" }
+    ],
+    "instructions": "In a skillet, melt the butter over medium heat. Add the minced garlic and cook for 1 minute until fragrant. Add the shrimp and cook until pink, then stir in the lemon juice and parsley. Serve immediately."
+  }
+]

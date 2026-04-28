@@ -1,7 +1,5 @@
-import { RecipeForm } from "@/features/recipe/components/RecipeForm"
+import { RecipeForm } from "@/features/recipe/components/RecipeForm";
 
 export const RecipePage = () => {
-  return (
-    <RecipeForm />
-  )
-}
+  return <RecipeForm />;
+};

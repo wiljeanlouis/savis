@@ -1,15 +1,15 @@
-import { QueryProvider } from "./providers/QueryProvider"
-import { ThemeProvider } from "./providers/ThemeProvider"
-import { AppRouter } from "./router/AppRouter"
+import { ThemeProvider } from "next-themes";
+import { QueryProvider } from "./providers/QueryProvider";
+import { AppRouter } from "./router/AppRouter";
 
 function App() {
   return (
-    <ThemeProvider>
+    <ThemeProvider attribute="class">
       <QueryProvider>
         <AppRouter />
       </QueryProvider>
     </ThemeProvider>
-  )
+  );
 }
 
-export default App
+export default App;

@@ -1,8 +1,14 @@
-import { Button } from "@/shared/ui/button"
-import { NavLink } from "react-router"
-import { SidebarGroup, SidebarGroupContent, SidebarMenu, SidebarMenuButton, SidebarMenuItem, } from "@/shared/ui/sidebar"
-import { HugeiconsIcon } from "@hugeicons/react"
-import { PlusSignCircleIcon, SearchIcon } from "@hugeicons/core-free-icons"
+import { Button } from "@/shared/ui/button";
+import { NavLink } from "react-router";
+import {
+  SidebarGroup,
+  SidebarGroupContent,
+  SidebarMenu,
+  SidebarMenuButton,
+  SidebarMenuItem,
+} from "@/shared/ui/sidebar";
+import { HugeiconsIcon } from "@hugeicons/react";
+import { PlusSignCircleIcon, SearchIcon } from "@hugeicons/core-free-icons";
 
 export const NavMain = ({ items }: { items: any[] }) => {
   return (
@@ -29,20 +35,18 @@ export const NavMain = ({ items }: { items: any[] }) => {
         </SidebarMenu>
 
         <SidebarMenu>
-          {
-            items.map((item) => (
-              <SidebarMenuItem key={item.title}>
-                <SidebarMenuButton tooltip={item.title} asChild>
-                  <NavLink to={item.url} state={{ title: item.title }}>
-                    {item.icon}
-                    <span>{item.title}</span>
-                  </NavLink>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
-            ))
-          }
+          {items.map((item) => (
+            <SidebarMenuItem key={item.title}>
+              <SidebarMenuButton tooltip={item.title} asChild>
+                <NavLink to={item.url} state={{ title: item.title }}>
+                  {item.icon}
+                  <span>{item.title}</span>
+                </NavLink>
+              </SidebarMenuButton>
+            </SidebarMenuItem>
+          ))}
         </SidebarMenu>
       </SidebarGroupContent>
     </SidebarGroup>
-  )
-}
+  );
+};

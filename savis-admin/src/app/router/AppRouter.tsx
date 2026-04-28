@@ -1,10 +1,16 @@
-import { createBrowserRouter, Link, RouterProvider } from "react-router"
-import { DashboardPage } from "@/features/dashboard/pages/DashboardPage"
-import { MainLayout } from "@/app/layout/MainLayout"
-import { RecipeList } from "@/features/recipe/pages/RecipeList"
-import { BreadcrumbItem, BreadcrumbLink, BreadcrumbPage, BreadcrumbSeparator } from "@/shared/ui/breadcrumb";
+import { createBrowserRouter, Link, RouterProvider } from "react-router";
+import { DashboardPage } from "@/features/dashboard/pages/DashboardPage";
+import { MainLayout } from "@/app/layout/MainLayout";
+import {
+  BreadcrumbItem,
+  BreadcrumbLink,
+  BreadcrumbPage,
+  BreadcrumbSeparator,
+} from "@/shared/ui/breadcrumb";
 import { RecipePage } from "@/features/recipe/pages/RecipePage";
-
+import { RecipesPage } from "@/features/recipe/pages/RecipesPage";
+import { getRecipe } from "@/features/recipe/api/recipeApi";
+import type { Recipe } from "@/features/recipe/types";
 
 const router = createBrowserRouter([
   {
@@ -17,16 +23,16 @@ const router = createBrowserRouter([
           breadcrumb: () => (
             <>
               <BreadcrumbItem className="hidden md:block">
-               <BreadcrumbLink asChild>
-                  <Link to="/">Home</Link>
+                <BreadcrumbLink asChild>
+                  <Link to="/">Accueil</Link>
                 </BreadcrumbLink>
               </BreadcrumbItem>
-              <BreadcrumbSeparator className="hidden md:block"/>
+              <BreadcrumbSeparator className="hidden md:block" />
               <BreadcrumbItem>
                 <BreadcrumbPage>Dashboard</BreadcrumbPage>
               </BreadcrumbItem>
             </>
-          )
+          ),
         },
       },
       {
@@ -36,8 +42,8 @@ const router = createBrowserRouter([
           breadcrumb: () => (
             <>
               <BreadcrumbItem className="hidden md:block">
-               <BreadcrumbLink asChild>
-                  <Link to="/">Home</Link>
+                <BreadcrumbLink asChild>
+                  <Link to="/">Accueil</Link>
                 </BreadcrumbLink>
               </BreadcrumbItem>
               <BreadcrumbSeparator className="hidden md:block" />
@@ -45,18 +51,18 @@ const router = createBrowserRouter([
                 <BreadcrumbPage>Dashboard</BreadcrumbPage>
               </BreadcrumbItem>
             </>
-          )
+          ),
         },
       },
       {
         path: "/recipes",
-        element: <RecipeList />,
+        element: <RecipesPage />,
         handle: {
           breadcrumb: () => (
             <>
               <BreadcrumbItem className="hidden md:block">
                 <BreadcrumbLink asChild>
-                  <Link to="/">Home</Link>
+                  <Link to="/">Accueil</Link>
                 </BreadcrumbLink>
               </BreadcrumbItem>
               <BreadcrumbSeparator className="hidden md:block" />
@@ -64,7 +70,7 @@ const router = createBrowserRouter([
                 <BreadcrumbPage>Recettes</BreadcrumbPage>
               </BreadcrumbItem>
             </>
-          )
+          ),
         },
       },
       {
@@ -75,7 +81,7 @@ const router = createBrowserRouter([
             <>
               <BreadcrumbItem className="hidden md:block">
                 <BreadcrumbLink asChild>
-                  <Link to="/">Home</Link>
+                  <Link to="/">Accueil</Link>
                 </BreadcrumbLink>
               </BreadcrumbItem>
               <BreadcrumbSeparator className="hidden md:block" />
@@ -89,7 +95,38 @@ const router = createBrowserRouter([
                 <BreadcrumbPage>Nouvelle recette</BreadcrumbPage>
               </BreadcrumbItem>
             </>
-          )
+          ),
+        },
+      },
+      {
+        path: "/recipes/:id",
+        element: <RecipePage />,
+        loader: async ({ params }): Promise<Recipe> => {
+          if (!params.id) {
+            return Promise.reject(new Error("Recipe ID is required"));
+          }
+          return getRecipe(params.id);
+        },
+        handle: {
+          breadcrumb: () => (
+            <>
+              <BreadcrumbItem className="hidden md:block">
+                <BreadcrumbLink asChild>
+                  <Link to="/">Accueil</Link>
+                </BreadcrumbLink>
+              </BreadcrumbItem>
+              <BreadcrumbSeparator className="hidden md:block" />
+              <BreadcrumbItem className="hidden md:block">
+                <BreadcrumbLink asChild>
+                  <Link to="/recipes">Recettes</Link>
+                </BreadcrumbLink>
+              </BreadcrumbItem>
+              <BreadcrumbSeparator className="hidden md:block" />
+              <BreadcrumbItem>
+                <BreadcrumbPage>Recette</BreadcrumbPage>
+              </BreadcrumbItem>
+            </>
+          ),
         },
       },
     ],
@@ -97,7 +134,5 @@ const router = createBrowserRouter([
 ]);
 
 export const AppRouter = () => {
-  return (
-    <RouterProvider router={router} />
-  )
-}
+  return <RouterProvider router={router} />;
+};

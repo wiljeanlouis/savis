@@ -1,6 +1,6 @@
-import * as React from "react"
+import * as React from "react";
 
-import { NavMain } from "@/app/layout/components/NavMain"
+import { NavMain } from "@/app/layout/components/NavMain";
 import {
   Sidebar,
   SidebarContent,
@@ -9,11 +9,19 @@ import {
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
-} from "@/shared/ui/sidebar"
-import { HugeiconsIcon } from "@hugeicons/react"
-import { DashboardSquare01Icon, File01Icon, Settings05Icon, HelpCircleIcon, Database01Icon, Analytics01Icon, Dish02Icon } from "@hugeicons/core-free-icons"
-import { Link } from "react-router"
-import { ModeToggle } from "./components/ModeToggle"
+} from "@/shared/ui/sidebar";
+import { HugeiconsIcon } from "@hugeicons/react";
+import {
+  DashboardSquare01Icon,
+  File01Icon,
+  Settings05Icon,
+  HelpCircleIcon,
+  Database01Icon,
+  Analytics01Icon,
+  Dish02Icon,
+} from "@hugeicons/core-free-icons";
+import { Link } from "react-router";
+import { ModeToggle } from "./components/ModeToggle";
 
 const data = {
   user: {
@@ -25,66 +33,57 @@ const data = {
     {
       title: "Dashboard",
       url: "/dashboard",
-      icon: (
-        <HugeiconsIcon icon={DashboardSquare01Icon} strokeWidth={2} />
-      ),
+      icon: <HugeiconsIcon icon={DashboardSquare01Icon} strokeWidth={2} />,
     },
     {
       title: "Recettes",
       url: "/recipes",
-      icon: (
-        <HugeiconsIcon icon={Dish02Icon} strokeWidth={2} />
-      ),
+      icon: <HugeiconsIcon icon={Dish02Icon} strokeWidth={2} />,
     },
   ],
   navSecondary: [
     {
       title: "Settings",
       url: "#",
-      icon: (
-        <HugeiconsIcon icon={Settings05Icon} strokeWidth={2} />
-      ),
+      icon: <HugeiconsIcon icon={Settings05Icon} strokeWidth={2} />,
     },
     {
       title: "Get Help",
       url: "#",
-      icon: (
-        <HugeiconsIcon icon={HelpCircleIcon} strokeWidth={2} />
-      ),
+      icon: <HugeiconsIcon icon={HelpCircleIcon} strokeWidth={2} />,
     },
   ],
   documents: [
     {
       name: "Data Library",
       url: "#",
-      icon: (
-        <HugeiconsIcon icon={Database01Icon} strokeWidth={2} />
-      ),
+      icon: <HugeiconsIcon icon={Database01Icon} strokeWidth={2} />,
     },
     {
       name: "Reports",
       url: "#",
-      icon: (
-        <HugeiconsIcon icon={Analytics01Icon} strokeWidth={2} />
-      ),
+      icon: <HugeiconsIcon icon={Analytics01Icon} strokeWidth={2} />,
     },
     {
       name: "Word Assistant",
       url: "#",
-      icon: (
-        <HugeiconsIcon icon={File01Icon} strokeWidth={2} />
-      ),
+      icon: <HugeiconsIcon icon={File01Icon} strokeWidth={2} />,
     },
   ],
-}
+};
 
-export const AppSidebar = ({ ...props }: React.ComponentProps<typeof Sidebar>) => {
+export const AppSidebar = ({
+  ...props
+}: React.ComponentProps<typeof Sidebar>) => {
   return (
     <Sidebar collapsible="offcanvas" {...props}>
       <SidebarHeader>
         <SidebarMenu>
           <SidebarMenuItem>
-            <SidebarMenuButton asChild className="data-[slot=sidebar-menu-button]:p-1.5!">
+            <SidebarMenuButton
+              asChild
+              className="data-[slot=sidebar-menu-button]:p-1.5!"
+            >
               <Link to="/">
                 <div className="size-5!">
                   <img src="/favicon.ico" alt="" />
@@ -105,5 +104,5 @@ export const AppSidebar = ({ ...props }: React.ComponentProps<typeof Sidebar>) =
         {/* <NavUser user={data.user} /> */}
       </SidebarFooter>
     </Sidebar>
-  )
-}
+  );
+};

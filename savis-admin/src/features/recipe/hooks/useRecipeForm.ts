@@ -1,32 +1,50 @@
 import { useEffect, useState } from "react";
-import type { RecipeIngredient } from "../types";
-import { saveDraft, loadDraft, clearDraft } from "../model/recipeDraftStorage";
-import { useCreateRecipe } from "./useCreateRecipe";
+import type { Recipe, RecipeIngredient } from "../types";
+import {
+  saveDraft,
+  loadDraft,
+  clearDraft,
+  hasDraft,
+} from "../model/recipeDraftStorage";
+import { usePostRecipe } from "./useRecipeApi";
+import { useLoaderData, useNavigate } from "react-router";
 
 export const useRecipeForm = () => {
+  const data = useLoaderData<Recipe | null>();
   const draft = loadDraft();
+  const initForm: Recipe | null = data?.id ? data : draft;
 
   const [form, setForm] = useState({
-    name: draft?.name || ("" as string),
-    description: draft?.description || ("" as string),
-    imageUrl: draft?.imageUrl || ("" as string),
-    instructions: draft?.instructions || ("" as string),
-    ingredients: draft?.ingredients || ([] as RecipeIngredient[]),
-    cookingMinutes: draft?.cookingMinutes || (0 as number),
-    preparationMinutes: draft?.preparationMinutes || (0 as number),
+    id: initForm?.id ?? null,
+    name: initForm?.name ?? "",
+    description: initForm?.description ?? "",
+    imageUrl: initForm?.imageUrl ?? "",
+    instructions: initForm?.instructions ?? "",
+    ingredients: initForm?.ingredients ?? [],
+    cookingMinutes: initForm?.cookingMinutes ?? 0,
+    preparationMinutes: initForm?.preparationMinutes ?? 0,
   });
 
-  const mutation = useCreateRecipe();
+  const mutation = usePostRecipe();
+
+  const [isDraftAlertOpen, setIsDraftAlertOpen] = useState(false);
+
+  const navigate = useNavigate();
+
+  const [isDirty, setIsDirty] = useState(false);
 
   useEffect(() => {
-    saveDraft(form);
-  }, [form]);
+    if (isDirty && !form.id) {
+      saveDraft(form);
+    }
+  }, [form, isDirty]);
 
-  const updateField = (field: string, value: any) => {
+  const updateField = (field: string, value: string | number) => {
     setForm((prev) => ({
       ...prev,
       [field]: value,
     }));
+    setIsDirty(true);
   };
 
   const addIngredient = () => {
@@ -34,7 +52,7 @@ export const useRecipeForm = () => {
       ...prev,
       ingredients: [
         ...prev.ingredients,
-        { ingredientId: "", quantity: 0, unit: "" },
+        { ingredientName: "", quantity: 0, unit: "" },
       ],
     }));
   };
@@ -61,10 +79,35 @@ export const useRecipeForm = () => {
     }));
   };
 
+  const clearDraftAndNavigateBack = async () => {
+    clearDraft();
+    await navigate(-1);
+  };
+
   const submit = async (e: React.SubmitEvent<HTMLFormElement>) => {
     e.preventDefault();
-    await mutation.mutateAsync(form);
-    clearDraft();
+    try {
+      await mutation.mutateAsync(form);
+      await clearDraftAndNavigateBack();
+    } catch (error) {
+      console.error("Error creating recipe:", error);
+    }
+  };
+
+  const cancel = async () => {
+    if (hasDraft()) {
+      setIsDraftAlertOpen(true);
+    } else {
+      await navigate(-1);
+    }
+  };
+
+  const onDeleteDraftAlert = async () => {
+    await clearDraftAndNavigateBack();
+  };
+
+  const onKeepDraftAlert = async () => {
+    await navigate(-1);
   };
 
   return {
@@ -74,6 +117,14 @@ export const useRecipeForm = () => {
     updateIngredient,
     removeIngredient,
     submit,
+    cancel,
+    onDeleteDraftAlert,
+    onKeepDraftAlert,
+    isDraftAlertOpen,
+    setIsDraftAlertOpen,
     isLoading: mutation.isPending,
+    isSuccess: mutation.isSuccess,
+    isError: mutation.isError,
+    error: mutation.error,
   };
 };

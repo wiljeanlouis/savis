@@ -1,16 +1,25 @@
-import { Badge } from "@/shared/ui/badge"
-import { Button } from "@/shared/ui/button"
+import { Button } from "@/shared/ui/button";
 import {
   Card,
-  CardAction,
   CardDescription,
   CardFooter,
   CardHeader,
   CardTitle,
-} from "@/shared/ui/card"
-import type { Recipe } from "../types"
+} from "@/shared/ui/card";
+import type { Recipe } from "../types";
+import { Link } from "react-router";
+import { DeleteAlert } from "@/shared/components/DeleteAlert";
 
-export function RecipeCard({ name, description, imageUrl }: Recipe) {
+interface RecipeCardProps {
+  recipe: Recipe;
+  deleteRecipe: () => void;
+}
+
+export const RecipeCard = ({ recipe, deleteRecipe }: RecipeCardProps) => {
+  const { id, name, description, imageUrl } = recipe;
+
+  const link = id ? `/recipes/${id}` : "";
+
   return (
     <Card className="relative mx-auto w-full max-w-sm pt-0 flex flex-col justify-between">
       <div className="absolute inset-0 z-30 aspect-video bg-black/35" />
@@ -21,16 +30,19 @@ export function RecipeCard({ name, description, imageUrl }: Recipe) {
       />
 
       <CardHeader>
-        <CardAction>
-          <Badge variant="secondary">Featured</Badge>
-        </CardAction>
         <CardTitle>{name}</CardTitle>
         <CardDescription>{description}</CardDescription>
       </CardHeader>
 
-      <CardFooter>
-        <Button variant="destructive" className="w-full">View Recipe</Button>
+      <CardFooter className="flex justify-end gap-2">
+        <Button variant="outline">
+          <Link to={link} className="w-full">
+            Modifier
+          </Link>
+        </Button>
+
+        <DeleteAlert item={name} onDelete={deleteRecipe} />
       </CardFooter>
     </Card>
-  )
-}
+  );
+};

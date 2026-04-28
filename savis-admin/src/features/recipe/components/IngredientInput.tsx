@@ -1,14 +1,20 @@
-import { Input } from "@/shared/ui/input"
-import { type RecipeIngredient } from "../types"
-import { Button } from "@/shared/ui/button"
-import { Field } from "@/shared/ui/field"
-import { Select } from "@/shared/ui/select"
-import { SelectTrigger, SelectValue, SelectContent, SelectGroup, SelectItem } from "@/shared/ui/select"
+import { Input } from "@/shared/ui/input";
+import { type RecipeIngredient } from "../types";
+import { Button } from "@/shared/ui/button";
+import { Field } from "@/shared/ui/field";
+import { Select } from "@/shared/ui/select";
+import {
+  SelectTrigger,
+  SelectValue,
+  SelectContent,
+  SelectGroup,
+  SelectItem,
+} from "@/shared/ui/select";
 
 interface Props {
-  value: RecipeIngredient
-  onChange: (value: RecipeIngredient) => void
-  onRemove: () => void
+  value: RecipeIngredient;
+  onChange: (value: RecipeIngredient) => void;
+  onRemove: () => void;
 }
 
 export const IngredientInput = ({ value, onChange, onRemove }: Props) => {
@@ -18,7 +24,8 @@ export const IngredientInput = ({ value, onChange, onRemove }: Props) => {
         <Input
           placeholder="Ingredient Name"
           value={value.ingredientName}
-          onChange={e =>
+          required
+          onChange={(e) =>
             onChange({ ...value, ingredientName: e.target.value })
           }
         />
@@ -27,34 +34,47 @@ export const IngredientInput = ({ value, onChange, onRemove }: Props) => {
       <div className="flex items-center gap-2">
         <Field>
           <Input
-            type="number"
             placeholder="Quantity"
             value={value.quantity}
-            onChange={e =>
+            required
+            onChange={(e) =>
               onChange({ ...value, quantity: Number(e.target.value) })
             }
           />
         </Field>
         <Field>
-          <Select value={value.unit} onValueChange={e =>
-            onChange({ ...value, unit: e })
-          }>
-            <SelectTrigger className="w-32" id="recipe-form-exp-year-f59">
+          <Select
+            value={value.unit}
+            onValueChange={(e) => onChange({ ...value, unit: e })}
+          >
+            <SelectTrigger className="w-32" id="recipe-form-unit-list-f59">
               <SelectValue placeholder="Unité" />
             </SelectTrigger>
             <SelectContent>
               <SelectGroup>
-                <SelectItem key="grams" value="GRAM">g</SelectItem>
-                <SelectItem key="kilograms" value="KILOGRAM">kg</SelectItem>
-                <SelectItem key="liters" value="LITER">L</SelectItem>
-                <SelectItem key="milliliters" value="MILLILITER">mL</SelectItem>
-                <SelectItem key="piece" value="PIECE">pièce</SelectItem>
+                <SelectItem key="grams" value="GRAM">
+                  g
+                </SelectItem>
+                <SelectItem key="kilograms" value="KILOGRAM">
+                  kg
+                </SelectItem>
+                <SelectItem key="liters" value="LITER">
+                  L
+                </SelectItem>
+                <SelectItem key="milliliters" value="MILLILITER">
+                  mL
+                </SelectItem>
+                <SelectItem key="piece" value="PIECE">
+                  pièce
+                </SelectItem>
               </SelectGroup>
             </SelectContent>
           </Select>
         </Field>
-        <Button variant="destructive" onClick={onRemove}>X</Button>
+        <Button type="button" variant="destructive" onClick={onRemove}>
+          X
+        </Button>
       </div>
     </div>
-  )
-}
+  );
+};
