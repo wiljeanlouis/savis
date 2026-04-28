@@ -8,7 +8,7 @@ import com.savouretplus.savis.recipe.domain.model.Recipe;
 
 public interface RecipeRepository {
 
-    Optional<Recipe> findByUuid(UUID uuid);
+    Optional<Recipe> findByPublicId(UUID publicId);
 
     void save(Recipe recipe);
 

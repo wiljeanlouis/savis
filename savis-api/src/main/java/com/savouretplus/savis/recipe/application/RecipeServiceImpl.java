@@ -24,7 +24,12 @@ class RecipeServiceImpl implements RecipeService {
     private final PriceCalculator priceCalculator;
 
     @Override
-    public UUID createRecipe(RecipeCommand recipeCommand) {
+    public UUID saveRecipe(RecipeCommand recipeCommand) {
+
+        if(recipeCommand.id() != null) {
+            return updateRecipe(recipeCommand.id(), recipeCommand);
+        }
+
         Recipe recipe = Recipe.create(
                 recipeCommand.name(),
                 recipeCommand.description(),
@@ -38,21 +43,20 @@ class RecipeServiceImpl implements RecipeService {
                         ingredientCommand.quantity(), ingredientCommand.unitEnum(), ingredientCommand.selectedOfferId()));
 
         repository.save(recipe);
-        return recipe.getUuid();
+        return recipe.getPublicId();
     }
 
     @Override
     public Recipe getRecipe(UUID recipeId) {
-        return repository.findByUuid(recipeId)
+        return repository.findByPublicId(recipeId)
                 .orElseThrow(() -> new RuntimeException("Recipe not found"));
     }
 
-    @Override
     public UUID updateRecipe(UUID recipeId, RecipeCommand updateCommand) {
         Recipe recipe = getRecipe(recipeId);
 
         Recipe updatedRecipe = new Recipe(
-                recipe.getUuid(),
+                recipe.getPublicId(),
                 recipe.getId(),
                 updateCommand.name(),
                 updateCommand.description(),
@@ -67,7 +71,7 @@ class RecipeServiceImpl implements RecipeService {
                         ingredientCommand.quantity(), ingredientCommand.unitEnum(), ingredientCommand.selectedOfferId()));
 
         repository.save(updatedRecipe);
-        return updatedRecipe.getUuid();
+        return updatedRecipe.getPublicId();
     }
 
     @Override

@@ -24,7 +24,7 @@ public class RecipeEntity {
     private Long id;
 
     @Column(unique = true, nullable = false)
-    private UUID uuid;
+    private UUID publicId;
 
     @Column(unique = true, nullable = false)
     private String name;

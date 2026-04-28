@@ -4,7 +4,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
-import org.springframework.dao.DataAccessException;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Repository;
 
 import com.savouretplus.savis.recipe.domain.model.Recipe;
@@ -28,12 +28,12 @@ public class RecipeRepositoryAdapter implements RecipeRepository {
     private final RecipeMapper recipeMapper;
 
     @Override
-    public Optional<Recipe> findByUuid(UUID uuid) {
+    public Optional<Recipe> findByPublicId(UUID publicId) {
         try {
-            return jpaRepository.findByUuid(uuid)
+            return jpaRepository.findByPublicId(publicId)
                     .map(recipeMapper::toDomain);
-        } catch (DataAccessException e) {
-            throw new RecipePersistenceException(RECIPE_FIND_ERROR, e.getMostSpecificCause());
+        } catch (Exception e) {
+            throw new RecipePersistenceException(RECIPE_FIND_ERROR, e.getCause());
         }
 
     }
@@ -43,8 +43,8 @@ public class RecipeRepositoryAdapter implements RecipeRepository {
         try {
             RecipeEntity entity = recipeMapper.fromDomain(recipe);
             jpaRepository.save(entity);
-        } catch (DataAccessException e) {
-            throw new RecipePersistenceException(RECIPE_SAVE_ERROR, e.getMostSpecificCause());
+        } catch (Exception e) {
+            throw new RecipePersistenceException(RECIPE_SAVE_ERROR, e.getCause());
         }
     }
 
@@ -53,20 +53,20 @@ public class RecipeRepositoryAdapter implements RecipeRepository {
         try {
             RecipeEntity entity = recipeMapper.fromDomain(recipe);
             jpaRepository.deleteById(entity.getId());
-        } catch (DataAccessException e) {
-            throw new RecipePersistenceException(RECIPE_DELETE_ERROR, e.getMostSpecificCause());
+        } catch (Exception e) {
+            throw new RecipePersistenceException(RECIPE_DELETE_ERROR, e.getCause());
         }
     }
 
     @Override
     public List<Recipe> findAll() {
         try {
-            return jpaRepository.findAll()
+            return jpaRepository.findAll(Sort.by("id").ascending())
                     .stream()
                     .map(recipeMapper::toDomain)
                     .toList();
-        } catch (DataAccessException e) {
-            throw new RecipePersistenceException(RECIPE_FIND_ALL_ERROR, e.getMostSpecificCause());
+        } catch (Exception e) {
+            throw new RecipePersistenceException(RECIPE_FIND_ALL_ERROR, e.getCause());
         }
     }
 

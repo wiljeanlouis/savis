@@ -19,7 +19,7 @@ public class RecipeTest {
         Integer cookingMinutes = 30;
         Integer preparationMinutes = 15;
         Recipe recipe = Recipe.create(title, description, imageUrl, instructions, cookingMinutes, preparationMinutes);
-        Assertions.assertNotNull(recipe.getUuid());
+        Assertions.assertNotNull(recipe.getPublicId());
         Assertions.assertEquals(recipe.getName(), title);
         Assertions.assertEquals(recipe.getDescription(), description);
         Assertions.assertEquals(recipe.getImageUrl(), imageUrl);

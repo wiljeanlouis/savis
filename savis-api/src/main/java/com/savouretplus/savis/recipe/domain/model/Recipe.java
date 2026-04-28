@@ -12,9 +12,9 @@ import lombok.EqualsAndHashCode;
 import lombok.Getter;
 
 @Getter
-@EqualsAndHashCode(of = "uuid")
+@EqualsAndHashCode(of = "publicId")
 public class Recipe {
-    private final UUID uuid;
+    private final UUID publicId;
 
     private final Long id;
 
@@ -34,9 +34,9 @@ public class Recipe {
 
     private final Integer servings;
 
-    public Recipe(UUID uuid, Long id, String name, String description, String imageUrl, String instructions,
+    public Recipe(UUID publicId, Long id, String name, String description, String imageUrl, String instructions,
             Integer cookingMinutes, Integer preparationMinutes, Integer servings) {
-        this.uuid = uuid;
+        this.publicId = publicId;
         this.id = id;
         this.name = name;
         this.description = description;

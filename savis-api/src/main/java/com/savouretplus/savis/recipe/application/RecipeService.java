@@ -9,11 +9,9 @@ import com.savouretplus.savis.recipe.domain.model.Recipe;
 import com.savouretplus.savis.recipe.domain.model.Unit;
 
 public interface RecipeService {
-    UUID createRecipe(RecipeCommand recipeCommand);
+    UUID saveRecipe(RecipeCommand recipeCommand);
 
     Recipe getRecipe(UUID recipeId);
-
-    UUID updateRecipe(UUID recipeId, RecipeCommand recipeCommand);
 
     void deleteRecipe(UUID recipeId);
 

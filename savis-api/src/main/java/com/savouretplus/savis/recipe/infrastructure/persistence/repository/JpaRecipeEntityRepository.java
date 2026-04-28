@@ -8,6 +8,6 @@ import com.savouretplus.savis.recipe.infrastructure.persistence.entity.RecipeEnt
 
 public interface JpaRecipeEntityRepository extends JpaRepository<RecipeEntity, Long> {
 
-    Optional<RecipeEntity> findByUuid(java.util.UUID uuid);
+    Optional<RecipeEntity> findByPublicId(java.util.UUID publicId);
 
 }
