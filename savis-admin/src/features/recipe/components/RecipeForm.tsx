@@ -46,12 +46,12 @@ export const RecipeForm = () => {
 
   if (isError) {
     const errorResponse = error as unknown as {
-      response: { data: { detail: string } };
+      response: { data?: { detail?: string } };
     };
     toast.error(
       "Une erreur est survenue lors de la sauvegarde de la recette.",
       {
-        description: errorResponse.response.data.detail,
+        description: errorResponse.response?.data?.detail,
       },
     );
   }

@@ -10,9 +10,10 @@ export const useRecipeList = () => {
   };
 
   return {
-    recipes: useQuery.data! as Recipe[],
+    recipes: useQuery.data as Recipe[] | undefined,
     isLoading: useQuery.isPending,
     isError: useQuery.isError,
+    error: useQuery.error,
     deleteRecipe: deleteRecipe,
   };
 };
