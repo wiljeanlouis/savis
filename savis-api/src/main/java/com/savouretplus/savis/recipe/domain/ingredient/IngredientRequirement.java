@@ -5,9 +5,9 @@ import java.util.UUID;
 import com.savouretplus.savis.common.Quantity;
 
 public record IngredientRequirement(
-                Long id,
-                String ingredientName,
-                Quantity quantity,
-                UUID selectedOfferId) {
+        Long id,
+        String ingredientName,
+        Quantity quantity,
+        UUID selectedOfferId) {
 
 }
