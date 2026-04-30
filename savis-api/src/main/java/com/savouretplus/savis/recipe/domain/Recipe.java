@@ -1,4 +1,4 @@
-package com.savouretplus.savis.recipe.domain.model;
+package com.savouretplus.savis.recipe.domain;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -6,7 +6,10 @@ import java.util.List;
 import java.util.UUID;
 
 import com.savouretplus.savis.common.Money;
-import com.savouretplus.savis.recipe.domain.port.PriceCalculator;
+import com.savouretplus.savis.common.Quantity;
+import com.savouretplus.savis.common.Unit;
+import com.savouretplus.savis.recipe.domain.ingredient.IngredientPricePort;
+import com.savouretplus.savis.recipe.domain.ingredient.IngredientRequirement;
 
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
@@ -65,9 +68,9 @@ public class Recipe {
         this.ingredients.add(new IngredientRequirement(null, name, new Quantity(value, unit), selectedOfferId));
     }
 
-    public Money calculateTotal(PriceCalculator calculator) {
+    public Money calculateTotal(IngredientPricePort calculator) {
         return ingredients.stream()
-                .map(ing -> calculator.getPrice(ing.selectedOfferId()))
+                .map(ing -> calculator.getPrice(ing.ingredientName(), ing.selectedOfferId()))
                 .reduce(Money.ZERO, Money::add);
     }
 

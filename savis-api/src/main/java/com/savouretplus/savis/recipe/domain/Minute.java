@@ -1,4 +1,4 @@
-package com.savouretplus.savis.recipe.domain.model;
+package com.savouretplus.savis.recipe.domain;
 
 public record Minute(
         Integer value) {

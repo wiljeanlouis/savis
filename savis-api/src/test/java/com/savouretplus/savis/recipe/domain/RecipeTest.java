@@ -1,4 +1,4 @@
-package com.savouretplus.savis.recipe.domain.model;
+package com.savouretplus.savis.recipe.domain;
 
 import java.util.UUID;
 
@@ -6,7 +6,9 @@ import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
 import com.savouretplus.savis.common.Money;
-import com.savouretplus.savis.recipe.domain.port.PriceCalculator;
+import com.savouretplus.savis.common.Unit;
+import com.savouretplus.savis.recipe.domain.Recipe;
+import com.savouretplus.savis.recipe.domain.ingredient.IngredientPricePort;
 
 public class RecipeTest {
 
@@ -28,10 +30,10 @@ public class RecipeTest {
         Assertions.assertEquals(recipe.getPreparationMinutes().value(), preparationMinutes);
     }
 
-
     @Test
     void testAddIngredient() {
-        Recipe recipe = new Recipe( UUID.randomUUID(), 1L, "Oeufs brouillés", "Oeufs brouillés", "Instructions", "image.jpg", 1, 2, 3);
+        Recipe recipe = new Recipe(UUID.randomUUID(), 1L, "Oeufs brouillés", "Oeufs brouillés", "Instructions",
+                "image.jpg", 1, 2, 3);
         recipe.addIngredient("Flour", 200, Unit.GRAM, null);
 
         Assertions.assertEquals(1, recipe.ingredients().size());
@@ -42,7 +44,8 @@ public class RecipeTest {
 
     @Test
     void testAddIngredient_ShouldThrowIllegalStateExceptionWhenAddingDuplicateIngredient() {
-        Recipe recipe = new Recipe( UUID.randomUUID(), 1L, "Oeufs brouillés", "Oeufs brouillés", "Instructions", "image.jpg", 1, 2, 3);
+        Recipe recipe = new Recipe(UUID.randomUUID(), 1L, "Oeufs brouillés", "Oeufs brouillés", "Instructions",
+                "image.jpg", 1, 2, 3);
         recipe.addIngredient("Sugar", 100, Unit.GRAM, null);
 
         Assertions.assertThrows(IllegalStateException.class, () -> {
@@ -52,11 +55,12 @@ public class RecipeTest {
 
     @Test
     void testCalculateTotal() {
-        Recipe recipe = new Recipe( UUID.randomUUID(), 1L, "Oeufs brouillés", "Oeufs brouillés", "Instructions", "image.jpg", 1, 2, 3);
+        Recipe recipe = new Recipe(UUID.randomUUID(), 1L, "Oeufs brouillés", "Oeufs brouillés", "Instructions",
+                "image.jpg", 1, 2, 3);
         recipe.addIngredient("Flour", 200, Unit.GRAM, UUID.fromString("59960a6c-9491-473a-87e9-3244396096d6"));
         recipe.addIngredient("Sugar", 100, Unit.GRAM, UUID.fromString("59960a6c-9491-473a-87e9-3244396096d1"));
 
-        PriceCalculator priceCalculator = (offerUuid) -> {
+        IngredientPricePort priceCalculator = (name, offerUuid) -> {
             if (offerUuid.toString().equals("59960a6c-9491-473a-87e9-3244396096d6")) {
                 return Money.of(5);
             } else if (offerUuid.toString().equals("59960a6c-9491-473a-87e9-3244396096d1")) {
@@ -66,7 +70,7 @@ public class RecipeTest {
         };
 
         Money total = recipe.calculateTotal(priceCalculator);
-        Assertions.assertEquals(Money.of(25), total);  
+        Assertions.assertEquals(Money.of(25), total);
 
     }
 

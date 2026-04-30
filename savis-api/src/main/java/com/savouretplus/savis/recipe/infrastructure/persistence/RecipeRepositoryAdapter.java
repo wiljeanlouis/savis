@@ -1,4 +1,4 @@
-package com.savouretplus.savis.recipe.infrastructure.persistence.repository;
+package com.savouretplus.savis.recipe.infrastructure.persistence;
 
 import java.util.List;
 import java.util.Optional;
@@ -7,11 +7,8 @@ import java.util.UUID;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Repository;
 
-import com.savouretplus.savis.recipe.domain.model.Recipe;
-import com.savouretplus.savis.recipe.domain.port.RecipeRepository;
-import com.savouretplus.savis.recipe.infrastructure.persistence.entity.RecipeEntity;
-import com.savouretplus.savis.recipe.infrastructure.persistence.exception.RecipePersistenceException;
-import com.savouretplus.savis.recipe.infrastructure.persistence.mapper.RecipeMapper;
+import com.savouretplus.savis.recipe.domain.Recipe;
+import com.savouretplus.savis.recipe.domain.RecipeRepository;
 
 import lombok.AllArgsConstructor;
 
@@ -24,7 +21,7 @@ public class RecipeRepositoryAdapter implements RecipeRepository {
     private static final String RECIPE_DELETE_ERROR = "RECIPE_DELETE_ERROR";
     private static final String RECIPE_FIND_ALL_ERROR = "RECIPE_FIND_ALL_ERROR";
 
-    private final JpaRecipeEntityRepository jpaRepository;
+    private final RecipeJpaRepository jpaRepository;
     private final RecipeMapper recipeMapper;
 
     @Override

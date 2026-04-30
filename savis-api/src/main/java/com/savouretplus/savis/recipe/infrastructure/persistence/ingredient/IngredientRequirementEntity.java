@@ -1,4 +1,4 @@
-package com.savouretplus.savis.recipe.infrastructure.persistence.entity;
+package com.savouretplus.savis.recipe.infrastructure.persistence.ingredient;
 
 import java.util.UUID;
 

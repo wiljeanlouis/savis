@@ -1,4 +1,4 @@
-package com.savouretplus.savis.recipe.infrastructure.persistence.exception;
+package com.savouretplus.savis.recipe.infrastructure.persistence;
 
 public class RecipePersistenceException extends RuntimeException {
 

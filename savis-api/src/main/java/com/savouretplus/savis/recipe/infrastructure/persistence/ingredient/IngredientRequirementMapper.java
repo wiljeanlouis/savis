@@ -1,13 +1,12 @@
-package com.savouretplus.savis.recipe.infrastructure.persistence.mapper;
+package com.savouretplus.savis.recipe.infrastructure.persistence.ingredient;
 
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
 import org.mapstruct.Named;
 
-import com.savouretplus.savis.recipe.domain.model.IngredientRequirement;
-import com.savouretplus.savis.recipe.domain.model.Quantity;
-import com.savouretplus.savis.recipe.domain.model.Unit;
-import com.savouretplus.savis.recipe.infrastructure.persistence.entity.IngredientRequirementEntity;
+import com.savouretplus.savis.common.Quantity;
+import com.savouretplus.savis.common.Unit;
+import com.savouretplus.savis.recipe.domain.ingredient.IngredientRequirement;
 
 @Mapper(componentModel = "spring")
 public interface IngredientRequirementMapper {
@@ -28,4 +27,3 @@ public interface IngredientRequirementMapper {
         return new Quantity(entity.getQuantity(), unit);
     }
 }
-

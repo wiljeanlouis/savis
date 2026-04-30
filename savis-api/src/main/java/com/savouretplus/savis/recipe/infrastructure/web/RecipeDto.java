@@ -1,10 +1,10 @@
-package com.savouretplus.savis.recipe.infrastructure.web.dto;
+package com.savouretplus.savis.recipe.infrastructure.web;
 
 import java.util.List;
 import java.util.UUID;
 
-import com.savouretplus.savis.recipe.application.command.RecipeCommand;
-import com.savouretplus.savis.recipe.domain.model.Recipe;
+import com.savouretplus.savis.recipe.application.RecipeCommand;
+import com.savouretplus.savis.recipe.domain.Recipe;
 
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;

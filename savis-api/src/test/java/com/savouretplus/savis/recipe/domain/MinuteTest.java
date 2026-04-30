@@ -1,7 +1,9 @@
-package com.savouretplus.savis.recipe.domain.model;
+package com.savouretplus.savis.recipe.domain;
 
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
+
+import com.savouretplus.savis.recipe.domain.Minute;
 
 public class MinuteTest {
     @Test

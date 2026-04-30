@@ -13,7 +13,6 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.savouretplus.savis.recipe.application.RecipeService;
-import com.savouretplus.savis.recipe.infrastructure.web.dto.RecipeDto;
 
 import jakarta.validation.Valid;
 import lombok.AllArgsConstructor;

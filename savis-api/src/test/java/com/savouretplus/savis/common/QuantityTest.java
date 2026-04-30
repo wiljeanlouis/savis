@@ -1,7 +1,10 @@
-package com.savouretplus.savis.recipe.domain.model;
+package com.savouretplus.savis.common;
 
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
+
+import com.savouretplus.savis.common.Quantity;
+import com.savouretplus.savis.common.Unit;
 
 public class QuantityTest {
     @Test
