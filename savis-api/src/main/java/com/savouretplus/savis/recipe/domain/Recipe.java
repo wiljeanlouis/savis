@@ -37,24 +37,24 @@ public class Recipe {
 
     private final Integer servings;
 
-    public Recipe(UUID publicId, Long id, String name, String description, String imageUrl, String instructions,
-            Integer cookingMinutes, Integer preparationMinutes, Integer servings) {
-        this.publicId = publicId;
+    public Recipe(UUID publicId,
+            Long id,
+            String name,
+            String description,
+            String imageUrl,
+            String instructions,
+            Minute cookingMinutes,
+            Minute preparationMinutes,
+            Integer servings) {
+        this.publicId = publicId != null ? publicId : UUID.randomUUID();
         this.id = id;
         this.name = name;
         this.description = description;
         this.imageUrl = imageUrl;
         this.instructions = instructions;
-        this.cookingMinutes = cookingMinutes != null ? Minute.of(cookingMinutes) : null;
-        this.preparationMinutes = preparationMinutes != null ? Minute.of(preparationMinutes) : null;
+        this.cookingMinutes = cookingMinutes;
+        this.preparationMinutes = preparationMinutes;
         this.servings = servings;
-    }
-
-    public static Recipe create(String name, String description, String imageUrl, String instructions,
-            Integer cookingMinutes,
-            Integer preparationMinutes) {
-        return new Recipe(UUID.randomUUID(), null, name, description, imageUrl, instructions, cookingMinutes,
-                preparationMinutes, 1);
     }
 
     public List<IngredientRequirement> ingredients() {
@@ -72,6 +72,24 @@ public class Recipe {
         return ingredients.stream()
                 .map(ing -> calculator.getPrice(ing.ingredientName(), ing.selectedOfferId()))
                 .reduce(Money.ZERO, Money::add);
+    }
+
+    public static Recipe merge(Recipe idProvider, Recipe dataProvider) {
+        Recipe recipe = new Recipe(
+                idProvider.getPublicId(),
+                idProvider.getId(),
+                dataProvider.name,
+                dataProvider.description,
+                dataProvider.imageUrl,
+                dataProvider.instructions,
+                dataProvider.cookingMinutes,
+                dataProvider.preparationMinutes,
+                dataProvider.servings);
+
+        recipe.ingredients.addAll(dataProvider.ingredients);
+
+        return recipe;
+
     }
 
 }

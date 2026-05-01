@@ -35,7 +35,7 @@ public record RecipeDto(
 
     public RecipeCommand toCommand() {
         return RecipeCommand.builder()
-                .id(id)
+                .publicId(id)
                 .name(name)
                 .description(description)
                 .imageUrl(imageUrl)

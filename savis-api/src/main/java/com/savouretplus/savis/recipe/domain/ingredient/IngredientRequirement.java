@@ -10,4 +10,8 @@ public record IngredientRequirement(
         Quantity quantity,
         UUID selectedOfferId) {
 
+    public String ingredientName() {
+        return ingredientName.toUpperCase();
+    }
+
 }

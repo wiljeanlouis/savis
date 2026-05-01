@@ -16,6 +16,6 @@ public record Minute(
     }
 
     public static Minute of(Integer i) {
-        return new Minute(i);
+        return new Minute(i == null ? 0 : i);
     }
 }

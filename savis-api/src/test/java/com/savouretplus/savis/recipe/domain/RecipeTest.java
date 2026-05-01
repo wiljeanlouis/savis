@@ -18,9 +18,20 @@ public class RecipeTest {
         String description = "This is a test recipe.";
         String imageUrl = "http://example.com/image.jpg";
         String instructions = "1. Do this. 2. Do that.";
-        Integer cookingMinutes = 30;
-        Integer preparationMinutes = 15;
-        Recipe recipe = Recipe.create(title, description, imageUrl, instructions, cookingMinutes, preparationMinutes);
+        Minute cookingMinutes = Minute.of(30);
+        Minute preparationMinutes = Minute.of(15);
+
+        Recipe recipe = new Recipe(
+                null,
+                null,
+                title,
+                description,
+                imageUrl,
+                instructions,
+                cookingMinutes,
+                preparationMinutes,
+                null);
+
         Assertions.assertNotNull(recipe.getPublicId());
         Assertions.assertEquals(recipe.getName(), title);
         Assertions.assertEquals(recipe.getDescription(), description);
@@ -32,8 +43,17 @@ public class RecipeTest {
 
     @Test
     void testAddIngredient() {
-        Recipe recipe = new Recipe(UUID.randomUUID(), 1L, "Oeufs brouillés", "Oeufs brouillés", "Instructions",
-                "image.jpg", 1, 2, 3);
+        Recipe recipe = new Recipe(
+                UUID.randomUUID(),
+                1L,
+                "Oeufs brouillés",
+                "Oeufs brouillés",
+                "Instructions",
+                "image.jpg",
+                Minute.of(1),
+                Minute.of(2),
+                3);
+
         recipe.addIngredient("Flour", 200, Unit.GRAM, null);
 
         Assertions.assertEquals(1, recipe.ingredients().size());
@@ -44,8 +64,16 @@ public class RecipeTest {
 
     @Test
     void testAddIngredient_ShouldThrowIllegalStateExceptionWhenAddingDuplicateIngredient() {
-        Recipe recipe = new Recipe(UUID.randomUUID(), 1L, "Oeufs brouillés", "Oeufs brouillés", "Instructions",
-                "image.jpg", 1, 2, 3);
+        Recipe recipe = new Recipe(
+                UUID.randomUUID(),
+                1L,
+                "Oeufs brouillés",
+                "Oeufs brouillés",
+                "Instructions",
+                "image.jpg",
+                Minute.of(1),
+                Minute.of(2),
+                3);
         recipe.addIngredient("Sugar", 100, Unit.GRAM, null);
 
         Assertions.assertThrows(IllegalStateException.class, () -> {
@@ -55,8 +83,16 @@ public class RecipeTest {
 
     @Test
     void testCalculateTotal() {
-        Recipe recipe = new Recipe(UUID.randomUUID(), 1L, "Oeufs brouillés", "Oeufs brouillés", "Instructions",
-                "image.jpg", 1, 2, 3);
+        Recipe recipe = new Recipe(
+                UUID.randomUUID(),
+                1L,
+                "Oeufs brouillés",
+                "Oeufs brouillés",
+                "Instructions",
+                "image.jpg",
+                Minute.of(1),
+                Minute.of(2),
+                3);
         recipe.addIngredient("Flour", 200, Unit.GRAM, UUID.fromString("59960a6c-9491-473a-87e9-3244396096d6"));
         recipe.addIngredient("Sugar", 100, Unit.GRAM, UUID.fromString("59960a6c-9491-473a-87e9-3244396096d1"));
 

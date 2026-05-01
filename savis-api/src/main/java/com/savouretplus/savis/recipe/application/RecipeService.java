@@ -26,47 +26,23 @@ public class RecipeService {
 
     public UUID saveRecipe(RecipeCommand recipeCommand) {
 
-        if (recipeCommand.id() != null) {
-            return updateRecipe(recipeCommand.id(), recipeCommand);
+        Recipe recipe = recipeCommand.toRecipe();
+
+        if (recipe.getPublicId() != null) {
+            Recipe idProvider = getRecipe(recipe.getPublicId());
+            recipe = Recipe.merge(idProvider, recipe);
+            ;
         }
 
-        Recipe recipe = Recipe.create(
-                recipeCommand.name(),
-                recipeCommand.description(),
-                recipeCommand.imageUrl(),
-                recipeCommand.instructions(),
-                recipeCommand.cookingMinutes(),
-                recipeCommand.preparationMinutes());
-
-        transferIngredients(recipeCommand, recipe);
-
         repository.save(recipe);
+        publishIngredientNeededEvents(recipe);
+
         return recipe.getPublicId();
     }
 
     public Recipe getRecipe(UUID recipeId) {
         return repository.findByPublicId(recipeId)
                 .orElseThrow(() -> new RuntimeException("Recipe not found"));
-    }
-
-    public UUID updateRecipe(UUID recipeId, RecipeCommand updateCommand) {
-        Recipe recipe = getRecipe(recipeId);
-
-        Recipe updatedRecipe = new Recipe(
-                recipe.getPublicId(),
-                recipe.getId(),
-                updateCommand.name(),
-                updateCommand.description(),
-                updateCommand.imageUrl(),
-                updateCommand.instructions(),
-                updateCommand.cookingMinutes(),
-                updateCommand.preparationMinutes(),
-                recipe.getServings());
-
-        transferIngredients(updateCommand, updatedRecipe);
-
-        repository.save(updatedRecipe);
-        return updatedRecipe.getPublicId();
     }
 
     public void deleteRecipe(UUID recipeId) {
@@ -83,22 +59,12 @@ public class RecipeService {
         return recipe.calculateTotal(priceCalculator);
     }
 
-    private void transferIngredients(RecipeCommand recipeCommand, Recipe recipe) {
-
-        Consumer<IngredientRequirementCommand> iConsumer = (iCommand) -> {
-            recipe.addIngredient(
-                    iCommand.ingredientName(),
-                    iCommand.quantity(),
-                    iCommand.unitEnum(),
-                    iCommand.selectedOfferId());
-
-            if (iCommand.selectedOfferId() == null) {
-                ingredientNeedEventPublisher.publish(iCommand.ingredientName());
+    private void publishIngredientNeededEvents(Recipe recipe) {
+        recipe.getIngredients().forEach(i -> {
+            if (i.selectedOfferId() == null) {
+                ingredientNeedEventPublisher.publish(i.ingredientName());
             }
-
-        };
-
-        recipeCommand.ingredients().forEach(iConsumer);
+        });
     }
 
 }
