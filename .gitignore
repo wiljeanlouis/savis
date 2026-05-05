@@ -44,3 +44,7 @@ application-prod.properties
 */dist
 */build
 
+### savis-scraper
+.venv
+__pycache__
+

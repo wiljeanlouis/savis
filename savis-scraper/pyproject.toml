@@ -1,0 +1,15 @@
+[project]
+name = "savis-scraper"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.14.4"
+dependencies = [
+    "fastapi[standard]>=0.136.1",
+    "httpx[http2]>=0.28.1",
+    "playwright>=1.59.0",
+    "pydantic>=2.13.3",
+]
+
+[tool.fastapi]
+entrypoint = "app.main:app"

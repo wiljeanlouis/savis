@@ -1,2 +1,3 @@
 # SAVIS API
-**SAVIS API** is the all the endpoints of [SAVIS](../README.md).
+
+**SAVIS API** is the module that contents all the endpoints of [SAVIS](../README.md).
