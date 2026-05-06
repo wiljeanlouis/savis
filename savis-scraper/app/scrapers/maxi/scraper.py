@@ -8,6 +8,7 @@ from playwright.async_api import Locator, async_playwright
 from app.schemas.offer import Offer
 from app.helpers.page_reader import get_attr, get_text
 from app.scrapers.maxi.normalizer import ScrapedOffer
+from app.scrapers.maxi.config import PROVIDER_IDENTIFIER
 
 
 def build_search_url(search_term: str) -> str:
@@ -19,7 +20,7 @@ def build_search_url(search_term: str) -> str:
     Returns:
         str: The complete url for with the search term and the store
     """
-    return f"https://www.maxi.ca/fr/search?search-bar={search_term}&storeId=8772"
+    return f"https://www.maxi.ca/fr/search?search-bar={search_term}&storeId={PROVIDER_IDENTIFIER}"
 
 
 async def parse_offer(item: Locator) -> ScrapedOffer:
@@ -66,8 +67,6 @@ async def scrape(search_term: str) -> list[Offer]:
         items = page.locator(items_selector)
         count = await items.count()
 
-        print(f"Count {count}")
-
         for i in range(min(count, 10)):
             item = items.nth(i)
             offer = await parse_offer(item)
@@ -77,10 +76,8 @@ async def scrape(search_term: str) -> list[Offer]:
             print(f"=== {offer.external_id}")
             print(f"=== {offer.url}")
             print(f"=== {offer.label}")
-            print(f"=== p {offer._price}")
-            print(f"===   {offer.price}")
-            print(f"=== p {offer._package_size}")
-            print(f"===   {offer.package_size}")
+            print(f"=== {offer.price}")
+            print(f"=== {offer.package_size}")
             print(f"=== {offer.image_url}")
             print("=======================")
 
