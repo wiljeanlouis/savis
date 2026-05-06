@@ -1,6 +1,6 @@
 from pydantic import BaseModel
 
 
-class ScrapingTask(BaseModel):
+class ScrapeRequest(BaseModel):
     id: int
     searchTerm: str

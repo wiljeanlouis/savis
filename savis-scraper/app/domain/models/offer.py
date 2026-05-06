@@ -1,24 +1,28 @@
-from pydantic import BaseModel
+from dataclasses import dataclass
 
 
-class PackageSize(BaseModel):
+@dataclass
+class PackageSize:
     value: float
     unit: str
 
 
-class Price(BaseModel):
+@dataclass
+class Price:
     amount: str
     currency: str = "CAD"
 
 
-class Provider(BaseModel):
+@dataclass
+class Provider:
     name: str
     identifier: str
     site: str
     address: str
 
 
-class Offer(BaseModel):
+@dataclass
+class Offer:
     externalId: str
     url: str
     brand: str

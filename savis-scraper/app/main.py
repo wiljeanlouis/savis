@@ -1,13 +1,8 @@
-import logging
 from fastapi import FastAPI
-from app.api import routes
+from app.api.routes.scraping_routes import router
+from app.config.logging import setup_logging
 
-app = FastAPI(title="SAVIS Scraper Service")
+setup_logging()
 
-app.include_router(routes.router)
-
-if __name__ == "__main__":
-    logging.basicConfig(level=logging.INFO)
-    import uvicorn
-
-    uvicorn.run(app, host="0.0.0.0", port=5000)
+app = FastAPI()
+app.include_router(router)

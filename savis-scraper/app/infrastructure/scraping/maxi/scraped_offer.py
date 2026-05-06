@@ -1,7 +1,7 @@
 import re
 from dataclasses import dataclass
-from app.schemas.offer import Offer, Price, PackageSize, Provider
-from app.scrapers.maxi.config import (
+from app.domain.models.offer import Offer, Price, PackageSize, Provider
+from app.infrastructure.scraping.maxi.config import (
     PROVIDER_NAME,
     PROVIDER_IDENTIFIER,
     PROVIDER_SITE,
@@ -60,7 +60,7 @@ class ScrapedOffer:
                     value=float(package_price_value), unit=unit_reference
                 )
 
-    def get_offer(self) -> Offer:
+    def extract_offer(self) -> Offer:
         return Offer(
             externalId=self.external_id,
             url=self.url,

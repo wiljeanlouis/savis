@@ -1,0 +1,36 @@
+version: "3.8"
+
+services:
+  savis_redis:
+    image: redis:7
+    ports:
+      - "6379:6379"
+
+  savis_scraper_api:
+    build: .
+    container_name: savis_scraper_api
+    command: uv run uvicorn app.main:app --host 0.0.0.0 --port 8000
+    volumes:
+      - .:/app
+    ports:
+      - "8000:8000"
+    depends_on:
+      - savis_redis
+
+  savis_scraper_worker:
+    build: .
+    container_name: savis_scraper_worker
+    command: uv run celery -A app.config.celery_app worker --loglevel=info --concurrency=2
+    volumes:
+      - .:/app
+    depends_on:
+      - savis_redis
+
+  savis_scraper_flower:
+    build: .
+    container_name: savis_scraper_flower
+    command: uv run celery -A app.config.celery_app flower --port=5555
+    ports:
+      - "5555:5555"
+    depends_on:
+      - savis_redis
