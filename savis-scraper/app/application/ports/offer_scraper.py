@@ -1,15 +1,13 @@
-"""Scraper port definitions for scraping."""
+"""Scraper port."""
 
 from abc import ABC, abstractmethod
 from typing import TYPE_CHECKING
 
-# from app.domain.models.offer import Offer
-
 if TYPE_CHECKING:
-    from app.domain.models.offer import Offer
+    from app.domain.models import Offer
 
 
-class Scraper(ABC):
+class OfferScraper(ABC):
     @abstractmethod
     async def search(self, search_term: str) -> list[Offer]:
         pass

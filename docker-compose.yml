@@ -27,7 +27,7 @@ services:
       context: ./savis-scraper
       dockerfile: Dockerfile
     container_name: scraper_worker
-    command: celery -A app.config.celery_app worker --loglevel=info --concurrency=2
+    command: celery -A app.infrastructure.config.celery_app worker --loglevel=info --concurrency=2
     volumes:
       - ./savis-scraper:/app
       - /app/.venv
@@ -39,7 +39,7 @@ services:
       context: ./savis-scraper
       dockerfile: Dockerfile
     container_name: scraper_flower
-    command: celery -A app.config.celery_app flower --port=5555
+    command: celery -A app.infrastructure.config.celery_app flower --port=5555
     ports:
       - "5555:5555"
     depends_on:

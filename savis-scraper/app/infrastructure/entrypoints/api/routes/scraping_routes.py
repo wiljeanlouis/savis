@@ -3,19 +3,16 @@
 This module defines FastAPI routes for initiating scraping operations.
 """
 
-from typing import TYPE_CHECKING
-
 from fastapi import APIRouter
 
-from app.api.schemas.scrape_request import ScrapeRequest
-from app.api.schemas.scrape_response import ScrapeResponse
 from app.application.use_cases.enqueue_scraping import EnqueueScrapingUseCase
-
-if TYPE_CHECKING:
-    from app.api.schemas.scrape_request import ScrapeRequest
+from app.infrastructure.adapters.queue.celery_queue import CeleryQueue
+from app.infrastructure.entrypoints.api.schemas.scrape_request import ScrapeRequest
+from app.infrastructure.entrypoints.api.schemas.scrape_response import ScrapeResponse
 
 router = APIRouter()
-use_case = EnqueueScrapingUseCase()
+celery_queue = CeleryQueue()
+use_case = EnqueueScrapingUseCase(celery_queue)
 
 
 @router.post("/scrape")

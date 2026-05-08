@@ -2,7 +2,7 @@
 
 from celery import Celery
 
-from app.config.settings import settings
+from app.infrastructure.config.settings import settings
 
 celery = Celery(
     "savis",
@@ -12,9 +12,11 @@ celery = Celery(
 
 celery.conf.update(
     task_track_started=True,
-    task_time_limit=300,
+    task_time_limit=1800,  # 30 min
 )
 
-celery.autodiscover_tasks(["app.workers"])
+celery.conf.timezone = "Canada/Eastern"  # pyright: ignore[reportAttributeAccessIssue]
+
+celery.autodiscover_tasks(["app.infrastructure.entrypoints.worker.tasks"])
 
 celery.conf.update(worker_send_task_events=True, task_send_sent_event=True)

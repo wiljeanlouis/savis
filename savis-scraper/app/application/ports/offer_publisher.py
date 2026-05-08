@@ -1,9 +1,9 @@
-"""Publisher port definitions for event publishing."""
+"""Offer publisher port."""
 
 from abc import ABC, abstractmethod
 
 
-class Publisher(ABC):
+class OfferPublisher(ABC):
     @abstractmethod
     async def publish(self, payload: dict):
         pass

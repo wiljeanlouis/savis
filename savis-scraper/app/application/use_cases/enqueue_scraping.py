@@ -1,17 +1,25 @@
 """Enqueue task use case."""
 
-from app.workers.scraping_tasks import scrape_multi_site
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from app.application.ports.task_queue import TaskQueue
 
 
 class EnqueueScrapingUseCase:
     """Use case for enqueuing a scraping task."""
 
+    task_queue: TaskQueue
+
+    def __init__(self, task_queue: TaskQueue) -> None:
+        self.task_queue = task_queue
+
     def execute(self, task_id: int, term: str) -> None:
-        """Exexute the scraping task.
+        """Send the scraping task to a task worker.
 
         Args:
             task_id (int): the received id of the task
             term (str): the term to search
 
         """
-        scrape_multi_site.delay(task_id, term)  # type: ignore[attr-defined]
+        self.task_queue.push(task_id, term)

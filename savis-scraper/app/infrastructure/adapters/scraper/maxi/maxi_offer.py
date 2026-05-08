@@ -2,20 +2,22 @@
 
 import re
 from dataclasses import dataclass
+from typing import TYPE_CHECKING
 
-from app.domain.models.offer import Offer, PackageSize, Price, Provider
-from app.infrastructure.scraping.maxi.config import (
-    PROVIDER_ADDRESS,
-    PROVIDER_IDENTIFIER,
-    PROVIDER_NAME,
-    PROVIDER_SITE,
-)
+from app.domain.models import Offer, PackageSize, Price, Provider
+from app.infrastructure.adapters.scraper.utils import get_attr, get_text
+
+from .maxi_provider import provider
+
+if TYPE_CHECKING:
+    from playwright.async_api import Locator
+
 
 PATTERN = r"\s*(\d+,\d+)\s*(\$)/(\d+)([a-zA-Z]+)"
 
 
 @dataclass
-class ScrapedOffer:
+class MaxiOffer:
     """Represents a scraped offer from Maxi provider.
 
     Attributes
@@ -80,9 +82,49 @@ class ScrapedOffer:
             package_size=self.package_size,
             image_url=self.image_url,
             provider=Provider(
-                name=PROVIDER_NAME,
-                identifier=PROVIDER_IDENTIFIER,
-                site=PROVIDER_SITE,
-                address=PROVIDER_ADDRESS,
+                name=provider.name,
+                identifier=provider.identifier,
+                site=provider.website,
+                address=provider.address,
             ),
         )
+
+    def __repr__(self) -> str:
+        """Return a string representation of the MaxiOffer."""
+        return f"""
+         -   {self.badge}
+         -   {self.brand}
+         -   {self.external_id}
+         -   {self.url}
+         -   {self.label}
+         -   {self.price}
+         -   {self.package_size}
+         -   {self.image_url}
+        """
+
+
+async def maxi_offer_builder(item: Locator) -> MaxiOffer:
+    """Extract all the offer field from a specific page Locator.
+
+    Args:
+        item (Locator): The locator
+
+    Returns:
+        Offer: The scraped offer built from the page locator
+
+    """
+    return MaxiOffer(
+        badge=await get_text(item.locator('[data-testid="product-badge"]')),
+        external_id=await get_attr(
+            item.locator('[data-testid="product-title"]'),
+            "id",
+        ),
+        url=await get_attr(item.locator("a"), "href"),
+        brand=await get_text(item.locator('[data-testid="product-brand"]')),
+        label=await get_text(item.locator('[data-testid="product-title"]')),
+        _price=await get_text(item.locator('[data-testid="regular-price"]')),
+        _package_size=await get_text(
+            item.locator('[data-testid="product-package-size"]'),
+        ),
+        image_url=await get_attr(item.locator("img").first, "src"),
+    )
