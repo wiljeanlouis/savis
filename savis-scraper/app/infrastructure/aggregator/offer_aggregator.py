@@ -4,16 +4,14 @@ logger = logging.getLogger(__name__)
 
 
 class OfferAggregator:
-
     def aggregate(self, results: list[list[dict]]) -> list[dict]:
 
-        logger.info(f"[AGGREGATOR] Start aggregation with {len(results)} sources")
+        logger.info("[AGGREGATOR] Start aggregation with {%s} sources", len(results))
 
         offers = []
 
         for source_result in results:
             for offer in source_result:
-
                 normalized = self._normalize(offer)
 
                 if normalized:
@@ -22,7 +20,7 @@ class OfferAggregator:
         # tri par prix croissant
         # offers.sort(key=lambda x: x["price"])
 
-        logger.info(f"[AGGREGATOR] Aggregated {len(offers)} offers")
+        logger.info("[AGGREGATOR] Aggregated {%s} offers", len(results))
 
         return offers
 

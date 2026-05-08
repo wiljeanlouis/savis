@@ -1,4 +1,5 @@
-FROM mcr.microsoft.com/playwright/python:v1.59.0-jammy
+ # same version as playwright in pyproject.toml
+FROM mcr.microsoft.com/playwright/python:v1.59.0
 
 WORKDIR /app
 
@@ -9,13 +10,16 @@ RUN pip install uv
 COPY pyproject.toml uv.lock ./
 
 # install deps (FAST ⚡)
-RUN uv sync --frozen
+RUN uv sync --frozen --no-dev --no-install-project
 
-RUN uv run playwright install --with-deps
+# activate venv for all subsequent command
+ENV PATH="/app/.venv/bin:$PATH"
+
+RUN uv run playwright install chromium
 
 # copy app
 COPY . .
 
 ENV PYTHONUNBUFFERED=1
 
-CMD ["uv", "run", "uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
+CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]

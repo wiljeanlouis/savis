@@ -1,0 +1,46 @@
+version: "3.8"
+name: savis
+
+services:
+  redis:
+    image: redis:7
+    container_name: redis
+    ports:
+      - "6379:6379"
+
+  scraper_api:
+    build:
+      context: ./savis-scraper
+      dockerfile: Dockerfile
+    container_name: scraper_api
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8000
+    volumes:
+      - ./savis-scraper:/app
+      - /app/.venv
+    ports:
+      - "8000:8000"
+    depends_on:
+      - redis
+
+  scraper_worker:
+    build:
+      context: ./savis-scraper
+      dockerfile: Dockerfile
+    container_name: scraper_worker
+    command: celery -A app.config.celery_app worker --loglevel=info --concurrency=2
+    volumes:
+      - ./savis-scraper:/app
+      - /app/.venv
+    depends_on:
+      - redis
+
+  scraper_flower:
+    build:
+      context: ./savis-scraper
+      dockerfile: Dockerfile
+    container_name: scraper_flower
+    command: celery -A app.config.celery_app flower --port=5555
+    ports:
+      - "5555:5555"
+    depends_on:
+      - redis

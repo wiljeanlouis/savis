@@ -1,5 +1,4 @@
 class BrowserManager:
-
     def __init__(self):
         self.browser = None
         self.playwright = None

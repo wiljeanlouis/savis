@@ -24,3 +24,5 @@ The system will also serve as the basis for other future functionalities:
 - [SAVIS API](savis-api/README.md): the server that exposes all the endpoints
 - [SAVIS Admin](savis-admin/README.md): the client that offers the UI needed by admin users to manage SAVIS
 - [SAVIS Scraper](savis-scraper/README.md): the scraper that collect offers from providers
+
+docker-compose up --build

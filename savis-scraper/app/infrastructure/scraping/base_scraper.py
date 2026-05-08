@@ -1,5 +1,10 @@
-from playwright.async_api import Locator
 import unicodedata
+from typing import TYPE_CHECKING
+
+# from playwright.async_api import Locator
+
+if TYPE_CHECKING:
+    from playwright.async_api import Locator
 
 
 async def get_text(locator: Locator, default: str = "") -> str:
