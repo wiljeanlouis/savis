@@ -10,7 +10,7 @@ from app.infrastructure.adapters.scraper.utils import get_attr, get_text
 from .maxi_provider import provider
 
 if TYPE_CHECKING:
-    from playwright.async_api import Locator
+    from playwright.sync_api import Locator
 
 
 PATTERN = r"\s*(\d+,\d+)\s*(\$)/(\d+)([a-zA-Z]+)"
@@ -103,7 +103,7 @@ class MaxiOffer:
         """
 
 
-async def maxi_offer_builder(item: Locator) -> MaxiOffer:
+def maxi_offer_builder(item: Locator) -> MaxiOffer:
     """Extract all the offer field from a specific page Locator.
 
     Args:
@@ -114,17 +114,17 @@ async def maxi_offer_builder(item: Locator) -> MaxiOffer:
 
     """
     return MaxiOffer(
-        badge=await get_text(item.locator('[data-testid="product-badge"]')),
-        external_id=await get_attr(
+        badge=get_text(item.locator('[data-testid="product-badge"]')),
+        external_id=get_attr(
             item.locator('[data-testid="product-title"]'),
             "id",
         ),
-        url=await get_attr(item.locator("a"), "href"),
-        brand=await get_text(item.locator('[data-testid="product-brand"]')),
-        label=await get_text(item.locator('[data-testid="product-title"]')),
-        _price=await get_text(item.locator('[data-testid="regular-price"]')),
-        _package_size=await get_text(
+        url=get_attr(item.locator("a"), "href"),
+        brand=get_text(item.locator('[data-testid="product-brand"]')),
+        label=get_text(item.locator('[data-testid="product-title"]')),
+        _price=get_text(item.locator('[data-testid="regular-price"]')),
+        _package_size=get_text(
             item.locator('[data-testid="product-package-size"]'),
         ),
-        image_url=await get_attr(item.locator("img").first, "src"),
+        image_url=get_attr(item.locator("img").first, "src"),
     )

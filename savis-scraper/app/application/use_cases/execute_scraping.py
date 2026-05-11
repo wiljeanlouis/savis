@@ -1,4 +1,3 @@
-import asyncio
 from typing import TYPE_CHECKING
 
 from app.application.services.aggregate_results import aggregate
@@ -18,12 +17,16 @@ class ExecuteScrapingUseCase:
         self.scrapers = scrapers
         self.publisher = publisher
 
-    async def execute(self, task_id: int, term: str) -> None:
+    def execute(self, task_id: int, term: str) -> None:
 
-        results = await asyncio.gather(
-            *[scraper.search(term) for scraper in self.scrapers],
-            return_exceptions=True,
-        )
+        results = []
+
+        for scraper in self.scrapers:
+            try:
+                result = scraper.scrape(term)
+                results.append(result)
+            except Exception:
+                continue
 
         valid_results = []
 
@@ -33,4 +36,4 @@ class ExecuteScrapingUseCase:
 
         offers = aggregate(valid_results)
 
-        await self.publisher.publish({"id": task_id, "offers": offers})
+        self.publisher.publish({"id": task_id, "offers": offers})

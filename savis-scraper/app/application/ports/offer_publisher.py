@@ -5,5 +5,5 @@ from abc import ABC, abstractmethod
 
 class OfferPublisher(ABC):
     @abstractmethod
-    async def publish(self, payload: dict):
+    def publish(self, payload: dict):
         pass
