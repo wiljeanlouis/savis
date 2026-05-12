@@ -1,29 +1,32 @@
 import unicodedata
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
-    from playwright.sync_api import Locator
+    from bs4 import Tag
 
 
-def get_text(locator: Locator, default: str = "") -> str:
+def get_text(tag: Tag | None, default: str = "") -> str:
+    if not tag:
+        return default
     try:
-        value = locator.inner_text()
-        clean_text = unicodedata.normalize("NFKD", value)
-        return clean_text.strip()
+        value = tag.get_text(strip=True)
+        return unicodedata.normalize("NFKD", value)
     except:
         return default
 
 
-def get_attr(locator: Locator, name: str, default: str = "") -> str:
+def get_attr(tag: Tag | None, name: str, default: str = "") -> str | Any:
+    if not tag:
+        return default
     try:
-        value = locator.get_attribute(name)
+        value = tag.get(name)
         return value or default
     except:
         return default
 
 
-def get_image_src(item):
-    img = item.locator("img").first
-    img.wait_for()
+# def get_image_src(item):
+#     img = item.locator("img").first
+#     img.wait_for()
 
-    return img.get_attribute("src") or ""
+#     return img.get_attribute("src") or ""

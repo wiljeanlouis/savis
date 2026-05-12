@@ -1,11 +1,15 @@
 """Aggregate results from multiple scraping operations."""
 
 import logging
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from app.domain.models import Offer
 
 logger = logging.getLogger(__name__)
 
 
-def aggregate(results: list[list[dict]]) -> list[dict]:
+def aggregate(results: list[list[Offer]]) -> list[Offer]:
 
     logger.info("[AGGREGATOR] Start aggregation with {%s} sources", len(results))
 
@@ -26,7 +30,7 @@ def aggregate(results: list[list[dict]]) -> list[dict]:
     return offers
 
 
-def _normalize(offer: dict) -> dict:
+def _normalize(offer: Offer) -> Offer:
 
     return offer
 

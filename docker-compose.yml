@@ -26,6 +26,8 @@ services:
     build:
       context: ./savis-scraper
       dockerfile: Dockerfile
+    init: true # Enables the init process
+    shm_size: "2gb"
     container_name: scraper_worker
     command: celery -A app.infrastructure.config.celery_app worker --loglevel=info --concurrency=2
     volumes:

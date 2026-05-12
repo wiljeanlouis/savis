@@ -9,5 +9,5 @@ if TYPE_CHECKING:
 
 class OfferScraper(ABC):
     @abstractmethod
-    def scrape(self, search_term: str) -> list[Offer]:
+    def scrape_offers(self, search_term: str) -> list[Offer]:
         pass

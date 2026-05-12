@@ -19,8 +19,8 @@ logger = logging.getLogger(__name__)
     retry_backoff=True,
     retry_kwargs={"max_retries": 3},
 )
-def scrape_task(self, task_id: int, term: str) -> None:
+def scrape_offers_task(self, task_id: int, term: str) -> None:
     """Task to run the scraping request."""
     scrapers = load_scrapers()
     use_case = ExecuteScrapingUseCase(scrapers, java_api_publisher)
-    use_case.execute(task_id, term)
+    use_case.scrape_offers(task_id, term)

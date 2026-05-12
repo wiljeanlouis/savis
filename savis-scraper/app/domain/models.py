@@ -31,7 +31,32 @@ class Provider:
 
 @dataclass
 class Offer:
-    """Represents a product offer with pricing and provider details."""
+    """Represents a product offer with pricing and provider details.
+
+    Attributes
+    ----------
+    external_id : str
+        The external identifier for the offer.
+    url : str
+        The URL of the offer.
+    brand : str
+        The brand of the product.
+    label : str
+        The label or name of the product.
+    price : Price
+        The total price
+    package_size : PackageSize
+        The total amount of the product
+    unit_price : Price
+        The comparison price
+    reference_quantity : PackageSize
+        The base amount of the unit price
+    image_url : str
+        The URL of the product image.
+    provider: str
+        The provider
+
+    """
 
     external_id: str
     url: str
@@ -39,5 +64,7 @@ class Offer:
     label: str
     price: Price | None
     package_size: PackageSize | None
+    unit_price: Price | None
+    reference_quantity: PackageSize | None
     image_url: str
     provider: Provider

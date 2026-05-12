@@ -7,7 +7,9 @@ from fastapi import APIRouter
 
 from app.application.use_cases.enqueue_scraping import EnqueueScrapingUseCase
 from app.infrastructure.adapters.queue.celery_queue import CeleryQueue
-from app.infrastructure.entrypoints.api.schemas.scrape_request import ScrapeRequest
+from app.infrastructure.entrypoints.api.schemas.scrape_request import (
+    ScrapeRequest,  # noqa: TC001
+)
 from app.infrastructure.entrypoints.api.schemas.scrape_response import ScrapeResponse
 
 router = APIRouter()
@@ -15,16 +17,16 @@ celery_queue = CeleryQueue()
 use_case = EnqueueScrapingUseCase(celery_queue)
 
 
-@router.post("/scrape")
-async def scrape(request: ScrapeRequest) -> ScrapeResponse:
-    """Enqueue a scraping request for processing.
+@router.post("/scrape-offers")
+async def scrape_offers(request: ScrapeRequest) -> ScrapeResponse:
+    """Enqueue a scraping offers request for processing.
 
     Args:
         request (ScrapeRequest): The scraping request containing ID and search term.
 
     Returns:
-        ScrapeResponse: Response indicating the request was accepted, with status and ID.
+        ScrapeResponse: Response indicating the request was accepted.
 
     """
-    use_case.execute(request.id, request.search_term)
+    use_case.scrape_offers(request.id, request.search_term)
     return ScrapeResponse(status="accepted", id=request.id)

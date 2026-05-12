@@ -17,13 +17,13 @@ class ExecuteScrapingUseCase:
         self.scrapers = scrapers
         self.publisher = publisher
 
-    def execute(self, task_id: int, term: str) -> None:
+    def scrape_offers(self, task_id: int, term: str) -> None:
 
         results = []
 
         for scraper in self.scrapers:
             try:
-                result = scraper.scrape(term)
+                result = scraper.scrape_offers(term)
                 results.append(result)
             except Exception:
                 continue
