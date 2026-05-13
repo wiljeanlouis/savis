@@ -17,7 +17,7 @@ celery_queue = CeleryQueue()
 use_case = EnqueueScrapingUseCase(celery_queue)
 
 
-@router.post("/scrape-offers")
+@router.post("/scrape/offers")
 async def scrape_offers(request: ScrapeRequest) -> ScrapeResponse:
     """Enqueue a scraping offers request for processing.
 

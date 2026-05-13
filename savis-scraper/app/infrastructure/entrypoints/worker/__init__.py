@@ -1,4 +1,4 @@
-"""Workers module."""
+"""Workers package."""
 
 from .tasks.scraping_tasks import scrape_offers_task
 

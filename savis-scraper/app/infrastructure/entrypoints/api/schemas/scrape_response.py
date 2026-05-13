@@ -13,4 +13,4 @@ class ScrapeResponse(BaseModel):
     """
 
     status: str
-    id: int
+    id: str

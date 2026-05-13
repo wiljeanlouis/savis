@@ -6,5 +6,5 @@ from pydantic import BaseModel
 class ScrapeRequest(BaseModel):
     """Schema for scrape request payload."""
 
-    id: int
+    id: str
     search_term: str

@@ -1,1 +1,1 @@
-"""API routes package for the scraper."""
+"""API package."""

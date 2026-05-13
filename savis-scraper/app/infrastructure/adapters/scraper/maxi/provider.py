@@ -1,12 +1,9 @@
-"""Configuration constants for the Maxi provider."""
-
-from dotenv import load_dotenv
-from pydantic_settings import BaseSettings
-
-load_dotenv()
+"""Configuration Module for the Maxi provider."""
 
 
-class MaxiProvider(BaseSettings):
+class MaxiProvider:
+    """Maxi provider info."""
+
     name: str = "Maxi"
     identifier: str = "8772"
     website: str = "https://maxi.ca"

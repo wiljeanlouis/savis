@@ -3,21 +3,19 @@ from typing import TYPE_CHECKING
 from app.application.services.aggregate_results import aggregate
 
 if TYPE_CHECKING:
-    from app.application.ports.offer_publisher import OfferPublisher
     from app.application.ports.offer_scraper import OfferScraper
+    from app.domain.models import Offer
 
 
 class ExecuteScrapingUseCase:
     """Call multiple sites scraper for a search term and publish aggregated results."""
 
     scrapers: list[OfferScraper]
-    publisher: OfferPublisher
 
-    def __init__(self, scrapers: list[OfferScraper], publisher: OfferPublisher) -> None:
+    def __init__(self, scrapers: list[OfferScraper]) -> None:
         self.scrapers = scrapers
-        self.publisher = publisher
 
-    def scrape_offers(self, task_id: int, term: str) -> None:
+    def scrape_offers(self, term: str) -> list[Offer]:
 
         results = []
 
@@ -34,6 +32,4 @@ class ExecuteScrapingUseCase:
             if not isinstance(r, Exception):
                 valid_results.append(r)  # noqa: PERF401
 
-        offers = aggregate(valid_results)
-
-        self.publisher.publish({"id": task_id, "offers": offers})
+        return aggregate(valid_results)

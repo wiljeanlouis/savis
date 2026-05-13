@@ -21,7 +21,7 @@ class MaxiScraper(OfferScraper):
     """Scrape the maxi website for collecting offers for a specific search term."""
 
     def __init__(self, browser_manager: BrowserManager) -> None:
-        """Init funtion."""
+        """Init function."""
         self.browser_manager = browser_manager
 
     def load_page(self, url: str) -> str:
