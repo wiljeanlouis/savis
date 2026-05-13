@@ -47,4 +47,5 @@ application-prod.properties
 ### savis-scraper
 .venv
 __pycache__
+.env
 
