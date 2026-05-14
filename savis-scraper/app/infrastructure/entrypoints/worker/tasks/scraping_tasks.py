@@ -51,7 +51,6 @@ class ReportingTask(Task):
 )
 def scrape_offers_task(self, scraping_task_id: str, term: str) -> None:
     """Task to run the scraping request."""
-    test = 0 / 0
     scrapers = scraper_loader.load_scrapers()
     use_case = ExecuteScrapingUseCase(scrapers)
     offers = use_case.scrape_offers(term=term)

@@ -2,39 +2,131 @@ version: "3.8"
 name: savis
 
 services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: postgres
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_USER: savis_user
+      POSTGRES_PASSWORD: savis_password
+      POSTGRES_DB: savis_db
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U savis_user -d savis_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
   redis:
-    image: redis:7
+    image: redis:7-alpine
     container_name: redis
     ports:
       - "6379:6379"
+    # Persistance des données Redis (évite de perdre les résultats si Redis redémarre)
+    volumes:
+      - redis_data:/data
+
+  rabbitmq:
+    image: rabbitmq:3-management-alpine
+    container_name: rabbitmq
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    environment:
+      RABBITMQ_DEFAULT_USER: savis
+      RABBITMQ_DEFAULT_PASS: savis
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+  backend_api:
+    build:
+      context: ./savis-api
+      dockerfile: Dockerfile
+    container_name: backend_api
+    ports:
+      - "8080:8080"
+    environment:
+      - SPRING_DATASOURCE_URL=jdbc:postgresql://postgres:5432/savis_db
+      - SPRING_DATASOURCE_USERNAME=savis_user
+      - SPRING_DATASOURCE_PASSWORD=savis_password
+      - SPRING_RABBITMQ_HOST=rabbitmq
+      - SPRING_RABBITMQ_PORT=5672
+      - SPRING_RABBITMQ_USERNAME=savis
+      - SPRING_RABBITMQ_PASSWORD=savis
+      - SPRING_DATA_REDIS_HOST=redis
+      - SPRING_DATA_REDIS_PORT=6379
+    depends_on:
+      postgres:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+      redis:
+        condition: service_started
+
+  frontend_admin:
+    build:
+      context: ./savis-admin
+      dockerfile: Dockerfile
+      target: development
+    container_name: frontend_admin
+    # Surcharge la commande en développement pour lancer le serveur Node avec Hot Reload
+    command: npm run dev -- --host
+    ports:
+      - "5173:5173" # Port par défaut de Vite (ou 3000 pour Create React App)
+    volumes:
+      - ./savis-admin:/app
+      - /app/node_modules # Protège les dépendances Docker des conflits locaux Windows/Mac
+    environment:
+      # Injecte l'URL de votre API Java pour vos appels fetch/axios
+      - VITE_API_URL=http://localhost:8080
+    depends_on:
+      - backend_api
 
   scraper_api:
     build:
       context: ./savis-scraper
       dockerfile: Dockerfile
     container_name: scraper_api
-    command: uvicorn app.main:app --host 0.0.0.0 --port 8000
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
     volumes:
       - ./savis-scraper:/app
       - /app/.venv
     ports:
       - "8000:8000"
+    environment:
+      - CELERY_BROKER_URL=amqp://savis:savis@rabbitmq:5672//
+      - CELERY_RESULT_BACKEND=redis://redis:6379/0
     depends_on:
-      - redis
+      rabbitmq:
+        condition: service_healthy
+      redis:
+        condition: service_started
 
   scraper_worker:
     build:
       context: ./savis-scraper
       dockerfile: Dockerfile
-    init: true # Enables the init process
+    init: true
     shm_size: "2gb"
     container_name: scraper_worker
+    # Ajout de --pool=solo ou --pool=threads si vous utilisez Playwright/Selenium sur Windows/Mac
     command: celery -A app.infrastructure.config.celery_app worker --loglevel=info --concurrency=2
     volumes:
       - ./savis-scraper:/app
       - /app/.venv
+    environment:
+      - CELERY_BROKER_URL=amqp://savis:savis@rabbitmq:5672//
+      - CELERY_RESULT_BACKEND=redis://redis:6379/0
     depends_on:
-      - redis
+      rabbitmq:
+        condition: service_healthy
+      redis:
+        condition: service_started
 
   scraper_flower:
     build:
@@ -44,5 +136,16 @@ services:
     command: celery -A app.infrastructure.config.celery_app flower --port=5555
     ports:
       - "5555:5555"
+    environment:
+      - CELERY_BROKER_URL=amqp://savis:savis@rabbitmq:5672//
+      - CELERY_RESULT_BACKEND=redis://redis:6379/0
     depends_on:
-      - redis
+      rabbitmq:
+        condition: service_healthy
+      redis:
+        condition: service_started
+
+# Déclaration du volume pour la persistance Redis
+volumes:
+  redis_data:
+  postgres_data:
