@@ -24,7 +24,6 @@ services:
     container_name: redis
     ports:
       - "6379:6379"
-    # Persistance des données Redis (évite de perdre les résultats si Redis redémarre)
     volumes:
       - redis_data:/data
 
@@ -74,15 +73,13 @@ services:
       dockerfile: Dockerfile
       target: development
     container_name: frontend_admin
-    # Surcharge la commande en développement pour lancer le serveur Node avec Hot Reload
     command: npm run dev -- --host
     ports:
-      - "5173:5173" # Port par défaut de Vite (ou 3000 pour Create React App)
+      - "5173:5173"
     volumes:
       - ./savis-admin:/app
-      - /app/node_modules # Protège les dépendances Docker des conflits locaux Windows/Mac
+      - /app/node_modules
     environment:
-      # Injecte l'URL de votre API Java pour vos appels fetch/axios
       - VITE_API_URL=http://localhost:8080
     depends_on:
       - backend_api
@@ -114,7 +111,6 @@ services:
     init: true
     shm_size: "2gb"
     container_name: scraper_worker
-    # Ajout de --pool=solo ou --pool=threads si vous utilisez Playwright/Selenium sur Windows/Mac
     command: celery -A app.infrastructure.config.celery_app worker --loglevel=info --concurrency=2
     volumes:
       - ./savis-scraper:/app
@@ -145,7 +141,6 @@ services:
       redis:
         condition: service_started
 
-# Déclaration du volume pour la persistance Redis
 volumes:
   redis_data:
   postgres_data:
