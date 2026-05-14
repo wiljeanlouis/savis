@@ -46,7 +46,7 @@ services:
     build:
       context: ./savis-api
       dockerfile: Dockerfile
-    container_name: backend_api
+    container_name: savis_api
     ports:
       - "8080:8080"
     environment:
@@ -71,14 +71,10 @@ services:
     build:
       context: ./savis-admin
       dockerfile: Dockerfile
-      target: development
-    container_name: frontend_admin
-    command: npm run dev -- --host
+      target: production
+    container_name: savis_admin
     ports:
-      - "5173:5173"
-    volumes:
-      - ./savis-admin:/app
-      - /app/node_modules
+      - "80:80"
     environment:
       - VITE_API_URL=http://localhost:8080
     depends_on:
@@ -89,20 +85,19 @@ services:
       context: ./savis-scraper
       dockerfile: Dockerfile
     container_name: scraper_api
-    command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
-    volumes:
-      - ./savis-scraper:/app
-      - /app/.venv
     ports:
       - "8000:8000"
     environment:
-      - CELERY_BROKER_URL=amqp://savis:savis@rabbitmq:5672//
+      - CELERY_BROKER_URL=amqp://guest:guest@rabbitmq:5672//
       - CELERY_RESULT_BACKEND=redis://redis:6379/0
+      - DATABASE_URL=postgresql://savis_user:savis_password@postgres:5432/savis_db
     depends_on:
       rabbitmq:
         condition: service_healthy
       redis:
         condition: service_started
+      postgres:
+        condition: service_healthy
 
   scraper_worker:
     build:
@@ -118,11 +113,14 @@ services:
     environment:
       - CELERY_BROKER_URL=amqp://savis:savis@rabbitmq:5672//
       - CELERY_RESULT_BACKEND=redis://redis:6379/0
+      - DATABASE_URL=postgresql://savis_user:savis_password@postgres:5432/savis_db
     depends_on:
       rabbitmq:
         condition: service_healthy
       redis:
         condition: service_started
+      postgres:
+        condition: service_healthy
 
   scraper_flower:
     build:

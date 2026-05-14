@@ -1,0 +1,29 @@
+version: "3.8"
+
+services:
+  # Écrase la configuration de l'API pour utiliser le code en direct et DevTools
+  backend_api:
+    command: mvn spring-boot:run -Dspring-boot.run.profiles=dev
+    volumes:
+      - ./savis-api:/app
+      - ~/.m2:/root/.m2
+
+  # Écrase le Frontend pour basculer sur l'étape de développement Node.js/Vite
+  frontend_admin:
+    build:
+      context: ./savis-admin
+      dockerfile: Dockerfile
+      target: development # 🛠️ Bascule sur l'étape Node du Dockerfile
+    command: npm run dev -- --host
+    ports:
+      - "5173:5173" # Ouvre le port de dev à la place du port 80
+    volumes:
+      - ./savis-admin:/app
+      - /app/node_modules
+
+  # Écrase l'API de scraping pour activer le rechargement Uvicorn
+  scraper_api:
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+    volumes:
+      - ./savis-scraper:/app
+      - /app/.venv
