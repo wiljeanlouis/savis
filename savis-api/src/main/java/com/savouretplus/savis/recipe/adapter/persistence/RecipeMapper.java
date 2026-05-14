@@ -1,14 +1,14 @@
-package com.savouretplus.savis.recipe.infrastructure.persistence;
+package com.savouretplus.savis.recipe.adapter.persistence;
 
 import java.util.List;
 
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
 
+import com.savouretplus.savis.recipe.adapter.persistence.ingredient.IngredientRequirementEntity;
+import com.savouretplus.savis.recipe.adapter.persistence.ingredient.IngredientRequirementMapper;
 import com.savouretplus.savis.recipe.domain.Recipe;
 import com.savouretplus.savis.recipe.domain.ingredient.IngredientRequirement;
-import com.savouretplus.savis.recipe.infrastructure.persistence.ingredient.IngredientRequirementEntity;
-import com.savouretplus.savis.recipe.infrastructure.persistence.ingredient.IngredientRequirementMapper;
 
 @Mapper(componentModel = "spring", uses = IngredientRequirementMapper.class)
 public interface RecipeMapper {

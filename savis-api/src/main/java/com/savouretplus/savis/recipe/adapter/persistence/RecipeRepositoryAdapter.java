@@ -1,4 +1,4 @@
-package com.savouretplus.savis.recipe.infrastructure.persistence;
+package com.savouretplus.savis.recipe.adapter.persistence;
 
 import java.util.List;
 import java.util.Optional;
@@ -8,13 +8,13 @@ import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Repository;
 
 import com.savouretplus.savis.recipe.domain.Recipe;
-import com.savouretplus.savis.recipe.domain.RecipeRepository;
+import com.savouretplus.savis.recipe.port.RecipeRepositoryPort;
 
 import lombok.AllArgsConstructor;
 
 @Repository
 @AllArgsConstructor
-public class RecipeRepositoryAdapter implements RecipeRepository {
+public class RecipeRepositoryAdapter implements RecipeRepositoryPort {
 
     private static final String RECIPE_FIND_ERROR = "RECIPE_FIND_ERROR";
     private static final String RECIPE_SAVE_ERROR = "RECIPE_SAVE_ERROR";

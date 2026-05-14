@@ -1,4 +1,4 @@
-package com.savouretplus.savis.recipe.infrastructure.persistence.ingredient;
+package com.savouretplus.savis.recipe.adapter.persistence.ingredient;
 
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;

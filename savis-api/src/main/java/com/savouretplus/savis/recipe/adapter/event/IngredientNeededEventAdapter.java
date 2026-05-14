@@ -1,10 +1,10 @@
-package com.savouretplus.savis.recipe.infrastructure.adapter;
+package com.savouretplus.savis.recipe.adapter.event;
 
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 
-import com.savouretplus.savis.recipe.domain.ingredient.IngredientNeededEventPort;
-import com.savouretplus.savis.supply.api.IngredientNeededEvent;
+import com.savouretplus.savis.common.IngredientNeededEvent;
+import com.savouretplus.savis.recipe.port.IngredientNeededEventPort;
 
 import lombok.AllArgsConstructor;
 
@@ -14,8 +14,8 @@ public class IngredientNeededEventAdapter implements IngredientNeededEventPort {
     private final ApplicationEventPublisher events;
 
     @Override
-    public void publish(String ingredientName) {
-        events.publishEvent(new IngredientNeededEvent(ingredientName));
+    public void publish(IngredientNeededEvent ingredientNeededEvent) {
+        events.publishEvent(ingredientNeededEvent);
     }
 
 }

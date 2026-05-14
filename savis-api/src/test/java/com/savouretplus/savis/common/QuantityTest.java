@@ -3,9 +3,6 @@ package com.savouretplus.savis.common;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
-import com.savouretplus.savis.common.Quantity;
-import com.savouretplus.savis.common.Unit;
-
 public class QuantityTest {
     @Test
     void testConstructor_ShouldCreateQuantity() {

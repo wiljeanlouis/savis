@@ -1,4 +1,4 @@
-package com.savouretplus.savis.recipe.infrastructure.web;
+package com.savouretplus.savis.recipe.adapter.web;
 
 import java.util.UUID;
 
@@ -12,7 +12,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-import com.savouretplus.savis.recipe.application.RecipeService;
+import com.savouretplus.savis.recipe.usecase.RecipeService;
 
 import jakarta.validation.Valid;
 import lombok.AllArgsConstructor;
@@ -31,7 +31,7 @@ public class RecipeController {
     public ResponseEntity<UUID> saveRecipe(@Valid @RequestBody RecipeDto request) {
         log.info("Received request to save recipe: {}", request.id());
 
-        UUID recipeId = recipeService.saveRecipe(request.toCommand());
+        UUID recipeId = recipeService.saveRecipe(request.toRecipe());
 
         return ResponseEntity.ok(recipeId);
     }

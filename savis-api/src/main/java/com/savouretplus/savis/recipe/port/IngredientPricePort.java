@@ -1,4 +1,4 @@
-package com.savouretplus.savis.recipe.domain.ingredient;
+package com.savouretplus.savis.recipe.port;
 
 import java.util.UUID;
 

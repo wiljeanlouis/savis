@@ -1,9 +1,9 @@
-package com.savouretplus.savis.recipe.infrastructure.persistence;
+package com.savouretplus.savis.recipe.adapter.persistence;
 
 import java.util.List;
 import java.util.UUID;
 
-import com.savouretplus.savis.recipe.infrastructure.persistence.ingredient.IngredientRequirementEntity;
+import com.savouretplus.savis.recipe.adapter.persistence.ingredient.IngredientRequirementEntity;
 
 import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;

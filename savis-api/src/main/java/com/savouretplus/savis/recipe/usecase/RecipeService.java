@@ -1,16 +1,16 @@
-package com.savouretplus.savis.recipe.application;
+package com.savouretplus.savis.recipe.usecase;
 
 import java.util.List;
 import java.util.UUID;
-import java.util.function.Consumer;
 
 import org.springframework.stereotype.Service;
 
+import com.savouretplus.savis.common.IngredientNeededEvent;
 import com.savouretplus.savis.common.Money;
 import com.savouretplus.savis.recipe.domain.Recipe;
-import com.savouretplus.savis.recipe.domain.RecipeRepository;
-import com.savouretplus.savis.recipe.domain.ingredient.IngredientNeededEventPort;
-import com.savouretplus.savis.recipe.domain.ingredient.IngredientPricePort;
+import com.savouretplus.savis.recipe.port.RecipeRepositoryPort;
+import com.savouretplus.savis.recipe.port.IngredientNeededEventPort;
+import com.savouretplus.savis.recipe.port.IngredientPricePort;
 
 import jakarta.transaction.Transactional;
 import lombok.AllArgsConstructor;
@@ -20,13 +20,11 @@ import lombok.AllArgsConstructor;
 @AllArgsConstructor
 public class RecipeService {
 
-    private final RecipeRepository repository;
+    private final RecipeRepositoryPort repository;
     private final IngredientPricePort priceCalculator;
     private final IngredientNeededEventPort ingredientNeedEventPublisher;
 
-    public UUID saveRecipe(RecipeCommand recipeCommand) {
-
-        Recipe recipe = recipeCommand.toRecipe();
+    public UUID saveRecipe(Recipe recipe) {
 
         if (recipe.getPublicId() != null) {
             Recipe idProvider = getRecipe(recipe.getPublicId());
@@ -62,7 +60,7 @@ public class RecipeService {
     private void publishIngredientNeededEvents(Recipe recipe) {
         recipe.getIngredients().forEach(i -> {
             if (i.selectedOfferId() == null) {
-                ingredientNeedEventPublisher.publish(i.ingredientName());
+                ingredientNeedEventPublisher.publish(IngredientNeededEvent.of(i.ingredientName()));
             }
         });
     }

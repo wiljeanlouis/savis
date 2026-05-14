@@ -7,8 +7,7 @@ import org.junit.jupiter.api.Test;
 
 import com.savouretplus.savis.common.Money;
 import com.savouretplus.savis.common.Unit;
-import com.savouretplus.savis.recipe.domain.Recipe;
-import com.savouretplus.savis.recipe.domain.ingredient.IngredientPricePort;
+import com.savouretplus.savis.recipe.port.IngredientPricePort;
 
 public class RecipeTest {
 

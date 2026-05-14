@@ -8,7 +8,7 @@ import java.util.UUID;
 import com.savouretplus.savis.common.Money;
 import com.savouretplus.savis.common.Quantity;
 import com.savouretplus.savis.common.Unit;
-import com.savouretplus.savis.recipe.domain.ingredient.IngredientPricePort;
+import com.savouretplus.savis.recipe.port.IngredientPricePort;
 import com.savouretplus.savis.recipe.domain.ingredient.IngredientRequirement;
 
 import lombok.EqualsAndHashCode;

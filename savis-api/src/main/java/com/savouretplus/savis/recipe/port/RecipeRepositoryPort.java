@@ -1,10 +1,12 @@
-package com.savouretplus.savis.recipe.domain;
+package com.savouretplus.savis.recipe.port;
 
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
-public interface RecipeRepository {
+import com.savouretplus.savis.recipe.domain.Recipe;
+
+public interface RecipeRepositoryPort {
 
     Optional<Recipe> findByPublicId(UUID publicId);
 

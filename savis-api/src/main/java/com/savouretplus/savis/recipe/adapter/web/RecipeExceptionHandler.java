@@ -1,11 +1,11 @@
-package com.savouretplus.savis.recipe.infrastructure.web;
+package com.savouretplus.savis.recipe.adapter.web;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ProblemDetail;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
-import com.savouretplus.savis.recipe.infrastructure.persistence.RecipePersistenceException;
+import com.savouretplus.savis.recipe.adapter.persistence.RecipePersistenceException;
 
 @RestControllerAdvice
 public class RecipeExceptionHandler {

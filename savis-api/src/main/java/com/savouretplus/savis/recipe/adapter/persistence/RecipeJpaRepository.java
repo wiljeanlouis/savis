@@ -1,4 +1,4 @@
-package com.savouretplus.savis.recipe.infrastructure.persistence;
+package com.savouretplus.savis.recipe.adapter.persistence;
 
 import java.util.Optional;
 

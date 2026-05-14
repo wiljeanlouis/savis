@@ -1,4 +1,4 @@
-package com.savouretplus.savis.recipe.infrastructure.adapter;
+package com.savouretplus.savis.recipe.adapter.external;
 
 import java.math.BigDecimal;
 import java.util.UUID;
@@ -6,7 +6,7 @@ import java.util.UUID;
 import org.springframework.stereotype.Component;
 
 import com.savouretplus.savis.common.Money;
-import com.savouretplus.savis.recipe.domain.ingredient.IngredientPricePort;
+import com.savouretplus.savis.recipe.port.IngredientPricePort;
 //import com.savouretplus.savis.supply.api.SupplyApi;
 
 import lombok.AllArgsConstructor;
