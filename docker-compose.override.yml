@@ -3,7 +3,10 @@ version: "3.8"
 services:
   # Écrase la configuration de l'API pour utiliser le code en direct et DevTools
   backend_api:
-    command: mvn spring-boot:run -Dspring-boot.run.profiles=dev
+    build:
+      context: ./savis-api
+      dockerfile: Dockerfile
+      target: development # 🛠️ Bascule sur l'image Maven complète
     volumes:
       - ./savis-api:/app
       - ~/.m2:/root/.m2

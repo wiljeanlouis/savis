@@ -46,6 +46,7 @@ services:
     build:
       context: ./savis-api
       dockerfile: Dockerfile
+      target: production
     container_name: savis_api
     ports:
       - "8080:8080"
@@ -88,7 +89,7 @@ services:
     ports:
       - "8000:8000"
     environment:
-      - CELERY_BROKER_URL=amqp://guest:guest@rabbitmq:5672//
+      - CELERY_BROKER_URL=amqp://savis:savis@rabbitmq:5672//
       - CELERY_RESULT_BACKEND=redis://redis:6379/0
       - DATABASE_URL=postgresql://savis_user:savis_password@postgres:5432/savis_db
     depends_on:
@@ -106,7 +107,7 @@ services:
     init: true
     shm_size: "2gb"
     container_name: scraper_worker
-    command: celery -A app.infrastructure.config.celery_app worker --loglevel=info --concurrency=2
+    command: celery -A app.adapters.celery.celery_app worker --loglevel=info --concurrency=2
     volumes:
       - ./savis-scraper:/app
       - /app/.venv
@@ -127,7 +128,7 @@ services:
       context: ./savis-scraper
       dockerfile: Dockerfile
     container_name: scraper_flower
-    command: celery -A app.infrastructure.config.celery_app flower --port=5555
+    command: celery -A app.adapters.celery.celery_app flower --port=5555
     ports:
       - "5555:5555"
     environment:
