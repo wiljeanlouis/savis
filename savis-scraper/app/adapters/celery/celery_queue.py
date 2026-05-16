@@ -1,19 +1,14 @@
-"""Celery task queue that receives tasks for celery worker."""
+"""Celery task queue."""
 
+from app.adapters.celery.celery_app import celery_app
 from app.core.ports import TaskQueue
 
-from .celery_tasks import scrape_offers_task
+SCRAPE_OFFERS_TASK_NAME = "app.adapters.celery.celery_tasks.scrape_offers_task"
 
 
 class CeleryQueue(TaskQueue):
-    """Adaptor for enqueuing a scraping task."""
+    """Adapter for enqueuing scraping tasks."""
 
     def push_scraping_offers(self, task_id: str, term: str) -> None:
-        """Del the scraping task.
-
-        Args:
-            task_id (int): the received id of the task
-            term (str): the term to search
-
-        """
-        scrape_offers_task.delay(task_id, term)  # type: ignore[attr-defined]
+        """Send scraping task to Celery."""
+        celery_app.send_task(SCRAPE_OFFERS_TASK_NAME, args=(task_id, term))

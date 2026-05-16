@@ -34,8 +34,9 @@ build/
 ### VS Code ###
 .vscode/
 
-### savis-api
-application-prod.properties
+### savis
+.env
+.env.local
 
 ### savis-admin
 */node_modules
@@ -47,5 +48,3 @@ application-prod.properties
 ### savis-scraper
 .venv
 __pycache__
-.env
-

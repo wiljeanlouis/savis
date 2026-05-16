@@ -6,12 +6,10 @@ This module defines FastAPI routes for initiating scraping operations.
 from fastapi import APIRouter
 
 from app.adapters.api.schemas import ScrapeRequest, ScrapeResponse
-from app.adapters.celery.celery_queue import CeleryQueue
-from app.core.enqueue_scraping_use_case import EnqueueScrapingUseCase
+from app.container import Container
 
 router = APIRouter()
-celery_queue = CeleryQueue()
-use_case = EnqueueScrapingUseCase(celery_queue)
+use_case = Container.enqueue_scraping_use_case()
 
 
 @router.post("/scrape/offers")
@@ -25,5 +23,5 @@ async def scrape_offers(request: ScrapeRequest) -> ScrapeResponse:
         ScrapeResponse: Response indicating the request was accepted.
 
     """
-    use_case.scrape_offers(request.id, request.search_term)
-    return ScrapeResponse(status="accepted", id=request.id)
+    use_case.scrape_offers(request.search_term)
+    return ScrapeResponse(status="accepted", search_term=request.search_term)

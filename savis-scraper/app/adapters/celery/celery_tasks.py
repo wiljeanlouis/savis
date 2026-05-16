@@ -1,42 +1,34 @@
-"""Celery scraping tasks for aggregating and publishing search results."""
+"""Celery scraping tasks."""
 
 import logging
 
-from app.adapters.java_api_publisher import JavaApiPublisher
-from app.adapters.scrapers import load_scrapers
-from app.core.execute_scraping_use_case import ExecuteScrapingUseCase
 from celery import Task
 
-from .celery_app import celery_app
-
-java_api_publisher = JavaApiPublisher()
-
+from app.adapters.celery.celery_app import celery_app
+from app.adapters.celery.celery_wiring import (
+    get_execute_scraping_use_case,
+    get_java_api_publisher,
+)
 
 logger = logging.getLogger(__name__)
 
 
 class ReportingTask(Task):
+    """Celery task base that reports task failures."""
+
     def on_failure(
         self,
         exc: Exception,
         task_id: str,
         args: tuple,
         kwargs: dict,
-        einfo: dict,
+        einfo: object,
     ) -> None:
-
-        logger.info(
-            "[ReportingTask] exc={%s}, task_id={%s}, args={%s}, kwargs={%s}, einfo={%s}",
-            exc,
-            task_id,
-            args,
-            kwargs,
-            einfo,
-        )
-
+        """Publish task failure."""
         scraping_task_id = args[0]
+        publisher = get_java_api_publisher()
 
-        java_api_publisher.publish_failure(
+        publisher.publish_failure(
             scraping_task_id=scraping_task_id,
             error=str(exc),
         )
@@ -49,11 +41,18 @@ class ReportingTask(Task):
     retry_kwargs={"max_retries": 3},
     base=ReportingTask,
 )
-def scrape_offers_task(self, scraping_task_id: str, term: str) -> None:
-    """Task to run the scraping request."""
+def scrape_offers_task(_self: Task, scraping_task_id: str, term: str) -> None:
+    """Run a scraping request."""
     logger.info("[CELERY TASK] scrape_offers_task begin with %s", scraping_task_id)
-    scrapers = load_scrapers()
-    use_case = ExecuteScrapingUseCase(scrapers)
+
+    use_case = get_execute_scraping_use_case()
+    publisher = get_java_api_publisher()
+
     offers = use_case.scrape_offers(term=term)
 
-    java_api_publisher.publish_success({"id": scraping_task_id, "offers": offers})
+    publisher.publish_success(
+        {
+            "id": scraping_task_id,
+            "offers": offers,
+        },
+    )

@@ -1,7 +1,10 @@
 """Celery app module."""
 
-from app.config import env_params
 from celery import Celery
+
+from app.config import EnvParams
+
+env_params = EnvParams()
 
 celery_app = Celery(
     "savis",

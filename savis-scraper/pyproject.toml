@@ -13,6 +13,7 @@ dependencies = [
     "flower",
     "beautifulsoup4>=4.14.3",
     "lxml>=6.1.0",
+    "pika>=1.4.0",
 ]
 
 [tool.fastapi]

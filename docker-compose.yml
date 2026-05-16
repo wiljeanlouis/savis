@@ -3,18 +3,18 @@ name: savis
 
 services:
   postgres:
-    image: postgres:16-alpine
+    image: postgres:18-alpine
     container_name: postgres
     ports:
-      - "5432:5432"
+      - "5434:5432"
     environment:
-      POSTGRES_USER: savis_user
-      POSTGRES_PASSWORD: savis_password
-      POSTGRES_DB: savis_db
+      POSTGRES_USER: ${DB_USER}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+      POSTGRES_DB: ${DB_NAME}
     volumes:
-      - postgres_data:/var/lib/postgresql/data
+      - pgdata:/var/lib/postgresql
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U savis_user -d savis_db"]
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER} -d ${DB_NAME}"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -34,8 +34,8 @@ services:
       - "5672:5672"
       - "15672:15672"
     environment:
-      RABBITMQ_DEFAULT_USER: savis
-      RABBITMQ_DEFAULT_PASS: savis
+      RABBITMQ_DEFAULT_USER: ${RABBIT_USER}
+      RABBITMQ_DEFAULT_PASS: ${RABBIT_PASSWORD}
     healthcheck:
       test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
       interval: 10s
@@ -51,13 +51,13 @@ services:
     ports:
       - "8080:8080"
     environment:
-      - SPRING_DATASOURCE_URL=jdbc:postgresql://postgres:5432/savis_db
-      - SPRING_DATASOURCE_USERNAME=savis_user
-      - SPRING_DATASOURCE_PASSWORD=savis_password
+      - SPRING_DATASOURCE_URL=${SPRING_DATASOURCE_URL}
+      - SPRING_DATASOURCE_USERNAME=${SPRING_DATASOURCE_USERNAME}
+      - SPRING_DATASOURCE_PASSWORD=${SPRING_DATASOURCE_PASSWORD}
       - SPRING_RABBITMQ_HOST=rabbitmq
       - SPRING_RABBITMQ_PORT=5672
-      - SPRING_RABBITMQ_USERNAME=savis
-      - SPRING_RABBITMQ_PASSWORD=savis
+      - SPRING_RABBITMQ_USERNAME=${RABBIT_USER}
+      - SPRING_RABBITMQ_PASSWORD=${RABBIT_PASSWORD}
       - SPRING_DATA_REDIS_HOST=redis
       - SPRING_DATA_REDIS_PORT=6379
     depends_on:
@@ -89,9 +89,9 @@ services:
     ports:
       - "8000:8000"
     environment:
-      - CELERY_BROKER_URL=amqp://savis:savis@rabbitmq:5672//
-      - CELERY_RESULT_BACKEND=redis://redis:6379/0
-      - DATABASE_URL=postgresql://savis_user:savis_password@postgres:5432/savis_db
+      - RABBIT_MQ_URL=amqp://${RABBIT_USER}:${RABBIT_PASSWORD}@rabbitmq:5672/%2f
+      - REDIS_URL=redis://redis:6379/0
+      - DATABASE_URL=postgresql://${DB_USER}:${DB_PASSWORD}@postgres:5434/${DB_NAME}
     depends_on:
       rabbitmq:
         condition: service_healthy
@@ -112,9 +112,9 @@ services:
       - ./savis-scraper:/app
       - /app/.venv
     environment:
-      - CELERY_BROKER_URL=amqp://savis:savis@rabbitmq:5672//
-      - CELERY_RESULT_BACKEND=redis://redis:6379/0
-      - DATABASE_URL=postgresql://savis_user:savis_password@postgres:5432/savis_db
+      - RABBIT_MQ_URL=amqp://${RABBIT_USER}:${RABBIT_PASSWORD}@rabbitmq:5672/%2f
+      - REDIS_URL=redis://redis:6379/0
+      - DATABASE_URL=postgresql://${DB_USER}:${DB_PASSWORD}@postgres:5434/${DB_NAME}
     depends_on:
       rabbitmq:
         condition: service_healthy
@@ -132,8 +132,8 @@ services:
     ports:
       - "5555:5555"
     environment:
-      - CELERY_BROKER_URL=amqp://savis:savis@rabbitmq:5672//
-      - CELERY_RESULT_BACKEND=redis://redis:6379/0
+      - RABBIT_MQ_URL=amqp://${RABBIT_USER}:${RABBIT_PASSWORD}@rabbitmq:5672/%2f
+      - REDIS_URL=redis://redis:6379/0
     depends_on:
       rabbitmq:
         condition: service_healthy
@@ -142,4 +142,4 @@ services:
 
 volumes:
   redis_data:
-  postgres_data:
+  pgdata:
