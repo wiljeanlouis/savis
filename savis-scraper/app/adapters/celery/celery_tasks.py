@@ -1,6 +1,7 @@
 """Celery scraping tasks."""
 
 import logging
+from uuid import UUID
 
 from celery import Task
 
@@ -8,6 +9,7 @@ from app.adapters.celery.celery_app import celery_app
 from app.adapters.celery.celery_wiring import (
     get_execute_scraping_use_case,
     get_java_api_publisher,
+    get_scraping_task_repository,
 )
 
 logger = logging.getLogger(__name__)
@@ -18,20 +20,38 @@ class ReportingTask(Task):
 
     def on_failure(
         self,
-        exc: Exception,
+        exc: BaseException,
         task_id: str,
-        args: tuple,
-        kwargs: dict,
-        einfo: object,
+        args: tuple[object, ...],
+        kwargs: dict[str, object],
+        einfo: object,  # noqa: ARG002
     ) -> None:
         """Publish task failure."""
+        logger.info(
+            "[CELERY TASK] scrape_offers_task failed | task_id=%s args=%s kwargs=%s",
+            task_id,
+            args,
+            kwargs,
+        )
+
+        if not args or not isinstance(args[0], str):
+            logger.error("Cannot report scraping task failure without task id")
+            return
+
         scraping_task_id = args[0]
+        scraping_task_uuid = UUID(scraping_task_id)
+        repository = get_scraping_task_repository()
         publisher = get_java_api_publisher()
 
-        publisher.publish_failure(
-            scraping_task_id=scraping_task_id,
-            error=str(exc),
-        )
+        repository.mark_failed(scraping_task_uuid, str(exc))
+
+        try:
+            publisher.publish_failure(
+                scraping_task_id=scraping_task_id,
+                error=str(exc),
+            )
+        except Exception:
+            logger.exception("Failed to publish scraping task failure to Java API")
 
 
 @celery_app.task(
@@ -47,6 +67,7 @@ def scrape_offers_task(_self: Task, scraping_task_id: str, term: str) -> None:
 
     use_case = get_execute_scraping_use_case()
     publisher = get_java_api_publisher()
+    repository = get_scraping_task_repository()
 
     offers = use_case.scrape_offers(term=term)
 
@@ -56,3 +77,4 @@ def scrape_offers_task(_self: Task, scraping_task_id: str, term: str) -> None:
             "offers": offers,
         },
     )
+    repository.mark_completed(UUID(scraping_task_id))

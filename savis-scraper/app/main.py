@@ -9,6 +9,7 @@ from typing import TYPE_CHECKING
 from fastapi import FastAPI
 
 from app.adapters.api.routes import router
+from app.adapters.database.session import create_database_schema
 from app.adapters.rabbitmq import subscriber
 
 if TYPE_CHECKING:
@@ -18,6 +19,7 @@ if TYPE_CHECKING:
 @asynccontextmanager
 async def lifespan(_app: FastAPI) -> AsyncIterator[None]:
     """Start background consumers for the API process."""
+    create_database_schema()
     Thread(target=subscriber.run_forever, daemon=True).start()
     yield
 

@@ -19,14 +19,6 @@ services:
       timeout: 5s
       retries: 5
 
-  redis:
-    image: redis:7-alpine
-    container_name: redis
-    ports:
-      - "6379:6379"
-    volumes:
-      - redis_data:/data
-
   rabbitmq:
     image: rabbitmq:3-management-alpine
     container_name: rabbitmq
@@ -34,8 +26,8 @@ services:
       - "5672:5672"
       - "15672:15672"
     environment:
-      RABBITMQ_DEFAULT_USER: ${RABBIT_USER}
-      RABBITMQ_DEFAULT_PASS: ${RABBIT_PASSWORD}
+      RABBITMQ_DEFAULT_USER: ${RABBIT_MQ_USER}
+      RABBITMQ_DEFAULT_PASS: ${RABBIT_MQ_PASSWORD}
     healthcheck:
       test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
       interval: 10s
@@ -56,17 +48,13 @@ services:
       - SPRING_DATASOURCE_PASSWORD=${SPRING_DATASOURCE_PASSWORD}
       - SPRING_RABBITMQ_HOST=rabbitmq
       - SPRING_RABBITMQ_PORT=5672
-      - SPRING_RABBITMQ_USERNAME=${RABBIT_USER}
-      - SPRING_RABBITMQ_PASSWORD=${RABBIT_PASSWORD}
-      - SPRING_DATA_REDIS_HOST=redis
-      - SPRING_DATA_REDIS_PORT=6379
+      - SPRING_RABBITMQ_USERNAME=${RABBIT_MQ_USER}
+      - SPRING_RABBITMQ_PASSWORD=${RABBIT_MQ_PASSWORD}
     depends_on:
       postgres:
         condition: service_healthy
       rabbitmq:
         condition: service_healthy
-      redis:
-        condition: service_started
 
   frontend_admin:
     build:
@@ -89,14 +77,11 @@ services:
     ports:
       - "8000:8000"
     environment:
-      - RABBIT_MQ_URL=amqp://${RABBIT_USER}:${RABBIT_PASSWORD}@rabbitmq:5672/%2f
-      - REDIS_URL=redis://redis:6379/0
-      - DATABASE_URL=postgresql://${DB_USER}:${DB_PASSWORD}@postgres:5434/${DB_NAME}
+      - RABBIT_MQ_URL=amqp://${RABBIT_MQ_USER}:${RABBIT_MQ_PASSWORD}@rabbitmq:5672/%2f
+      - DATABASE_URL=postgresql+psycopg://${DB_USER}:${DB_PASSWORD}@postgres:5432/${DB_NAME}
     depends_on:
       rabbitmq:
         condition: service_healthy
-      redis:
-        condition: service_started
       postgres:
         condition: service_healthy
 
@@ -112,14 +97,11 @@ services:
       - ./savis-scraper:/app
       - /app/.venv
     environment:
-      - RABBIT_MQ_URL=amqp://${RABBIT_USER}:${RABBIT_PASSWORD}@rabbitmq:5672/%2f
-      - REDIS_URL=redis://redis:6379/0
-      - DATABASE_URL=postgresql://${DB_USER}:${DB_PASSWORD}@postgres:5434/${DB_NAME}
+      - RABBIT_MQ_URL=amqp://${RABBIT_MQ_USER}:${RABBIT_MQ_PASSWORD}@rabbitmq:5672/%2f
+      - DATABASE_URL=postgresql+psycopg://${DB_USER}:${DB_PASSWORD}@postgres:5432/${DB_NAME}
     depends_on:
       rabbitmq:
         condition: service_healthy
-      redis:
-        condition: service_started
       postgres:
         condition: service_healthy
 
@@ -132,14 +114,10 @@ services:
     ports:
       - "5555:5555"
     environment:
-      - RABBIT_MQ_URL=amqp://${RABBIT_USER}:${RABBIT_PASSWORD}@rabbitmq:5672/%2f
-      - REDIS_URL=redis://redis:6379/0
+      - RABBIT_MQ_URL=amqp://${RABBIT_MQ_USER}:${RABBIT_MQ_PASSWORD}@rabbitmq:5672/%2f
     depends_on:
       rabbitmq:
         condition: service_healthy
-      redis:
-        condition: service_started
 
 volumes:
-  redis_data:
   pgdata:

@@ -19,7 +19,10 @@ class MaxiProvider:
             str: The complete url for with the search term and the store
 
         """
-        return f"{self.website}/fr/search?search-bar={search_term}&storeId={self.identifier}"
+        return (
+            f"{self.website}/fr/search?search-bar={search_term}"
+            f"&storeId={self.identifier}"
+        )
 
 
 provider = MaxiProvider()

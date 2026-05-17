@@ -9,7 +9,7 @@ env_params = EnvParams()
 celery_app = Celery(
     "savis",
     broker=env_params.RABBIT_MQ_URL,
-    backend=env_params.REDIS_URL,
+    include=["app.adapters.celery.celery_tasks"],
 )
 
 celery_app.conf.update(
@@ -20,7 +20,4 @@ celery_app.conf.update(
     worker_send_task_events=True,
     worker_prefetch_multiplier=1,
     timezone="Canada/Eastern",
-    result_expires=86400,
 )
-
-celery_app.autodiscover_tasks(["app.adapters.celery"])

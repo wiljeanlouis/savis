@@ -16,6 +16,10 @@ class EnvParams:
     """Configuration settings for the Savis scraper application."""
 
     JAVA_API_URL = os.getenv("JAVA_API_URL", "http://host.docker.internal:8080/api")
+    DATABASE_URL = os.getenv(
+        "DATABASE_URL",
+        "postgresql+psycopg://postgres:postgres@postgres:5432/postgres",
+    )
     REDIS_URL = os.getenv("REDIS_URL", "redis://redis:xxxx/x")
     RABBIT_MQ_URL = os.getenv("RABBIT_MQ_URL", "amqp://xxxx:xxxx@rabbitmq:xxxx//")
 

@@ -1,0 +1,1 @@
+"""Celery adapter tests."""

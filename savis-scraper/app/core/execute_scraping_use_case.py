@@ -1,3 +1,5 @@
+"""Use case for executing provider scraping."""
+
 import logging
 from typing import TYPE_CHECKING
 
@@ -9,8 +11,12 @@ if TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 
 
-def aggregate(results: list[list[Offer]]) -> list[Offer]:
+class ScrapingFailedError(RuntimeError):
+    """Raised when no provider scraper can return a successful result."""
 
+
+def aggregate(results: list[list[Offer]]) -> list[Offer]:
+    """Aggregate offers from multiple scraper results."""
     logger.info("[AGGREGATOR] Start aggregation with {%s} sources", len(results))
 
     offers = []
@@ -38,24 +44,26 @@ class ExecuteScrapingUseCase:
     scrapers: list[OfferScraper]
 
     def __init__(self, scrapers: list[OfferScraper]) -> None:
+        """Initialize the use case."""
         self.scrapers = scrapers
 
     def scrape_offers(self, term: str) -> list[Offer]:
+        """Scrape and aggregate offers for a search term."""
         logger.info("[ExecuteScrapingUseCase] scrape_offers called with %s", term)
 
         results = []
+        errors: list[Exception] = []
 
         for scraper in self.scrapers:
             try:
                 result = scraper.scrape_offers(term)
                 results.append(result)
-            except Exception:
-                continue
+            except Exception as exc:
+                logger.exception("Provider scraper failed for term %s", term)
+                errors.append(exc)
 
-        valid_results = []
+        if not results and errors:
+            msg = f"All provider scrapers failed for term {term!r}"
+            raise ScrapingFailedError(msg) from errors[-1]
 
-        for r in results:
-            if not isinstance(r, Exception):
-                valid_results.append(r)  # noqa: PERF401
-
-        return aggregate(valid_results)
+        return aggregate(results)

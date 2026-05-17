@@ -23,5 +23,9 @@ async def scrape_offers(request: ScrapeRequest) -> ScrapeResponse:
         ScrapeResponse: Response indicating the request was accepted.
 
     """
-    use_case.scrape_offers(request.search_term)
-    return ScrapeResponse(status="accepted", search_term=request.search_term)
+    task = use_case.scrape_offers(request.search_term)
+    return ScrapeResponse(
+        status="accepted",
+        search_term=request.search_term,
+        task_id=str(task.id),
+    )

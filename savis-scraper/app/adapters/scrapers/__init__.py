@@ -10,6 +10,7 @@ if TYPE_CHECKING:
 
 
 def load_scrapers() -> list[OfferScraper]:
+    """Load all configured provider scrapers."""
     return [
         MaxiScraper(browser_manager=BrowserManager()),
     ]

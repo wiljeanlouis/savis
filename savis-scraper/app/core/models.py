@@ -1,12 +1,46 @@
 """Domain models module."""
 
 from dataclasses import dataclass
+from datetime import UTC, datetime
+from enum import StrEnum
 from typing import TYPE_CHECKING
+from uuid import UUID, uuid4
 
 if TYPE_CHECKING:
-    from datetime import datetime
     from decimal import Decimal
-    from uuid import UUID
+
+
+class ScrapingTaskStatus(StrEnum):
+    """Possible statuses for a scraping task."""
+
+    IN_PROGRESS = "IN_PROGRESS"
+    COMPLETED = "COMPLETED"
+    FAILED = "FAILED"
+
+
+@dataclass
+class ScrapingTask:
+    """Represents the lifecycle of a scraping request owned by Python."""
+
+    search_term: str
+    id: UUID
+    status: ScrapingTaskStatus
+    created_at: datetime
+    updated_at: datetime
+    completed_at: datetime | None = None
+    error_message: str | None = None
+
+    @classmethod
+    def create(cls, search_term: str) -> ScrapingTask:
+        """Create a new scraping task already marked as in progress."""
+        now = datetime.now(UTC)
+        return cls(
+            id=uuid4(),
+            search_term=search_term,
+            status=ScrapingTaskStatus.IN_PROGRESS,
+            created_at=now,
+            updated_at=now,
+        )
 
 
 @dataclass
@@ -78,6 +112,8 @@ class Offer:
 
 @dataclass
 class TrackedOffer:
+    """Represents a provider offer tracked for refresh."""
+
     id: UUID
     provider: str
     url: str
@@ -87,4 +123,3 @@ class TrackedOffer:
     last_scraped_at: datetime
     next_refresh_at: datetime
     refresh_frequency_hours: int
-    # status: OfferStatus

@@ -20,3 +20,4 @@ class ScrapeResponse(BaseModel):
 
     status: str
     search_term: str
+    task_id: str
