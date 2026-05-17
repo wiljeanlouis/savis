@@ -4,6 +4,7 @@ from abc import ABC, abstractmethod
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
+    from datetime import datetime
     from uuid import UUID
 
     from .models import Offer, ScrapingTask
@@ -39,3 +40,11 @@ class ScrapingTaskRepository(ABC):
     @abstractmethod
     def mark_failed(self, task_id: UUID, error: str) -> None:
         """Mark a scraping task as failed."""
+
+    @abstractmethod
+    def mark_stale_in_progress_as_failed(
+        self,
+        stale_before: datetime,
+        error: str,
+    ) -> int:
+        """Mark stale in-progress scraping tasks as failed."""

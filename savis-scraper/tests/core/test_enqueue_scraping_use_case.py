@@ -13,6 +13,7 @@ from app.core.models import ScrapingTask, ScrapingTaskStatus
 from app.core.ports import ScrapingTaskRepository, TaskQueue
 
 if TYPE_CHECKING:
+    from datetime import datetime
     from uuid import UUID
 
 
@@ -51,6 +52,14 @@ class FakeScrapingTaskRepository(ScrapingTaskRepository):
     def mark_failed(self, task_id: UUID, error: str) -> None:
         """Capture failed tasks."""
         self.failed.append((task_id, error))
+
+    def mark_stale_in_progress_as_failed(
+        self,
+        _stale_before: datetime,
+        _error: str,
+    ) -> int:
+        """Capture stale cleanup calls."""
+        return 0
 
 
 def test_scrape_offers_creates_in_progress_task_and_enqueues_it() -> None:

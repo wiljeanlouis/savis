@@ -6,7 +6,7 @@ from datetime import UTC, datetime
 from typing import TYPE_CHECKING
 from uuid import UUID
 
-from sqlalchemy import DateTime, String, Text
+from sqlalchemy import DateTime, String, Text, and_, update
 from sqlalchemy.orm import Mapped, Session, mapped_column, sessionmaker
 
 from app.adapters.database.session import Base, SessionLocal, create_database_schema
@@ -112,3 +112,30 @@ class SqlAlchemyScrapingTaskRepository(ScrapingTaskRepository):
             entity.updated_at = datetime.now(UTC)
             entity.error_message = error
             session.commit()
+
+    def mark_stale_in_progress_as_failed(
+        self,
+        stale_before: datetime,
+        error: str,
+    ) -> int:
+        """Mark stale in-progress scraping tasks as failed."""
+        self.schema_creator()
+        now = datetime.now(UTC)
+        with self.session_factory() as session:
+            result = session.execute(
+                update(ScrapingTaskEntity)
+                .where(
+                    and_(
+                        ScrapingTaskEntity.status
+                        == ScrapingTaskStatus.IN_PROGRESS.value,
+                        ScrapingTaskEntity.updated_at < stale_before,
+                    ),
+                )
+                .values(
+                    status=ScrapingTaskStatus.FAILED.value,
+                    updated_at=now,
+                    error_message=error,
+                ),
+            )
+            session.commit()
+            return result.rowcount or 0  # type: ignore

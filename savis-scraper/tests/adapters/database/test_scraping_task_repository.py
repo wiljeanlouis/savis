@@ -2,6 +2,8 @@
 
 # ruff: noqa: D103, S101
 
+from datetime import UTC, datetime, timedelta
+
 from sqlalchemy import create_engine
 from sqlalchemy.orm import Session, sessionmaker
 
@@ -75,3 +77,65 @@ def test_mark_failed_updates_status_and_error_message() -> None:
     assert entity.status == ScrapingTaskStatus.FAILED.value
     assert entity.completed_at is None
     assert entity.error_message == "provider timeout"
+
+
+def test_mark_stale_in_progress_as_failed_updates_old_in_progress_tasks() -> None:
+    repository, session_factory = _repository()
+    task = ScrapingTask.create("flour")
+    old_time = datetime.now(UTC) - timedelta(hours=3)
+    task.created_at = old_time
+    task.updated_at = old_time
+    repository.save(task)
+
+    count = repository.mark_stale_in_progress_as_failed(
+        stale_before=datetime.now(UTC) - timedelta(hours=2),
+        error="Task timed out or worker never completed it",
+    )
+
+    with session_factory() as session:
+        entity = session.get(ScrapingTaskEntity, str(task.id))
+
+    assert count == 1
+    assert entity is not None
+    assert entity.status == ScrapingTaskStatus.FAILED.value
+    assert entity.error_message == "Task timed out or worker never completed it"
+
+
+def test_mark_stale_in_progress_as_failed_keeps_recent_in_progress_tasks() -> None:
+    repository, session_factory = _repository()
+    task = repository.save(ScrapingTask.create("flour"))
+
+    count = repository.mark_stale_in_progress_as_failed(
+        stale_before=datetime.now(UTC) - timedelta(hours=2),
+        error="Task timed out or worker never completed it",
+    )
+
+    with session_factory() as session:
+        entity = session.get(ScrapingTaskEntity, str(task.id))
+
+    assert count == 0
+    assert entity is not None
+    assert entity.status == ScrapingTaskStatus.IN_PROGRESS.value
+    assert entity.error_message is None
+
+
+def test_mark_stale_in_progress_as_failed_does_not_change_completed_tasks() -> None:
+    repository, session_factory = _repository()
+    task = ScrapingTask.create("flour")
+    old_time = datetime.now(UTC) - timedelta(hours=3)
+    task.created_at = old_time
+    task.updated_at = old_time
+    repository.save(task)
+    repository.mark_completed(task.id)
+
+    count = repository.mark_stale_in_progress_as_failed(
+        stale_before=datetime.now(UTC) - timedelta(hours=2),
+        error="Task timed out or worker never completed it",
+    )
+
+    with session_factory() as session:
+        entity = session.get(ScrapingTaskEntity, str(task.id))
+
+    assert count == 0
+    assert entity is not None
+    assert entity.status == ScrapingTaskStatus.COMPLETED.value
