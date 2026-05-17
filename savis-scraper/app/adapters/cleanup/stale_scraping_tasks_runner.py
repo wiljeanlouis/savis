@@ -7,16 +7,16 @@ from typing import TYPE_CHECKING
 from app.container import Container
 
 if TYPE_CHECKING:
-    from app.core.cleanup_scraping_tasks_use_case import CleanupScrapingTasksUseCase
+    from app.core.use_case_scraping_tasks import ScrapingTasksUseCase
 
 logger = logging.getLogger(__name__)
 
 CLEANUP_INTERVAL_SECONDS = 15 * 60
 
 
-def run_once(use_case: CleanupScrapingTasksUseCase | None = None) -> int:
+def run_once(use_case: ScrapingTasksUseCase | None = None) -> int:
     """Run one stale scraping task cleanup iteration."""
-    cleanup_use_case = use_case or Container.cleanup_scraping_tasks_use_case()
+    cleanup_use_case = use_case or Container.scraping_tasks_use_case()
     try:
         failed_count = cleanup_use_case.mark_stale_tasks_failed()
     except Exception:

@@ -4,12 +4,12 @@
 
 import pytest
 
-from app.core.execute_scraping_use_case import (
+from app.core.models import Offer, Provider
+from app.core.ports import OfferScraper
+from app.core.use_case_execute_scraping import (
     ExecuteScrapingUseCase,
     ScrapingFailedError,
 )
-from app.core.models import Offer, Provider
-from app.core.ports import OfferScraper
 
 
 def _offer(label: str) -> Offer:

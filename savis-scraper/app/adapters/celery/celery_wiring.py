@@ -6,8 +6,8 @@ from app.container import Container
 
 if TYPE_CHECKING:
     from app.adapters.java_api_publisher import JavaApiPublisher
-    from app.core.execute_scraping_use_case import ExecuteScrapingUseCase
     from app.core.ports import ScrapingTaskRepository
+    from app.core.use_case_execute_scraping import ExecuteScrapingUseCase
 
 
 def get_execute_scraping_use_case() -> ExecuteScrapingUseCase:

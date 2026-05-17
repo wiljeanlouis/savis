@@ -1,21 +1,28 @@
-"""Cleanup use case for scraping task tracking."""
+"""Use case for scraping task tracking."""
+
+from __future__ import annotations
 
 from datetime import UTC, datetime, timedelta
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
+    from app.core.models import ScrapingTask, ScrapingTaskStatus
     from app.core.ports import ScrapingTaskRepository
 
 STALE_TASK_TIMEOUT = timedelta(hours=2)
 STALE_TASK_ERROR_MESSAGE = "Task timed out or worker never completed it"
 
 
-class CleanupScrapingTasksUseCase:
-    """Handle operational cleanup for scraping task tracking."""
+class ScrapingTasksUseCase:
+    """Handle scraping task queries and operational cleanup."""
 
     def __init__(self, scraping_task_repository: ScrapingTaskRepository) -> None:
         """Initialize the use case."""
         self.scraping_task_repository = scraping_task_repository
+
+    def list(self, status: ScrapingTaskStatus | None = None) -> list[ScrapingTask]:
+        """List scraping tasks, optionally filtered by status."""
+        return self.scraping_task_repository.list(status)
 
     def mark_stale_tasks_failed(self, now: datetime | None = None) -> int:
         """Mark stale in-progress tasks as failed."""

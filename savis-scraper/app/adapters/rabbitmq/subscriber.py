@@ -19,7 +19,7 @@ if TYPE_CHECKING:
     from pika.adapters.blocking_connection import BlockingChannel
     from pika.spec import Basic
 
-    from app.core.enqueue_scraping_use_case import EnqueueScrapingUseCase
+    from app.core.use_case_enqueue_scraping import EnqueueScrapingUseCase
 
 logger = logging.getLogger(__name__)
 

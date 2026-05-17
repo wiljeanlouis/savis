@@ -49,6 +49,33 @@ def test_save_persists_scraping_task_fields() -> None:
     assert entity.error_message is None
 
 
+def test_list_returns_tasks_newest_first() -> None:
+    repository, _session_factory = _repository()
+    older_task = ScrapingTask.create("flour")
+    newer_task = ScrapingTask.create("sugar")
+    older_time = datetime.now(UTC) - timedelta(hours=1)
+    older_task.created_at = older_time
+    older_task.updated_at = older_time
+    repository.save(older_task)
+    repository.save(newer_task)
+
+    tasks = repository.list()
+
+    assert [task.id for task in tasks] == [newer_task.id, older_task.id]
+
+
+def test_list_filters_tasks_by_status() -> None:
+    repository, _session_factory = _repository()
+    in_progress_task = repository.save(ScrapingTask.create("flour"))
+    failed_task = repository.save(ScrapingTask.create("sugar"))
+    repository.mark_failed(failed_task.id, "provider timeout")
+
+    tasks = repository.list(ScrapingTaskStatus.FAILED)
+
+    assert [task.id for task in tasks] == [failed_task.id]
+    assert in_progress_task.id not in [task.id for task in tasks]
+
+
 def test_mark_completed_updates_status_and_completion_time() -> None:
     repository, session_factory = _repository()
     task = repository.save(ScrapingTask.create("flour"))

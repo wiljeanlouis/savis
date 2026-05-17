@@ -8,9 +8,9 @@ from typing import TYPE_CHECKING
 
 import pytest
 
-from app.core.enqueue_scraping_use_case import EnqueueScrapingUseCase
 from app.core.models import ScrapingTask, ScrapingTaskStatus
 from app.core.ports import ScrapingTaskRepository, TaskQueue
+from app.core.use_case_enqueue_scraping import EnqueueScrapingUseCase
 
 if TYPE_CHECKING:
     from datetime import datetime
@@ -40,6 +40,10 @@ class FakeScrapingTaskRepository(ScrapingTaskRepository):
         self.completed: list[UUID] = []
         self.failed: list[tuple[UUID, str]] = []
 
+    def list(self, status: ScrapingTaskStatus | None = None) -> list[ScrapingTask]:  # noqa: ARG002
+        """Return no tasks for unrelated enqueue tests."""
+        return []
+
     def save(self, task: ScrapingTask) -> ScrapingTask:
         """Capture saved tasks."""
         self.saved.append(task)
@@ -55,8 +59,8 @@ class FakeScrapingTaskRepository(ScrapingTaskRepository):
 
     def mark_stale_in_progress_as_failed(
         self,
-        _stale_before: datetime,
-        _error: str,
+        stale_before: datetime,  # noqa: ARG002
+        error: str,  # noqa: ARG002
     ) -> int:
         """Capture stale cleanup calls."""
         return 0

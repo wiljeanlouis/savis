@@ -6,9 +6,9 @@ from app.adapters.database.scraping_task_repository import (
 )
 from app.adapters.java_api_publisher import JavaApiPublisher
 from app.adapters.scrapers import load_scrapers
-from app.core.cleanup_scraping_tasks_use_case import CleanupScrapingTasksUseCase
-from app.core.enqueue_scraping_use_case import EnqueueScrapingUseCase
-from app.core.execute_scraping_use_case import ExecuteScrapingUseCase
+from app.core.use_case_enqueue_scraping import EnqueueScrapingUseCase
+from app.core.use_case_execute_scraping import ExecuteScrapingUseCase
+from app.core.use_case_scraping_tasks import ScrapingTasksUseCase
 
 
 class Container:
@@ -33,6 +33,6 @@ class Container:
         return ExecuteScrapingUseCase(scrapers)
 
     @classmethod
-    def cleanup_scraping_tasks_use_case(cls) -> CleanupScrapingTasksUseCase:
-        """Build the cleanup scraping tasks use case."""
-        return CleanupScrapingTasksUseCase(cls.scraping_task_repository)
+    def scraping_tasks_use_case(cls) -> ScrapingTasksUseCase:
+        """Build the scraping tasks use case."""
+        return ScrapingTasksUseCase(cls.scraping_task_repository)

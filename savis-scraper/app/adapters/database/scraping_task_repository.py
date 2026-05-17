@@ -6,7 +6,7 @@ from datetime import UTC, datetime
 from typing import TYPE_CHECKING
 from uuid import UUID
 
-from sqlalchemy import DateTime, String, Text, and_, update
+from sqlalchemy import DateTime, String, Text, and_, select, update
 from sqlalchemy.orm import Mapped, Session, mapped_column, sessionmaker
 
 from app.adapters.database.session import Base, SessionLocal, create_database_schema
@@ -85,6 +85,19 @@ class SqlAlchemyScrapingTaskRepository(ScrapingTaskRepository):
             session.commit()
             return task
 
+    def list(self, status: ScrapingTaskStatus | None = None) -> list[ScrapingTask]:
+        """List scraping tasks, optionally filtered by status."""
+        self.schema_creator()
+        statement = select(ScrapingTaskEntity).order_by(
+            ScrapingTaskEntity.created_at.desc(),
+        )
+        if status is not None:
+            statement = statement.where(ScrapingTaskEntity.status == status.value)
+
+        with self.session_factory() as session:
+            entities = session.scalars(statement).all()
+            return [_to_model(entity) for entity in entities]
+
     def mark_completed(self, task_id: UUID) -> None:
         """Mark a scraping task as completed."""
         self.schema_creator()
@@ -138,4 +151,4 @@ class SqlAlchemyScrapingTaskRepository(ScrapingTaskRepository):
                 ),
             )
             session.commit()
-            return result.rowcount or 0  # type: ignore
+            return result.rowcount or 0  # pyright: ignore[reportAttributeAccessIssue]

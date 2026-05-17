@@ -7,7 +7,7 @@ if TYPE_CHECKING:
     from datetime import datetime
     from uuid import UUID
 
-    from .models import Offer, ScrapingTask
+    from .models import Offer, ScrapingTask, ScrapingTaskStatus
 
 
 class OfferScraper(ABC):
@@ -28,6 +28,10 @@ class TaskQueue(ABC):
 
 class ScrapingTaskRepository(ABC):
     """Port for scraping task persistence."""
+
+    @abstractmethod
+    def list(self, status: ScrapingTaskStatus | None = None) -> list[ScrapingTask]:
+        """List scraping tasks, optionally filtered by status."""
 
     @abstractmethod
     def save(self, task: ScrapingTask) -> ScrapingTask:
