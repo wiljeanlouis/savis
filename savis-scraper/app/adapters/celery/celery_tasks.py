@@ -8,7 +8,7 @@ from celery import Task
 from app.adapters.celery.celery_app import celery_app
 from app.adapters.celery.celery_wiring import (
     get_execute_scraping_use_case,
-    get_java_api_publisher,
+    get_result_publisher,
     get_scraping_task_repository,
 )
 
@@ -16,7 +16,7 @@ logger = logging.getLogger(__name__)
 
 
 class ReportingTask(Task):
-    """Celery task base that reports task failures."""
+    """Celery task base that tracks task failures."""
 
     def on_failure(
         self,
@@ -26,7 +26,7 @@ class ReportingTask(Task):
         kwargs: dict[str, object],
         einfo: object,  # noqa: ARG002
     ) -> None:
-        """Publish task failure."""
+        """Track task failure."""
         logger.info(
             "[CELERY TASK] scrape_offers_task failed | task_id=%s args=%s kwargs=%s",
             task_id,
@@ -41,17 +41,8 @@ class ReportingTask(Task):
         scraping_task_id = args[0]
         scraping_task_uuid = UUID(scraping_task_id)
         repository = get_scraping_task_repository()
-        publisher = get_java_api_publisher()
 
         repository.mark_failed(scraping_task_uuid, str(exc))
-
-        try:
-            publisher.publish_failure(
-                scraping_task_id=scraping_task_id,
-                error=str(exc),
-            )
-        except Exception:
-            logger.exception("Failed to publish scraping task failure to Java API")
 
 
 @celery_app.task(
@@ -66,7 +57,7 @@ def scrape_offers_task(_self: Task, scraping_task_id: str, term: str) -> None:
     logger.info("[CELERY TASK] scrape_offers_task begin with %s", scraping_task_id)
 
     use_case = get_execute_scraping_use_case()
-    publisher = get_java_api_publisher()
+    publisher = get_result_publisher()
     repository = get_scraping_task_repository()
 
     offers = use_case.scrape_offers(term=term)

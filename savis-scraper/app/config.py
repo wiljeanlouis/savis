@@ -15,7 +15,6 @@ def setup_logging() -> None:
 class EnvParams:
     """Configuration settings for the Savis scraper application."""
 
-    JAVA_API_URL = os.getenv("JAVA_API_URL", "http://host.docker.internal:8080/api")
     DATABASE_URL = os.getenv(
         "DATABASE_URL",
         "postgresql+psycopg://postgres:postgres@postgres:5432/postgres",

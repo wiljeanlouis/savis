@@ -4,7 +4,7 @@ from app.adapters.celery.celery_queue import CeleryQueue
 from app.adapters.database.scraping_task_repository import (
     SqlAlchemyScrapingTaskRepository,
 )
-from app.adapters.java_api_publisher import JavaApiPublisher
+from app.adapters.rabbitmq.publisher import RabbitMqResultPublisher
 from app.adapters.scrapers import load_scrapers
 from app.core.use_case_enqueue_scraping import EnqueueScrapingUseCase
 from app.core.use_case_execute_scraping import ExecuteScrapingUseCase
@@ -15,7 +15,7 @@ class Container:
     """Composition root for scraper dependencies."""
 
     celery_queue = CeleryQueue()
-    java_api_publisher = JavaApiPublisher()
+    result_publisher = RabbitMqResultPublisher()
     scraping_task_repository = SqlAlchemyScrapingTaskRepository()
 
     @classmethod

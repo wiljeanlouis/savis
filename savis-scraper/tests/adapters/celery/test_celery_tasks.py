@@ -23,16 +23,12 @@ class FakePublisher:
     def __init__(self, *, fail_success: bool = False) -> None:
         self.fail_success = fail_success
         self.success_payloads: list[dict] = []
-        self.failures: list[tuple[str, str]] = []
 
     def publish_success(self, payload: dict) -> None:
         if self.fail_success:
-            msg = "java unavailable"
+            msg = "rabbitmq unavailable"
             raise RuntimeError(msg)
         self.success_payloads.append(payload)
-
-    def publish_failure(self, scraping_task_id: str, error: str) -> None:
-        self.failures.append((scraping_task_id, error))
 
 
 class FakeScrapingTaskRepository:
@@ -56,7 +52,7 @@ def test_successful_scrape_marks_task_completed(
     repository = FakeScrapingTaskRepository()
 
     monkeypatch.setattr(celery_tasks, "get_execute_scraping_use_case", lambda: use_case)
-    monkeypatch.setattr(celery_tasks, "get_java_api_publisher", lambda: publisher)
+    monkeypatch.setattr(celery_tasks, "get_result_publisher", lambda: publisher)
     monkeypatch.setattr(
         celery_tasks,
         "get_scraping_task_repository",
@@ -73,14 +69,12 @@ def test_successful_scrape_marks_task_completed(
     assert repository.failed == []
 
 
-def test_reporting_task_marks_task_failed_and_publishes_failure(
+def test_reporting_task_marks_task_failed(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     task_id = uuid4()
-    publisher = FakePublisher()
     repository = FakeScrapingTaskRepository()
 
-    monkeypatch.setattr(celery_tasks, "get_java_api_publisher", lambda: publisher)
     monkeypatch.setattr(
         celery_tasks,
         "get_scraping_task_repository",
@@ -96,7 +90,6 @@ def test_reporting_task_marks_task_failed_and_publishes_failure(
     )
 
     assert repository.failed == [(task_id, "provider timeout")]
-    assert publisher.failures == [(str(task_id), "provider timeout")]
 
 
 def test_success_publisher_failure_prevents_completed_status(
@@ -108,14 +101,14 @@ def test_success_publisher_failure_prevents_completed_status(
     repository = FakeScrapingTaskRepository()
 
     monkeypatch.setattr(celery_tasks, "get_execute_scraping_use_case", lambda: use_case)
-    monkeypatch.setattr(celery_tasks, "get_java_api_publisher", lambda: publisher)
+    monkeypatch.setattr(celery_tasks, "get_result_publisher", lambda: publisher)
     monkeypatch.setattr(
         celery_tasks,
         "get_scraping_task_repository",
         lambda: repository,
     )
 
-    with pytest.raises(RuntimeError, match="java unavailable"):
+    with pytest.raises(RuntimeError, match="rabbitmq unavailable"):
         celery_tasks.scrape_offers_task.run(str(task_id), "flour")
 
     assert repository.completed == []

@@ -5,7 +5,7 @@ from typing import TYPE_CHECKING
 from app.container import Container
 
 if TYPE_CHECKING:
-    from app.adapters.java_api_publisher import JavaApiPublisher
+    from app.adapters.rabbitmq.publisher import RabbitMqResultPublisher
     from app.core.ports import ScrapingTaskRepository
     from app.core.use_case_execute_scraping import ExecuteScrapingUseCase
 
@@ -15,9 +15,9 @@ def get_execute_scraping_use_case() -> ExecuteScrapingUseCase:
     return Container.execute_scraping_use_case()
 
 
-def get_java_api_publisher() -> JavaApiPublisher:
+def get_result_publisher() -> RabbitMqResultPublisher:
     """Resolve the publisher for Celery tasks."""
-    return Container.java_api_publisher
+    return Container.result_publisher
 
 
 def get_scraping_task_repository() -> ScrapingTaskRepository:
