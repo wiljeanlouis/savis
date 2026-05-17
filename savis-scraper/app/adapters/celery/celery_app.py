@@ -19,5 +19,4 @@ celery_app.conf.update(
     task_send_sent_event=True,
     worker_send_task_events=True,
     worker_prefetch_multiplier=1,
-    timezone="Canada/Eastern",
 )
