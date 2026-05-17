@@ -5,7 +5,7 @@
 from __future__ import annotations
 
 from typing import TYPE_CHECKING
-from uuid import uuid4
+from uuid import uuid7
 
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
@@ -22,7 +22,7 @@ HTTP_OK = 200
 def test_scrape_offers_returns_created_task_id(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    task_id = uuid4()
+    task_id = uuid7()
 
     class FixedTaskUseCase:
         def scrape_offers(self, term: str) -> ScrapingTask:

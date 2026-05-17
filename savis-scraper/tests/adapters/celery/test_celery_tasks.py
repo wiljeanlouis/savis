@@ -2,7 +2,7 @@
 
 # ruff: noqa: D101, D102, D103, D107, S101
 
-from uuid import UUID, uuid4
+from uuid import UUID, uuid7
 
 import pytest
 
@@ -31,6 +31,19 @@ class FakePublisher:
         self.success_payloads.append(payload)
 
 
+class FakeTrackOffersUseCase:
+    def __init__(self) -> None:
+        self.calls: list[tuple[list[dict], str, UUID]] = []
+
+    def track(
+        self,
+        offers: list[dict],
+        search_term: str,
+        scraping_task_id: UUID,
+    ) -> None:
+        self.calls.append((offers, search_term, scraping_task_id))
+
+
 class FakeScrapingTaskRepository:
     def __init__(self) -> None:
         self.completed: list[UUID] = []
@@ -46,12 +59,18 @@ class FakeScrapingTaskRepository:
 def test_successful_scrape_marks_task_completed(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    task_id = uuid4()
+    task_id = uuid7()
     use_case = FakeExecuteScrapingUseCase(offers=[{"label": "Flour"}])
+    tracking_use_case = FakeTrackOffersUseCase()
     publisher = FakePublisher()
     repository = FakeScrapingTaskRepository()
 
     monkeypatch.setattr(celery_tasks, "get_execute_scraping_use_case", lambda: use_case)
+    monkeypatch.setattr(
+        celery_tasks,
+        "get_track_offers_use_case",
+        lambda: tracking_use_case,
+    )
     monkeypatch.setattr(celery_tasks, "get_result_publisher", lambda: publisher)
     monkeypatch.setattr(
         celery_tasks,
@@ -65,6 +84,7 @@ def test_successful_scrape_marks_task_completed(
     assert publisher.success_payloads == [
         {"id": str(task_id), "offers": [{"label": "Flour"}]},
     ]
+    assert tracking_use_case.calls == [([{"label": "Flour"}], "flour", task_id)]
     assert repository.completed == [task_id]
     assert repository.failed == []
 
@@ -72,7 +92,7 @@ def test_successful_scrape_marks_task_completed(
 def test_reporting_task_marks_task_failed(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    task_id = uuid4()
+    task_id = uuid7()
     repository = FakeScrapingTaskRepository()
 
     monkeypatch.setattr(
@@ -95,12 +115,18 @@ def test_reporting_task_marks_task_failed(
 def test_success_publisher_failure_prevents_completed_status(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    task_id = uuid4()
+    task_id = uuid7()
     use_case = FakeExecuteScrapingUseCase()
+    tracking_use_case = FakeTrackOffersUseCase()
     publisher = FakePublisher(fail_success=True)
     repository = FakeScrapingTaskRepository()
 
     monkeypatch.setattr(celery_tasks, "get_execute_scraping_use_case", lambda: use_case)
+    monkeypatch.setattr(
+        celery_tasks,
+        "get_track_offers_use_case",
+        lambda: tracking_use_case,
+    )
     monkeypatch.setattr(celery_tasks, "get_result_publisher", lambda: publisher)
     monkeypatch.setattr(
         celery_tasks,
@@ -112,3 +138,4 @@ def test_success_publisher_failure_prevents_completed_status(
         celery_tasks.scrape_offers_task.run(str(task_id), "flour")
 
     assert repository.completed == []
+    assert tracking_use_case.calls == [([], "flour", task_id)]

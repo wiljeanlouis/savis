@@ -4,7 +4,7 @@ from dataclasses import dataclass
 from datetime import UTC, datetime
 from enum import StrEnum
 from typing import TYPE_CHECKING
-from uuid import UUID, uuid4
+from uuid import UUID, uuid7
 
 if TYPE_CHECKING:
     from decimal import Decimal
@@ -35,7 +35,7 @@ class ScrapingTask:
         """Create a new scraping task already marked as in progress."""
         now = datetime.now(UTC)
         return cls(
-            id=uuid4(),
+            id=uuid7(),
             search_term=search_term,
             status=ScrapingTaskStatus.IN_PROGRESS,
             created_at=now,
@@ -117,9 +117,10 @@ class TrackedOffer:
     id: UUID
     provider: str
     url: str
-    external_id: str | None
+    external_id: str
     search_term: str
     last_known_price: Decimal | None
     last_scraped_at: datetime
     next_refresh_at: datetime
     refresh_frequency_hours: int
+    last_seen_task_id: UUID

@@ -7,7 +7,7 @@ if TYPE_CHECKING:
     from datetime import datetime
     from uuid import UUID
 
-    from .models import Offer, ScrapingTask, ScrapingTaskStatus
+    from .models import Offer, ScrapingTask, ScrapingTaskStatus, TrackedOffer
 
 
 class OfferScraper(ABC):
@@ -52,3 +52,19 @@ class ScrapingTaskRepository(ABC):
         error: str,
     ) -> int:
         """Mark stale in-progress scraping tasks as failed."""
+
+
+class TrackedOfferRepository(ABC):
+    """Port for tracked offer persistence."""
+
+    @abstractmethod
+    def find_by_provider_and_external_id(
+        self,
+        provider: str,
+        external_id: str,
+    ) -> TrackedOffer | None:
+        """Find a tracked offer by its stable provider identity."""
+
+    @abstractmethod
+    def save(self, tracked_offer: TrackedOffer) -> TrackedOffer:
+        """Save a tracked offer."""
