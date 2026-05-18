@@ -20,8 +20,6 @@ def _offer(label: str) -> Offer:
         label=label,
         price=None,
         package_size=None,
-        unit_price=None,
-        reference_quantity=None,
         image_url="https://example.com/image.png",
         provider=Provider(
             name="Example Provider",

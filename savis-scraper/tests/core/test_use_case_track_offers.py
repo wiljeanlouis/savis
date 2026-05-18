@@ -26,8 +26,6 @@ def _offer(
         label="Flour",
         price=None if amount is None else Price(amount=amount),
         package_size=None,
-        unit_price=None,
-        reference_quantity=None,
         image_url="https://example.com/image.png",
         provider=Provider(
             name="Example Provider",

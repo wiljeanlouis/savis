@@ -3,6 +3,7 @@
 import logging
 import re
 from dataclasses import dataclass
+from decimal import ROUND_HALF_UP, Decimal
 
 from bs4 import BeautifulSoup, Tag
 
@@ -54,8 +55,9 @@ class MaxiOffer:
 
     def __post_init__(self) -> None:
         """Parse raw price and package size strings after initialization."""
-        _set_unit_price(self, self._package_price_info)
+        _set_unit_price_and_reference_quantity(self, self._package_price_info)
         _set_package_size(self, self._package_price_info)
+        _set_price(self)
 
     def get_offer(self) -> Offer:
         """Extract and return an Offer object from the scraped data."""
@@ -64,10 +66,8 @@ class MaxiOffer:
             url=self.url,
             brand=self.brand,
             label=self.label,
-            price=None,
+            price=self.price,
             package_size=self.package_size,
-            unit_price=self.unit_price,
-            reference_quantity=self.reference_quantity,
             image_url=self.image_url,
             provider=Provider(
                 name=provider.name,
@@ -93,7 +93,10 @@ class MaxiOffer:
         """
 
 
-def _set_unit_price(self: MaxiOffer, package_price_info: str) -> None:
+def _set_unit_price_and_reference_quantity(
+    self: MaxiOffer,
+    package_price_info: str,
+) -> None:
     """Set the price and the package_price from package_price_info.
 
     Args:
@@ -138,6 +141,53 @@ def _set_package_size(self: MaxiOffer, package_price_info: str) -> None:
                 value=float(package_size_value),
                 unit=package_unit_value,
             )
+
+
+def _set_price(self: MaxiOffer) -> None:
+    """Derive Maxi total price from normalized package information."""
+    if (
+        self.package_size is None
+        or self.unit_price is None
+        or self.reference_quantity is None
+    ):
+        return
+
+    package_size = _as_base_unit(self.package_size)
+    reference_quantity = _as_base_unit(self.reference_quantity)
+    if package_size is None or reference_quantity is None:
+        return
+
+    package_value, package_unit = package_size
+    reference_value, reference_unit = reference_quantity
+    if package_unit != reference_unit or reference_value == 0:
+        return
+
+    amount = (
+        Decimal(self.unit_price.amount) * package_value / reference_value
+    ).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
+
+    self.price = Price(
+        amount=format(amount, ".2f"),
+        currency=self.unit_price.currency,
+    )
+
+
+def _as_base_unit(package_size: PackageSize) -> tuple[Decimal, str] | None:
+    normalized_unit = package_size.unit.lower()
+    conversion_factors = {
+        "g": (Decimal(1), "g"),
+        "kg": (Decimal(1000), "g"),
+        "ml": (Decimal(1), "ml"),
+        "l": (Decimal(1000), "ml"),
+        "ch": (Decimal(1), "ch"),
+        "ea": (Decimal(1), "ch"),
+    }
+    conversion = conversion_factors.get(normalized_unit)
+    if conversion is None:
+        return None
+
+    factor, base_unit = conversion
+    return Decimal(str(package_size.value)) * factor, base_unit
 
 
 def _maxi_offer_builder(item: Tag) -> MaxiOffer:

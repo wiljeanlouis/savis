@@ -87,10 +87,6 @@ class Offer:
         The total price
     package_size : PackageSize
         The total amount of the product
-    unit_price : Price
-        The comparison price
-    reference_quantity : PackageSize
-        The base amount of the unit price
     image_url : str
         The URL of the product image.
     provider: str
@@ -104,8 +100,6 @@ class Offer:
     label: str
     price: Price | None
     package_size: PackageSize | None
-    unit_price: Price | None
-    reference_quantity: PackageSize | None
     image_url: str
     provider: Provider
 
