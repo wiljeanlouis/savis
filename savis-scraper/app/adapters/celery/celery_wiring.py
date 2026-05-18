@@ -5,10 +5,9 @@ from typing import TYPE_CHECKING
 from app.container import Container
 
 if TYPE_CHECKING:
-    from app.adapters.rabbitmq.publisher import RabbitMqResultPublisher
     from app.core.ports import ScrapingTaskRepository
     from app.core.use_case_execute_scraping import ExecuteScrapingUseCase
-    from app.core.use_case_track_offers import TrackOffersUseCase
+    from app.core.use_case_offers import OffersUseCase
 
 
 def get_execute_scraping_use_case() -> ExecuteScrapingUseCase:
@@ -16,16 +15,11 @@ def get_execute_scraping_use_case() -> ExecuteScrapingUseCase:
     return Container.execute_scraping_use_case()
 
 
-def get_result_publisher() -> RabbitMqResultPublisher:
-    """Resolve the publisher for Celery tasks."""
-    return Container.result_publisher
-
-
 def get_scraping_task_repository() -> ScrapingTaskRepository:
     """Resolve the scraping task repository for Celery tasks."""
     return Container.scraping_task_repository
 
 
-def get_track_offers_use_case() -> TrackOffersUseCase:
-    """Resolve the offer tracking use case for Celery tasks."""
-    return Container.track_offers_use_case()
+def get_offers_use_case() -> OffersUseCase:
+    """Resolve the offers use case for Celery tasks."""
+    return Container.offers_use_case()

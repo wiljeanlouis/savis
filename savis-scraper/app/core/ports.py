@@ -7,7 +7,7 @@ if TYPE_CHECKING:
     from datetime import datetime
     from uuid import UUID
 
-    from .models import Offer, ScrapingTask, ScrapingTaskStatus, TrackedOffer
+    from .models import Offer, OfferStatus, ScrapingTask, ScrapingTaskStatus
 
 
 class OfferScraper(ABC):
@@ -24,6 +24,10 @@ class TaskQueue(ABC):
     @abstractmethod
     def push_scraping_offers(self, task_id: str, term: str) -> None:
         """Push a scraping task to a worker queue."""
+
+    @abstractmethod
+    def push_refresh_offer(self, offer_id: str, url: str) -> None:
+        """Push an offer refresh task to a worker queue."""
 
 
 class ScrapingTaskRepository(ABC):
@@ -54,17 +58,38 @@ class ScrapingTaskRepository(ABC):
         """Mark stale in-progress scraping tasks as failed."""
 
 
-class TrackedOfferRepository(ABC):
-    """Port for tracked offer persistence."""
+class OfferRepository(ABC):
+    """Port for offer persistence."""
 
     @abstractmethod
     def find_by_provider_and_external_id(
         self,
         provider: str,
         external_id: str,
-    ) -> TrackedOffer | None:
-        """Find a tracked offer by its stable provider identity."""
+    ) -> Offer | None:
+        """Find an offer by its stable provider identity."""
 
     @abstractmethod
-    def save(self, tracked_offer: TrackedOffer) -> TrackedOffer:
-        """Save a tracked offer."""
+    def find_by_id(self, offer_id: UUID) -> Offer | None:
+        """Find an offer by id."""
+
+    @abstractmethod
+    def list(
+        self,
+        status: OfferStatus | None,
+        page: int,
+        size: int,
+    ) -> tuple[list[Offer], int]:
+        """List paged offers and return total count."""
+
+    @abstractmethod
+    def save(self, offer: Offer) -> Offer:
+        """Save an offer."""
+
+
+class OfferPublisher(ABC):
+    """Port for publishing offers outside the scraper."""
+
+    @abstractmethod
+    def publish_offer(self, offer: Offer) -> None:
+        """Publish one offer."""

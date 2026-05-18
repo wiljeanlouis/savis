@@ -8,9 +8,8 @@ from celery import Task
 from app.adapters.celery.celery_app import celery_app
 from app.adapters.celery.celery_wiring import (
     get_execute_scraping_use_case,
-    get_result_publisher,
+    get_offers_use_case,
     get_scraping_task_repository,
-    get_track_offers_use_case,
 )
 
 logger = logging.getLogger(__name__)
@@ -58,21 +57,23 @@ def scrape_offers_task(_self: Task, scraping_task_id: str, term: str) -> None:
     logger.info("[CELERY TASK] scrape_offers_task begin with %s", scraping_task_id)
 
     use_case = get_execute_scraping_use_case()
-    tracking_use_case = get_track_offers_use_case()
-    publisher = get_result_publisher()
+    offers_use_case = get_offers_use_case()
     repository = get_scraping_task_repository()
 
     offers = use_case.scrape_offers(term=term)
-    tracking_use_case.track(
+    offers_use_case.track(
         offers=offers,
         search_term=term,
         scraping_task_id=UUID(scraping_task_id),
     )
-
-    publisher.publish_success(
-        {
-            "id": scraping_task_id,
-            "offers": offers,
-        },
-    )
     repository.mark_completed(UUID(scraping_task_id))
+
+
+@celery_app.task
+def refresh_offer_task(offer_id: str, url: str) -> None:
+    """Refresh one offer by URL once URL scrapers are implemented."""
+    logger.info(
+        "[CELERY TASK] refresh_offer_task pending parser | %s %s",
+        offer_id,
+        url,
+    )

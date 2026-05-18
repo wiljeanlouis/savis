@@ -3,11 +3,7 @@
 from dataclasses import dataclass
 from datetime import UTC, datetime
 from enum import StrEnum
-from typing import TYPE_CHECKING
 from uuid import UUID, uuid7
-
-if TYPE_CHECKING:
-    from decimal import Decimal
 
 
 class ScrapingTaskStatus(StrEnum):
@@ -16,6 +12,14 @@ class ScrapingTaskStatus(StrEnum):
     IN_PROGRESS = "IN_PROGRESS"
     COMPLETED = "COMPLETED"
     FAILED = "FAILED"
+
+
+class OfferStatus(StrEnum):
+    """Human review status for a scraped offer."""
+
+    NEW = "NEW"
+    VALID = "VALID"
+    REJECTED = "REJECTED"
 
 
 @dataclass
@@ -102,19 +106,10 @@ class Offer:
     package_size: PackageSize | None
     image_url: str
     provider: Provider
-
-
-@dataclass
-class TrackedOffer:
-    """Represents a provider offer tracked for refresh."""
-
-    id: UUID
-    provider: str
-    url: str
-    external_id: str
-    search_term: str
-    last_known_price: Decimal | None
-    last_scraped_at: datetime
-    next_refresh_at: datetime
-    refresh_frequency_hours: int
-    last_seen_task_id: UUID
+    id: UUID | None = None
+    search_term: str | None = None
+    status: OfferStatus | None = None
+    last_scraped_at: datetime | None = None
+    next_refresh_at: datetime | None = None
+    refresh_frequency_hours: int | None = None
+    last_seen_task_id: UUID | None = None

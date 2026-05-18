@@ -31,6 +31,9 @@ class FakeTaskQueue(TaskQueue):
             raise RuntimeError(msg)
         self.pushed.append((task_id, term))
 
+    def push_refresh_offer(self, offer_id: str, url: str) -> None:
+        """Ignore unrelated refresh tasks."""
+
 
 class FakeScrapingTaskRepository(ScrapingTaskRepository):
     """Scraping task repository fake."""

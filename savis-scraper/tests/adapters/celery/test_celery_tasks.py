@@ -19,19 +19,7 @@ class FakeExecuteScrapingUseCase:
         return self.offers
 
 
-class FakePublisher:
-    def __init__(self, *, fail_success: bool = False) -> None:
-        self.fail_success = fail_success
-        self.success_payloads: list[dict] = []
-
-    def publish_success(self, payload: dict) -> None:
-        if self.fail_success:
-            msg = "rabbitmq unavailable"
-            raise RuntimeError(msg)
-        self.success_payloads.append(payload)
-
-
-class FakeTrackOffersUseCase:
+class FakeOffersUseCase:
     def __init__(self) -> None:
         self.calls: list[tuple[list[dict], str, UUID]] = []
 
@@ -61,17 +49,15 @@ def test_successful_scrape_marks_task_completed(
 ) -> None:
     task_id = uuid7()
     use_case = FakeExecuteScrapingUseCase(offers=[{"label": "Flour"}])
-    tracking_use_case = FakeTrackOffersUseCase()
-    publisher = FakePublisher()
+    offers_use_case = FakeOffersUseCase()
     repository = FakeScrapingTaskRepository()
 
     monkeypatch.setattr(celery_tasks, "get_execute_scraping_use_case", lambda: use_case)
     monkeypatch.setattr(
         celery_tasks,
-        "get_track_offers_use_case",
-        lambda: tracking_use_case,
+        "get_offers_use_case",
+        lambda: offers_use_case,
     )
-    monkeypatch.setattr(celery_tasks, "get_result_publisher", lambda: publisher)
     monkeypatch.setattr(
         celery_tasks,
         "get_scraping_task_repository",
@@ -81,10 +67,7 @@ def test_successful_scrape_marks_task_completed(
     celery_tasks.scrape_offers_task.run(str(task_id), "flour")
 
     assert use_case.terms == ["flour"]
-    assert publisher.success_payloads == [
-        {"id": str(task_id), "offers": [{"label": "Flour"}]},
-    ]
-    assert tracking_use_case.calls == [([{"label": "Flour"}], "flour", task_id)]
+    assert offers_use_case.calls == [([{"label": "Flour"}], "flour", task_id)]
     assert repository.completed == [task_id]
     assert repository.failed == []
 
@@ -112,30 +95,40 @@ def test_reporting_task_marks_task_failed(
     assert repository.failed == [(task_id, "provider timeout")]
 
 
-def test_success_publisher_failure_prevents_completed_status(
+def test_scraping_failure_prevents_tracking_and_completed_status(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     task_id = uuid7()
     use_case = FakeExecuteScrapingUseCase()
-    tracking_use_case = FakeTrackOffersUseCase()
-    publisher = FakePublisher(fail_success=True)
+    offers_use_case = FakeOffersUseCase()
     repository = FakeScrapingTaskRepository()
 
-    monkeypatch.setattr(celery_tasks, "get_execute_scraping_use_case", lambda: use_case)
+    def raise_on_scrape() -> list[dict]:
+        msg = "provider timeout"
+        raise RuntimeError(msg)
+
+    def failing_scrape_offers(term: str) -> list[dict]:  # noqa: ARG001
+        return raise_on_scrape()
+
+    monkeypatch.setattr(use_case, "scrape_offers", failing_scrape_offers)
     monkeypatch.setattr(
         celery_tasks,
-        "get_track_offers_use_case",
-        lambda: tracking_use_case,
+        "get_execute_scraping_use_case",
+        lambda: use_case,
     )
-    monkeypatch.setattr(celery_tasks, "get_result_publisher", lambda: publisher)
+    monkeypatch.setattr(
+        celery_tasks,
+        "get_offers_use_case",
+        lambda: offers_use_case,
+    )
     monkeypatch.setattr(
         celery_tasks,
         "get_scraping_task_repository",
         lambda: repository,
     )
 
-    with pytest.raises(RuntimeError, match="rabbitmq unavailable"):
+    with pytest.raises(RuntimeError, match="provider timeout"):
         celery_tasks.scrape_offers_task.run(str(task_id), "flour")
 
     assert repository.completed == []
-    assert tracking_use_case.calls == [([], "flour", task_id)]
+    assert offers_use_case.calls == []

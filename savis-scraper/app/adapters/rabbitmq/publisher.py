@@ -4,19 +4,23 @@ from __future__ import annotations
 
 import json
 import logging
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from fastapi.encoders import jsonable_encoder
 from pika import BasicProperties, BlockingConnection, URLParameters
 
 from app.config import EnvParams
+from app.core.ports import OfferPublisher
 
 logger = logging.getLogger(__name__)
 
 QUEUE_NAME = "savis.offer.results"
 
+if TYPE_CHECKING:
+    from app.core.models import Offer
 
-class RabbitMqResultPublisher:
+
+class RabbitMqResultPublisher(OfferPublisher):
     """Publish successful scraping results to RabbitMQ."""
 
     def publish_success(self, payload: dict[str, Any]) -> None:
@@ -39,3 +43,7 @@ class RabbitMqResultPublisher:
                 body=json_payload,
                 properties=BasicProperties(delivery_mode=2),
             )
+
+    def publish_offer(self, offer: Offer) -> None:
+        """Publish one offer to the offer results queue."""
+        self.publish_success({"id": str(offer.id), "offers": [offer]})
