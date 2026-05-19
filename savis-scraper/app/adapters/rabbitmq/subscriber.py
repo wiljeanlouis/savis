@@ -12,6 +12,7 @@ from pika import BasicProperties, BlockingConnection, URLParameters
 
 from app.config import EnvParams
 from app.container import Container
+from app.core.models import SavisTaskType
 
 if TYPE_CHECKING:
     from collections.abc import Callable
@@ -19,7 +20,7 @@ if TYPE_CHECKING:
     from pika.adapters.blocking_connection import BlockingChannel
     from pika.spec import Basic
 
-    from app.core.use_case_enqueue_scraping import EnqueueScrapingUseCase
+    from app.core.use_case_savis_tasks import SavisTaskUseCase
 
 logger = logging.getLogger(__name__)
 
@@ -35,7 +36,7 @@ class MessageBody:
 
 
 def _build_callback(
-    use_case: EnqueueScrapingUseCase,
+    use_case: SavisTaskUseCase,
 ) -> Callable[[BlockingChannel, Basic.Deliver, BasicProperties, bytes], None]:
     def callback(
         ch: BlockingChannel,
@@ -46,7 +47,10 @@ def _build_callback(
         try:
             data = json.loads(body)
             message = MessageBody(content=data["content"])
-            use_case.scrape_offers(message.content)
+            use_case.enqueue_savis_task(
+                SavisTaskType.GET_OFFERS,
+                {"search_term": message.content},
+            )
         except Exception:
             logger.exception("Failed to enqueue scraping task")
             ch.basic_nack(delivery_tag=method.delivery_tag, requeue=False)
@@ -96,7 +100,7 @@ def subscribe() -> None:
     channel = None
     try:
         params = URLParameters(EnvParams.RABBIT_MQ_URL)
-        use_case = Container.enqueue_scraping_use_case()
+        use_case = Container.savis_task_use_case()
         callback = _build_callback(use_case)
 
         connection = BlockingConnection(params)

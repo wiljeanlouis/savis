@@ -7,47 +7,51 @@ if TYPE_CHECKING:
     from datetime import datetime
     from uuid import UUID
 
-    from .models import Offer, OfferStatus, ScrapingTask, ScrapingTaskStatus
+    from .models import Offer, OfferStatus, SavisTask, SavisTaskStatus, SavisTaskType
 
 
-class OfferScraper(ABC):
-    """Port for provider offer scrapers."""
+class OfferProvider(ABC):
+    """Port for provider offer retrieval."""
 
     @abstractmethod
-    def scrape_offers(self, search_term: str) -> list[Offer]:
-        """Scrape offers for a search term."""
+    def get_offers(self, search_term: str) -> list[Offer]:
+        """Get offers for a search term."""
 
 
 class TaskQueue(ABC):
     """Port for background task queues."""
 
     @abstractmethod
-    def push_scraping_offers(self, task_id: str, term: str) -> None:
-        """Push a scraping task to a worker queue."""
+    def push_get_offers(self, task_id: str, search_term: str) -> None:
+        """Push a get-offers task to a worker queue."""
 
     @abstractmethod
-    def push_refresh_offer(self, offer_id: str, url: str) -> None:
+    def push_refresh_offer(self, task_id: str, offer_id: str, url: str) -> None:
         """Push an offer refresh task to a worker queue."""
 
 
-class ScrapingTaskRepository(ABC):
-    """Port for scraping task persistence."""
+class SavisTaskRepository(ABC):
+    """Port for task persistence."""
 
     @abstractmethod
-    def list(self, status: ScrapingTaskStatus | None = None) -> list[ScrapingTask]:
-        """List scraping tasks, optionally filtered by status."""
+    def list(
+        self,
+        status: SavisTaskStatus | None = None,
+        task_type: SavisTaskType | None = None,
+    ) -> list[SavisTask]:
+        """List tasks, optionally filtered by status and type."""
 
     @abstractmethod
-    def save(self, task: ScrapingTask) -> ScrapingTask:
-        """Save a scraping task."""
+    def save(self, task: SavisTask) -> SavisTask:
+        """Save a task."""
 
     @abstractmethod
     def mark_completed(self, task_id: UUID) -> None:
-        """Mark a scraping task as completed."""
+        """Mark a task as completed."""
 
     @abstractmethod
     def mark_failed(self, task_id: UUID, error: str) -> None:
-        """Mark a scraping task as failed."""
+        """Mark a task as failed."""
 
     @abstractmethod
     def mark_stale_in_progress_as_failed(

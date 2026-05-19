@@ -1,8 +1,8 @@
-"""Tests for stale scraping task cleanup runner."""
+"""Tests for stale task cleanup runner."""
 
 # ruff: noqa: D101, D102, D103, S101
 
-from app.adapters.cleanup import stale_scraping_tasks_runner
+from app.adapters.cleanup import stale_savis_tasks_runner
 
 FAILED_COUNT = 2
 
@@ -19,12 +19,10 @@ class FailingCleanupUseCase:
 
 
 def test_run_once_returns_failed_count() -> None:
-    failed_count = stale_scraping_tasks_runner.run_once(SuccessfulCleanupUseCase())
-
+    failed_count = stale_savis_tasks_runner.run_once(SuccessfulCleanupUseCase())
     assert failed_count == FAILED_COUNT
 
 
 def test_run_once_logs_errors_without_crashing() -> None:
-    failed_count = stale_scraping_tasks_runner.run_once(FailingCleanupUseCase())
-
+    failed_count = stale_savis_tasks_runner.run_once(FailingCleanupUseCase())
     assert failed_count == 0

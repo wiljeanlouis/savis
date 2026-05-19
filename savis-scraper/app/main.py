@@ -9,7 +9,7 @@ from typing import TYPE_CHECKING
 from fastapi import FastAPI
 
 from app.adapters.api.routes import router
-from app.adapters.cleanup import stale_scraping_tasks_runner
+from app.adapters.cleanup import stale_savis_tasks_runner
 from app.adapters.database.session import create_database_schema
 from app.adapters.rabbitmq import subscriber
 
@@ -22,7 +22,7 @@ async def lifespan(_app: FastAPI) -> AsyncIterator[None]:
     """Start background consumers for the API process."""
     create_database_schema()
     Thread(target=subscriber.run_forever, daemon=True).start()
-    Thread(target=stale_scraping_tasks_runner.run_forever, daemon=True).start()
+    Thread(target=stale_savis_tasks_runner.run_forever, daemon=True).start()
     yield
 
 

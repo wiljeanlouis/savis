@@ -2,52 +2,109 @@
 
 from __future__ import annotations
 
+import logging
 from dataclasses import replace
 from datetime import UTC, datetime, timedelta
 from math import ceil
 from typing import TYPE_CHECKING
 from uuid import UUID, uuid7
 
-from app.core.models import Offer, OfferStatus
+from app.core.models import Offer, OfferStatus, SavisTask, SavisTaskType
 
 if TYPE_CHECKING:
-    from app.core.ports import OfferPublisher, OfferRepository, TaskQueue
+    from app.core.ports import (
+        OfferProvider,
+        OfferPublisher,
+        OfferRepository,
+        SavisTaskRepository,
+        TaskQueue,
+    )
 
 DEFAULT_REFRESH_FREQUENCY_HOURS = 24
+logger = logging.getLogger(__name__)
+
+
+class OfferCollectionFailedError(RuntimeError):
+    """Raised when no offer adapter can return a successful result."""
+
+
+def aggregate(results: list[list[Offer]]) -> list[Offer]:
+    """Aggregate offers from multiple adapter results."""
+    logger.info("[AGGREGATOR] Start aggregation with {%s} sources", len(results))
+    offers = [offer for source_result in results for offer in source_result]
+    logger.info("[AGGREGATOR] Aggregated {%s} offers", len(offers))
+    return offers
 
 
 class OffersUseCase:
-    """Manage scraped offers awaiting human review."""
+    """Manage offers."""
 
     def __init__(
         self,
         offer_repository: OfferRepository,
         task_queue: TaskQueue,
         offer_publisher: OfferPublisher,
+        task_repository: SavisTaskRepository,
+        offer_providers: list[OfferProvider],
     ) -> None:
         """Initialize the use case."""
         self.offer_repository = offer_repository
         self.task_queue = task_queue
         self.offer_publisher = offer_publisher
+        self.task_repository = task_repository
+        self.offer_providers = offer_providers
 
-    def track(
+    def get_offers(self, search_term: str, task_id: UUID) -> list[Offer]:
+        """Collect and persist offers for a search term."""
+        results = []
+        errors: list[Exception] = []
+        for provider in self.offer_providers:
+            try:
+                results.append(provider.get_offers(search_term))
+            except Exception as exc:
+                logger.exception("Offer provider failed for term %s", search_term)
+                errors.append(exc)
+
+        if not results and errors:
+            msg = f"All offer adapters failed for term {search_term!r}"
+            raise OfferCollectionFailedError(msg) from errors[-1]
+
+        offers = aggregate(results)
+        self.save_observed_offers(
+            offers=offers,
+            search_term=search_term,
+            task_id=task_id,
+        )
+        return offers
+
+    def refresh_offer_by_url(self, offer_id: UUID, url: str, task_id: UUID) -> None:
+        """Refresh one offer by URL once URL adapters are implemented."""
+        logger.info(
+            "[OFFERS] refresh offer pending URL adapter | "
+            "task_id=%s offer_id=%s url=%s",
+            task_id,
+            offer_id,
+            url,
+        )
+
+    def save_observed_offers(
         self,
         offers: list[Offer],
         search_term: str,
-        scraping_task_id: UUID,
+        task_id: UUID,
         now: datetime | None = None,
     ) -> list[Offer]:
-        """Create or refresh persisted offers from a successful scrape."""
+        """Create or refresh persisted offers from a successful provider result."""
         observed_at = now or datetime.now(UTC)
         persisted_offers = []
-        for scraped_offer in offers:
+        for observed_offer in offers:
             persisted_offer = self.offer_repository.find_by_provider_and_external_id(
-                provider=scraped_offer.provider.identifier,
-                external_id=scraped_offer.external_id,
+                provider=observed_offer.provider.identifier,
+                external_id=observed_offer.external_id,
             )
             if persisted_offer is None:
                 persisted_offer = replace(
-                    scraped_offer,
+                    observed_offer,
                     id=uuid7(),
                     search_term=search_term,
                     status=OfferStatus.NEW,
@@ -55,23 +112,23 @@ class OffersUseCase:
                     next_refresh_at=observed_at
                     + timedelta(hours=DEFAULT_REFRESH_FREQUENCY_HOURS),
                     refresh_frequency_hours=DEFAULT_REFRESH_FREQUENCY_HOURS,
-                    last_seen_task_id=scraping_task_id,
+                    last_seen_task_id=task_id,
                 )
             else:
-                persisted_offer.url = scraped_offer.url
-                persisted_offer.brand = scraped_offer.brand
-                persisted_offer.label = scraped_offer.label
-                persisted_offer.price = scraped_offer.price
-                persisted_offer.package_size = scraped_offer.package_size
-                persisted_offer.image_url = scraped_offer.image_url
-                persisted_offer.provider = scraped_offer.provider
+                persisted_offer.url = observed_offer.url
+                persisted_offer.brand = observed_offer.brand
+                persisted_offer.label = observed_offer.label
+                persisted_offer.price = observed_offer.price
+                persisted_offer.package_size = observed_offer.package_size
+                persisted_offer.image_url = observed_offer.image_url
+                persisted_offer.provider = observed_offer.provider
                 persisted_offer.search_term = search_term
                 persisted_offer.last_scraped_at = observed_at
                 persisted_offer.next_refresh_at = observed_at + timedelta(
                     hours=persisted_offer.refresh_frequency_hours
                     or DEFAULT_REFRESH_FREQUENCY_HOURS,
                 )
-                persisted_offer.last_seen_task_id = scraping_task_id
+                persisted_offer.last_seen_task_id = task_id
             persisted_offers.append(self.offer_repository.save(persisted_offer))
         return persisted_offers
 
@@ -110,7 +167,21 @@ class OffersUseCase:
                 hours=refresh_frequency_hours,
             )
         if refresh_now:
-            self.task_queue.push_refresh_offer(str(offer.id), offer.url)
+            task = self.task_repository.save(
+                SavisTask.create(
+                    SavisTaskType.REFRESH_OFFER,
+                    {"offer_id": str(offer.id), "url": offer.url},
+                ),
+            )
+            try:
+                self.task_queue.push_refresh_offer(
+                    str(task.id),
+                    str(offer.id),
+                    offer.url,
+                )
+            except Exception as exc:
+                self.task_repository.mark_failed(task.id, str(exc))
+                raise
 
         saved_offer = self.offer_repository.save(offer)
         if (
@@ -120,7 +191,7 @@ class OffersUseCase:
             self.offer_publisher.publish_offer(saved_offer)
         return saved_offer
 
-    def refresh(
+    def apply_refreshed_offer(
         self,
         offer_id: UUID,
         refreshed_offer: Offer,

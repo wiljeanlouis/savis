@@ -6,42 +6,43 @@ from enum import StrEnum
 from uuid import UUID, uuid7
 
 
-class ScrapingTaskStatus(StrEnum):
-    """Possible statuses for a scraping task."""
+class SavisTaskStatus(StrEnum):
+    """Possible statuses for an executor task."""
 
     IN_PROGRESS = "IN_PROGRESS"
     COMPLETED = "COMPLETED"
     FAILED = "FAILED"
 
 
-class OfferStatus(StrEnum):
-    """Human review status for a scraped offer."""
+class SavisTaskType(StrEnum):
+    """Supported executor task types."""
 
-    NEW = "NEW"
-    VALID = "VALID"
-    REJECTED = "REJECTED"
+    GET_OFFERS = "GET_OFFERS"
+    REFRESH_OFFER = "REFRESH_OFFER"
 
 
 @dataclass
-class ScrapingTask:
-    """Represents the lifecycle of a scraping request owned by Python."""
+class SavisTask:
+    """Represents the lifecycle of a task owned by the executor."""
 
-    search_term: str
+    type: SavisTaskType
+    payload: dict[str, str]
     id: UUID
-    status: ScrapingTaskStatus
+    status: SavisTaskStatus
     created_at: datetime
     updated_at: datetime
     completed_at: datetime | None = None
     error_message: str | None = None
 
     @classmethod
-    def create(cls, search_term: str) -> ScrapingTask:
-        """Create a new scraping task already marked as in progress."""
+    def create(cls, task_type: SavisTaskType, payload: dict[str, str]) -> SavisTask:
+        """Create a new task already marked as in progress."""
         now = datetime.now(UTC)
         return cls(
             id=uuid7(),
-            search_term=search_term,
-            status=ScrapingTaskStatus.IN_PROGRESS,
+            type=task_type,
+            payload=payload,
+            status=SavisTaskStatus.IN_PROGRESS,
             created_at=now,
             updated_at=now,
         )
@@ -73,30 +74,17 @@ class Provider:
     address: str
 
 
+class OfferStatus(StrEnum):
+    """Human review status for a scraped offer."""
+
+    NEW = "NEW"
+    VALID = "VALID"
+    REJECTED = "REJECTED"
+
+
 @dataclass
 class Offer:
-    """Represents a product offer with pricing and provider details.
-
-    Attributes
-    ----------
-    external_id : str
-        The external identifier for the offer.
-    url : str
-        The URL of the offer.
-    brand : str
-        The brand of the product.
-    label : str
-        The label or name of the product.
-    price : Price
-        The total price
-    package_size : PackageSize
-        The total amount of the product
-    image_url : str
-        The URL of the product image.
-    provider: str
-        The provider
-
-    """
+    """Represents a product offer with pricing and provider details."""
 
     external_id: str
     url: str

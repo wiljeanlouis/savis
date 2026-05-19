@@ -16,8 +16,9 @@ from app.core.models import (
     OfferStatus,
     Price,
     Provider,
-    ScrapingTask,
-    ScrapingTaskStatus,
+    SavisTask,
+    SavisTaskStatus,
+    SavisTaskType,
 )
 
 if TYPE_CHECKING:
@@ -29,60 +30,80 @@ TOTAL_SIX = 6
 REFRESH_FREQUENCY_SIX_HOURS = 6
 
 
-def test_scrape_offers_returns_created_task_id(
+def test_create_task_returns_created_task(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     task_id = uuid7()
 
     class FixedTaskUseCase:
-        def scrape_offers(self, term: str) -> ScrapingTask:
-            task = ScrapingTask.create(term)
+        def enqueue_savis_task(
+            self,
+            task_type: SavisTaskType,
+            payload: dict[str, str],
+        ) -> SavisTask:
+            task = SavisTask.create(task_type, payload)
             task.id = task_id
             return task
 
-    monkeypatch.setattr(routes, "enqueue_use_case", FixedTaskUseCase())
+    monkeypatch.setattr(routes, "savis_task_use_case", FixedTaskUseCase())
     app = FastAPI()
     app.include_router(routes.router)
     client = TestClient(app)
 
-    response = client.post("/scrape/offers", json={"search_term": "flour"})
+    response = client.post(
+        "/tasks",
+        json={"type": "GET_OFFERS", "payload": {"search_term": "flour"}},
+    )
 
     assert response.status_code == HTTP_OK
     assert response.json() == {
-        "status": "accepted",
-        "search_term": "flour",
-        "task_id": str(task_id),
+        "id": str(task_id),
+        "type": "GET_OFFERS",
+        "payload": {"search_term": "flour"},
+        "status": "IN_PROGRESS",
+        "created_at": response.json()["created_at"],
+        "updated_at": response.json()["updated_at"],
+        "completed_at": None,
+        "error_message": None,
     }
 
 
-def test_list_scraping_tasks_filters_by_status(
+def test_list_tasks_filters_by_status_and_type(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    task = ScrapingTask.create("flour")
-    task.status = ScrapingTaskStatus.FAILED
+    task = SavisTask.create(SavisTaskType.GET_OFFERS, {"search_term": "flour"})
+    task.status = SavisTaskStatus.FAILED
     task.error_message = "provider timeout"
 
     class FixedListUseCase:
         def __init__(self) -> None:
-            self.statuses: list[ScrapingTaskStatus | None] = []
+            self.filters: list[tuple[SavisTaskStatus | None, SavisTaskType | None]] = []
 
-        def list(self, status: ScrapingTaskStatus | None) -> list[ScrapingTask]:
-            self.statuses.append(status)
+        def list(
+            self,
+            status: SavisTaskStatus | None,
+            type: SavisTaskType | None,  # noqa: A002
+        ) -> list[SavisTask]:
+            self.filters.append((status, type))
             return [task]
 
-    scraping_tasks_use_case = FixedListUseCase()
-    monkeypatch.setattr(routes, "scraping_tasks_use_case", scraping_tasks_use_case)
+    savis_task_use_case = FixedListUseCase()
+    monkeypatch.setattr(routes, "savis_task_use_case", savis_task_use_case)
     app = FastAPI()
     app.include_router(routes.router)
     client = TestClient(app)
 
-    response = client.get("/scrape/tasks", params={"status": "FAILED"})
+    response = client.get(
+        "/tasks",
+        params={"status": "FAILED", "type": "GET_OFFERS"},
+    )
 
     assert response.status_code == HTTP_OK
     assert response.json() == [
         {
             "id": str(task.id),
-            "search_term": "flour",
+            "type": "GET_OFFERS",
+            "payload": {"search_term": "flour"},
             "status": "FAILED",
             "created_at": task.created_at.isoformat().replace("+00:00", "Z"),
             "updated_at": task.updated_at.isoformat().replace("+00:00", "Z"),
@@ -90,13 +111,18 @@ def test_list_scraping_tasks_filters_by_status(
             "error_message": "provider timeout",
         },
     ]
-    assert scraping_tasks_use_case.statuses == [ScrapingTaskStatus.FAILED]
+    assert savis_task_use_case.filters == [
+        (SavisTaskStatus.FAILED, SavisTaskType.GET_OFFERS),
+    ]
 
 
 def test_list_offers_returns_paged_response(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    now = ScrapingTask.create("flour").created_at
+    now = SavisTask.create(
+        SavisTaskType.GET_OFFERS,
+        {"search_term": "flour"},
+    ).created_at
     offer = Offer(
         id=uuid7(),
         external_id="external-id",
@@ -142,7 +168,10 @@ def test_list_offers_returns_paged_response(
 def test_patch_offer_updates_one_offer(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    now = ScrapingTask.create("flour").created_at
+    now = SavisTask.create(
+        SavisTaskType.GET_OFFERS,
+        {"search_term": "flour"},
+    ).created_at
     offer = Offer(
         id=uuid7(),
         external_id="external-id",

@@ -1,4 +1,4 @@
-"""SQLAlchemy repository for scraping tasks."""
+"""SQLAlchemy repository for executor tasks."""
 
 from __future__ import annotations
 
@@ -6,24 +6,25 @@ from datetime import UTC, datetime
 from typing import TYPE_CHECKING
 from uuid import UUID
 
-from sqlalchemy import DateTime, String, Text, and_, select, update
+from sqlalchemy import JSON, DateTime, String, Text, and_, select, update
 from sqlalchemy.orm import Mapped, Session, mapped_column, sessionmaker
 
 from app.adapters.database.session import Base, SessionLocal, create_database_schema
-from app.core.models import ScrapingTask, ScrapingTaskStatus
-from app.core.ports import ScrapingTaskRepository
+from app.core.models import SavisTask, SavisTaskStatus, SavisTaskType
+from app.core.ports import SavisTaskRepository
 
 if TYPE_CHECKING:
     from collections.abc import Callable
 
 
-class ScrapingTaskEntity(Base):
-    """Database representation of a scraping task."""
+class SavisTaskEntity(Base):
+    """Database representation of an executor task."""
 
-    __tablename__ = "scraping_tasks"
+    __tablename__ = "savis_tasks"
 
     id: Mapped[str] = mapped_column(String(36), primary_key=True)
-    search_term: Mapped[str] = mapped_column(String(255), nullable=False)
+    type: Mapped[str] = mapped_column(String(64), nullable=False)
+    payload: Mapped[dict[str, str]] = mapped_column(JSON, nullable=False)
     status: Mapped[str] = mapped_column(String(32), nullable=False)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
@@ -40,10 +41,11 @@ class ScrapingTaskEntity(Base):
     error_message: Mapped[str | None] = mapped_column(Text, nullable=True)
 
 
-def _to_entity(task: ScrapingTask) -> ScrapingTaskEntity:
-    return ScrapingTaskEntity(
+def _to_entity(task: SavisTask) -> SavisTaskEntity:
+    return SavisTaskEntity(
         id=str(task.id),
-        search_term=task.search_term,
+        type=task.type.value,
+        payload=task.payload,
         status=task.status.value,
         created_at=task.created_at,
         updated_at=task.updated_at,
@@ -52,11 +54,12 @@ def _to_entity(task: ScrapingTask) -> ScrapingTaskEntity:
     )
 
 
-def _to_model(entity: ScrapingTaskEntity) -> ScrapingTask:
-    return ScrapingTask(
+def _to_model(entity: SavisTaskEntity) -> SavisTask:
+    return SavisTask(
         id=UUID(entity.id),
-        search_term=entity.search_term,
-        status=ScrapingTaskStatus(entity.status),
+        type=SavisTaskType(entity.type),
+        payload=entity.payload,
+        status=SavisTaskStatus(entity.status),
         created_at=entity.created_at,
         updated_at=entity.updated_at,
         completed_at=entity.completed_at,
@@ -64,8 +67,8 @@ def _to_model(entity: ScrapingTaskEntity) -> ScrapingTask:
     )
 
 
-class SqlAlchemyScrapingTaskRepository(ScrapingTaskRepository):
-    """Persist scraping tasks with SQLAlchemy."""
+class SqlAlchemySavisTaskRepository(SavisTaskRepository):
+    """Persist executor tasks with SQLAlchemy."""
 
     def __init__(
         self,
@@ -76,52 +79,51 @@ class SqlAlchemyScrapingTaskRepository(ScrapingTaskRepository):
         self.session_factory = session_factory
         self.schema_creator = schema_creator
 
-    def save(self, task: ScrapingTask) -> ScrapingTask:
-        """Save a scraping task."""
+    def save(self, task: SavisTask) -> SavisTask:
+        """Save a task."""
         self.schema_creator()
         with self.session_factory() as session:
-            entity = _to_entity(task)
-            session.merge(entity)
+            session.merge(_to_entity(task))
             session.commit()
             return task
 
-    def list(self, status: ScrapingTaskStatus | None = None) -> list[ScrapingTask]:
-        """List scraping tasks, optionally filtered by status."""
+    def list(
+        self,
+        status: SavisTaskStatus | None = None,
+        task_type: SavisTaskType | None = None,
+    ) -> list[SavisTask]:
+        """List tasks, optionally filtered by status and type."""
         self.schema_creator()
-        statement = select(ScrapingTaskEntity).order_by(
-            ScrapingTaskEntity.created_at.desc(),
-        )
+        statement = select(SavisTaskEntity).order_by(SavisTaskEntity.created_at.desc())
         if status is not None:
-            statement = statement.where(ScrapingTaskEntity.status == status.value)
-
+            statement = statement.where(SavisTaskEntity.status == status.value)
+        if task_type is not None:
+            statement = statement.where(SavisTaskEntity.type == task_type.value)
         with self.session_factory() as session:
-            entities = session.scalars(statement).all()
-            return [_to_model(entity) for entity in entities]
+            return [_to_model(entity) for entity in session.scalars(statement).all()]
 
     def mark_completed(self, task_id: UUID) -> None:
-        """Mark a scraping task as completed."""
+        """Mark a task as completed."""
         self.schema_creator()
         with self.session_factory() as session:
-            entity = session.get(ScrapingTaskEntity, str(task_id))
+            entity = session.get(SavisTaskEntity, str(task_id))
             if entity is None:
                 return
-
             now = datetime.now(UTC)
-            entity.status = ScrapingTaskStatus.COMPLETED.value
+            entity.status = SavisTaskStatus.COMPLETED.value
             entity.updated_at = now
             entity.completed_at = now
             entity.error_message = None
             session.commit()
 
     def mark_failed(self, task_id: UUID, error: str) -> None:
-        """Mark a scraping task as failed."""
+        """Mark a task as failed."""
         self.schema_creator()
         with self.session_factory() as session:
-            entity = session.get(ScrapingTaskEntity, str(task_id))
+            entity = session.get(SavisTaskEntity, str(task_id))
             if entity is None:
                 return
-
-            entity.status = ScrapingTaskStatus.FAILED.value
+            entity.status = SavisTaskStatus.FAILED.value
             entity.updated_at = datetime.now(UTC)
             entity.error_message = error
             session.commit()
@@ -131,21 +133,20 @@ class SqlAlchemyScrapingTaskRepository(ScrapingTaskRepository):
         stale_before: datetime,
         error: str,
     ) -> int:
-        """Mark stale in-progress scraping tasks as failed."""
+        """Mark stale in-progress tasks as failed."""
         self.schema_creator()
         now = datetime.now(UTC)
         with self.session_factory() as session:
             result = session.execute(
-                update(ScrapingTaskEntity)
+                update(SavisTaskEntity)
                 .where(
                     and_(
-                        ScrapingTaskEntity.status
-                        == ScrapingTaskStatus.IN_PROGRESS.value,
-                        ScrapingTaskEntity.updated_at < stale_before,
+                        SavisTaskEntity.status == SavisTaskStatus.IN_PROGRESS.value,
+                        SavisTaskEntity.updated_at < stale_before,
                     ),
                 )
                 .values(
-                    status=ScrapingTaskStatus.FAILED.value,
+                    status=SavisTaskStatus.FAILED.value,
                     updated_at=now,
                     error_message=error,
                 ),

@@ -3,7 +3,7 @@
 import logging
 from typing import TYPE_CHECKING
 
-from app.core.ports import OfferScraper
+from app.core.ports import OfferProvider
 
 from .extractor import extract_offers
 from .provider import provider
@@ -15,7 +15,7 @@ if TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 
 
-class MaxiScraper(OfferScraper):
+class MaxiScraper(OfferProvider):
     """Scrape the maxi website for collecting offers for a specific search term."""
 
     def __init__(self, browser_manager: BrowserManager) -> None:
@@ -38,7 +38,7 @@ class MaxiScraper(OfferScraper):
             page.wait_for_selector('[data-srp-feedback-added="true"]')
             return page.content()
 
-    def scrape_offers(self, search_term: str) -> list[Offer]:
+    def get_offers(self, search_term: str) -> list[Offer]:
         """Scrape maxi.ca for a specific search term and returns a list of offers.
 
         Args:

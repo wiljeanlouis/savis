@@ -4,35 +4,23 @@ from datetime import datetime  # noqa: TC003
 
 from pydantic import BaseModel, Field
 
-from app.core.models import OfferStatus, ScrapingTaskStatus  # noqa: TC001
+from app.core.models import OfferStatus, SavisTaskStatus, SavisTaskType  # noqa: TC001
 
 
-class ScrapeRequest(BaseModel):
-    """Schema for scrape request payload."""
+class SavisTaskRequest(BaseModel):
+    """Schema for task creation."""
 
-    search_term: str
-
-
-class ScrapeResponse(BaseModel):
-    """Schema for scrape operation response.
-
-    Attributes:
-        status: The status of the scrape operation.
-        id: The unique identifier for the scrape operation.
-
-    """
-
-    status: str
-    search_term: str
-    task_id: str
+    type: SavisTaskType
+    payload: dict[str, str]
 
 
-class ScrapingTaskResponse(BaseModel):
-    """Schema for a scraping task response."""
+class SavisTaskResponse(BaseModel):
+    """Schema for a task response."""
 
     id: str
-    search_term: str
-    status: ScrapingTaskStatus
+    type: SavisTaskType
+    payload: dict[str, str]
+    status: SavisTaskStatus
     created_at: datetime
     updated_at: datetime
     completed_at: datetime | None
