@@ -6,7 +6,7 @@ from datetime import UTC, datetime
 from typing import TYPE_CHECKING
 from uuid import UUID
 
-from sqlalchemy import JSON, DateTime, String, Text, and_, select, update
+from sqlalchemy import JSON, DateTime, String, Text, and_, func, select, update
 from sqlalchemy.orm import Mapped, Session, mapped_column, sessionmaker
 
 from app.adapters.database.session import Base, SessionLocal, create_database_schema
@@ -91,16 +91,29 @@ class SqlAlchemySavisTaskRepository(SavisTaskRepository):
         self,
         status: SavisTaskStatus | None = None,
         task_type: SavisTaskType | None = None,
-    ) -> list[SavisTask]:
-        """List tasks, optionally filtered by status and type."""
+        page: int = 1,
+        size: int = 20,
+    ) -> tuple[list[SavisTask], int]:
+        """List paged tasks and total count."""
         self.schema_creator()
         statement = select(SavisTaskEntity).order_by(SavisTaskEntity.created_at.desc())
+        count_statement = select(func.count()).select_from(SavisTaskEntity)
         if status is not None:
             statement = statement.where(SavisTaskEntity.status == status.value)
+            count_statement = count_statement.where(
+                SavisTaskEntity.status == status.value,
+            )
         if task_type is not None:
             statement = statement.where(SavisTaskEntity.type == task_type.value)
+            count_statement = count_statement.where(
+                SavisTaskEntity.type == task_type.value,
+            )
         with self.session_factory() as session:
-            return [_to_model(entity) for entity in session.scalars(statement).all()]
+            total = session.scalar(count_statement) or 0
+            entities = session.scalars(
+                statement.offset((page - 1) * size).limit(size),
+            ).all()
+            return [_to_model(entity) for entity in entities], total
 
     def mark_completed(self, task_id: UUID) -> None:
         """Mark a task as completed."""

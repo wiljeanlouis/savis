@@ -27,6 +27,16 @@ class SavisTaskResponse(BaseModel):
     error_message: str | None
 
 
+class SavisTasksPageResponse(BaseModel):
+    """Schema for a paginated task listing."""
+
+    items: list[SavisTaskResponse]
+    page: int
+    size: int
+    total_items: int
+    total_pages: int
+
+
 class PriceResponse(BaseModel):
     """Schema for an offer price."""
 

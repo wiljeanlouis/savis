@@ -107,9 +107,11 @@ class FakeTaskRepository(SavisTaskRepository):
     def list(
         self,
         status: SavisTaskStatus | None = None,  # noqa: ARG002
-        type: SavisTaskType | None = None,  # noqa: A002, ARG002
-    ) -> list[SavisTask]:
-        return self.tasks
+        task_type: SavisTaskType | None = None,  # noqa: ARG002
+        page: int = 1,  # noqa: ARG002
+        size: int = 20,  # noqa: ARG002
+    ) -> tuple[list[SavisTask], int]:
+        return self.tasks, len(self.tasks)
 
     def save(self, task: SavisTask) -> SavisTask:
         self.tasks.append(task)

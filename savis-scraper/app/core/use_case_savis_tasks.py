@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from datetime import UTC, datetime, timedelta
+from math import ceil
 from typing import TYPE_CHECKING
 from uuid import UUID
 
@@ -78,9 +79,18 @@ class SavisTaskUseCase:
         self,
         status: SavisTaskStatus | None = None,
         task_type: SavisTaskType | None = None,
-    ) -> list[SavisTask]:
-        """List tasks, optionally filtered by status and type."""
-        return self.task_repository.list(status, task_type)
+        page: int = 1,
+        size: int = 20,
+    ) -> tuple[list[SavisTask], int, int]:
+        """List paginated tasks, optionally filtered by status and type."""
+        tasks, total_items = self.task_repository.list(
+            status,
+            task_type,
+            page,
+            size,
+        )
+        total_pages = ceil(total_items / size) if total_items else 0
+        return tasks, total_items, total_pages
 
     def mark_stale_tasks_failed(self, now: datetime | None = None) -> int:
         """Mark stale in-progress tasks as failed."""

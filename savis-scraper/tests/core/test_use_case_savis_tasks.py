@@ -38,14 +38,18 @@ class FakeTaskRepository(SavisTaskRepository):
         self.completed: list[UUID] = []
         self.failed: list[tuple[UUID, str]] = []
         self.filters: list[tuple[SavisTaskStatus | None, SavisTaskType | None]] = []
+        self.pages: list[tuple[int, int]] = []
 
     def list(
         self,
         status: SavisTaskStatus | None = None,
-        type: SavisTaskType | None = None,  # noqa: A002
-    ) -> list[SavisTask]:
-        self.filters.append((status, type))
-        return self.tasks
+        task_type: SavisTaskType | None = None,
+        page: int = 1,
+        size: int = 20,
+    ) -> tuple[list[SavisTask], int]:
+        self.filters.append((status, task_type))
+        self.pages.append((page, size))
+        return self.tasks, len(self.tasks)
 
     def save(self, task: SavisTask) -> SavisTask:
         self.tasks.append(task)
@@ -182,10 +186,18 @@ def test_list_filters_and_cleanup_delegate_to_repository() -> None:
     repository = FakeTaskRepository([task])
     use_case, _repository, _queue, _offers_use_case = _use_case(repository=repository)
 
-    assert use_case.list(SavisTaskStatus.IN_PROGRESS, SavisTaskType.GET_OFFERS) == [
-        task,
-    ]
+    tasks, total_items, total_pages = use_case.list(
+        SavisTaskStatus.IN_PROGRESS,
+        SavisTaskType.GET_OFFERS,
+        page=1,
+        size=1,
+    )
+
+    assert tasks == [task]
+    assert total_items == 1
+    assert total_pages == 1
     assert repository.filters == [
         (SavisTaskStatus.IN_PROGRESS, SavisTaskType.GET_OFFERS),
     ]
+    assert repository.pages == [(1, 1)]
     assert use_case.mark_stale_tasks_failed() == STALE_COUNT

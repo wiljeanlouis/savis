@@ -38,8 +38,10 @@ class SavisTaskRepository(ABC):
         self,
         status: SavisTaskStatus | None = None,
         task_type: SavisTaskType | None = None,
-    ) -> list[SavisTask]:
-        """List tasks, optionally filtered by status and type."""
+        page: int = 1,
+        size: int = 20,
+    ) -> tuple[list[SavisTask], int]:
+        """List paged tasks and return total count."""
 
     @abstractmethod
     def save(self, task: SavisTask) -> SavisTask:

@@ -14,6 +14,7 @@ from app.adapters.api.schemas import (
     ProviderResponse,
     SavisTaskRequest,
     SavisTaskResponse,
+    SavisTasksPageResponse,
 )
 from app.container import Container
 from app.core.models import (
@@ -39,14 +40,25 @@ async def create_task(request: SavisTaskRequest) -> SavisTaskResponse:
 
 @router.get("/tasks")
 async def list_tasks(
+    page: Annotated[int, Query(ge=1)] = 1,
+    size: Annotated[int, Query(ge=1)] = 20,
     status: SavisTaskStatus | None = None,
     task_type: Annotated[SavisTaskType | None, Query(alias="type")] = None,
-) -> list[SavisTaskResponse]:
-    """List tasks, optionally filtered by status and type."""
-    return [
-        _task_response(task)
-        for task in savis_task_use_case.list(status, task_type)
-    ]
+) -> SavisTasksPageResponse:
+    """List paginated tasks, optionally filtered by status and type."""
+    tasks, total_items, total_pages = savis_task_use_case.list(
+        status,
+        task_type,
+        page,
+        size,
+    )
+    return SavisTasksPageResponse(
+        items=[_task_response(task) for task in tasks],
+        page=page,
+        size=size,
+        total_items=total_items,
+        total_pages=total_pages,
+    )
 
 
 @router.get("/offers")

@@ -14,6 +14,8 @@ from app.adapters.database.savis_task_repository import (
 from app.adapters.database.session import Base
 from app.core.models import SavisTask, SavisTaskStatus, SavisTaskType
 
+TOTAL_TWO_TASKS = 2
+
 
 def _repository() -> tuple[SqlAlchemySavisTaskRepository, sessionmaker[Session]]:
     engine = create_engine("sqlite+pysqlite:///:memory:")
@@ -52,10 +54,27 @@ def test_list_filters_by_status_and_type() -> None:
     repository.save(get_offers)
     repository.save(refresh)
 
-    tasks = repository.list(SavisTaskStatus.FAILED, SavisTaskType.REFRESH_OFFER)
+    tasks, total = repository.list(SavisTaskStatus.FAILED, SavisTaskType.REFRESH_OFFER)
 
+    assert total == 1
     assert [task.id for task in tasks] == [refresh.id]
     assert [task.type for task in tasks] == [SavisTaskType.REFRESH_OFFER]
+
+
+def test_list_paginates_and_returns_total_count() -> None:
+    repository, _session_factory = _repository()
+    first = repository.save(
+        SavisTask.create(SavisTaskType.GET_OFFERS, {"search_term": "flour"}),
+    )
+    second = repository.save(
+        SavisTask.create(SavisTaskType.GET_OFFERS, {"search_term": "sugar"}),
+    )
+
+    tasks, total = repository.list(SavisTaskStatus.IN_PROGRESS, None, page=2, size=1)
+
+    assert total == TOTAL_TWO_TASKS
+    assert [task.id for task in tasks] == [first.id]
+    assert second.id != first.id
 
 
 def test_mark_completed_and_failed_update_status() -> None:

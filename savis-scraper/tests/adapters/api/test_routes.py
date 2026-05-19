@@ -82,10 +82,13 @@ def test_list_tasks_filters_by_status_and_type(
         def list(
             self,
             status: SavisTaskStatus | None,
-            type: SavisTaskType | None,  # noqa: A002
-        ) -> list[SavisTask]:
-            self.filters.append((status, type))
-            return [task]
+            task_type: SavisTaskType | None,
+            page: int,
+            size: int,
+        ) -> tuple[list[SavisTask], int, int]:
+            self.filters.append((status, task_type))
+            assert (page, size) == (PAGE_TWO, 5)
+            return [task], TOTAL_SIX, PAGE_TWO
 
     savis_task_use_case = FixedListUseCase()
     monkeypatch.setattr(routes, "savis_task_use_case", savis_task_use_case)
@@ -95,22 +98,33 @@ def test_list_tasks_filters_by_status_and_type(
 
     response = client.get(
         "/tasks",
-        params={"status": "FAILED", "type": "GET_OFFERS"},
+        params={
+            "status": "FAILED",
+            "type": "GET_OFFERS",
+            "page": PAGE_TWO,
+            "size": 5,
+        },
     )
 
     assert response.status_code == HTTP_OK
-    assert response.json() == [
-        {
-            "id": str(task.id),
-            "type": "GET_OFFERS",
-            "payload": {"search_term": "flour"},
-            "status": "FAILED",
-            "created_at": task.created_at.isoformat().replace("+00:00", "Z"),
-            "updated_at": task.updated_at.isoformat().replace("+00:00", "Z"),
-            "completed_at": None,
-            "error_message": "provider timeout",
-        },
-    ]
+    assert response.json() == {
+        "items": [
+            {
+                "id": str(task.id),
+                "type": "GET_OFFERS",
+                "payload": {"search_term": "flour"},
+                "status": "FAILED",
+                "created_at": task.created_at.isoformat().replace("+00:00", "Z"),
+                "updated_at": task.updated_at.isoformat().replace("+00:00", "Z"),
+                "completed_at": None,
+                "error_message": "provider timeout",
+            },
+        ],
+        "page": PAGE_TWO,
+        "size": 5,
+        "total_items": TOTAL_SIX,
+        "total_pages": PAGE_TWO,
+    }
     assert savis_task_use_case.filters == [
         (SavisTaskStatus.FAILED, SavisTaskType.GET_OFFERS),
     ]
