@@ -34,7 +34,10 @@ offers_use_case = Container.offers_use_case()
 async def create_task(request: SavisTaskRequest) -> SavisTaskResponse:
     """Enqueue a task."""
     return _task_response(
-        savis_task_use_case.enqueue_savis_task(request.type, request.payload),
+        savis_task_use_case.enqueue_savis_task(
+            request.type,
+            request.payload.model_dump(mode="json"),
+        ),
     )
 
 

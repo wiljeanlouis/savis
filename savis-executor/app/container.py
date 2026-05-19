@@ -1,4 +1,4 @@
-"""Dependency container for the scraper application."""
+"""Dependency container for the executor application."""
 
 from app.adapters.celery.celery_queue import CeleryQueue
 from app.adapters.database.offer_repository import SqlAlchemyOfferRepository
@@ -10,7 +10,7 @@ from app.core.use_case_savis_tasks import SavisTaskUseCase
 
 
 class Container:
-    """Composition root for scraper dependencies."""
+    """Composition root for executor dependencies."""
 
     celery_queue = CeleryQueue()
     result_publisher = RabbitMqResultPublisher()

@@ -1,4 +1,4 @@
-"""Tests for scraper API routes."""
+"""Tests for executor API routes."""
 
 # ruff: noqa: D103, S101
 
@@ -25,6 +25,7 @@ if TYPE_CHECKING:
     import pytest
 
 HTTP_OK = 200
+HTTP_UNPROCESSABLE_ENTITY = 422
 PAGE_TWO = 2
 TOTAL_SIX = 6
 REFRESH_FREQUENCY_SIX_HOURS = 6
@@ -66,6 +67,37 @@ def test_create_task_returns_created_task(
         "completed_at": None,
         "error_message": None,
     }
+
+
+def test_create_task_rejects_payload_missing_required_fields(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    class FixedTaskUseCase:
+        def enqueue_savis_task(
+            self,
+            task_type: SavisTaskType,  # noqa: ARG002
+            payload: dict[str, str],  # noqa: ARG002
+        ) -> SavisTask:
+            msg = "Should not enqueue invalid task payload"
+            raise AssertionError(msg)
+
+    monkeypatch.setattr(routes, "savis_task_use_case", FixedTaskUseCase())
+    app = FastAPI()
+    app.include_router(routes.router)
+    client = TestClient(app)
+
+    response = client.post(
+        "/tasks",
+        json={"type": "REFRESH_OFFER", "payload": {"offer_id": str(uuid7())}},
+    )
+
+    assert response.status_code == HTTP_UNPROCESSABLE_ENTITY
+    assert response.json()["detail"][0]["loc"] == [
+        "body",
+        "REFRESH_OFFER",
+        "payload",
+        "url",
+    ]
 
 
 def test_list_tasks_filters_by_status_and_type(

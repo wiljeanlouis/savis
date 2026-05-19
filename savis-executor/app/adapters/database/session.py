@@ -1,4 +1,4 @@
-"""SQLAlchemy session setup for scraper persistence."""
+"""SQLAlchemy session setup for executor persistence."""
 
 from __future__ import annotations
 
@@ -21,7 +21,7 @@ class Base(DeclarativeBase):
 
 
 def create_database_schema() -> None:
-    """Create database tables managed by the scraper."""
+    """Create database tables managed by the executor."""
     Base.metadata.create_all(bind=engine)
 
 

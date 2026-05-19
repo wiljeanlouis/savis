@@ -922,7 +922,7 @@ wheels = [
 ]
 
 [[package]]
-name = "savis-scraper"
+name = "savis-executor"
 version = "0.1.0"
 source = { virtual = "." }
 dependencies = [

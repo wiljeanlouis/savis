@@ -1,7 +1,7 @@
 [project]
-name = "savis-scraper"
+name = "savis-executor"
 version = "0.1.0"
-description = "Add your description here"
+description = "The Python execution service of SAVIS"
 readme = "README.md"
 requires-python = ">=3.14.4"
 dependencies = [

@@ -26,5 +26,5 @@ async def lifespan(_app: FastAPI) -> AsyncIterator[None]:
     yield
 
 
-app = FastAPI(lifespan=lifespan)
+app = FastAPI(title="Savis Executor API", lifespan=lifespan)
 app.include_router(router)

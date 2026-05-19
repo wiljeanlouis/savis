@@ -94,7 +94,7 @@ class OfferRepository(ABC):
 
 
 class OfferPublisher(ABC):
-    """Port for publishing offers outside the scraper."""
+    """Port for publishing offers outside the executor."""
 
     @abstractmethod
     def publish_offer(self, offer: Offer) -> None:

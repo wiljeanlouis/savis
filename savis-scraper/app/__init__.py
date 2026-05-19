@@ -1,1 +1,0 @@
-"""SAVIS scraper application package."""

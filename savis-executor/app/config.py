@@ -13,7 +13,7 @@ def setup_logging() -> None:
 
 
 class EnvParams:
-    """Configuration settings for the Savis scraper application."""
+    """Configuration settings for the Savis executor application."""
 
     DATABASE_URL = os.getenv(
         "DATABASE_URL",

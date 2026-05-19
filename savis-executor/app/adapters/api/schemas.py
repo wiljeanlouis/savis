@@ -1,17 +1,51 @@
-"""Schema definitions for scraping API payloads."""
+"""Schema definitions for executor API payloads."""
 
 from datetime import datetime  # noqa: TC003
+from typing import Annotated, Literal
+from uuid import UUID  # noqa: TC003
 
 from pydantic import BaseModel, Field
 
 from app.core.models import OfferStatus, SavisTaskStatus, SavisTaskType  # noqa: TC001
 
 
-class SavisTaskRequest(BaseModel):
-    """Schema for task creation."""
+class GetOffersPayload(BaseModel):
+    """Payload for collecting offers matching a search term."""
 
-    type: SavisTaskType
-    payload: dict[str, str]
+    search_term: str = Field(
+        examples=["farine"],
+        min_length=1,
+    )
+
+
+class RefreshOfferPayload(BaseModel):
+    """Payload for refreshing a known offer by URL."""
+
+    offer_id: UUID
+    url: str = Field(
+        examples=["https://www.maxi.ca/example-offer/p/12345"],
+        min_length=1,
+    )
+
+
+class GetOffersTaskRequest(BaseModel):
+    """Schema for GET_OFFERS task creation."""
+
+    type: Literal[SavisTaskType.GET_OFFERS]
+    payload: GetOffersPayload
+
+
+class RefreshOfferTaskRequest(BaseModel):
+    """Schema for REFRESH_OFFER task creation."""
+
+    type: Literal[SavisTaskType.REFRESH_OFFER]
+    payload: RefreshOfferPayload
+
+
+SavisTaskRequest = Annotated[
+    GetOffersTaskRequest | RefreshOfferTaskRequest,
+    Field(discriminator="type"),
+]
 
 
 class SavisTaskResponse(BaseModel):
