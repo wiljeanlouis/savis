@@ -19,10 +19,13 @@ from app.adapters.api.schemas import (
 from app.container import Container
 from app.core.models import (
     Offer,
+    OfferSortField,
     OfferStatus,
     SavisTask,
+    SavisTaskSortField,
     SavisTaskStatus,
     SavisTaskType,
+    SortDirection,
 )
 
 router = APIRouter()
@@ -47,6 +50,8 @@ async def list_tasks(
     size: Annotated[int, Query(ge=1)] = 20,
     status: SavisTaskStatus | None = None,
     task_type: Annotated[SavisTaskType | None, Query(alias="type")] = None,
+    sort_by: SavisTaskSortField = SavisTaskSortField.CREATED_AT,
+    sort_direction: SortDirection = SortDirection.DESC,
 ) -> SavisTasksPageResponse:
     """List paginated tasks, optionally filtered by status and type."""
     tasks, total_items, total_pages = savis_task_use_case.list(
@@ -54,6 +59,8 @@ async def list_tasks(
         task_type,
         page,
         size,
+        sort_by,
+        sort_direction,
     )
     return SavisTasksPageResponse(
         items=[_task_response(task) for task in tasks],
@@ -69,9 +76,17 @@ async def list_offers(
     page: Annotated[int, Query(ge=1)] = 1,
     size: Annotated[int, Query(ge=1)] = 20,
     status: OfferStatus | None = None,
+    sort_by: OfferSortField = OfferSortField.LAST_SCRAPED_AT,
+    sort_direction: SortDirection = SortDirection.DESC,
 ) -> OffersPageResponse:
     """List paginated offers, optionally filtered by status."""
-    offers, total_items, total_pages = offers_use_case.list(status, page, size)
+    offers, total_items, total_pages = offers_use_case.list(
+        status,
+        page,
+        size,
+        sort_by,
+        sort_direction,
+    )
     return OffersPageResponse(
         items=[_offer_response(offer) for offer in offers],
         page=page,

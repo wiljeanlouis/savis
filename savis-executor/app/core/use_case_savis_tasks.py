@@ -7,7 +7,13 @@ from math import ceil
 from typing import TYPE_CHECKING
 from uuid import UUID
 
-from app.core.models import SavisTask, SavisTaskStatus, SavisTaskType
+from app.core.models import (
+    SavisTask,
+    SavisTaskSortField,
+    SavisTaskStatus,
+    SavisTaskType,
+    SortDirection,
+)
 
 if TYPE_CHECKING:
     from app.core.ports import SavisTaskRepository, TaskQueue
@@ -81,6 +87,8 @@ class SavisTaskUseCase:
         task_type: SavisTaskType | None = None,
         page: int = 1,
         size: int = 20,
+        sort_by: SavisTaskSortField = SavisTaskSortField.CREATED_AT,
+        sort_direction: SortDirection = SortDirection.DESC,
     ) -> tuple[list[SavisTask], int, int]:
         """List paginated tasks, optionally filtered by status and type."""
         tasks, total_items = self.task_repository.list(
@@ -88,6 +96,8 @@ class SavisTaskUseCase:
             task_type,
             page,
             size,
+            sort_by,
+            sort_direction,
         )
         total_pages = ceil(total_items / size) if total_items else 0
         return tasks, total_items, total_pages

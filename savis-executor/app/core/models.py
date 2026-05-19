@@ -21,6 +21,23 @@ class SavisTaskType(StrEnum):
     REFRESH_OFFER = "REFRESH_OFFER"
 
 
+class SortDirection(StrEnum):
+    """Supported list sort directions."""
+
+    ASC = "asc"
+    DESC = "desc"
+
+
+class SavisTaskSortField(StrEnum):
+    """Sortable executor task fields."""
+
+    TYPE = "type"
+    STATUS = "status"
+    CREATED_AT = "created_at"
+    UPDATED_AT = "updated_at"
+    COMPLETED_AT = "completed_at"
+
+
 @dataclass
 class SavisTask:
     """Represents the lifecycle of a task owned by the executor."""
@@ -80,6 +97,20 @@ class OfferStatus(StrEnum):
     NEW = "NEW"
     VALID = "VALID"
     REJECTED = "REJECTED"
+
+
+class OfferSortField(StrEnum):
+    """Sortable offer fields."""
+
+    LABEL = "label"
+    BRAND = "brand"
+    PRICE = "price"
+    PACKAGE_SIZE = "package_size"
+    PROVIDER = "provider"
+    SEARCH_TERM = "search_term"
+    STATUS = "status"
+    LAST_SCRAPED_AT = "last_scraped_at"
+    NEXT_REFRESH_AT = "next_refresh_at"
 
 
 @dataclass

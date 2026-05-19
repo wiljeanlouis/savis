@@ -9,7 +9,14 @@ from math import ceil
 from typing import TYPE_CHECKING
 from uuid import UUID, uuid7
 
-from app.core.models import Offer, OfferStatus, SavisTask, SavisTaskType
+from app.core.models import (
+    Offer,
+    OfferSortField,
+    OfferStatus,
+    SavisTask,
+    SavisTaskType,
+    SortDirection,
+)
 
 if TYPE_CHECKING:
     from app.core.ports import (
@@ -137,9 +144,17 @@ class OffersUseCase:
         status: OfferStatus | None,
         page: int,
         size: int,
+        sort_by: OfferSortField = OfferSortField.LAST_SCRAPED_AT,
+        sort_direction: SortDirection = SortDirection.DESC,
     ) -> tuple[list[Offer], int, int]:
         """List paginated offers."""
-        offers, total_items = self.offer_repository.list(status, page, size)
+        offers, total_items = self.offer_repository.list(
+            status,
+            page,
+            size,
+            sort_by,
+            sort_direction,
+        )
         total_pages = ceil(total_items / size) if total_items else 0
         return offers, total_items, total_pages
 

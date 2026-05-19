@@ -19,7 +19,15 @@ from sqlalchemy import (
 from sqlalchemy.orm import Mapped, Session, mapped_column, sessionmaker
 
 from app.adapters.database.session import Base, SessionLocal, create_database_schema
-from app.core.models import Offer, OfferStatus, PackageSize, Price, Provider
+from app.core.models import (
+    Offer,
+    OfferSortField,
+    OfferStatus,
+    PackageSize,
+    Price,
+    Provider,
+    SortDirection,
+)
 from app.core.ports import OfferRepository
 
 if TYPE_CHECKING:
@@ -190,10 +198,28 @@ class SqlAlchemyOfferRepository(OfferRepository):
         status: OfferStatus | None,
         page: int,
         size: int,
+        sort_by: OfferSortField = OfferSortField.LAST_SCRAPED_AT,
+        sort_direction: SortDirection = SortDirection.DESC,
     ) -> tuple[list[Offer], int]:
         """List paged offers and total count."""
         self.schema_creator()
-        statement = select(OfferEntity).order_by(OfferEntity.last_scraped_at.desc())
+        sort_column = {
+            OfferSortField.LABEL: OfferEntity.label,
+            OfferSortField.BRAND: OfferEntity.brand,
+            OfferSortField.PRICE: OfferEntity.price_amount,
+            OfferSortField.PACKAGE_SIZE: OfferEntity.package_size_value,
+            OfferSortField.PROVIDER: OfferEntity.provider_name,
+            OfferSortField.SEARCH_TERM: OfferEntity.search_term,
+            OfferSortField.STATUS: OfferEntity.status,
+            OfferSortField.LAST_SCRAPED_AT: OfferEntity.last_scraped_at,
+            OfferSortField.NEXT_REFRESH_AT: OfferEntity.next_refresh_at,
+        }[sort_by]
+        sort_expression = (
+            sort_column.asc()
+            if sort_direction == SortDirection.ASC
+            else sort_column.desc()
+        )
+        statement = select(OfferEntity).order_by(sort_expression)
         count_statement = select(func.count()).select_from(OfferEntity)
         if status is not None:
             statement = statement.where(OfferEntity.status == status.value)

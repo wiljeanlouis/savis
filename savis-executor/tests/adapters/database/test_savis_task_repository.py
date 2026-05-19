@@ -12,7 +12,13 @@ from app.adapters.database.savis_task_repository import (
     SqlAlchemySavisTaskRepository,
 )
 from app.adapters.database.session import Base
-from app.core.models import SavisTask, SavisTaskStatus, SavisTaskType
+from app.core.models import (
+    SavisTask,
+    SavisTaskSortField,
+    SavisTaskStatus,
+    SavisTaskType,
+    SortDirection,
+)
 
 TOTAL_TWO_TASKS = 2
 
@@ -75,6 +81,26 @@ def test_list_paginates_and_returns_total_count() -> None:
     assert total == TOTAL_TWO_TASKS
     assert [task.id for task in tasks] == [first.id]
     assert second.id != first.id
+
+
+def test_list_sorts_before_paginating() -> None:
+    repository, _session_factory = _repository()
+    first = SavisTask.create(SavisTaskType.GET_OFFERS, {"search_term": "flour"})
+    first.created_at = datetime(2026, 5, 17, 10, 0, tzinfo=UTC)
+    second = SavisTask.create(SavisTaskType.GET_OFFERS, {"search_term": "sugar"})
+    second.created_at = datetime(2026, 5, 17, 11, 0, tzinfo=UTC)
+    repository.save(first)
+    repository.save(second)
+
+    tasks, total = repository.list(
+        page=1,
+        size=1,
+        sort_by=SavisTaskSortField.CREATED_AT,
+        sort_direction=SortDirection.ASC,
+    )
+
+    assert total == TOTAL_TWO_TASKS
+    assert [task.id for task in tasks] == [first.id]
 
 
 def test_mark_completed_and_failed_update_status() -> None:

@@ -3,6 +3,8 @@
 from abc import ABC, abstractmethod
 from typing import TYPE_CHECKING
 
+from .models import OfferSortField, SavisTaskSortField, SortDirection
+
 if TYPE_CHECKING:
     from datetime import datetime
     from uuid import UUID
@@ -40,6 +42,8 @@ class SavisTaskRepository(ABC):
         task_type: SavisTaskType | None = None,
         page: int = 1,
         size: int = 20,
+        sort_by: SavisTaskSortField = SavisTaskSortField.CREATED_AT,
+        sort_direction: SortDirection = SortDirection.DESC,
     ) -> tuple[list[SavisTask], int]:
         """List paged tasks and return total count."""
 
@@ -85,6 +89,8 @@ class OfferRepository(ABC):
         status: OfferStatus | None,
         page: int,
         size: int,
+        sort_by: OfferSortField = OfferSortField.LAST_SCRAPED_AT,
+        sort_direction: SortDirection = SortDirection.DESC,
     ) -> tuple[list[Offer], int]:
         """List paged offers and return total count."""
 

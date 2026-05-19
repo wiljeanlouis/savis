@@ -13,12 +13,15 @@ from fastapi.testclient import TestClient
 from app.adapters.api import routes
 from app.core.models import (
     Offer,
+    OfferSortField,
     OfferStatus,
     Price,
     Provider,
     SavisTask,
+    SavisTaskSortField,
     SavisTaskStatus,
     SavisTaskType,
+    SortDirection,
 )
 
 if TYPE_CHECKING:
@@ -117,9 +120,13 @@ def test_list_tasks_filters_by_status_and_type(
             task_type: SavisTaskType | None,
             page: int,
             size: int,
+            sort_by: SavisTaskSortField,
+            sort_direction: SortDirection,
         ) -> tuple[list[SavisTask], int, int]:
             self.filters.append((status, task_type))
             assert (page, size) == (PAGE_TWO, 5)
+            assert sort_by == SavisTaskSortField.STATUS
+            assert sort_direction == SortDirection.ASC
             return [task], TOTAL_SIX, PAGE_TWO
 
     savis_task_use_case = FixedListUseCase()
@@ -135,6 +142,8 @@ def test_list_tasks_filters_by_status_and_type(
             "type": "GET_OFFERS",
             "page": PAGE_TWO,
             "size": 5,
+            "sort_by": "status",
+            "sort_direction": "asc",
         },
     )
 
@@ -193,8 +202,12 @@ def test_list_offers_returns_paged_response(
             status: OfferStatus | None,
             page: int,
             size: int,
+            sort_by: OfferSortField,
+            sort_direction: SortDirection,
         ) -> tuple[list[Offer], int, int]:
             assert (status, page, size) == (OfferStatus.NEW, PAGE_TWO, 5)
+            assert sort_by == OfferSortField.PRICE
+            assert sort_direction == SortDirection.DESC
             return [offer], TOTAL_SIX, PAGE_TWO
 
     monkeypatch.setattr(routes, "offers_use_case", FixedOffersUseCase())
@@ -202,7 +215,13 @@ def test_list_offers_returns_paged_response(
     app.include_router(routes.router)
     response = TestClient(app).get(
         "/offers",
-        params={"status": "NEW", "page": PAGE_TWO, "size": 5},
+        params={
+            "status": "NEW",
+            "page": PAGE_TWO,
+            "size": 5,
+            "sort_by": "price",
+            "sort_direction": "desc",
+        },
     )
 
     assert response.status_code == HTTP_OK

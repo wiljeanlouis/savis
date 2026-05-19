@@ -10,7 +10,13 @@ from sqlalchemy import JSON, DateTime, String, Text, and_, func, select, update
 from sqlalchemy.orm import Mapped, Session, mapped_column, sessionmaker
 
 from app.adapters.database.session import Base, SessionLocal, create_database_schema
-from app.core.models import SavisTask, SavisTaskStatus, SavisTaskType
+from app.core.models import (
+    SavisTask,
+    SavisTaskSortField,
+    SavisTaskStatus,
+    SavisTaskType,
+    SortDirection,
+)
 from app.core.ports import SavisTaskRepository
 
 if TYPE_CHECKING:
@@ -93,10 +99,24 @@ class SqlAlchemySavisTaskRepository(SavisTaskRepository):
         task_type: SavisTaskType | None = None,
         page: int = 1,
         size: int = 20,
+        sort_by: SavisTaskSortField = SavisTaskSortField.CREATED_AT,
+        sort_direction: SortDirection = SortDirection.DESC,
     ) -> tuple[list[SavisTask], int]:
         """List paged tasks and total count."""
         self.schema_creator()
-        statement = select(SavisTaskEntity).order_by(SavisTaskEntity.created_at.desc())
+        sort_column = {
+            SavisTaskSortField.TYPE: SavisTaskEntity.type,
+            SavisTaskSortField.STATUS: SavisTaskEntity.status,
+            SavisTaskSortField.CREATED_AT: SavisTaskEntity.created_at,
+            SavisTaskSortField.UPDATED_AT: SavisTaskEntity.updated_at,
+            SavisTaskSortField.COMPLETED_AT: SavisTaskEntity.completed_at,
+        }[sort_by]
+        sort_expression = (
+            sort_column.asc()
+            if sort_direction == SortDirection.ASC
+            else sort_column.desc()
+        )
+        statement = select(SavisTaskEntity).order_by(sort_expression)
         count_statement = select(func.count()).select_from(SavisTaskEntity)
         if status is not None:
             statement = statement.where(SavisTaskEntity.status == status.value)
