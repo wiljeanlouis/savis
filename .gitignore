@@ -45,6 +45,6 @@ build/
 */dist
 */build
 
-### savis-scraper
+### savis-executor
 .venv
 __pycache__

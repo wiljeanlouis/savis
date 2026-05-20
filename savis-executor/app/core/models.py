@@ -109,7 +109,7 @@ class OfferSortField(StrEnum):
     PROVIDER = "provider"
     SEARCH_TERM = "search_term"
     STATUS = "status"
-    LAST_SCRAPED_AT = "last_scraped_at"
+    LAST_RETRIEVED_AT = "last_retrieved_at"
     NEXT_REFRESH_AT = "next_refresh_at"
 
 
@@ -128,7 +128,7 @@ class Offer:
     id: UUID | None = None
     search_term: str | None = None
     status: OfferStatus | None = None
-    last_scraped_at: datetime | None = None
+    last_retrieved_at: datetime | None = None
     next_refresh_at: datetime | None = None
     refresh_frequency_hours: int | None = None
     last_seen_task_id: UUID | None = None

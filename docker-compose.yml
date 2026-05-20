@@ -69,11 +69,11 @@ services:
     depends_on:
       - backend_api
 
-  scraper_api:
+  executor_api:
     build:
-      context: ./savis-scraper
+      context: ./savis-executor
       dockerfile: Dockerfile
-    container_name: scraper_api
+    container_name: savis_executor_api
     ports:
       - "8000:8000"
     environment:
@@ -85,16 +85,16 @@ services:
       postgres:
         condition: service_healthy
 
-  scraper_worker:
+  executor_worker:
     build:
-      context: ./savis-scraper
+      context: ./savis-executor
       dockerfile: Dockerfile
     init: true
     shm_size: "2gb"
-    container_name: scraper_worker
+    container_name: savis_executor_worker
     command: celery -A app.adapters.celery.celery_app worker --loglevel=info --concurrency=2
     volumes:
-      - ./savis-scraper:/app
+      - ./savis-executor:/app
       - /app/.venv
     environment:
       - RABBIT_MQ_URL=amqp://${RABBIT_MQ_USER}:${RABBIT_MQ_PASSWORD}@rabbitmq:5672/%2f

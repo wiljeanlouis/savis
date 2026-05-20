@@ -65,7 +65,7 @@ class OfferEntity(Base):
     provider_address: Mapped[str] = mapped_column(String(1024), nullable=False)
     search_term: Mapped[str] = mapped_column(String(255), nullable=False)
     status: Mapped[str] = mapped_column(String(32), nullable=False)
-    last_scraped_at: Mapped[datetime] = mapped_column(
+    last_retrieved_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
         nullable=False,
     )
@@ -82,7 +82,7 @@ def _to_entity(offer: Offer) -> OfferEntity:
         offer.id is None
         or offer.search_term is None
         or offer.status is None
-        or offer.last_scraped_at is None
+        or offer.last_retrieved_at is None
         or offer.next_refresh_at is None
         or offer.refresh_frequency_hours is None
         or offer.last_seen_task_id is None
@@ -113,7 +113,7 @@ def _to_entity(offer: Offer) -> OfferEntity:
         provider_address=offer.provider.address,
         search_term=offer.search_term,
         status=offer.status.value,
-        last_scraped_at=offer.last_scraped_at,
+        last_retrieved_at=offer.last_retrieved_at,
         next_refresh_at=offer.next_refresh_at,
         refresh_frequency_hours=offer.refresh_frequency_hours,
         last_seen_task_id=str(offer.last_seen_task_id),
@@ -152,7 +152,7 @@ def _to_model(entity: OfferEntity) -> Offer:
         ),
         search_term=entity.search_term,
         status=OfferStatus(entity.status),
-        last_scraped_at=entity.last_scraped_at,
+        last_retrieved_at=entity.last_retrieved_at,
         next_refresh_at=entity.next_refresh_at,
         refresh_frequency_hours=entity.refresh_frequency_hours,
         last_seen_task_id=UUID(entity.last_seen_task_id),
@@ -198,7 +198,7 @@ class SqlAlchemyOfferRepository(OfferRepository):
         status: OfferStatus | None,
         page: int,
         size: int,
-        sort_by: OfferSortField = OfferSortField.LAST_SCRAPED_AT,
+        sort_by: OfferSortField = OfferSortField.LAST_RETRIEVED_AT,
         sort_direction: SortDirection = SortDirection.DESC,
     ) -> tuple[list[Offer], int]:
         """List paged offers and total count."""
@@ -211,7 +211,7 @@ class SqlAlchemyOfferRepository(OfferRepository):
             OfferSortField.PROVIDER: OfferEntity.provider_name,
             OfferSortField.SEARCH_TERM: OfferEntity.search_term,
             OfferSortField.STATUS: OfferEntity.status,
-            OfferSortField.LAST_SCRAPED_AT: OfferEntity.last_scraped_at,
+            OfferSortField.LAST_RETRIEVED_AT: OfferEntity.last_retrieved_at,
             OfferSortField.NEXT_REFRESH_AT: OfferEntity.next_refresh_at,
         }[sort_by]
         sort_expression = (

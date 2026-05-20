@@ -89,7 +89,7 @@ class OfferRepository(ABC):
         status: OfferStatus | None,
         page: int,
         size: int,
-        sort_by: OfferSortField = OfferSortField.LAST_SCRAPED_AT,
+        sort_by: OfferSortField = OfferSortField.LAST_RETRIEVED_AT,
         sort_direction: SortDirection = SortDirection.DESC,
     ) -> tuple[list[Offer], int]:
         """List paged offers and return total count."""

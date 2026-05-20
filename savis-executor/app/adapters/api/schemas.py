@@ -108,7 +108,7 @@ class OfferResponse(BaseModel):
     provider: ProviderResponse
     search_term: str
     status: OfferStatus
-    last_scraped_at: datetime
+    last_retrieved_at: datetime
     next_refresh_at: datetime
     refresh_frequency_hours: int
     last_seen_task_id: str

@@ -16,7 +16,8 @@ from app.adapters.database.offer_repository import (
     SqlAlchemyOfferRepository,
 )
 from app.adapters.database.session import Base
-from app.core.models import Offer, OfferStatus, Price, Provider
+from app.core.models import Offer, OfferSortField, OfferStatus, Price, Provider
+from app.core.models import SortDirection
 
 
 def _repository() -> tuple[SqlAlchemyOfferRepository, sessionmaker[Session]]:
@@ -36,6 +37,7 @@ def _offer(
     *,
     external_id: str = "external-id",
     status: OfferStatus = OfferStatus.NEW,
+    price_amount: str = "4.99",
 ) -> Offer:
     now = datetime(2026, 5, 17, 12, 0, tzinfo=UTC)
     return Offer(
@@ -44,7 +46,7 @@ def _offer(
         url="https://example.com/offer",
         brand="Example",
         label="Flour",
-        price=Price(amount="4.99"),
+        price=Price(amount=price_amount),
         package_size=None,
         image_url="https://example.com/image.png",
         provider=Provider(
@@ -55,7 +57,7 @@ def _offer(
         ),
         search_term="flour",
         status=status,
-        last_scraped_at=now,
+        last_retrieved_at=now,
         next_refresh_at=now + timedelta(hours=24),
         refresh_frequency_hours=24,
         last_seen_task_id=uuid7(),
@@ -85,6 +87,23 @@ def test_list_filters_and_paginates() -> None:
 
     assert total == 1
     assert [offer.external_id for offer in offers] == ["b"]
+
+
+def test_list_sorts_before_paginating() -> None:
+    repository, _session_factory = _repository()
+    repository.save(_offer(external_id="expensive", price_amount="9.99"))
+    repository.save(_offer(external_id="cheap", price_amount="1.99"))
+
+    offers, total = repository.list(
+        None,
+        page=1,
+        size=1,
+        sort_by=OfferSortField.PRICE,
+        sort_direction=SortDirection.ASC,
+    )
+
+    assert total == 2
+    assert [offer.external_id for offer in offers] == ["cheap"]
 
 
 def test_unique_provider_external_id_constraint() -> None:

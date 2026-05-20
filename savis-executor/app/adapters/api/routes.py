@@ -76,7 +76,7 @@ async def list_offers(
     page: Annotated[int, Query(ge=1)] = 1,
     size: Annotated[int, Query(ge=1)] = 20,
     status: OfferStatus | None = None,
-    sort_by: OfferSortField = OfferSortField.LAST_SCRAPED_AT,
+    sort_by: OfferSortField = OfferSortField.LAST_RETRIEVED_AT,
     sort_direction: SortDirection = SortDirection.DESC,
 ) -> OffersPageResponse:
     """List paginated offers, optionally filtered by status."""
@@ -138,7 +138,7 @@ def _offer_response(offer: Offer) -> OfferResponse:
         ),
         search_term=offer.search_term or "",
         status=offer.status or OfferStatus.NEW,
-        last_scraped_at=offer.last_scraped_at,  # pyright: ignore[reportArgumentType]
+        last_retrieved_at=offer.last_retrieved_at,  # pyright: ignore[reportArgumentType]
         next_refresh_at=offer.next_refresh_at,  # pyright: ignore[reportArgumentType]
         refresh_frequency_hours=offer.refresh_frequency_hours or 24,
         last_seen_task_id=str(offer.last_seen_task_id),

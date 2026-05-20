@@ -115,7 +115,7 @@ class OffersUseCase:
                     id=uuid7(),
                     search_term=search_term,
                     status=OfferStatus.NEW,
-                    last_scraped_at=observed_at,
+                    last_retrieved_at=observed_at,
                     next_refresh_at=observed_at
                     + timedelta(hours=DEFAULT_REFRESH_FREQUENCY_HOURS),
                     refresh_frequency_hours=DEFAULT_REFRESH_FREQUENCY_HOURS,
@@ -130,7 +130,7 @@ class OffersUseCase:
                 persisted_offer.image_url = observed_offer.image_url
                 persisted_offer.provider = observed_offer.provider
                 persisted_offer.search_term = search_term
-                persisted_offer.last_scraped_at = observed_at
+                persisted_offer.last_retrieved_at = observed_at
                 persisted_offer.next_refresh_at = observed_at + timedelta(
                     hours=persisted_offer.refresh_frequency_hours
                     or DEFAULT_REFRESH_FREQUENCY_HOURS,
@@ -144,7 +144,7 @@ class OffersUseCase:
         status: OfferStatus | None,
         page: int,
         size: int,
-        sort_by: OfferSortField = OfferSortField.LAST_SCRAPED_AT,
+        sort_by: OfferSortField = OfferSortField.LAST_RETRIEVED_AT,
         sort_direction: SortDirection = SortDirection.DESC,
     ) -> tuple[list[Offer], int, int]:
         """List paginated offers."""
@@ -226,7 +226,7 @@ class OffersUseCase:
         offer.package_size = refreshed_offer.package_size
         offer.image_url = refreshed_offer.image_url
         offer.provider = refreshed_offer.provider
-        offer.last_scraped_at = observed_at
+        offer.last_retrieved_at = observed_at
         offer.next_refresh_at = observed_at + timedelta(
             hours=offer.refresh_frequency_hours or DEFAULT_REFRESH_FREQUENCY_HOURS,
         )

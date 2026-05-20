@@ -11,6 +11,8 @@ import { RecipePage } from "@/features/recipe/pages/RecipePage";
 import { RecipesPage } from "@/features/recipe/pages/RecipesPage";
 import { getRecipe } from "@/features/recipe/api/recipeApi";
 import type { Recipe } from "@/features/recipe/types";
+import { TasksPage } from "@/features/task/pages/TasksPage";
+import { OffersPage } from "@/features/offer/pages/OffersPage";
 
 const router = createBrowserRouter([
   {
@@ -93,6 +95,44 @@ const router = createBrowserRouter([
               <BreadcrumbSeparator className="hidden md:block" />
               <BreadcrumbItem>
                 <BreadcrumbPage>Nouvelle recette</BreadcrumbPage>
+              </BreadcrumbItem>
+            </>
+          ),
+        },
+      },
+      {
+        path: "/tasks",
+        element: <TasksPage />,
+        handle: {
+          breadcrumb: () => (
+            <>
+              <BreadcrumbItem className="hidden md:block">
+                <BreadcrumbLink asChild>
+                  <Link to="/">Accueil</Link>
+                </BreadcrumbLink>
+              </BreadcrumbItem>
+              <BreadcrumbSeparator className="hidden md:block" />
+              <BreadcrumbItem>
+                <BreadcrumbPage>Tasks</BreadcrumbPage>
+              </BreadcrumbItem>
+            </>
+          ),
+        },
+      },
+      {
+        path: "/offers",
+        element: <OffersPage />,
+        handle: {
+          breadcrumb: () => (
+            <>
+              <BreadcrumbItem className="hidden md:block">
+                <BreadcrumbLink asChild>
+                  <Link to="/">Accueil</Link>
+                </BreadcrumbLink>
+              </BreadcrumbItem>
+              <BreadcrumbSeparator className="hidden md:block" />
+              <BreadcrumbItem>
+                <BreadcrumbPage>Ingrédients</BreadcrumbPage>
               </BreadcrumbItem>
             </>
           ),

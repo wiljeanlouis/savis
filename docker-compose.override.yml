@@ -24,9 +24,9 @@ services:
       - ./savis-admin:/app
       - /app/node_modules
 
-  # Écrase l'API de scraping pour activer le rechargement Uvicorn
-  scraper_api:
+  # Écrase l'API executor pour activer le rechargement Uvicorn
+  executor_api:
     command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
     volumes:
-      - ./savis-scraper:/app
+      - ./savis-executor:/app
       - /app/.venv

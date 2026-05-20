@@ -19,9 +19,12 @@ import {
   Database01Icon,
   Analytics01Icon,
   Dish02Icon,
+  Task01Icon,
+  RiceBowl01FreeIcons,
 } from "@hugeicons/core-free-icons";
 import { Link } from "react-router";
 import { ModeToggle } from "./components/ModeToggle";
+import { NavSection } from "./components/NavSection";
 
 const data = {
   user: {
@@ -35,10 +38,24 @@ const data = {
       url: "/dashboard",
       icon: <HugeiconsIcon icon={DashboardSquare01Icon} strokeWidth={2} />,
     },
+  ],
+  foods: [
     {
-      title: "Recettes",
+      name: "Recettes",
       url: "/recipes",
       icon: <HugeiconsIcon icon={Dish02Icon} strokeWidth={2} />,
+    },
+    {
+      name: "Ingrédients",
+      url: "/offers",
+      icon: <HugeiconsIcon icon={RiceBowl01FreeIcons} strokeWidth={2} />,
+    },
+  ],
+  configs: [
+    {
+      name: "Tasks",
+      url: "/tasks",
+      icon: <HugeiconsIcon icon={Task01Icon} strokeWidth={2} />,
     },
   ],
   navSecondary: [
@@ -96,6 +113,8 @@ export const AppSidebar = ({
       </SidebarHeader>
       <SidebarContent>
         <NavMain items={data.navMain} />
+        <NavSection title="Dégustation" items={data.foods} />
+        <NavSection title="Configuration" items={data.configs} />
         {/* <NavDocuments items={data.documents} />
         <NavSecondary items={data.navSecondary} className="mt-auto" /> */}
       </SidebarContent>

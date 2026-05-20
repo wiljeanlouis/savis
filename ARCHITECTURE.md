@@ -10,7 +10,7 @@ The long-term product direction is to turn recipes and commercial operations int
 - ingredients should be linked to real provider offers;
 - recipe costs should be calculated from current or selected offer prices;
 - order prices and margins should eventually be derived from recipe costs, labor, services, and business rules;
-- external provider data should be collected asynchronously because scraping is slow, failure-prone, and outside the control of the core application.
+- external provider data should be collected asynchronously because provider collection is slow, failure-prone, and outside the control of the core application.
 
 The architecture therefore separates the stable business model from volatile infrastructure such as HTTP, RabbitMQ, Celery, Playwright, provider websites, and persistence.
 
@@ -20,15 +20,13 @@ SAVIS is currently split into three deployable modules:
 
 - `savis-api`: Java/Spring Boot backend. It owns the main business API, recipe domain, supply domain, persistence, and the public HTTP API consumed by the admin UI.
 - `savis-admin`: React/Vite admin back office. It is the user-facing administrative interface for managing recipes and future operational data.
-- `savis-scraper`: Python/FastAPI/Celery scraping service. It receives scraping requests, enqueues background scraping work, executes provider scrapers, and reports results back to the Java API.
+- `savis-executor`: Python/FastAPI/Celery executor service. It receives offer collection requests, enqueues background work, executes provider scrapers, and publishes results back to the Java API through RabbitMQ.
 
 Supporting infrastructure:
 
 - PostgreSQL stores SAVIS business data.
-- RabbitMQ carries ingredient-needed messages from Java to Python.
-- Redis is used as the Celery result backend.
-- Celery executes long-running scraping tasks.
-- Flower observes Celery workers.
+- RabbitMQ carries offer request messages from Java to Python and offer result messages from Python to Java.
+- Celery executes long-running provider collection and offer refresh tasks.
 
 ## Simplified Clean Architecture
 
@@ -79,23 +77,24 @@ Examples:
 - `RecipeRepositoryPort`, `IngredientPricePort`, and `IngredientNeededEventPort` are ports.
 - `RecipeController`, JPA repositories, RabbitMQ producer, and external price adapters are adapters.
 
-### Python Scraper Shape
+### Python Executor Shape
 
-The scraper follows the same idea with Python naming:
+The executor follows the same idea with Python naming:
 
 ```text
 app/core/
   models.py
   ports.py
-  enqueue_scraping_use_case.py
-  execute_scraping_use_case.py
+  use_case_savis_tasks.py
+  use_case_offers.py
 
 app/adapters/
   api/
   celery/
   rabbitmq/
   scrapers/
-  java_api_publisher.py
+  database/
+  cleanup/
 
 app/container.py
 ```
@@ -103,17 +102,17 @@ app/container.py
 Examples:
 
 - `Offer`, `Price`, `PackageSize`, and `Provider` are core models.
-- `OfferScraper` and `TaskQueue` are core ports.
-- `EnqueueScrapingUseCase` turns a search term into a background task.
-- `ExecuteScrapingUseCase` runs provider scrapers and aggregates offers.
-- Celery, RabbitMQ, FastAPI, HTTP publishing, and Playwright provider scrapers are adapters.
-- `Container` is the composition root for scraper dependencies.
+- `OfferProvider` and `TaskQueue` are core ports.
+- `SavisTaskUseCase` creates, enqueues, executes, lists, and cleans up executor tasks.
+- `OffersUseCase` runs provider scrapers, reconciles offers, persists tracked offers, and schedules refresh work.
+- Celery, RabbitMQ, FastAPI, SQLAlchemy persistence, cleanup runners, and Playwright provider scrapers are adapters.
+- `Container` is the composition root for executor dependencies.
 
 ## Composition Root and Wiring
 
 Each runtime should have one clear composition root.
 
-In the Python scraper, `app/container.py` is responsible for creating concrete objects and injecting them into use cases. Celery is a special runtime because Celery imports task modules by name. To avoid circular imports, Celery-specific dependency resolution is isolated in:
+In the Python executor, `app/container.py` is responsible for creating concrete objects and injecting them into use cases. Celery is a special runtime because Celery imports task modules by name. To avoid circular imports, Celery-specific dependency resolution is isolated in:
 
 ```text
 app/adapters/celery/celery_wiring.py
@@ -147,54 +146,56 @@ Current slices:
 
 - Recipe management: create, update, list, get, and delete recipes.
 - Ingredient need detection: when a recipe contains an ingredient with no selected offer, SAVIS emits an ingredient-needed event.
-- Offer scraping: ingredient/search term requests are converted into Celery scraping jobs.
+- Offer collection: ingredient/search term requests are converted into executor tasks and Celery jobs.
+- Offer review and refresh: reviewed offers can be marked valid or rejected, and valid offers can be refreshed by URL.
 - Provider scraping: provider-specific scraper implementations extract normalized offers.
-- Supply callback: Python reports scraped offers or failures back to Java.
+- Supply result consumption: Java consumes executor offer results from RabbitMQ.
 
-This structure keeps business changes local. For example, adding a new provider should mostly touch the scraper provider adapter and registration, not the recipe domain. Adding a new recipe pricing policy should mostly touch recipe pricing ports/use cases, not RabbitMQ or Celery.
+This structure keeps business changes local. For example, adding a new provider should mostly touch the executor provider adapter and registration, not the recipe domain. Adding a new recipe pricing policy should mostly touch recipe pricing ports/use cases, not RabbitMQ or Celery.
 
 ## Relationship Between Java and Python
 
-Java is the system of record and the owner of business workflows. Python is an execution engine for scraping.
+Java is the system of record and the owner of business workflows. Python is an execution engine for offer collection.
 
 Java responsibilities:
 
 - expose SAVIS business APIs;
 - own recipe and supply domain concepts;
-- persist recipes, offers, providers, and scraping task state;
+- persist recipes and supply state;
 - decide when an ingredient needs provider offers;
 - publish ingredient-needed messages;
-- receive scraping results and failures from Python;
+- receive offer results from Python through RabbitMQ;
 - calculate recipe costs through `IngredientPricePort`.
 
 Python responsibilities:
 
-- receive scraping requests from HTTP or RabbitMQ;
-- enqueue scraping work into Celery;
-- execute slow scraping tasks outside the request/consumer path;
-- normalize provider-specific data into scraper core `Offer` models;
-- publish success or failure back to the Java API.
+- receive offer collection requests from HTTP or RabbitMQ;
+- create and persist executor tasks in PostgreSQL;
+- enqueue offer collection and refresh work into Celery;
+- execute slow provider collection tasks outside the request/consumer path;
+- normalize provider-specific data into executor core `Offer` models;
+- publish successful offer results to RabbitMQ for the Java API.
 
 The two services communicate in two directions:
 
 ```text
 Java -> RabbitMQ -> Python subscriber -> Celery
-Python Celery task -> HTTP callback -> Java supply API
+Python Celery task -> RabbitMQ -> Java OffersListener -> OfferService
 ```
 
-There is also an HTTP entry point on the scraper:
+There is also an HTTP entry point on the executor:
 
 ```text
-Java or caller -> FastAPI /scrape/offers -> Celery
+Java or caller -> FastAPI /tasks -> Celery
 ```
 
-This can be useful for direct API-driven scraping, while RabbitMQ supports event-driven scraping.
+This can be useful for direct API-driven offer collection, while RabbitMQ supports event-driven collection.
 
 ## Role of Celery
 
-Celery is the async execution layer for scraping work.
+Celery is the async execution layer for offer collection work.
 
-Scraping should not happen inside:
+Provider collection should not happen inside:
 
 - a Java HTTP request;
 - a FastAPI HTTP request;
@@ -205,28 +206,27 @@ Those paths should only validate/translate the request and enqueue a Celery task
 Celery owns:
 
 - running long-lived provider scraping logic;
-- retrying failed scraping tasks with backoff;
+- retrying failed provider collection tasks with backoff;
 - isolating slow browser/network work from API responsiveness;
 - controlling worker concurrency;
-- reporting task failures through `ReportingTask`;
-- allowing operational visibility through Flower.
+- tracking task failures through `ReportingTask`;
 
 The current task is:
 
 ```text
-app.adapters.celery.celery_tasks.scrape_offers_task
+app.adapters.celery.celery_tasks.get_offers_task
 ```
 
-It resolves the execution use case, scrapes offers, and publishes the result to the Java API.
+It resolves the executor task use case, collects offers, persists/reconciles them, and publishes valid results to RabbitMQ.
 
-## Role of the Scraper
+## Role of the Executor
 
-The scraper is not the source of truth. It is a data acquisition service.
+The executor is not the source of truth. It is a data acquisition service.
 
 Its core job is:
 
 ```text
-search term -> provider pages -> normalized offers -> Java callback
+search term -> provider pages -> normalized offers -> RabbitMQ result message
 ```
 
 Provider-specific logic belongs under:
@@ -270,16 +270,16 @@ The intended pricing flow is:
 1. A recipe is saved with ingredient requirements.
 2. Ingredients without `selectedOfferId` trigger `IngredientNeededEvent`.
 3. The supply side requests or refreshes offers for those ingredients.
-4. Scraped offers are stored by Java in the supply module.
+4. Collected offers are tracked by the executor and published to Java when valid.
 5. An admin or automated policy selects the offer to use for each ingredient.
 6. `IngredientPricePort` resolves selected offer prices.
 7. `Recipe.calculateTotal(...)` sums ingredient costs.
 
-Current implementation note: `IngredientPriceAdapter` currently returns a placeholder value. It should eventually call the supply module or repository to resolve real offer prices.
+Current implementation note: `IngredientPriceAdapter` currently returns a placeholder value. `OfferService.processOffers(...)` receives result messages but persistence and reconciliation in the Java supply module are still being shaped.
 
 ## Event Flow
 
-The event-driven scraping flow is:
+The event-driven offer collection flow is:
 
 ```text
 Admin saves recipe
@@ -291,23 +291,25 @@ Admin saves recipe
   -> RabbitMqProducer
   -> RabbitMQ queue: savis.offer.requests
   -> Python subscriber
-  -> EnqueueScrapingUseCase
+  -> SavisTaskUseCase.enqueue_savis_task(...)
   -> CeleryQueue
-  -> scrape_offers_task
-  -> ExecuteScrapingUseCase
+  -> get_offers_task
+  -> SavisTaskUseCase.execute_savis_task(...)
+  -> OffersUseCase.get_offers(...)
   -> provider scrapers
-  -> aggregate normalized offers
-  -> JavaApiPublisher
-  -> SupplyController /api/v1/supply/offers
+  -> track and reconcile normalized offers
+  -> RabbitMqResultPublisher
+  -> RabbitMQ queue: savis.offer.results
+  -> Java OffersListener
+  -> OfferService.processOffers(...)
 ```
 
-Failure callback flow:
+Failure tracking flow:
 
 ```text
-scrape_offers_task fails after Celery retries
+get_offers_task fails after Celery retries
   -> ReportingTask.on_failure(...)
-  -> JavaApiPublisher.publish_failure(...)
-  -> SupplyController /api/v1/supply/task/failure
+  -> SavisTaskRepository.mark_failed(...)
 ```
 
 ## Retry Flow
@@ -330,7 +332,7 @@ Recommended next step: add a dead-letter queue so rejected messages are preserve
 
 ### Celery Task Retry
 
-Celery owns retrying the actual scraping work.
+Celery owns retrying the actual provider collection and refresh work.
 
 Current behavior:
 
@@ -342,7 +344,7 @@ max_retries=3
 
 This is appropriate because provider scraping is vulnerable to transient failures: network issues, blocked pages, browser timeouts, provider layout changes, and temporary unavailability.
 
-After retries are exhausted, the task reports failure back to the Java API.
+After retries are exhausted, the executor task is marked failed. Result-level failure publishing to Java is not part of the current implementation.
 
 ## Operational Boundaries
 
@@ -350,10 +352,9 @@ The preferred production boundary is:
 
 - Java API process: business API and persistence.
 - Admin frontend process: static/admin UI.
-- Scraper API process: FastAPI routes and lightweight RabbitMQ subscriber if kept in-process.
-- Celery worker process: actual scraping execution.
+- Executor API process: FastAPI routes and lightweight RabbitMQ subscriber if kept in-process.
+- Celery worker process: actual provider collection and refresh execution.
 - RabbitMQ: event transport and Celery broker.
-- Redis: Celery result backend.
 - PostgreSQL: business persistence.
 
 Keeping the RabbitMQ subscriber inside FastAPI is acceptable while it only forwards messages to Celery. If the subscriber grows more complex, or if independent scaling is needed, it should become a separate process.
@@ -362,11 +363,11 @@ Keeping the RabbitMQ subscriber inside FastAPI is acceptable while it only forwa
 
 - Keep domain objects free from framework annotations unless persistence constraints require an explicit adapter model.
 - Prefer ports for cross-slice or infrastructure dependencies.
-- Keep provider scraping isolated behind `OfferScraper`.
+- Keep provider scraping isolated behind `OfferProvider`.
 - Keep Java as the owner of business state.
-- Keep Python as the owner of scraping execution.
-- Do not scrape synchronously in request handlers or RabbitMQ callbacks.
+- Keep Python as the owner of offer collection execution.
+- Do not run provider collection synchronously in request handlers or RabbitMQ callbacks.
 - Use Celery for slow and retryable work.
-- Use RabbitMQ events for business-triggered scraping.
-- Use HTTP callbacks from Python to Java for completed scraping task reporting.
-- Treat current supply/pricing persistence as an evolving slice; avoid coupling recipe pricing directly to scraper internals.
+- Use RabbitMQ events for business-triggered offer collection and result delivery.
+- Keep Java result consumers idempotent because offer result messages may be retried or replayed.
+- Treat current supply/pricing persistence as an evolving slice; avoid coupling recipe pricing directly to executor internals.

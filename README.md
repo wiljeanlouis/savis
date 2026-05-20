@@ -2,12 +2,12 @@
 
 SAVIS is the information system for **SavouretPlus**. It is being built to manage recipes, ingredient sourcing, product/catalog data, order pricing, catering operations, decoration services, and future inventory and margin analysis.
 
-At a high level, SAVIS connects business workflows in Java with asynchronous scraping work in Python:
+At a high level, SAVIS connects business workflows in Java with asynchronous offer collection work in Python:
 
 ```text
 Recipes and business data
   -> ingredient needs
-  -> provider offer scraping
+  -> provider offer collection
   -> selected offer prices
   -> recipe and order pricing
 ```
@@ -31,7 +31,7 @@ SAVIS should eventually help SavouretPlus:
 savis/
   savis-api/       Java Spring Boot backend and business API
   savis-admin/     React admin back office
-  savis-scraper/   Python FastAPI, RabbitMQ subscriber, Celery workers, provider scrapers
+  savis-executor/  Python FastAPI, RabbitMQ subscriber, Celery workers, provider scrapers
   docker-compose.yml
   docker-compose.override.yml
   Makefile
@@ -44,14 +44,14 @@ savis/
 
 Location: [savis-api](savis-api/README.md)
 
-The Java API is the main business backend. It owns recipe management, supply concepts, persistence, business workflows, and HTTP APIs consumed by the admin UI and scraper callbacks.
+The Java API is the main business backend. It owns recipe management, supply concepts, persistence, business workflows, HTTP APIs consumed by the admin UI, and RabbitMQ listeners for executor results.
 
 Main responsibilities:
 
 - expose recipe and supply endpoints;
 - persist business data in PostgreSQL;
 - publish ingredient-needed messages to RabbitMQ;
-- receive scraped offers and scraping failures from Python;
+- receive collected offers from Python through RabbitMQ;
 - calculate recipe costs through domain ports.
 
 ### SAVIS Admin
@@ -60,13 +60,13 @@ Location: [savis-admin](savis-admin/README.md)
 
 The admin app is the back office UI. It is used by internal users to manage recipes and, over time, operational data such as offers, products, providers, orders, and services.
 
-### SAVIS Scraper
+### SAVIS Executor
 
-Location: [savis-scraper](savis-scraper/README.md)
+Location: [savis-executor](savis-executor/README.md)
 
-The scraper service receives scraping requests, enqueues work into Celery, executes provider-specific scraping logic, normalizes offers, and reports results back to the Java API.
+The executor service receives offer collection requests, tracks executor tasks, enqueues work into Celery, runs provider adapters, normalizes offers, and publishes results back to Java through RabbitMQ.
 
-It is intentionally separate from the Java backend because scraping is slow, unstable, retryable, and dependent on external provider websites.
+It is intentionally separate from the Java backend because provider collection is slow, unstable, retryable, and dependent on external provider websites.
 
 ## Technical Stack
 
@@ -95,13 +95,12 @@ It is intentionally separate from the Java backend because scraping is slow, uns
 - Vitest
 - ESLint and Prettier
 
-### Scraper
+### Executor
 
 - Python
 - FastAPI
 - Celery
 - RabbitMQ
-- Redis
 - Playwright
 - BeautifulSoup
 - httpx
@@ -114,8 +113,6 @@ It is intentionally separate from the Java backend because scraping is slow, uns
 - Docker Compose
 - PostgreSQL
 - RabbitMQ with management UI
-- Redis
-- Flower for Celery monitoring
 
 ## Architecture Principles
 
@@ -159,8 +156,8 @@ feature/
 Examples currently present in the repo:
 
 - `recipe`: recipe domain, recipe use cases, recipe controller, persistence, ingredient-needed messaging.
-- `supply`: offer/provider concepts, scraping callbacks, offer request abstractions.
-- `scraper`: enqueue scraping, execute scraping, provider scraper adapters, Celery integration, Java callback publisher.
+- `supply`: offer/provider concepts, offer result consumption, offer request abstractions.
+- `executor`: task tracking, offer collection, offer refresh, provider scraper adapters, Celery integration, RabbitMQ result publishing.
 
 ## Naming Conventions
 
@@ -187,7 +184,7 @@ Examples currently present in the repo:
 ### General
 
 - Use business names for domain concepts: `Recipe`, `IngredientRequirement`, `Offer`, `Provider`.
-- Use technology names only at adapter boundaries: `RabbitMqProducer`, `CeleryQueue`, `JavaApiPublisher`.
+- Use technology names only at adapter boundaries: `RabbitMqProducer`, `CeleryQueue`, `RabbitMqResultPublisher`.
 - Prefer ports named after business capabilities: `IngredientPricePort`, `OfferRequestor`, `TaskQueue`.
 
 ## Business Flows
@@ -205,19 +202,22 @@ Admin creates or updates a recipe
 
 This allows recipe management to stay fast while provider offer discovery happens asynchronously.
 
-### Offer Scraping Flow
+### Offer Collection Flow
 
 ```text
 RabbitMQ message: ingredient/search term
   -> Python subscriber
-  -> EnqueueScrapingUseCase
+  -> SavisTaskUseCase.enqueue_savis_task(...)
   -> CeleryQueue
-  -> scrape_offers_task
-  -> ExecuteScrapingUseCase
+  -> get_offers_task
+  -> SavisTaskUseCase.execute_savis_task(...)
+  -> OffersUseCase.get_offers(...)
   -> provider scrapers
   -> normalized offers
-  -> JavaApiPublisher
-  -> Java SupplyController
+  -> RabbitMqResultPublisher
+  -> RabbitMQ queue: savis.offer.results
+  -> Java OffersListener
+  -> OfferService
 ```
 
 ### Recipe Pricing Flow
@@ -258,14 +258,14 @@ message cannot be processed
 Celery task retry:
 
 ```text
-scraping task fails
+provider collection task fails
   -> Celery retries with backoff
-  -> after max retries, ReportingTask publishes failure to Java
+  -> after max retries, ReportingTask marks the executor task as failed
 ```
 
 ## Java/Python Relationship
 
-Java is the business system of record. Python is the scraping execution engine.
+Java is the business system of record. Python is the offer collection execution engine.
 
 Java owns:
 
@@ -277,11 +277,11 @@ Java owns:
 
 Python owns:
 
-- scraping orchestration;
+- offer collection orchestration;
 - provider-specific extraction;
-- browser/network scraping;
+- browser/network collection;
 - retryable background execution;
-- reporting scraper results back to Java.
+- publishing executor results back to Java through RabbitMQ.
 
 The services should remain loosely coupled. Java should not depend on Python internals, and Python should not own SAVIS business state.
 
@@ -292,13 +292,11 @@ The default Compose stack contains:
 | Service          | Purpose                                               | Port                                               |
 | ---------------- | ----------------------------------------------------- | -------------------------------------------------- |
 | `postgres`       | Business database                                     | `5434 -> 5432`                                     |
-| `redis`          | Celery result backend                                 | `6379`                                             |
 | `rabbitmq`       | Message broker and Celery broker                      | `5672`, `15672`                                    |
 | `backend_api`    | Java Spring Boot API                                  | `8080`                                             |
 | `frontend_admin` | Admin UI                                              | `80` in production, `5173` in development override |
-| `scraper_api`    | Python FastAPI scraper API and lightweight subscriber | `8000`                                             |
-| `scraper_worker` | Celery worker executing scraping tasks                | internal                                           |
-| `scraper_flower` | Celery monitoring                                     | `5555`                                             |
+| `executor_api`   | Python FastAPI executor API, RabbitMQ subscriber, and stale task cleanup | `8000`                                             |
+| `executor_worker` | Celery worker executing provider collection and refresh tasks | internal                                    |
 
 ## Environment Files
 
@@ -320,15 +318,16 @@ RABBIT_MQ_USER=
 RABBIT_MQ_PASSWORD=
 ```
 
-The scraper also uses:
+The executor also uses:
 
 ```env
 RABBIT_MQ_URL=
+DATABASE_URL=
 REDIS_URL=
 JAVA_API_URL=
 ```
 
-In Docker Compose, `RABBIT_MQ_URL` and `REDIS_URL` are provided to scraper services.
+In Docker Compose, `RABBIT_MQ_URL` and `DATABASE_URL` are provided to executor services. `REDIS_URL` and `JAVA_API_URL` are legacy optional settings and are not used by the current Compose stack.
 
 ## Docker Commands
 
@@ -378,9 +377,8 @@ Local development URLs:
 
 - Admin UI: `http://localhost:5173`
 - Java API: `http://localhost:8080`
-- Scraper API: `http://localhost:8000`
+- Executor API: `http://localhost:8000`
 - RabbitMQ management: `http://localhost:15672`
-- Flower: `http://localhost:5555`
 
 Production-style Compose exposes the admin UI on:
 
@@ -406,10 +404,10 @@ npm run lint
 npm run build
 ```
 
-### Scraper
+### Executor
 
 ```bash
-cd savis-scraper
+cd savis-executor
 uv run fastapi dev
 uv run celery -A app.adapters.celery.celery_app worker --loglevel=info
 uv run ruff check .
@@ -418,17 +416,17 @@ uv run ruff check .
 If using the checked-in virtual environment locally:
 
 ```bash
-cd savis-scraper
+cd savis-executor
 ./.venv/bin/python -m compileall -q app
 ./.venv/bin/ruff check app
 ```
 
-## Scraper Provider Model
+## Executor Provider Model
 
-Provider scrapers should implement the core `OfferScraper` port:
+Provider scrapers should implement the core `OfferProvider` port:
 
 ```text
-OfferScraper.scrape_offers(search_term) -> list[Offer]
+OfferProvider.get_offers(search_term) -> list[Offer]
 ```
 
 A provider scraper should:
@@ -440,20 +438,20 @@ A provider scraper should:
 
 Adding a provider should generally involve:
 
-1. Create a new provider package under `savis-scraper/app/adapters/scrapers/`.
-2. Implement `OfferScraper`.
+1. Create a new provider package under `savis-executor/app/adapters/scrapers/`.
+2. Implement `OfferProvider`.
 3. Normalize data into `app.core.models.Offer`.
-4. Register the scraper in the scraper loader.
+4. Register the scraper in the provider loader.
 5. Add focused tests or fixtures for parsing behavior.
 
 ## Operational Notes
 
-- Do not run scraping directly inside HTTP request handlers.
-- Do not run scraping directly inside RabbitMQ callbacks.
+- Do not run provider collection directly inside HTTP request handlers.
+- Do not run provider collection directly inside RabbitMQ callbacks.
 - RabbitMQ subscriber callbacks should only validate/translate the message and enqueue Celery work.
 - Celery workers should handle slow browser and network work.
 - Rejected RabbitMQ messages currently use `requeue=False`; a dead-letter queue should be added before relying on this in production.
-- Scraper callbacks to Java should be idempotent where possible.
+- Executor result publishing and Java result consumption should be idempotent where possible.
 - Java should remain the source of truth for business state.
 - Python should remain the execution engine for external data acquisition.
 
@@ -463,29 +461,29 @@ Recommended quality gates by module:
 
 - Java API: Maven tests and compile checks.
 - Admin UI: TypeScript build, ESLint, Vitest.
-- Scraper: Ruff, import/compile checks, parser tests, and integration checks with RabbitMQ/Celery where needed.
+- Executor: Ruff, import/compile checks, parser tests, and integration checks with RabbitMQ/Celery where needed.
 
 Before merging changes that touch cross-service flows, verify:
 
 - the Java API starts;
-- the scraper API imports and starts;
-- the RabbitMQ subscriber can enqueue a Celery task;
-- the Celery worker can execute `scrape_offers_task`;
-- success and failure callbacks reach the Java supply endpoints.
+- the executor API imports and starts;
+- the RabbitMQ subscriber can enqueue a Celery task from `savis.offer.requests`;
+- the Celery worker can execute `get_offers_task`;
+- successful offers are published to `savis.offer.results` and consumed by Java `OffersListener`.
 
 ## Documentation
 
-- [ARCHITECTURE.md](ARCHITECTURE.md): architecture vision, clean architecture, slicing, Java/Python relationship, Celery, scraper role, pricing, event flow, and retry flow.
+- [ARCHITECTURE.md](ARCHITECTURE.md): architecture vision, clean architecture, slicing, Java/Python relationship, Celery, executor role, pricing, event flow, and retry flow.
 - [savis-api/README.md](savis-api/README.md): Java API module notes.
 - [savis-admin/README.md](savis-admin/README.md): admin UI module notes.
-- [savis-scraper/README.md](savis-scraper/README.md): scraper module notes.
+- [savis-executor/README.md](savis-executor/README.md): executor module notes.
 
 ## Current Status
 
-SAVIS is under active development. The architecture is already oriented around clean boundaries and asynchronous scraping, but some business slices are still evolving:
+SAVIS is under active development. The architecture is already oriented around clean boundaries and asynchronous offer collection, but some business slices are still evolving:
 
 - real recipe pricing through stored offers is not complete yet;
 - supply persistence and offer selection are still being shaped;
-- scraper provider coverage is currently limited;
+- executor provider coverage is currently limited;
 - RabbitMQ rejected-message handling should eventually use a dead-letter queue;
 - cross-service integration tests should be added as flows stabilize.

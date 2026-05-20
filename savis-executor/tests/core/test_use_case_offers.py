@@ -44,7 +44,7 @@ def _offer() -> Offer:
             site="https://example.com",
             address="123 Example Street",
         ),
-        last_scraped_at=datetime(2026, 5, 17, 12, 0, tzinfo=UTC),
+        last_retrieved_at=datetime(2026, 5, 17, 12, 0, tzinfo=UTC),
         next_refresh_at=datetime(2026, 5, 18, 12, 0, tzinfo=UTC),
     )
 
@@ -263,7 +263,7 @@ def test_apply_refreshed_offer_publishes_changed_valid_offer_immediately() -> No
 
     assert offer is not None
     assert offer.price == Price(amount="5.49")
-    assert offer.last_scraped_at == now
+    assert offer.last_retrieved_at == now
     assert offer.next_refresh_at == now + timedelta(hours=24)
     assert publisher.offers == [offer]
 
