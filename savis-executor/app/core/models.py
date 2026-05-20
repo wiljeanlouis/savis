@@ -92,11 +92,18 @@ class Provider:
 
 
 class OfferStatus(StrEnum):
-    """Human review status for a scraped offer."""
+    """Human review status for a retrieved offer."""
 
     NEW = "NEW"
     VALID = "VALID"
     REJECTED = "REJECTED"
+
+
+class OfferType(StrEnum):
+    """Business type for a retrieved offer."""
+
+    FOOD = "FOOD"
+    DECORATION = "DECORATION"
 
 
 class OfferSortField(StrEnum):
@@ -132,3 +139,4 @@ class Offer:
     next_refresh_at: datetime | None = None
     refresh_frequency_hours: int | None = None
     last_seen_task_id: UUID | None = None
+    offer_type: OfferType = OfferType.FOOD

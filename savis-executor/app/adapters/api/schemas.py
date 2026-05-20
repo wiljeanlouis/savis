@@ -6,7 +6,12 @@ from uuid import UUID  # noqa: TC003
 
 from pydantic import BaseModel, Field
 
-from app.core.models import OfferStatus, SavisTaskStatus, SavisTaskType  # noqa: TC001
+from app.core.models import (  # noqa: TC001
+    OfferStatus,
+    OfferType,
+    SavisTaskStatus,
+    SavisTaskType,
+)
 
 
 class GetOffersPayload(BaseModel):
@@ -15,6 +20,11 @@ class GetOffersPayload(BaseModel):
     search_term: str = Field(
         examples=["farine"],
         min_length=1,
+    )
+    offer_type: OfferType = Field(
+        default=OfferType.FOOD,
+        validation_alias="type",
+        serialization_alias="type",
     )
 
 
@@ -108,6 +118,7 @@ class OfferResponse(BaseModel):
     provider: ProviderResponse
     search_term: str
     status: OfferStatus
+    type: OfferType
     last_retrieved_at: datetime
     next_refresh_at: datetime
     refresh_frequency_hours: int

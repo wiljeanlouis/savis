@@ -45,10 +45,14 @@ def test_get_offers_task_delegates_to_use_case(
     use_case = FakeSavisTaskUseCase()
     monkeypatch.setattr(celery_tasks, "get_savis_task_use_case", lambda: use_case)
 
-    celery_tasks.get_offers_task.run(str(task_id), "flour")
+    celery_tasks.get_offers_task.run(str(task_id), "flour", "FOOD")
 
     assert use_case.executions == [
-        (task_id, SavisTaskType.GET_OFFERS, {"search_term": "flour"}),
+        (
+            task_id,
+            SavisTaskType.GET_OFFERS,
+            {"search_term": "flour", "offer_type": "FOOD"},
+        ),
     ]
 
 

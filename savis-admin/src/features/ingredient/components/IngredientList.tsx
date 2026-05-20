@@ -77,7 +77,7 @@ export const IngredientList = () => {
     patchIngredient.mutate(
       { id: ingredient.id, payload: { status } },
       {
-        onSuccess: () => toast.success(`Offre ${action}.`),
+        onSuccess: () => toast.success(`Ingrédient ${action}.`),
         onError: () => toast.error("La mise à jour de l'ingrédient a échoué."),
       },
     );
@@ -94,7 +94,7 @@ export const IngredientList = () => {
         },
       },
       {
-        onSuccess: () => toast.success("Offre mise à jour."),
+        onSuccess: () => toast.success("Ingrédient mise à jour."),
         onError: () => toast.error("La mise à jour de l'ingrédient a échoué."),
       },
     );
@@ -104,9 +104,12 @@ export const IngredientList = () => {
     const errorResponse = error as unknown as {
       response?: { data?: { detail?: string } };
     };
-    toast.error("Une erreur est survenue lors de la récupération des offers.", {
-      description: errorResponse.response?.data?.detail,
-    });
+    toast.error(
+      "Une erreur est survenue lors de la récupération des ingrédients.",
+      {
+        description: errorResponse.response?.data?.detail,
+      },
+    );
   }
 
   if (isPending) {

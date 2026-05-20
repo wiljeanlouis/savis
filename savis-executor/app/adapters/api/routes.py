@@ -21,6 +21,7 @@ from app.core.models import (
     Offer,
     OfferSortField,
     OfferStatus,
+    OfferType,
     SavisTask,
     SavisTaskSortField,
     SavisTaskStatus,
@@ -76,6 +77,7 @@ async def list_offers(
     page: Annotated[int, Query(ge=1)] = 1,
     size: Annotated[int, Query(ge=1)] = 20,
     status: OfferStatus | None = None,
+    offer_type: Annotated[OfferType | None, Query(alias="type")] = None,
     sort_by: OfferSortField = OfferSortField.LAST_RETRIEVED_AT,
     sort_direction: SortDirection = SortDirection.DESC,
 ) -> OffersPageResponse:
@@ -86,6 +88,7 @@ async def list_offers(
         size,
         sort_by,
         sort_direction,
+        offer_type,
     )
     return OffersPageResponse(
         items=[_offer_response(offer) for offer in offers],
@@ -138,6 +141,7 @@ def _offer_response(offer: Offer) -> OfferResponse:
         ),
         search_term=offer.search_term or "",
         status=offer.status or OfferStatus.NEW,
+        type=offer.offer_type,
         last_retrieved_at=offer.last_retrieved_at,  # pyright: ignore[reportArgumentType]
         next_refresh_at=offer.next_refresh_at,  # pyright: ignore[reportArgumentType]
         refresh_frequency_hours=offer.refresh_frequency_hours or 24,

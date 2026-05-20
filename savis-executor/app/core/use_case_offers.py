@@ -13,6 +13,7 @@ from app.core.models import (
     Offer,
     OfferSortField,
     OfferStatus,
+    OfferType,
     SavisTask,
     SavisTaskType,
     SortDirection,
@@ -61,7 +62,12 @@ class OffersUseCase:
         self.task_repository = task_repository
         self.offer_providers = offer_providers
 
-    def get_offers(self, search_term: str, task_id: UUID) -> list[Offer]:
+    def get_offers(
+        self,
+        search_term: str,
+        task_id: UUID,
+        offer_type: OfferType = OfferType.FOOD,
+    ) -> list[Offer]:
         """Collect and persist offers for a search term."""
         results = []
         errors: list[Exception] = []
@@ -81,6 +87,7 @@ class OffersUseCase:
             offers=offers,
             search_term=search_term,
             task_id=task_id,
+            offer_type=offer_type,
         )
         return offers
 
@@ -99,6 +106,7 @@ class OffersUseCase:
         offers: list[Offer],
         search_term: str,
         task_id: UUID,
+        offer_type: OfferType = OfferType.FOOD,
         now: datetime | None = None,
     ) -> list[Offer]:
         """Create or refresh persisted offers from a successful provider result."""
@@ -115,6 +123,7 @@ class OffersUseCase:
                     id=uuid7(),
                     search_term=search_term,
                     status=OfferStatus.NEW,
+                    offer_type=offer_type,
                     last_retrieved_at=observed_at,
                     next_refresh_at=observed_at
                     + timedelta(hours=DEFAULT_REFRESH_FREQUENCY_HOURS),
@@ -130,6 +139,7 @@ class OffersUseCase:
                 persisted_offer.image_url = observed_offer.image_url
                 persisted_offer.provider = observed_offer.provider
                 persisted_offer.search_term = search_term
+                persisted_offer.offer_type = offer_type
                 persisted_offer.last_retrieved_at = observed_at
                 persisted_offer.next_refresh_at = observed_at + timedelta(
                     hours=persisted_offer.refresh_frequency_hours
@@ -146,6 +156,7 @@ class OffersUseCase:
         size: int,
         sort_by: OfferSortField = OfferSortField.LAST_RETRIEVED_AT,
         sort_direction: SortDirection = SortDirection.DESC,
+        offer_type: OfferType | None = None,
     ) -> tuple[list[Offer], int, int]:
         """List paginated offers."""
         offers, total_items = self.offer_repository.list(
@@ -154,6 +165,7 @@ class OffersUseCase:
             size,
             sort_by,
             sort_direction,
+            offer_type,
         )
         total_pages = ceil(total_items / size) if total_items else 0
         return offers, total_items, total_pages

@@ -3,7 +3,7 @@
 from abc import ABC, abstractmethod
 from typing import TYPE_CHECKING
 
-from .models import OfferSortField, SavisTaskSortField, SortDirection
+from .models import OfferSortField, OfferType, SavisTaskSortField, SortDirection
 
 if TYPE_CHECKING:
     from datetime import datetime
@@ -24,7 +24,12 @@ class TaskQueue(ABC):
     """Port for background task queues."""
 
     @abstractmethod
-    def push_get_offers(self, task_id: str, search_term: str) -> None:
+    def push_get_offers(
+        self,
+        task_id: str,
+        search_term: str,
+        offer_type: OfferType = OfferType.FOOD,
+    ) -> None:
         """Push a get-offers task to a worker queue."""
 
     @abstractmethod
@@ -91,6 +96,7 @@ class OfferRepository(ABC):
         size: int,
         sort_by: OfferSortField = OfferSortField.LAST_RETRIEVED_AT,
         sort_direction: SortDirection = SortDirection.DESC,
+        offer_type: OfferType | None = None,
     ) -> tuple[list[Offer], int]:
         """List paged offers and return total count."""
 

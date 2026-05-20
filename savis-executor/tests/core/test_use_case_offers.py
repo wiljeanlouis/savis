@@ -10,6 +10,7 @@ import pytest
 from app.core.models import (
     Offer,
     OfferStatus,
+    OfferType,
     Price,
     Provider,
     SavisTask,
@@ -69,6 +70,8 @@ class FakeOfferRepository(OfferRepository):
         status: OfferStatus | None,  # noqa: ARG002
         page: int,  # noqa: ARG002
         size: int,  # noqa: ARG002
+        *args: object,  # noqa: ARG002
+        offer_type: OfferType | None = None,  # noqa: ARG002
     ) -> tuple[list[Offer], int]:
         return (
             [] if self.offer is None else [self.offer],
@@ -84,7 +87,12 @@ class FakeTaskQueue(TaskQueue):
     def __init__(self) -> None:
         self.refreshes: list[tuple[str, str]] = []
 
-    def push_get_offers(self, task_id: str, search_term: str) -> None:  # noqa: ARG002
+    def push_get_offers(  # noqa: ARG002
+        self,
+        task_id: str,
+        search_term: str,
+        offer_type: OfferType = OfferType.FOOD,
+    ) -> None:
         return None
 
     def push_refresh_offer(self, task_id: str, offer_id: str, url: str) -> None:

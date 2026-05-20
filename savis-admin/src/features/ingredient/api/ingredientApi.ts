@@ -15,7 +15,13 @@ export const getIngredients = async ({
   sortDirection,
 }: GetIngredientsParams): Promise<IngredientsPage> => {
   const { data }: { data: IngredientsPage } = await executorApi.get("/offers", {
-    params: { page, size, sort_by: sortBy, sort_direction: sortDirection },
+    params: {
+      page,
+      size,
+      type: "FOOD",
+      sort_by: sortBy,
+      sort_direction: sortDirection,
+    },
   });
   return data;
 };

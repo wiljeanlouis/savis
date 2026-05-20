@@ -9,7 +9,7 @@ from app.adapters.celery.celery_app import celery_app
 from app.adapters.celery.celery_wiring import (
     get_savis_task_use_case,
 )
-from app.core.models import SavisTaskType
+from app.core.models import OfferType, SavisTaskType
 
 logger = logging.getLogger(__name__)
 
@@ -47,13 +47,18 @@ class ReportingTask(Task):
     retry_kwargs={"max_retries": 3},
     base=ReportingTask,
 )
-def get_offers_task(_self: Task, task_id: str, search_term: str) -> None:
+def get_offers_task(
+    _self: Task,
+    task_id: str,
+    search_term: str,
+    offer_type: str = OfferType.FOOD.value,
+) -> None:
     """Run a get-offers request."""
     logger.info("[CELERY TASK] get_offers_task begin with %s", task_id)
     get_savis_task_use_case().execute_savis_task(
         UUID(task_id),
         SavisTaskType.GET_OFFERS,
-        {"search_term": search_term},
+        {"search_term": search_term, "offer_type": offer_type},
     )
 
 

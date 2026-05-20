@@ -7,7 +7,7 @@ from uuid import UUID, uuid7
 
 import pytest
 
-from app.core.models import SavisTask, SavisTaskStatus, SavisTaskType
+from app.core.models import OfferType, SavisTask, SavisTaskStatus, SavisTaskType
 from app.core.ports import SavisTaskRepository, TaskQueue
 from app.core.use_case_savis_tasks import SavisTaskUseCase
 
@@ -16,17 +16,23 @@ if TYPE_CHECKING:
 
 STALE_COUNT = 2
 
+
 class FakeTaskQueue(TaskQueue):
     def __init__(self, *, fail: bool = False) -> None:
         self.fail = fail
-        self.get_offers: list[tuple[str, str]] = []
+        self.get_offers: list[tuple[str, str, OfferType]] = []
         self.refreshes: list[tuple[str, str, str]] = []
 
-    def push_get_offers(self, task_id: str, search_term: str) -> None:
+    def push_get_offers(
+        self,
+        task_id: str,
+        search_term: str,
+        offer_type: OfferType = OfferType.FOOD,
+    ) -> None:
         if self.fail:
             msg = "queue unavailable"
             raise RuntimeError(msg)
-        self.get_offers.append((task_id, search_term))
+        self.get_offers.append((task_id, search_term, offer_type))
 
     def push_refresh_offer(self, task_id: str, offer_id: str, url: str) -> None:
         self.refreshes.append((task_id, offer_id, url))
@@ -46,6 +52,7 @@ class FakeTaskRepository(SavisTaskRepository):
         task_type: SavisTaskType | None = None,
         page: int = 1,
         size: int = 20,
+        *_args: object,
     ) -> tuple[list[SavisTask], int]:
         self.filters.append((status, task_type))
         self.pages.append((page, size))
@@ -71,15 +78,16 @@ class FakeTaskRepository(SavisTaskRepository):
 
 class FakeOffersUseCase:
     def __init__(self) -> None:
-        self.get_offers_calls: list[tuple[str, UUID]] = []
+        self.get_offers_calls: list[tuple[str, UUID, OfferType]] = []
         self.refresh_calls: list[tuple[UUID, str, UUID]] = []
 
     def get_offers(
         self,
         search_term: str,
         task_id: UUID,
+        offer_type: OfferType = OfferType.FOOD,
     ) -> None:
-        self.get_offers_calls.append((search_term, task_id))
+        self.get_offers_calls.append((search_term, task_id, offer_type))
 
     def refresh_offer_by_url(self, offer_id: UUID, url: str, task_id: UUID) -> None:
         self.refresh_calls.append((offer_id, url, task_id))
@@ -109,14 +117,14 @@ def test_enqueue_savis_task_get_offers_creates_and_pushes_task() -> None:
 
     task = use_case.enqueue_savis_task(
         SavisTaskType.GET_OFFERS,
-        {"search_term": "flour"},
+        {"search_term": "flour", "offer_type": "FOOD"},
     )
 
     assert task.type == SavisTaskType.GET_OFFERS
-    assert task.payload == {"search_term": "flour"}
+    assert task.payload == {"search_term": "flour", "offer_type": "FOOD"}
     assert task.status == SavisTaskStatus.IN_PROGRESS
     assert repository.tasks == [task]
-    assert queue.get_offers == [(str(task.id), "flour")]
+    assert queue.get_offers == [(str(task.id), "flour", OfferType.FOOD)]
 
 
 def test_enqueue_savis_task_marks_failed_when_queue_fails() -> None:
@@ -160,7 +168,7 @@ def test_execute_savis_task_get_offers_delegates_and_completes_task() -> None:
         {"search_term": "flour"},
     )
 
-    assert offers_use_case.get_offers_calls == [("flour", task_id)]
+    assert offers_use_case.get_offers_calls == [("flour", task_id, OfferType.FOOD)]
     assert repository.completed == [task_id]
 
 

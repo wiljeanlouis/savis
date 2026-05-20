@@ -12,6 +12,7 @@ from app.core.models import (
     SavisTaskSortField,
     SavisTaskStatus,
     SavisTaskType,
+    OfferType,
     SortDirection,
 )
 
@@ -49,6 +50,7 @@ class SavisTaskUseCase:
                 self.task_queue.push_get_offers(
                     str(task.id),
                     payload["search_term"],
+                    OfferType(payload.get("offer_type", OfferType.FOOD.value)),
                 )
             elif task_type == SavisTaskType.REFRESH_OFFER:
                 self.task_queue.push_refresh_offer(
@@ -72,6 +74,7 @@ class SavisTaskUseCase:
             self.offers_use_case.get_offers(
                 search_term=payload["search_term"],
                 task_id=task_id,
+                offer_type=OfferType(payload.get("offer_type", OfferType.FOOD.value)),
             )
         elif task_type == SavisTaskType.REFRESH_OFFER:
             self.offers_use_case.refresh_offer_by_url(

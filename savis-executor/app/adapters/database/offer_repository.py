@@ -23,6 +23,7 @@ from app.core.models import (
     Offer,
     OfferSortField,
     OfferStatus,
+    OfferType,
     PackageSize,
     Price,
     Provider,
@@ -65,6 +66,12 @@ class OfferEntity(Base):
     provider_address: Mapped[str] = mapped_column(String(1024), nullable=False)
     search_term: Mapped[str] = mapped_column(String(255), nullable=False)
     status: Mapped[str] = mapped_column(String(32), nullable=False)
+    offer_type: Mapped[str] = mapped_column(
+        String(32),
+        nullable=False,
+        default=OfferType.FOOD.value,
+        server_default=OfferType.FOOD.value,
+    )
     last_retrieved_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
         nullable=False,
@@ -113,6 +120,7 @@ def _to_entity(offer: Offer) -> OfferEntity:
         provider_address=offer.provider.address,
         search_term=offer.search_term,
         status=offer.status.value,
+        offer_type=offer.offer_type.value,
         last_retrieved_at=offer.last_retrieved_at,
         next_refresh_at=offer.next_refresh_at,
         refresh_frequency_hours=offer.refresh_frequency_hours,
@@ -152,6 +160,7 @@ def _to_model(entity: OfferEntity) -> Offer:
         ),
         search_term=entity.search_term,
         status=OfferStatus(entity.status),
+        offer_type=OfferType(entity.offer_type),
         last_retrieved_at=entity.last_retrieved_at,
         next_refresh_at=entity.next_refresh_at,
         refresh_frequency_hours=entity.refresh_frequency_hours,
@@ -200,6 +209,7 @@ class SqlAlchemyOfferRepository(OfferRepository):
         size: int,
         sort_by: OfferSortField = OfferSortField.LAST_RETRIEVED_AT,
         sort_direction: SortDirection = SortDirection.DESC,
+        offer_type: OfferType | None = None,
     ) -> tuple[list[Offer], int]:
         """List paged offers and total count."""
         self.schema_creator()
@@ -224,6 +234,11 @@ class SqlAlchemyOfferRepository(OfferRepository):
         if status is not None:
             statement = statement.where(OfferEntity.status == status.value)
             count_statement = count_statement.where(OfferEntity.status == status.value)
+        if offer_type is not None:
+            statement = statement.where(OfferEntity.offer_type == offer_type.value)
+            count_statement = count_statement.where(
+                OfferEntity.offer_type == offer_type.value,
+            )
 
         with self.session_factory() as session:
             total = session.scalar(count_statement) or 0

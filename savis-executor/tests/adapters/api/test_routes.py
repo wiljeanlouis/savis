@@ -15,6 +15,7 @@ from app.core.models import (
     Offer,
     OfferSortField,
     OfferStatus,
+    OfferType,
     Price,
     Provider,
     SavisTask,
@@ -63,7 +64,7 @@ def test_create_task_returns_created_task(
     assert response.json() == {
         "id": str(task_id),
         "type": "GET_OFFERS",
-        "payload": {"search_term": "flour"},
+        "payload": {"search_term": "flour", "offer_type": "FOOD"},
         "status": "IN_PROGRESS",
         "created_at": response.json()["created_at"],
         "updated_at": response.json()["updated_at"],
@@ -204,10 +205,12 @@ def test_list_offers_returns_paged_response(
             size: int,
             sort_by: OfferSortField,
             sort_direction: SortDirection,
+            offer_type: OfferType | None,
         ) -> tuple[list[Offer], int, int]:
             assert (status, page, size) == (OfferStatus.NEW, PAGE_TWO, 5)
             assert sort_by == OfferSortField.PRICE
             assert sort_direction == SortDirection.DESC
+            assert offer_type == OfferType.FOOD
             return [offer], TOTAL_SIX, PAGE_TWO
 
     monkeypatch.setattr(routes, "offers_use_case", FixedOffersUseCase())
@@ -221,6 +224,7 @@ def test_list_offers_returns_paged_response(
             "size": 5,
             "sort_by": "price",
             "sort_direction": "desc",
+            "type": "FOOD",
         },
     )
 
@@ -228,6 +232,7 @@ def test_list_offers_returns_paged_response(
     assert response.json()["page"] == PAGE_TWO
     assert response.json()["total_items"] == TOTAL_SIX
     assert response.json()["items"][0]["status"] == "NEW"
+    assert response.json()["items"][0]["type"] == "FOOD"
 
 
 def test_patch_offer_updates_one_offer(

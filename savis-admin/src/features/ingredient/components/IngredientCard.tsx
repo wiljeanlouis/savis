@@ -53,9 +53,9 @@ export const IngredientCard = ({
     : "-";
   const packageSize = ingredient.package_size
     ? formatPackageSize(
-      ingredient.package_size.value,
-      ingredient.package_size.unit,
-    )
+        ingredient.package_size.value,
+        ingredient.package_size.unit,
+      )
     : "-";
   const offerUrl = `${ingredient.provider.site}${ingredient.url}`;
 

@@ -12,7 +12,7 @@ from pika import BasicProperties, BlockingConnection, URLParameters
 
 from app.config import EnvParams
 from app.container import Container
-from app.core.models import SavisTaskType
+from app.core.models import OfferType, SavisTaskType
 
 if TYPE_CHECKING:
     from collections.abc import Callable
@@ -33,6 +33,7 @@ class MessageBody:
     """Message received from the offer request queue."""
 
     content: str
+    type: OfferType = OfferType.FOOD
 
 
 def _build_callback(
@@ -46,10 +47,13 @@ def _build_callback(
     ) -> None:
         try:
             data = json.loads(body)
-            message = MessageBody(content=data["content"])
+            message = MessageBody(
+                content=data["content"],
+                type=OfferType(data.get("type", OfferType.FOOD.value)),
+            )
             use_case.enqueue_savis_task(
                 SavisTaskType.GET_OFFERS,
-                {"search_term": message.content},
+                {"search_term": message.content, "offer_type": message.type.value},
             )
         except Exception:
             logger.exception("Failed to enqueue scraping task")

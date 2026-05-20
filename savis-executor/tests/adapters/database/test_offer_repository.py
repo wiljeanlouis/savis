@@ -16,7 +16,14 @@ from app.adapters.database.offer_repository import (
     SqlAlchemyOfferRepository,
 )
 from app.adapters.database.session import Base
-from app.core.models import Offer, OfferSortField, OfferStatus, Price, Provider
+from app.core.models import (
+    Offer,
+    OfferSortField,
+    OfferStatus,
+    OfferType,
+    Price,
+    Provider,
+)
 from app.core.models import SortDirection
 
 
@@ -38,6 +45,7 @@ def _offer(
     external_id: str = "external-id",
     status: OfferStatus = OfferStatus.NEW,
     price_amount: str = "4.99",
+    offer_type: OfferType = OfferType.FOOD,
 ) -> Offer:
     now = datetime(2026, 5, 17, 12, 0, tzinfo=UTC)
     return Offer(
@@ -57,6 +65,7 @@ def _offer(
         ),
         search_term="flour",
         status=status,
+        offer_type=offer_type,
         last_retrieved_at=now,
         next_refresh_at=now + timedelta(hours=24),
         refresh_frequency_hours=24,
@@ -76,6 +85,7 @@ def test_save_persists_complete_offer() -> None:
     assert entity is not None
     assert entity.price_amount == Decimal("4.9900")
     assert entity.status == OfferStatus.NEW.value
+    assert entity.offer_type == OfferType.FOOD.value
 
 
 def test_list_filters_and_paginates() -> None:
@@ -87,6 +97,19 @@ def test_list_filters_and_paginates() -> None:
 
     assert total == 1
     assert [offer.external_id for offer in offers] == ["b"]
+
+
+def test_list_filters_by_offer_type() -> None:
+    repository, _session_factory = _repository()
+    repository.save(_offer(external_id="food", offer_type=OfferType.FOOD))
+    repository.save(
+        _offer(external_id="decoration", offer_type=OfferType.DECORATION),
+    )
+
+    offers, total = repository.list(None, page=1, size=10, offer_type=OfferType.FOOD)
+
+    assert total == 1
+    assert [offer.external_id for offer in offers] == ["food"]
 
 
 def test_list_sorts_before_paginating() -> None:

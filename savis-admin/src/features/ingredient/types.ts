@@ -1,4 +1,5 @@
 export type IngredientStatus = "NEW" | "VALID" | "REJECTED";
+export type IngredientType = "FOOD" | "DECORATION";
 
 export interface Price {
   amount: string;
@@ -29,6 +30,7 @@ export interface Ingredient {
   provider: Provider;
   search_term: string;
   status: IngredientStatus;
+  type: IngredientType;
   last_retrieved_at: string;
   next_refresh_at: string;
   refresh_frequency_hours: number;
