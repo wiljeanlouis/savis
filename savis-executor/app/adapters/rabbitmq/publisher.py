@@ -14,7 +14,8 @@ from app.core.ports import OfferPublisher
 
 logger = logging.getLogger(__name__)
 
-QUEUE_NAME = "savis.offer.results"
+RESULT_QUEUE_NAME = "savis.offer.results"
+INVALIDATION_QUEUE_NAME = "savis.offer.invalidations"
 
 if TYPE_CHECKING:
     from app.core.models import Offer
@@ -23,27 +24,43 @@ if TYPE_CHECKING:
 class RabbitMqResultPublisher(OfferPublisher):
     """Publish successful scraping results to RabbitMQ."""
 
-    def publish_success(self, payload: dict[str, Any]) -> None:
-        """Publish scraped offers to the offer results queue."""
+    def publish_payload(self, queue_name: str, payload: dict[str, Any]) -> None:
+        """Publish a payload to a durable queue."""
         json_payload = json.dumps(jsonable_encoder(payload))
-        logger.info(
-            "[PUBLISH] Sending results to RabbitMQ | scraping_task_id={%s}",
-            payload.get("id"),
-        )
         with BlockingConnection(URLParameters(EnvParams.RABBIT_MQ_URL)) as connection:
             channel = connection.channel()
             channel.queue_declare(
-                queue=QUEUE_NAME,
+                queue=queue_name,
                 durable=True,
                 arguments={"x-queue-type": "classic"},
             )
             channel.basic_publish(
                 exchange="",
-                routing_key=QUEUE_NAME,
+                routing_key=queue_name,
                 body=json_payload,
                 properties=BasicProperties(delivery_mode=2),
             )
 
+    def publish_success(self, payload: dict[str, Any]) -> None:
+        """Publish scraped offers to the offer results queue."""
+        logger.info(
+            "[PUBLISH] Sending results to RabbitMQ | scraping_task_id={%s}",
+            payload.get("id"),
+        )
+        self.publish_payload(RESULT_QUEUE_NAME, payload)
+
     def publish_offer(self, offer: Offer) -> None:
         """Publish one offer to the offer results queue."""
         self.publish_success({"id": str(offer.id), "offers": [offer]})
+
+    def publish_offer_invalidation(self, offer: Offer) -> None:
+        """Publish that a previously valid offer should be invalidated."""
+        logger.info("[PUBLISH] Sending offer invalidation | offer_id={%s}", offer.id)
+        self.publish_payload(
+            INVALIDATION_QUEUE_NAME,
+            {
+                "id": None if offer.id is None else str(offer.id),
+                "external_id": offer.external_id,
+                "provider_identifier": offer.provider.identifier,
+            },
+        )

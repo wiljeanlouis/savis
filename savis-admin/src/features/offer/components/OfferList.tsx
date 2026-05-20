@@ -1,14 +1,5 @@
 import { NoData } from "@/shared/components/NoData";
-import { Badge } from "@/shared/ui/badge";
 import { Button } from "@/shared/ui/button";
-import {
-  Card,
-  CardAction,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/shared/ui/card";
 import {
   Select,
   SelectContent,
@@ -22,28 +13,10 @@ import { ArrowDown01Icon, ArrowUp01Icon } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
 import { useState } from "react";
 import { toast } from "sonner";
+import { useGetOffers, usePatchOffer } from "../hooks/useOfferApi";
 import type { Offer, OfferStatus } from "../types";
-import { useGetOffers } from "../hooks/useOfferApi";
-
-const statusVariant: Record<
-  OfferStatus,
-  "default" | "secondary" | "destructive"
-> = {
-  NEW: "secondary",
-  VALID: "default",
-  REJECTED: "destructive",
-};
-
-const formatPrice = (amount: string, currency: string) => {
-  return new Intl.NumberFormat("fr-CA", {
-    style: "currency",
-    currency,
-  }).format(Number(amount));
-};
-
-const formatPackageSize = (value: number, unit: string) => {
-  return `${value} ${unit}`;
-};
+import { OfferCard } from "./OfferCard";
+import type { OfferEditValues } from "./OfferEditDialog";
 
 const sortOptions = [
   { value: "last_retrieved_at", label: "Dernier obtenu" },
@@ -59,71 +32,6 @@ const sortOptions = [
 
 type SortDirection = "asc" | "desc";
 
-interface OfferCardProps {
-  offer: Offer;
-}
-
-const OfferCard = ({ offer }: OfferCardProps) => {
-  const price = offer.price
-    ? formatPrice(offer.price.amount, offer.price.currency)
-    : "-";
-  const packageSize = offer.package_size
-    ? formatPackageSize(offer.package_size.value, offer.package_size.unit)
-    : "-";
-  const offerUrl = `${offer.provider.site}${offer.url}`;
-
-  return (
-    <Card className="h-full">
-      <div className="flex justify-center bg-muted p-4">
-        <img
-          src={offer.image_url}
-          alt={offer.label}
-          className="size-40 object-contain"
-          loading="lazy"
-        />
-      </div>
-      <CardHeader>
-        <CardTitle>
-          <a
-            href={offerUrl}
-            target="_blank"
-            rel="noreferrer"
-            className="line-clamp-2 hover:underline"
-          >
-            {offer.label}
-          </a>
-        </CardTitle>
-        <CardDescription className="line-clamp-1">
-          {offer.brand || "-"}
-        </CardDescription>
-        <CardAction>
-          <Badge variant={statusVariant[offer.status]}>{offer.status}</Badge>
-        </CardAction>
-      </CardHeader>
-      <CardContent className="grid gap-3">
-        <div>
-          <div className="text-lg font-semibold">{price}</div>
-          <div className="text-muted-foreground">{packageSize}</div>
-        </div>
-        <div className="grid grid-cols-2 gap-3 text-muted-foreground">
-          <div>
-            <div className="text-[0.625rem] uppercase">Provider</div>
-            <div className="truncate text-foreground">
-              {offer.provider.name}
-            </div>
-          </div>
-          <div>
-            <div className="text-[0.625rem] uppercase">Recherche</div>
-            <div className="truncate text-foreground">
-              {offer.search_term || "-"}
-            </div>
-          </div>
-        </div>
-      </CardContent>
-    </Card>
-  );
-};
-
 export const OfferList = () => {
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(20);
@@ -135,6 +43,7 @@ export const OfferList = () => {
     sortBy,
     sortDirection,
   );
+  const patchOffer = usePatchOffer();
 
   const handlePageSizeChange = (size: number) => {
     setPage(1);
@@ -149,6 +58,40 @@ export const OfferList = () => {
   const toggleSortDirection = () => {
     setPage(1);
     setSortDirection((current) => (current === "asc" ? "desc" : "asc"));
+  };
+
+  const handleQuickPatch = (offer: Offer, status: OfferStatus) => {
+    const action =
+      status === "VALID"
+        ? "validée"
+        : offer.status === "VALID"
+          ? "invalidée"
+          : "rejetée";
+
+    patchOffer.mutate(
+      { id: offer.id, payload: { status } },
+      {
+        onSuccess: () => toast.success(`Offre ${action}.`),
+        onError: () => toast.error("La mise à jour de l'offre a échoué."),
+      },
+    );
+  };
+
+  const handleEdit = (offer: Offer, values: OfferEditValues) => {
+    patchOffer.mutate(
+      {
+        id: offer.id,
+        payload: {
+          status: values.status,
+          refresh_frequency_hours: values.refreshFrequencyHours,
+          refresh_now: values.refreshNow,
+        },
+      },
+      {
+        onSuccess: () => toast.success("Offre mise à jour."),
+        onError: () => toast.error("La mise à jour de l'offre a échoué."),
+      },
+    );
   };
 
   if (isError) {
@@ -229,7 +172,13 @@ export const OfferList = () => {
 
       <div className="grid grid-cols-2 gap-4 md:grid-cols-3 xl:grid-cols-4">
         {data.items.map((offer) => (
-          <OfferCard key={offer.id} offer={offer} />
+          <OfferCard
+            key={offer.id}
+            offer={offer}
+            isPatching={patchOffer.isPending}
+            onPatch={handleQuickPatch}
+            onEdit={handleEdit}
+          />
         ))}
       </div>
 

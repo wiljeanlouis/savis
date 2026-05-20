@@ -105,3 +105,7 @@ class OfferPublisher(ABC):
     @abstractmethod
     def publish_offer(self, offer: Offer) -> None:
         """Publish one offer."""
+
+    @abstractmethod
+    def publish_offer_invalidation(self, offer: Offer) -> None:
+        """Publish that a previously valid offer is no longer usable."""

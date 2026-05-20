@@ -204,6 +204,11 @@ class OffersUseCase:
             and saved_offer.status == OfferStatus.VALID
         ):
             self.offer_publisher.publish_offer(saved_offer)
+        if (
+            previous_status == OfferStatus.VALID
+            and saved_offer.status == OfferStatus.REJECTED
+        ):
+            self.offer_publisher.publish_offer_invalidation(saved_offer)
         return saved_offer
 
     def apply_refreshed_offer(

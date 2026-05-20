@@ -6,6 +6,7 @@ import json
 from typing import TYPE_CHECKING, Self
 
 from app.adapters.rabbitmq import publisher
+from app.core.models import Offer, Price, Provider
 
 if TYPE_CHECKING:
     import pytest
@@ -75,3 +76,45 @@ def test_publish_success_sends_payload_to_offer_results_queue(
             "properties": {"delivery_mode": 2},
         },
     ]
+
+
+def test_publish_offer_invalidation_sends_payload_to_invalidations_queue(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    connections: list[FakeConnection] = []
+
+    def build_connection(params: object) -> FakeConnection:
+        connection = FakeConnection(params)
+        connections.append(connection)
+        return connection
+
+    monkeypatch.setattr(publisher, "BlockingConnection", build_connection)
+    monkeypatch.setattr(publisher, "URLParameters", lambda url: url)
+    monkeypatch.setattr(
+        publisher,
+        "BasicProperties",
+        lambda **kwargs: kwargs,
+    )
+
+    offer = Offer(
+        id=None,
+        external_id="external-id",
+        url="https://example.com",
+        brand="Example",
+        label="Flour",
+        price=Price("4.99"),
+        package_size=None,
+        image_url="https://example.com/image.png",
+        provider=Provider("Example", "example", "https://example.com", "123 Street"),
+    )
+
+    publisher.RabbitMqResultPublisher().publish_offer_invalidation(offer)
+
+    channel = connections[0].channel_instance
+    assert channel.declarations[0]["queue"] == "savis.offer.invalidations"
+    assert channel.published[0]["routing_key"] == "savis.offer.invalidations"
+    assert json.loads(channel.published[0]["body"]) == {
+        "id": None,
+        "external_id": "external-id",
+        "provider_identifier": "example",
+    }

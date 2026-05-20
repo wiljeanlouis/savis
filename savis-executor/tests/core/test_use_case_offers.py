@@ -94,9 +94,13 @@ class FakeTaskQueue(TaskQueue):
 class FakeOfferPublisher(OfferPublisher):
     def __init__(self) -> None:
         self.offers: list[Offer] = []
+        self.invalidations: list[Offer] = []
 
     def publish_offer(self, offer: Offer) -> None:
         self.offers.append(offer)
+
+    def publish_offer_invalidation(self, offer: Offer) -> None:
+        self.invalidations.append(offer)
 
 
 class FakeTaskRepository(SavisTaskRepository):
@@ -245,6 +249,23 @@ def test_patch_does_not_republish_already_valid_offer() -> None:
     assert offer is not None
     assert offer.status == OfferStatus.VALID
     assert publisher.offers == []
+
+
+def test_patch_invalidates_published_offer_when_rejected() -> None:
+    existing = _offer()
+    existing.id = uuid7()
+    existing.status = OfferStatus.VALID
+    existing.refresh_frequency_hours = 24
+    repository = FakeOfferRepository(existing)
+    publisher = FakeOfferPublisher()
+    use_case = _use_case(repository=repository, publisher=publisher)
+
+    offer = use_case.patch(existing.id, status=OfferStatus.REJECTED)
+
+    assert offer is not None
+    assert offer.status == OfferStatus.REJECTED
+    assert publisher.offers == []
+    assert publisher.invalidations == [offer]
 
 
 def test_apply_refreshed_offer_publishes_changed_valid_offer_immediately() -> None:
