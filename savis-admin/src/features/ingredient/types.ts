@@ -1,4 +1,4 @@
-export type OfferStatus = "NEW" | "VALID" | "REJECTED";
+export type IngredientStatus = "NEW" | "VALID" | "REJECTED";
 
 export interface Price {
   amount: string;
@@ -17,7 +17,7 @@ export interface Provider {
   address: string;
 }
 
-export interface Offer {
+export interface Ingredient {
   id: string;
   external_id: string;
   url: string;
@@ -28,15 +28,15 @@ export interface Offer {
   image_url: string;
   provider: Provider;
   search_term: string;
-  status: OfferStatus;
+  status: IngredientStatus;
   last_retrieved_at: string;
   next_refresh_at: string;
   refresh_frequency_hours: number;
   last_seen_task_id: string;
 }
 
-export interface OffersPage {
-  items: Offer[];
+export interface IngredientsPage {
+  items: Ingredient[];
   page: number;
   size: number;
   total_items: number;

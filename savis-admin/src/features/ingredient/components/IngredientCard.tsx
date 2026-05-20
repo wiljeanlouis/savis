@@ -9,11 +9,14 @@ import {
   CardHeader,
   CardTitle,
 } from "@/shared/ui/card";
-import type { Offer, OfferStatus } from "../types";
-import { OfferEditDialog, type OfferEditValues } from "./OfferEditDialog";
+import type { Ingredient, IngredientStatus } from "../types";
+import {
+  IngredientEditDialog,
+  type IngredientEditValues,
+} from "./IngredientEditDialog";
 
 const statusVariant: Record<
-  OfferStatus,
+  IngredientStatus,
   "default" | "secondary" | "destructive"
 > = {
   NEW: "secondary",
@@ -32,33 +35,36 @@ const formatPackageSize = (value: number, unit: string) => {
   return `${value} ${unit}`;
 };
 
-interface OfferCardProps {
-  offer: Offer;
+interface IngredientCardProps {
+  ingredient: Ingredient;
   isPatching: boolean;
-  onPatch: (offer: Offer, status: OfferStatus) => void;
-  onEdit: (offer: Offer, values: OfferEditValues) => void;
+  onPatch: (ingredient: Ingredient, status: IngredientStatus) => void;
+  onEdit: (ingredient: Ingredient, values: IngredientEditValues) => void;
 }
 
-export const OfferCard = ({
-  offer,
+export const IngredientCard = ({
+  ingredient,
   isPatching,
   onPatch,
   onEdit,
-}: OfferCardProps) => {
-  const price = offer.price
-    ? formatPrice(offer.price.amount, offer.price.currency)
+}: IngredientCardProps) => {
+  const price = ingredient.price
+    ? formatPrice(ingredient.price.amount, ingredient.price.currency)
     : "-";
-  const packageSize = offer.package_size
-    ? formatPackageSize(offer.package_size.value, offer.package_size.unit)
+  const packageSize = ingredient.package_size
+    ? formatPackageSize(
+      ingredient.package_size.value,
+      ingredient.package_size.unit,
+    )
     : "-";
-  const offerUrl = `${offer.provider.site}${offer.url}`;
+  const offerUrl = `${ingredient.provider.site}${ingredient.url}`;
 
   return (
     <Card className="h-full">
       <div className="flex justify-center bg-muted p-4">
         <img
-          src={offer.image_url}
-          alt={offer.label}
+          src={ingredient.image_url}
+          alt={ingredient.label}
           className="size-40 object-contain"
           loading="lazy"
         />
@@ -71,14 +77,16 @@ export const OfferCard = ({
             rel="noreferrer"
             className="line-clamp-2 hover:underline"
           >
-            {offer.label}
+            {ingredient.label}
           </a>
         </CardTitle>
         <CardDescription className="line-clamp-1">
-          {offer.brand || "-"}
+          {ingredient.brand || "-"}
         </CardDescription>
         <CardAction>
-          <Badge variant={statusVariant[offer.status]}>{offer.status}</Badge>
+          <Badge variant={statusVariant[ingredient.status]}>
+            {ingredient.status}
+          </Badge>
         </CardAction>
       </CardHeader>
       <CardContent className="grid gap-3">
@@ -90,33 +98,33 @@ export const OfferCard = ({
           <div>
             <div className="text-[0.625rem] uppercase">Provider</div>
             <div className="truncate text-foreground">
-              {offer.provider.name}
+              {ingredient.provider.name}
             </div>
           </div>
           <div>
             <div className="text-[0.625rem] uppercase">Recherche</div>
             <div className="truncate text-foreground">
-              {offer.search_term || "-"}
+              {ingredient.search_term || "-"}
             </div>
           </div>
         </div>
       </CardContent>
       <CardFooter className="mt-auto flex gap-2">
-        {offer.status !== "VALID" ? (
+        {ingredient.status !== "VALID" ? (
           <Button
             className="flex-1"
             disabled={isPatching}
-            onClick={() => onPatch(offer, "VALID")}
+            onClick={() => onPatch(ingredient, "VALID")}
           >
             Valider
           </Button>
         ) : null}
-        {offer.status === "VALID" ? (
+        {ingredient.status === "VALID" ? (
           <Button
             className="flex-1"
             variant="destructive"
             disabled={isPatching}
-            onClick={() => onPatch(offer, "REJECTED")}
+            onClick={() => onPatch(ingredient, "REJECTED")}
           >
             Invalider
           </Button>
@@ -124,14 +132,14 @@ export const OfferCard = ({
           <Button
             className="flex-1"
             variant="outline"
-            disabled={isPatching || offer.status === "REJECTED"}
-            onClick={() => onPatch(offer, "REJECTED")}
+            disabled={isPatching || ingredient.status === "REJECTED"}
+            onClick={() => onPatch(ingredient, "REJECTED")}
           >
             Rejeter
           </Button>
         )}
-        <OfferEditDialog
-          offer={offer}
+        <IngredientEditDialog
+          ingredient={ingredient}
           isPatching={isPatching}
           onEdit={onEdit}
         />

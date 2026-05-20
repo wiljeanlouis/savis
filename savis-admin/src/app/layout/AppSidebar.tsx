@@ -47,7 +47,7 @@ const data = {
     },
     {
       name: "Ingrédients",
-      url: "/offers",
+      url: "/ingredients",
       icon: <HugeiconsIcon icon={RiceBowl01FreeIcons} strokeWidth={2} />,
     },
   ],

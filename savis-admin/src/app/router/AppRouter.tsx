@@ -12,7 +12,7 @@ import { RecipesPage } from "@/features/recipe/pages/RecipesPage";
 import { getRecipe } from "@/features/recipe/api/recipeApi";
 import type { Recipe } from "@/features/recipe/types";
 import { TasksPage } from "@/features/task/pages/TasksPage";
-import { OffersPage } from "@/features/offer/pages/OffersPage";
+import { IngredientsPage } from "@/features/ingredient/pages/IngredientsPage";
 
 const router = createBrowserRouter([
   {
@@ -120,8 +120,8 @@ const router = createBrowserRouter([
         },
       },
       {
-        path: "/offers",
-        element: <OffersPage />,
+        path: "/ingredients",
+        element: <IngredientsPage />,
         handle: {
           breadcrumb: () => (
             <>

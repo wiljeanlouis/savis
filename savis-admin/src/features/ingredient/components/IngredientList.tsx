@@ -13,10 +13,13 @@ import { ArrowDown01Icon, ArrowUp01Icon } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
 import { useState } from "react";
 import { toast } from "sonner";
-import { useGetOffers, usePatchOffer } from "../hooks/useOfferApi";
-import type { Offer, OfferStatus } from "../types";
-import { OfferCard } from "./OfferCard";
-import type { OfferEditValues } from "./OfferEditDialog";
+import {
+  useGetIngredients,
+  usePatchIngredient,
+} from "../hooks/useIngredientApi";
+import type { Ingredient, IngredientStatus } from "../types";
+import { IngredientCard } from "./IngredientCard";
+import type { IngredientEditValues } from "./IngredientEditDialog";
 
 const sortOptions = [
   { value: "last_retrieved_at", label: "Dernier obtenu" },
@@ -32,18 +35,18 @@ const sortOptions = [
 
 type SortDirection = "asc" | "desc";
 
-export const OfferList = () => {
+export const IngredientList = () => {
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(20);
   const [sortBy, setSortBy] = useState("last_retrieved_at");
   const [sortDirection, setSortDirection] = useState<SortDirection>("desc");
-  const { data, isPending, isError, error } = useGetOffers(
+  const { data, isPending, isError, error } = useGetIngredients(
     page,
     pageSize,
     sortBy,
     sortDirection,
   );
-  const patchOffer = usePatchOffer();
+  const patchIngredient = usePatchIngredient();
 
   const handlePageSizeChange = (size: number) => {
     setPage(1);
@@ -60,27 +63,30 @@ export const OfferList = () => {
     setSortDirection((current) => (current === "asc" ? "desc" : "asc"));
   };
 
-  const handleQuickPatch = (offer: Offer, status: OfferStatus) => {
+  const handleQuickPatch = (
+    ingredient: Ingredient,
+    status: IngredientStatus,
+  ) => {
     const action =
       status === "VALID"
         ? "validée"
-        : offer.status === "VALID"
+        : ingredient.status === "VALID"
           ? "invalidée"
           : "rejetée";
 
-    patchOffer.mutate(
-      { id: offer.id, payload: { status } },
+    patchIngredient.mutate(
+      { id: ingredient.id, payload: { status } },
       {
         onSuccess: () => toast.success(`Offre ${action}.`),
-        onError: () => toast.error("La mise à jour de l'offre a échoué."),
+        onError: () => toast.error("La mise à jour de l'ingrédient a échoué."),
       },
     );
   };
 
-  const handleEdit = (offer: Offer, values: OfferEditValues) => {
-    patchOffer.mutate(
+  const handleEdit = (ingredient: Ingredient, values: IngredientEditValues) => {
+    patchIngredient.mutate(
       {
-        id: offer.id,
+        id: ingredient.id,
         payload: {
           status: values.status,
           refresh_frequency_hours: values.refreshFrequencyHours,
@@ -89,7 +95,7 @@ export const OfferList = () => {
       },
       {
         onSuccess: () => toast.success("Offre mise à jour."),
-        onError: () => toast.error("La mise à jour de l'offre a échoué."),
+        onError: () => toast.error("La mise à jour de l'ingrédient a échoué."),
       },
     );
   };
@@ -171,11 +177,11 @@ export const OfferList = () => {
       </div>
 
       <div className="grid grid-cols-2 gap-4 md:grid-cols-3 xl:grid-cols-4">
-        {data.items.map((offer) => (
-          <OfferCard
-            key={offer.id}
-            offer={offer}
-            isPatching={patchOffer.isPending}
+        {data.items.map((ingredient) => (
+          <IngredientCard
+            key={ingredient.id}
+            ingredient={ingredient}
+            isPatching={patchIngredient.isPending}
             onPatch={handleQuickPatch}
             onEdit={handleEdit}
           />
@@ -184,7 +190,7 @@ export const OfferList = () => {
 
       <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
         <p className="text-xs text-muted-foreground">
-          {data.total_items} offre{data.total_items > 1 ? "s" : ""}
+          {data.total_items} ingrédient{data.total_items > 1 ? "s" : ""}
         </p>
         <div className="flex items-center justify-end gap-3">
           <Button
