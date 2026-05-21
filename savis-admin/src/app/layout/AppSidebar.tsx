@@ -12,7 +12,6 @@ import {
 } from "@/shared/ui/sidebar";
 import { HugeiconsIcon } from "@hugeicons/react";
 import {
-  DashboardSquare01Icon,
   File01Icon,
   Settings05Icon,
   HelpCircleIcon,
@@ -26,19 +25,15 @@ import { Link } from "react-router";
 import { ModeToggle } from "./components/ModeToggle";
 import { NavSection } from "./components/NavSection";
 
+export const activeClass =
+  "data-[active=true]:bg-primary data-[active=true]:text-primary-foreground";
+
 const data = {
   user: {
     name: "shadcn",
     email: "m@example.com",
     avatar: "/avatars/shadcn.jpg",
   },
-  navMain: [
-    {
-      title: "Dashboard",
-      url: "/dashboard",
-      icon: <HugeiconsIcon icon={DashboardSquare01Icon} strokeWidth={2} />,
-    },
-  ],
   foods: [
     {
       name: "Recettes",
@@ -112,7 +107,7 @@ export const AppSidebar = ({
         </SidebarMenu>
       </SidebarHeader>
       <SidebarContent>
-        <NavMain items={data.navMain} />
+        <NavMain />
         <NavSection title="Dégustation" items={data.foods} />
         <NavSection title="Configuration" items={data.configs} />
         {/* <NavDocuments items={data.documents} />

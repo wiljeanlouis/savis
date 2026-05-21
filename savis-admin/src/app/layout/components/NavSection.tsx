@@ -1,5 +1,6 @@
 "use client";
 
+import { NavLink, useLocation } from "react-router";
 import {
   SidebarGroup,
   SidebarGroupLabel,
@@ -7,6 +8,7 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
 } from "@/shared/ui/sidebar";
+import { activeClass } from "../AppSidebar";
 
 interface Props {
   title: string;
@@ -18,17 +20,25 @@ interface Props {
 }
 
 export function NavSection({ title, items }: Props) {
+  const { pathname } = useLocation();
+
   return (
     <SidebarGroup className="group-data-[collapsible=icon]:hidden">
       <SidebarGroupLabel>{title}</SidebarGroupLabel>
       <SidebarMenu>
         {items.map((item) => (
           <SidebarMenuItem key={item.name}>
-            <SidebarMenuButton asChild>
-              <a href={item.url}>
+            <SidebarMenuButton
+              asChild
+              isActive={pathname.startsWith(item.url)}
+              className={
+                pathname.startsWith(item.url) ? activeClass : undefined
+              }
+            >
+              <NavLink to={item.url}>
                 {item.icon}
                 <span>{item.name}</span>
-              </a>
+              </NavLink>
             </SidebarMenuButton>
           </SidebarMenuItem>
         ))}
