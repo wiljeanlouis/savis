@@ -20,7 +20,7 @@ import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 @RestController
-@RequestMapping({ "/api/boms", "/api/recipes" })
+@RequestMapping({ "/api/boms" })
 @CrossOrigin(origins = "http://localhost:5173") // Allow only your frontend origin
 @AllArgsConstructor
 public class BomController {

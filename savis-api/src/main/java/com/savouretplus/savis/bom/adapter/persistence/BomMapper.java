@@ -4,7 +4,6 @@ import java.util.List;
 
 import org.mapstruct.Mapper;
 
-import com.savouretplus.savis.common.Money;
 import com.savouretplus.savis.common.Quantity;
 import com.savouretplus.savis.bom.domain.Activity;
 import com.savouretplus.savis.bom.domain.BomComponent;
@@ -76,15 +75,10 @@ public interface BomMapper {
         if (entity == null) {
             return null;
         }
-        Money hourlyRate = entity.getHourlyRateAmount() != null
-                ? new Money(entity.getHourlyRateAmount(), entity.getHourlyRateCurrency())
-                : null;
         return new Activity(
                 entity.getId(),
                 entity.getType(),
-                entity.getName(),
                 Minute.of(entity.getMinutes()),
-                hourlyRate,
                 entity.getSequence());
     }
 
@@ -95,12 +89,7 @@ public interface BomMapper {
         ActivityEntity entity = new ActivityEntity();
         entity.setId(activity.id());
         entity.setType(activity.type());
-        entity.setName(activity.name());
         entity.setMinutes(activity.minutes().value());
-        if (activity.hourlyRate() != null) {
-            entity.setHourlyRateAmount(activity.hourlyRate().amount());
-            entity.setHourlyRateCurrency(activity.hourlyRate().currency());
-        }
         entity.setSequence(activity.sequence());
         return entity;
     }

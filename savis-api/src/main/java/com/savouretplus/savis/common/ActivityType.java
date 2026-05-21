@@ -1,4 +1,4 @@
-package com.savouretplus.savis.bom.domain;
+package com.savouretplus.savis.common;
 
 public enum ActivityType {
     PREP,

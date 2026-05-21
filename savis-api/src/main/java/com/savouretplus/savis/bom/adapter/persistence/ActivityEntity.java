@@ -2,7 +2,7 @@ package com.savouretplus.savis.bom.adapter.persistence;
 
 import java.math.BigDecimal;
 
-import com.savouretplus.savis.bom.domain.ActivityType;
+import com.savouretplus.savis.common.ActivityType;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -31,16 +31,7 @@ public class ActivityEntity {
     private ActivityType type;
 
     @Column(nullable = false)
-    private String name;
-
-    @Column(nullable = false)
     private Integer minutes;
-
-    @Column(name = "hourly_rate_amount", nullable = true)
-    private BigDecimal hourlyRateAmount;
-
-    @Column(name = "hourly_rate_currency", nullable = true)
-    private String hourlyRateCurrency;
 
     @Column(nullable = false)
     private Integer sequence;

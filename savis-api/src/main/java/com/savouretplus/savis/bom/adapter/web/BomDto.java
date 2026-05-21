@@ -5,11 +5,10 @@ import java.util.UUID;
 
 import com.fasterxml.jackson.annotation.JsonAlias;
 import com.fasterxml.jackson.annotation.JsonProperty;
-import com.savouretplus.savis.common.Money;
+import com.savouretplus.savis.common.ActivityType;
 import com.savouretplus.savis.common.Quantity;
 import com.savouretplus.savis.common.Unit;
 import com.savouretplus.savis.bom.domain.Activity;
-import com.savouretplus.savis.bom.domain.ActivityType;
 import com.savouretplus.savis.bom.domain.Bom;
 import com.savouretplus.savis.bom.domain.BomComponent;
 import com.savouretplus.savis.bom.domain.BomType;
@@ -28,13 +27,11 @@ public record BomDto(
         BomType type,
         @JsonAlias("ingredients") @NotNull List<BomComponentDto> components,
         List<ActivityDto> activities,
-        @JsonProperty("yield") YieldDto bomYield,
-        Integer cookingMinutes,
-        Integer preparationMinutes,
-        Integer servings) {
+        @JsonProperty("yield") YieldDto bomYield) {
 
     public BomDto {
         components = components != null ? components : List.of();
+        activities = activities != null ? activities : List.of();
     }
 
     public static BomDto from(Bom bom) {
@@ -51,10 +48,7 @@ public record BomDto(
                 bom.getActivities().stream()
                         .map(ActivityDto::from)
                         .toList(),
-                YieldDto.from(bom.getYield()),
-                legacyMinutes(bom, ActivityType.COOK),
-                legacyMinutes(bom, ActivityType.PREP),
-                legacyServings(bom));
+                YieldDto.from(bom.getYield()));
     }
 
     public Bom toBom() {
@@ -71,8 +65,10 @@ public record BomDto(
                 instructions,
                 type,
                 bomComponents,
-                toActivities(),
-                toYield());
+                activities.stream()
+                        .map(ActivityDto::toDomain)
+                        .toList(),
+                bomYield != null ? bomYield.toDomain() : null);
 
         return bom;
     }
@@ -82,70 +78,23 @@ public record BomDto(
         return components;
     }
 
-    private List<Activity> toActivities() {
-        if (activities != null && !activities.isEmpty()) {
-            return activities.stream()
-                    .map(ActivityDto::toDomain)
-                    .toList();
-        }
-
-        List<Activity> legacyActivities = new java.util.ArrayList<>();
-        if (preparationMinutes != null) {
-            legacyActivities.add(new Activity(null, ActivityType.PREP, "Preparation", Minute.of(preparationMinutes), null, 1));
-        }
-        if (cookingMinutes != null) {
-            legacyActivities.add(new Activity(null, ActivityType.COOK, "Cooking", Minute.of(cookingMinutes), null, 2));
-        }
-        return legacyActivities;
-    }
-
-    private Yield toYield() {
-        if (bomYield != null) {
-            return bomYield.toDomain();
-        }
-        if (servings != null) {
-            return new Yield(new Quantity(servings, Unit.PORTION), Unit.PORTION);
-        }
-        return null;
-    }
-
-    private static Integer legacyMinutes(Bom bom, ActivityType type) {
-        return bom.getActivities().stream()
-                .filter(activity -> activity.type() == type)
-                .map(Activity::minutes)
-                .map(Minute::value)
-                .reduce(0, Integer::sum);
-    }
-
-    private static Integer legacyServings(Bom bom) {
-        Yield yield = bom.getYield();
-        if (yield == null || yield.unit() != Unit.PORTION) {
-            return null;
-        }
-        return (int) yield.quantity().value();
-    }
-
 }
 
 record ActivityDto(
         Long id,
         ActivityType type,
-        @NotBlank String name,
         @NotNull Integer minutes,
-        Money hourlyRate,
         Integer sequence) {
 
     public Activity toDomain() {
-        return new Activity(id, type, name, Minute.of(minutes), hourlyRate, sequence);
+        return new Activity(id, type, Minute.of(minutes), sequence);
     }
 
     public static ActivityDto from(Activity activity) {
         return new ActivityDto(
                 activity.id(),
                 activity.type(),
-                activity.name(),
                 activity.minutes().value(),
-                activity.hourlyRate(),
                 activity.sequence());
     }
 }
