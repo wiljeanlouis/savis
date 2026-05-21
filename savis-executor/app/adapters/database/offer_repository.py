@@ -210,6 +210,7 @@ class SqlAlchemyOfferRepository(OfferRepository):
         sort_by: OfferSortField = OfferSortField.LAST_RETRIEVED_AT,
         sort_direction: SortDirection = SortDirection.DESC,
         offer_type: OfferType | None = None,
+        search_term: str | None = None,
     ) -> tuple[list[Offer], int]:
         """List paged offers and total count."""
         self.schema_creator()
@@ -239,6 +240,11 @@ class SqlAlchemyOfferRepository(OfferRepository):
             count_statement = count_statement.where(
                 OfferEntity.offer_type == offer_type.value,
             )
+        if search_term is not None:
+            statement = statement.where(OfferEntity.search_term == search_term)
+            count_statement = count_statement.where(
+                OfferEntity.search_term == search_term,
+            )
 
         with self.session_factory() as session:
             total = session.scalar(count_statement) or 0
@@ -246,6 +252,26 @@ class SqlAlchemyOfferRepository(OfferRepository):
                 statement.offset((page - 1) * size).limit(size),
             ).all()
             return [_to_model(entity) for entity in entities], total
+
+    def search_term_facets(
+        self,
+        status: OfferStatus | None = None,
+        offer_type: OfferType | None = None,
+    ) -> list[tuple[str, int]]:
+        """Count offers grouped by search term."""
+        self.schema_creator()
+        statement = (
+            select(OfferEntity.search_term, func.count())
+            .group_by(OfferEntity.search_term)
+            .order_by(func.count().desc(), OfferEntity.search_term.asc())
+        )
+        if status is not None:
+            statement = statement.where(OfferEntity.status == status.value)
+        if offer_type is not None:
+            statement = statement.where(OfferEntity.offer_type == offer_type.value)
+
+        with self.session_factory() as session:
+            return [(search_term, count) for search_term, count in session.execute(statement)]
 
     def save(self, offer: Offer) -> Offer:
         """Save an offer."""

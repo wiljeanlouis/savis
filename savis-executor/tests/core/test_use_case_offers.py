@@ -78,6 +78,13 @@ class FakeOfferRepository(OfferRepository):
             0 if self.offer is None else 1,
         )
 
+    def search_term_facets(
+        self,
+        status: OfferStatus | None = None,  # noqa: ARG002
+        offer_type: OfferType | None = None,  # noqa: ARG002
+    ) -> list[tuple[str, int]]:
+        return [] if self.offer is None else [(self.offer.search_term or "", 1)]
+
     def save(self, offer: Offer) -> Offer:
         self.saved.append(offer)
         return offer

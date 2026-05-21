@@ -22,13 +22,11 @@ import {
 import { Settings05Icon } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
 import { useState } from "react";
-import type { Ingredient, IngredientStatus } from "../types";
-
-export interface IngredientEditValues {
-  status: IngredientStatus;
-  refreshFrequencyHours: number;
-  refreshNow: boolean;
-}
+import type {
+  Ingredient,
+  IngredientEditValues,
+  IngredientStatus,
+} from "../types";
 
 interface IngredientEditDialogProps {
   ingredient: Ingredient;

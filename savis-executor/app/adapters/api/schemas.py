@@ -135,6 +135,13 @@ class OffersPageResponse(BaseModel):
     total_pages: int
 
 
+class SearchTermFacetResponse(BaseModel):
+    """Schema for one search-term facet."""
+
+    search_term: str
+    count: int
+
+
 class PatchOfferRequest(BaseModel):
     """Schema for human offer updates."""
 

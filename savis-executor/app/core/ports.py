@@ -97,8 +97,17 @@ class OfferRepository(ABC):
         sort_by: OfferSortField = OfferSortField.LAST_RETRIEVED_AT,
         sort_direction: SortDirection = SortDirection.DESC,
         offer_type: OfferType | None = None,
+        search_term: str | None = None,
     ) -> tuple[list[Offer], int]:
         """List paged offers and return total count."""
+
+    @abstractmethod
+    def search_term_facets(
+        self,
+        status: OfferStatus | None = None,
+        offer_type: OfferType | None = None,
+    ) -> list[tuple[str, int]]:
+        """Count offers grouped by search term."""
 
     @abstractmethod
     def save(self, offer: Offer) -> Offer:

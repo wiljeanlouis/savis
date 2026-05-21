@@ -15,6 +15,7 @@ from app.adapters.api.schemas import (
     SavisTaskRequest,
     SavisTaskResponse,
     SavisTasksPageResponse,
+    SearchTermFacetResponse,
 )
 from app.container import Container
 from app.core.models import (
@@ -78,6 +79,7 @@ async def list_offers(
     size: Annotated[int, Query(ge=1)] = 20,
     status: OfferStatus | None = None,
     offer_type: Annotated[OfferType | None, Query(alias="type")] = None,
+    search_term: str | None = None,
     sort_by: OfferSortField = OfferSortField.LAST_RETRIEVED_AT,
     sort_direction: SortDirection = SortDirection.DESC,
 ) -> OffersPageResponse:
@@ -89,6 +91,7 @@ async def list_offers(
         sort_by,
         sort_direction,
         offer_type,
+        search_term,
     )
     return OffersPageResponse(
         items=[_offer_response(offer) for offer in offers],
@@ -97,6 +100,21 @@ async def list_offers(
         total_items=total_items,
         total_pages=total_pages,
     )
+
+
+@router.get("/offers/facets/search-terms")
+async def list_offer_search_term_facets(
+    status: OfferStatus | None = None,
+    offer_type: Annotated[OfferType | None, Query(alias="type")] = None,
+) -> list[SearchTermFacetResponse]:
+    """Count offers by search term."""
+    return [
+        SearchTermFacetResponse(search_term=search_term, count=count)
+        for search_term, count in offers_use_case.search_term_facets(
+            status,
+            offer_type,
+        )
+    ]
 
 
 @router.patch("/offers/{offer_id}")

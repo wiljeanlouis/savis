@@ -157,6 +157,7 @@ class OffersUseCase:
         sort_by: OfferSortField = OfferSortField.LAST_RETRIEVED_AT,
         sort_direction: SortDirection = SortDirection.DESC,
         offer_type: OfferType | None = None,
+        search_term: str | None = None,
     ) -> tuple[list[Offer], int, int]:
         """List paginated offers."""
         offers, total_items = self.offer_repository.list(
@@ -166,9 +167,18 @@ class OffersUseCase:
             sort_by,
             sort_direction,
             offer_type,
+            search_term,
         )
         total_pages = ceil(total_items / size) if total_items else 0
         return offers, total_items, total_pages
+
+    def search_term_facets(
+        self,
+        status: OfferStatus | None = None,
+        offer_type: OfferType | None = None,
+    ) -> list[tuple[str, int]]:
+        """Count offers grouped by search term."""
+        return self.offer_repository.search_term_facets(status, offer_type)
 
     def patch(
         self,

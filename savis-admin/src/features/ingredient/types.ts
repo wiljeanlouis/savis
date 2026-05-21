@@ -1,6 +1,12 @@
 export type IngredientStatus = "NEW" | "VALID" | "REJECTED";
 export type IngredientType = "FOOD" | "DECORATION";
 
+export interface IngredientEditValues {
+  status: IngredientStatus;
+  refreshFrequencyHours: number;
+  refreshNow: boolean;
+}
+
 export interface Price {
   amount: string;
   currency: string;
@@ -43,4 +49,9 @@ export interface IngredientsPage {
   size: number;
   total_items: number;
   total_pages: number;
+}
+
+export interface SearchTermFacet {
+  search_term: string;
+  count: number;
 }

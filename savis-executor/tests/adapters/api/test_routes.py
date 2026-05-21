@@ -206,11 +206,13 @@ def test_list_offers_returns_paged_response(
             sort_by: OfferSortField,
             sort_direction: SortDirection,
             offer_type: OfferType | None,
+            search_term: str | None,
         ) -> tuple[list[Offer], int, int]:
             assert (status, page, size) == (OfferStatus.NEW, PAGE_TWO, 5)
             assert sort_by == OfferSortField.PRICE
             assert sort_direction == SortDirection.DESC
             assert offer_type == OfferType.FOOD
+            assert search_term == "flour"
             return [offer], TOTAL_SIX, PAGE_TWO
 
     monkeypatch.setattr(routes, "offers_use_case", FixedOffersUseCase())
@@ -225,6 +227,7 @@ def test_list_offers_returns_paged_response(
             "sort_by": "price",
             "sort_direction": "desc",
             "type": "FOOD",
+            "search_term": "flour",
         },
     )
 
@@ -233,6 +236,34 @@ def test_list_offers_returns_paged_response(
     assert response.json()["total_items"] == TOTAL_SIX
     assert response.json()["items"][0]["status"] == "NEW"
     assert response.json()["items"][0]["type"] == "FOOD"
+
+
+def test_list_offer_search_term_facets_returns_counts(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    class FixedOffersUseCase:
+        def search_term_facets(
+            self,
+            status: OfferStatus | None,
+            offer_type: OfferType | None,
+        ) -> list[tuple[str, int]]:
+            assert status == OfferStatus.NEW
+            assert offer_type == OfferType.FOOD
+            return [("flour", 2), ("sugar", 1)]
+
+    monkeypatch.setattr(routes, "offers_use_case", FixedOffersUseCase())
+    app = FastAPI()
+    app.include_router(routes.router)
+    response = TestClient(app).get(
+        "/offers/facets/search-terms",
+        params={"status": "NEW", "type": "FOOD"},
+    )
+
+    assert response.status_code == HTTP_OK
+    assert response.json() == [
+        {"search_term": "flour", "count": 2},
+        {"search_term": "sugar", "count": 1},
+    ]
 
 
 def test_patch_offer_updates_one_offer(

@@ -9,11 +9,12 @@ import {
   CardHeader,
   CardTitle,
 } from "@/shared/ui/card";
-import type { Ingredient, IngredientStatus } from "../types";
-import {
-  IngredientEditDialog,
-  type IngredientEditValues,
-} from "./IngredientEditDialog";
+import type {
+  Ingredient,
+  IngredientEditValues,
+  IngredientStatus,
+} from "../types";
+import { IngredientEditDialog } from "./IngredientEditDialog";
 
 const statusVariant: Record<
   IngredientStatus,

@@ -112,6 +112,38 @@ def test_list_filters_by_offer_type() -> None:
     assert [offer.external_id for offer in offers] == ["food"]
 
 
+def test_list_filters_by_search_term() -> None:
+    repository, _session_factory = _repository()
+    flour = _offer(external_id="flour")
+    flour.search_term = "flour"
+    sugar = _offer(external_id="sugar")
+    sugar.search_term = "sugar"
+    repository.save(flour)
+    repository.save(sugar)
+
+    offers, total = repository.list(None, page=1, size=10, search_term="flour")
+
+    assert total == 1
+    assert [offer.external_id for offer in offers] == ["flour"]
+
+
+def test_search_term_facets_count_by_search_term() -> None:
+    repository, _session_factory = _repository()
+    first_flour = _offer(external_id="flour-1")
+    first_flour.search_term = "flour"
+    second_flour = _offer(external_id="flour-2")
+    second_flour.search_term = "flour"
+    sugar = _offer(external_id="sugar")
+    sugar.search_term = "sugar"
+    repository.save(first_flour)
+    repository.save(second_flour)
+    repository.save(sugar)
+
+    facets = repository.search_term_facets(offer_type=OfferType.FOOD)
+
+    assert facets == [("flour", 2), ("sugar", 1)]
+
+
 def test_list_sorts_before_paginating() -> None:
     repository, _session_factory = _repository()
     repository.save(_offer(external_id="expensive", price_amount="9.99"))
