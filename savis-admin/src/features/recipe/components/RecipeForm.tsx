@@ -1,8 +1,9 @@
 import { Input } from "@/shared/ui/input";
 import { useRecipeForm } from "../hooks/useRecipeForm";
 import { IngredientInput } from "./IngredientInput";
+import { ActivityInput } from "./ActivityInput";
 import { Button } from "@/shared/ui/button";
-import type { RecipeIngredient } from "../types";
+import type { RecipeActivity, RecipeIngredient } from "../types";
 import {
   FieldGroup,
   FieldSet,
@@ -16,14 +17,26 @@ import { PictureFrame } from "./PictureFrame";
 import { toast } from "sonner";
 import { DraftAlert } from "../../../shared/components/DraftAlert";
 import { Spinner } from "@/shared/ui/spinner";
+import {
+  Select,
+  SelectContent,
+  SelectGroup,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/shared/ui/select";
 
 export const RecipeForm = () => {
   const {
     form,
     updateField,
+    updateYield,
     addIngredient,
     updateIngredient,
     removeIngredient,
+    addActivity,
+    updateActivity,
+    removeActivity,
     submit,
     cancel,
     onDeleteDraftAlert,
@@ -130,38 +143,48 @@ export const RecipeForm = () => {
 
                   <FieldGroup className="grid grid-cols-2 gap-4">
                     <Field>
-                      <FieldLabel htmlFor="recipe-form-card-number-uw1">
-                        Temps de préparation
+                      <FieldLabel htmlFor="recipe-form-yield-quantity">
+                        Rendement
                       </FieldLabel>
                       <Input
-                        id="recipe-form-card-number-uw1"
-                        placeholder="45"
-                        value={form.preparationMinutes}
+                        id="recipe-form-yield-quantity"
+                        placeholder="12"
+                        type="number"
+                        min={0}
+                        value={form.yield.quantity}
                         onChange={(e) => {
-                          updateField(
-                            "preparationMinutes",
-                            Number(e.target.value),
-                          );
+                          updateYield("quantity", Number(e.target.value));
                         }}
                         required
                       />
-                      <FieldDescription>minutes</FieldDescription>
+                      <FieldDescription>quantité produite</FieldDescription>
                     </Field>
 
                     <Field>
-                      <FieldLabel htmlFor="recipe-form-card-number-uw1">
-                        Temps de cuisson
+                      <FieldLabel htmlFor="recipe-form-yield-unit">
+                        Unité de rendement
                       </FieldLabel>
-                      <Input
-                        id="recipe-form-card-number-uw1"
-                        placeholder="15"
-                        value={form.cookingMinutes}
-                        onChange={(e) => {
-                          updateField("cookingMinutes", Number(e.target.value));
+                      <Select
+                        value={form.yield.unit}
+                        onValueChange={(value) => {
+                          updateYield("unit", value);
                         }}
-                        required
-                      />
-                      <FieldDescription>minutes</FieldDescription>
+                      >
+                        <SelectTrigger id="recipe-form-yield-unit">
+                          <SelectValue placeholder="Unité" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectGroup>
+                            <SelectItem value="PORTION">portion</SelectItem>
+                            <SelectItem value="PIECE">pièce</SelectItem>
+                            <SelectItem value="GRAM">g</SelectItem>
+                            <SelectItem value="KILOGRAM">kg</SelectItem>
+                            <SelectItem value="LITER">L</SelectItem>
+                            <SelectItem value="MILLILITER">mL</SelectItem>
+                          </SelectGroup>
+                        </SelectContent>
+                      </Select>
+                      <FieldDescription>portion par défaut</FieldDescription>
                     </Field>
                   </FieldGroup>
                 </FieldGroup>
@@ -194,6 +217,39 @@ export const RecipeForm = () => {
                     onClick={addIngredient}
                   >
                     Ajouter Ingrédient
+                  </Button>
+                </FieldGroup>
+              </FieldSet>
+
+              <FieldSet>
+                <FieldLegend>Activités</FieldLegend>
+                <FieldDescription>
+                  Les étapes et le temps nécessaires à la production de la
+                  recette.
+                </FieldDescription>
+                <FieldGroup>
+                  {form.activities.map(
+                    (activity: RecipeActivity, index: number) => (
+                      <ActivityInput
+                        key={index}
+                        value={activity}
+                        canRemove={index > 1}
+                        onChange={(val) => {
+                          updateActivity(index, val);
+                        }}
+                        onRemove={() => {
+                          removeActivity(index);
+                        }}
+                      />
+                    ),
+                  )}
+                  <Button
+                    type="button"
+                    variant="destructive"
+                    className="w-48"
+                    onClick={addActivity}
+                  >
+                    Ajouter autre activité
                   </Button>
                 </FieldGroup>
               </FieldSet>

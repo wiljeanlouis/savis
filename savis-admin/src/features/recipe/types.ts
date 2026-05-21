@@ -5,6 +5,28 @@ export interface RecipeIngredient {
   selectedIngredientId?: string;
 }
 
+export type ActivityType =
+  | "PREP"
+  | "COOK"
+  | "ASSEMBLY"
+  | "PACKAGING"
+  | "INSTALLATION"
+  | "DELIVERY"
+  | "CLEANUP"
+  | "CUSTOM";
+
+export interface RecipeActivity {
+  id?: number | null;
+  type: ActivityType;
+  minutes: number;
+  sequence: number;
+}
+
+export interface RecipeYield {
+  quantity: number;
+  unit: string;
+}
+
 export interface Recipe {
   id: string | null;
   name: string;
@@ -12,6 +34,6 @@ export interface Recipe {
   imageUrl: string;
   instructions: string;
   ingredients: RecipeIngredient[];
-  cookingMinutes: number;
-  preparationMinutes: number;
+  activities: RecipeActivity[];
+  yield: RecipeYield;
 }

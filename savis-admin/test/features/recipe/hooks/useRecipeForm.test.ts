@@ -21,8 +21,11 @@ const mockRecipe: Recipe = {
     { ingredientName: "Flour", quantity: 2, unit: "cups" },
     { ingredientName: "Sugar", quantity: 1, unit: "cup" },
   ],
-  cookingMinutes: 30,
-  preparationMinutes: 15,
+  activities: [
+    { type: "PREP", minutes: 15, sequence: 1 },
+    { type: "COOK", minutes: 30, sequence: 2 },
+  ],
+  yield: { quantity: 1, unit: "PORTION" },
 };
 
 const mockMutation = {
@@ -72,8 +75,11 @@ describe("useRecipeForm", () => {
         imageUrl: "",
         instructions: "",
         ingredients: [],
-        cookingMinutes: 0,
-        preparationMinutes: 0,
+        activities: [
+          { type: "PREP", minutes: 0, sequence: 1 },
+          { type: "COOK", minutes: 0, sequence: 2 },
+        ],
+        yield: { quantity: 1, unit: "PORTION" },
       };
 
       vi.mocked(useLoaderData).mockReturnValue(null);
@@ -99,8 +105,11 @@ describe("useRecipeForm", () => {
         imageUrl: "",
         instructions: "",
         ingredients: [],
-        cookingMinutes: 0,
-        preparationMinutes: 0,
+        activities: [
+          { type: "PREP", minutes: 0, sequence: 1 },
+          { type: "COOK", minutes: 0, sequence: 2 },
+        ],
+        yield: { quantity: 1, unit: "PORTION" },
       });
     });
   });
@@ -163,8 +172,11 @@ describe("useRecipeForm", () => {
         imageUrl: "",
         instructions: "",
         ingredients: [{ ingredientName: "Flour", quantity: 2, unit: "cups" }],
-        cookingMinutes: 0,
-        preparationMinutes: 0,
+        activities: [
+          { type: "PREP", minutes: 0, sequence: 1 },
+          { type: "COOK", minutes: 0, sequence: 2 },
+        ],
+        yield: { quantity: 1, unit: "PORTION" },
       };
 
       vi.mocked(useLoaderData).mockReturnValue(initialRecipe);
@@ -198,8 +210,19 @@ describe("useRecipeForm", () => {
           { ingredientName: "Flour", quantity: 2, unit: "cups" },
           { ingredientName: "Sugar", quantity: 1, unit: "cup" },
         ],
-        cookingMinutes: 0,
-        preparationMinutes: 0,
+        activities: [
+          {
+            type: "PREP",
+            minutes: 0,
+            sequence: 1,
+          },
+          {
+            type: "COOK",
+            minutes: 0,
+            sequence: 2,
+          },
+        ],
+        yield: { quantity: 1, unit: "PORTION" },
       };
 
       vi.mocked(useLoaderData).mockReturnValue(initialRecipe);

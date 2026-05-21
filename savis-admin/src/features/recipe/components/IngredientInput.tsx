@@ -67,6 +67,9 @@ export const IngredientInput = ({ value, onChange, onRemove }: Props) => {
                 <SelectItem key="piece" value="PIECE">
                   pièce
                 </SelectItem>
+                <SelectItem key="portion" value="PORTION">
+                  portion
+                </SelectItem>
               </SelectGroup>
             </SelectContent>
           </Select>

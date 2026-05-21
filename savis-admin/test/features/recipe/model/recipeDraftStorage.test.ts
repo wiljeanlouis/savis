@@ -22,8 +22,11 @@ describe("RecipeDraftStorage", () => {
         imageUrl: "",
         instructions: "",
         ingredients: [],
-        cookingMinutes: 0,
-        preparationMinutes: 0,
+        activities: [
+          { type: "PREP", minutes: 0, sequence: 1 },
+          { type: "COOK", minutes: 0, sequence: 2 },
+        ],
+        yield: { quantity: 1, unit: "PORTION" },
       };
       saveDraft(recipe);
 
@@ -45,8 +48,19 @@ describe("RecipeDraftStorage", () => {
         imageUrl: "",
         instructions: "",
         ingredients: [],
-        cookingMinutes: 0,
-        preparationMinutes: 0,
+        activities: [
+          {
+            type: "PREP",
+            minutes: 0,
+            sequence: 1,
+          },
+          {
+            type: "COOK",
+            minutes: 0,
+            sequence: 2,
+          },
+        ],
+        yield: { quantity: 1, unit: "PORTION" },
       };
       saveDraft(recipe);
 
@@ -67,8 +81,19 @@ describe("RecipeDraftStorage", () => {
         imageUrl: "",
         instructions: "",
         ingredients: [],
-        cookingMinutes: 0,
-        preparationMinutes: 0,
+        activities: [
+          {
+            type: "PREP",
+            minutes: 0,
+            sequence: 1,
+          },
+          {
+            type: "COOK",
+            minutes: 0,
+            sequence: 2,
+          },
+        ],
+        yield: { quantity: 1, unit: "PORTION" },
       };
       saveDraft(recipe);
 
@@ -89,8 +114,19 @@ describe("RecipeDraftStorage", () => {
         imageUrl: "",
         instructions: "",
         ingredients: [],
-        cookingMinutes: 0,
-        preparationMinutes: 0,
+        activities: [
+          {
+            type: "PREP",
+            minutes: 0,
+            sequence: 1,
+          },
+          {
+            type: "COOK",
+            minutes: 0,
+            sequence: 2,
+          },
+        ],
+        yield: { quantity: 1, unit: "PORTION" },
       };
       const recipe2: Recipe = {
         id: "id-2",
@@ -99,8 +135,19 @@ describe("RecipeDraftStorage", () => {
         imageUrl: "",
         instructions: "",
         ingredients: [],
-        cookingMinutes: 0,
-        preparationMinutes: 0,
+        activities: [
+          {
+            type: "PREP",
+            minutes: 0,
+            sequence: 1,
+          },
+          {
+            type: "COOK",
+            minutes: 0,
+            sequence: 2,
+          },
+        ],
+        yield: { quantity: 1, unit: "PORTION" },
       };
       saveDraft(recipe1);
       saveDraft(recipe2);
@@ -133,8 +180,19 @@ describe("RecipeDraftStorage", () => {
         imageUrl: "",
         instructions: "",
         ingredients: [],
-        cookingMinutes: 0,
-        preparationMinutes: 0,
+        activities: [
+          {
+            type: "PREP",
+            minutes: 0,
+            sequence: 1,
+          },
+          {
+            type: "COOK",
+            minutes: 0,
+            sequence: 2,
+          },
+        ],
+        yield: { quantity: 1, unit: "PORTION" },
       };
       saveDraft(recipe);
 
@@ -156,8 +214,19 @@ describe("RecipeDraftStorage", () => {
         imageUrl: "",
         instructions: "",
         ingredients: [],
-        cookingMinutes: 0,
-        preparationMinutes: 0,
+        activities: [
+          {
+            type: "PREP",
+            minutes: 0,
+            sequence: 1,
+          },
+          {
+            type: "COOK",
+            minutes: 0,
+            sequence: 2,
+          },
+        ],
+        yield: { quantity: 1, unit: "PORTION" },
       };
       saveDraft(recipe);
 
@@ -178,8 +247,19 @@ describe("RecipeDraftStorage", () => {
         imageUrl: "",
         instructions: "",
         ingredients: [],
-        cookingMinutes: 0,
-        preparationMinutes: 0,
+        activities: [
+          {
+            type: "PREP",
+            minutes: 0,
+            sequence: 1,
+          },
+          {
+            type: "COOK",
+            minutes: 0,
+            sequence: 2,
+          },
+        ],
+        yield: { quantity: 1, unit: "PORTION" },
       };
       saveDraft(recipe);
 
