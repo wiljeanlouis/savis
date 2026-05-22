@@ -40,7 +40,7 @@ export const useRecipeForm = () => {
       initForm?.activities && initForm.activities.length >= 2
         ? initForm.activities
         : defaultActivities,
-    yield: initForm?.yield ?? { quantity: 1, unit: "PORTION" },
+    yield: initForm?.yield ?? { quantity: 1, unit: "portion" },
   });
 
   const mutation = usePostRecipe();

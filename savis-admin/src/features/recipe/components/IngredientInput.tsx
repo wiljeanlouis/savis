@@ -52,22 +52,22 @@ export const IngredientInput = ({ value, onChange, onRemove }: Props) => {
             </SelectTrigger>
             <SelectContent>
               <SelectGroup>
-                <SelectItem key="grams" value="GRAM">
+                <SelectItem key="grams" value="g">
                   g
                 </SelectItem>
-                <SelectItem key="kilograms" value="KILOGRAM">
+                <SelectItem key="kilograms" value="kg">
                   kg
                 </SelectItem>
-                <SelectItem key="liters" value="LITER">
+                <SelectItem key="liters" value="l">
                   L
                 </SelectItem>
-                <SelectItem key="milliliters" value="MILLILITER">
+                <SelectItem key="milliliters" value="ml">
                   mL
                 </SelectItem>
-                <SelectItem key="piece" value="PIECE">
+                <SelectItem key="piece" value="piece">
                   pièce
                 </SelectItem>
-                <SelectItem key="portion" value="PORTION">
+                <SelectItem key="portion" value="portion">
                   portion
                 </SelectItem>
               </SelectGroup>

@@ -175,12 +175,12 @@ export const RecipeForm = () => {
                         </SelectTrigger>
                         <SelectContent>
                           <SelectGroup>
-                            <SelectItem value="PORTION">portion</SelectItem>
-                            <SelectItem value="PIECE">pièce</SelectItem>
-                            <SelectItem value="GRAM">g</SelectItem>
-                            <SelectItem value="KILOGRAM">kg</SelectItem>
-                            <SelectItem value="LITER">L</SelectItem>
-                            <SelectItem value="MILLILITER">mL</SelectItem>
+                            <SelectItem value="portion">portion</SelectItem>
+                            <SelectItem value="piece">pièce</SelectItem>
+                            <SelectItem value="g">g</SelectItem>
+                            <SelectItem value="kg">kg</SelectItem>
+                            <SelectItem value="l">L</SelectItem>
+                            <SelectItem value="ml">mL</SelectItem>
                           </SelectGroup>
                         </SelectContent>
                       </Select>
