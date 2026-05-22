@@ -1,0 +1,19 @@
+{
+  "properties": [
+    {
+      "name": "savis.offer.request.queue",
+      "type": "java.lang.String",
+      "description": "The queue to send request for offers."
+    },
+    {
+      "name": "savis.offer.result.queue",
+      "type": "java.lang.String",
+      "description": "The queue to receive scraped offer results."
+    },
+    {
+      "name": "savis.offer.invalidation.queue",
+      "type": "java.lang.String",
+      "description": "The queue to receive invalidated offers."
+    }
+  ]
+}
