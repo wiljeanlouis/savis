@@ -104,7 +104,7 @@ record YieldDto(
         @NotBlank String unit) {
 
     public Yield toDomain() {
-        Unit unitEnum = Unit.valueOf(unit.toUpperCase());
+        Unit unitEnum = Unit.fromSymbole(unit);
         return new Yield(new Quantity(quantity, unitEnum), unitEnum);
     }
 
@@ -112,7 +112,7 @@ record YieldDto(
         if (yield == null) {
             return null;
         }
-        return new YieldDto(yield.quantity().value(), yield.unit().name());
+        return new YieldDto(yield.quantity().value(), yield.unit().getSymbole());
     }
 }
 
@@ -123,7 +123,7 @@ record BomComponentDto(
         UUID selectedOfferId) {
 
     public Unit unitEnum() {
-        return Unit.valueOf(unit.toUpperCase());
+        return Unit.fromSymbole(unit);
     }
 
     public BomComponent toDomain() {
@@ -134,7 +134,7 @@ record BomComponentDto(
         return new BomComponentDto(
                 componentRequirement.componentName(),
                 componentRequirement.quantity().value(),
-                componentRequirement.quantity().unit().name(),
+                componentRequirement.quantity().unit().getSymbole(),
                 componentRequirement.selectedOfferId());
     }
 

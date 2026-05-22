@@ -5,10 +5,9 @@ import java.util.List;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
-import com.savouretplus.savis.bom.domain.ActivityType;
 import com.savouretplus.savis.bom.domain.Bom;
 import com.savouretplus.savis.bom.domain.BomType;
-import com.savouretplus.savis.common.Money;
+import com.savouretplus.savis.common.ActivityType;
 import com.savouretplus.savis.common.Unit;
 
 public class BomDtoTest {
@@ -23,11 +22,8 @@ public class BomDtoTest {
                 "Assemble and install",
                 BomType.DECORATION,
                 List.of(new BomComponentDto("Balloon", 120, "PIECE", null)),
-                List.of(new ActivityDto(null, ActivityType.ASSEMBLY, "Assemble arch", 90, Money.of(40), 1)),
-                new YieldDto(1, "PIECE"),
-                null,
-                null,
-                null);
+                List.of(new ActivityDto(null, ActivityType.ASSEMBLY, 90, 1)),
+                new YieldDto(1, "PIECE"));
 
         Bom bom = dto.toBom();
 
@@ -37,12 +33,11 @@ public class BomDtoTest {
         Assertions.assertEquals(1, bom.activities().size());
         Assertions.assertEquals(ActivityType.ASSEMBLY, bom.activities().get(0).type());
         Assertions.assertEquals(90, bom.activities().get(0).minutes().value());
-        Assertions.assertEquals(Money.of(40), bom.activities().get(0).hourlyRate());
         Assertions.assertEquals(Unit.PIECE, bom.getYield().unit());
     }
 
     @Test
-    void toBom_ShouldConvertLegacyTimingAndServings() {
+    void toBom_ShouldUseMultipleActivitiesAndPortionYield() {
         BomDto dto = new BomDto(
                 null,
                 "Cake",
@@ -51,11 +46,10 @@ public class BomDtoTest {
                 "Bake",
                 BomType.FOOD,
                 List.of(),
-                null,
-                null,
-                30,
-                15,
-                12);
+                List.of(
+                        new ActivityDto(null, ActivityType.PREP, 15, 1),
+                        new ActivityDto(null, ActivityType.COOK, 30, 2)),
+                new YieldDto(12, "PORTION"));
 
         Bom bom = dto.toBom();
 
@@ -66,5 +60,28 @@ public class BomDtoTest {
         Assertions.assertEquals(30, bom.activities().get(1).minutes().value());
         Assertions.assertEquals(12, bom.getYield().quantity().value());
         Assertions.assertEquals(Unit.PORTION, bom.getYield().unit());
+    }
+
+    @Test
+    void from_ShouldExposeUnitCodes() {
+        Bom bom = new Bom(
+                null,
+                null,
+                "Cake",
+                "Food bom",
+                "image.jpg",
+                "Bake",
+                BomType.FOOD,
+                List.of(),
+                List.of(),
+                new com.savouretplus.savis.bom.domain.Yield(
+                        new com.savouretplus.savis.common.Quantity(12, Unit.PORTION),
+                        Unit.PORTION));
+        bom.addComponent("Flour", 200, Unit.GRAM, null);
+
+        BomDto dto = BomDto.from(bom);
+
+        Assertions.assertEquals("portion", dto.bomYield().unit());
+        Assertions.assertEquals("g", dto.components().get(0).unit());
     }
 }

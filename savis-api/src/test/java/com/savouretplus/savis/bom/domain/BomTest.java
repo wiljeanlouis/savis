@@ -1,12 +1,12 @@
 package com.savouretplus.savis.bom.domain;
 
-import java.math.BigDecimal;
 import java.util.List;
 import java.util.UUID;
 
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
+import com.savouretplus.savis.common.ActivityType;
 import com.savouretplus.savis.common.Money;
 import com.savouretplus.savis.common.Quantity;
 import com.savouretplus.savis.common.Unit;
@@ -20,8 +20,8 @@ public class BomTest {
         String description = "This is a test bom.";
         String imageUrl = "http://example.com/image.jpg";
         String instructions = "1. Do this. 2. Do that.";
-        Activity prep = new Activity(null, ActivityType.PREP, "Prep", Minute.of(15), null, 1);
-        Activity cook = new Activity(null, ActivityType.COOK, "Cook", Minute.of(30), Money.of(25), 2);
+        Activity prep = new Activity(null, ActivityType.PREP, Minute.of(15), 1);
+        Activity cook = new Activity(null, ActivityType.COOK, Minute.of(30), 2);
         Yield yield = new Yield(new Quantity(12, Unit.PORTION), Unit.PORTION);
 
         Bom bom = new Bom(
@@ -45,7 +45,6 @@ public class BomTest {
         Assertions.assertEquals(List.of(prep, cook), bom.activities());
         Assertions.assertEquals(yield, bom.getYield());
         Assertions.assertEquals(Unit.PORTION, bom.getYield().unit());
-        Assertions.assertEquals(new Money(BigDecimal.valueOf(25.0), "CAD"), bom.activities().get(1).hourlyRate());
     }
 
     @Test

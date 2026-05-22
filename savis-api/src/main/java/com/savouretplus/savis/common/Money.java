@@ -12,15 +12,19 @@ public record Money(
             throw new IllegalArgumentException("Montant requis");
     }
 
+     public static Money of(double d) {
+        return new Money(BigDecimal.valueOf(d), "CAD");
+    }
+
+     public static Money of(String amount, String currency) {
+        return new Money(new BigDecimal(amount), currency);
+    }
+
     public Money add(Money other) {
         if (!this.currency.equals(other.currency)) {
             throw new IllegalArgumentException("Devises différentes !");
         }
         return new Money(this.amount.add(other.amount), this.currency);
-    }
-
-    public static Money of(double d) {
-        return new Money(BigDecimal.valueOf(d), "CAD");
     }
 
     public Money multiply(int i) {
