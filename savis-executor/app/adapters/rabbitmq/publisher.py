@@ -1,4 +1,4 @@
-"""RabbitMQ publisher for scraping results."""
+"""RabbitMQ publisher for offer results."""
 
 from __future__ import annotations
 
@@ -22,7 +22,7 @@ if TYPE_CHECKING:
 
 
 class RabbitMqResultPublisher(OfferPublisher):
-    """Publish successful scraping results to RabbitMQ."""
+    """Publish successful offer results to RabbitMQ."""
 
     def publish_payload(self, queue_name: str, payload: dict[str, Any]) -> None:
         """Publish a payload to a durable queue."""
@@ -38,13 +38,16 @@ class RabbitMqResultPublisher(OfferPublisher):
                 exchange="",
                 routing_key=queue_name,
                 body=json_payload,
-                properties=BasicProperties(delivery_mode=2),
+                properties=BasicProperties(
+                    delivery_mode=2,
+                    content_type="application/json",
+                ),
             )
 
     def publish_success(self, payload: dict[str, Any]) -> None:
         """Publish scraped offers to the offer results queue."""
         logger.info(
-            "[PUBLISH] Sending results to RabbitMQ | scraping_task_id={%s}",
+            "[PUBLISH] Sending results to RabbitMQ | offer_id={%s}",
             payload.get("id"),
         )
         self.publish_payload(RESULT_QUEUE_NAME, payload)
