@@ -81,7 +81,7 @@ export const useRecipeForm = () => {
       ...prev,
       ingredients: [
         ...prev.ingredients,
-        { ingredientName: "", quantity: 0, unit: "" },
+        { ingredientName: "", quantity: 0, unit: "", selectedOfferId: null },
       ],
     }));
   };

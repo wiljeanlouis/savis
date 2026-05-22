@@ -48,6 +48,18 @@ class OfferServiceTest {
     }
 
     @Test
+    void searchAvailableOffers_ShouldDelegateToRepository() {
+        Offer offer = offer(UUID.randomUUID(), "external-1", "provider-a", "Flour", 10);
+        when(repository.searchAvailableByComponentName("Flour")).thenReturn(List.of(offer));
+
+        List<Offer> offers = offerService.searchAvailableOffers("Flour");
+
+        Assertions.assertEquals(List.of(offer), offers);
+        verify(repository).searchAvailableByComponentName("Flour");
+        verifyNoMoreInteractions(repository);
+    }
+
+    @Test
     void invalidateOffer_ShouldMarkOfferUnavailable() {
         UUID publicId = UUID.randomUUID();
         Offer offer = offer(publicId, "external-1", "provider-a", "Flour", 10);
@@ -78,9 +90,11 @@ class OfferServiceTest {
         return new Offer(
                 publicId,
                 externalId,
+                "/product/farine",
                 componentName,
                 "brand",
                 "label",
+                "https://example.com/image.jpg",
                 Money.of(price),
                 new Quantity(1, Unit.KILOGRAM),
                 new Provider("Provider", providerIdentifier, "https://example.com", "address"),

@@ -1,5 +1,6 @@
 package com.savouretplus.savis.supply.adapter.persistence;
 
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -9,6 +10,7 @@ import com.savouretplus.savis.common.Money;
 import com.savouretplus.savis.common.Unit;
 import com.savouretplus.savis.common.Quantity;
 import com.savouretplus.savis.supply.domain.Offer;
+import com.savouretplus.savis.supply.domain.OfferStatus;
 import com.savouretplus.savis.supply.domain.Provider;
 import com.savouretplus.savis.supply.port.OfferRepository;
 
@@ -33,6 +35,16 @@ public class OfferRepositoryAdapter implements OfferRepository {
     }
 
     @Override
+    public List<Offer> searchAvailableByComponentName(String componentName) {
+        return jpaRepository.findByStatusAndComponentNameContainingIgnoreCaseOrderByPriceAmountAsc(
+                OfferStatus.AVAILABLE,
+                componentName)
+                .stream()
+                .map(this::toDomain)
+                .toList();
+    }
+
+    @Override
     public Offer save(Offer offer) {
         OfferEntity entity = jpaRepository.findByPublicId(offer.publicId())
                 .or(() -> jpaRepository.findByExternalIdAndProviderIdentifier(
@@ -47,9 +59,11 @@ public class OfferRepositoryAdapter implements OfferRepository {
     private void updateEntity(OfferEntity entity, Offer offer) {
         entity.setPublicId(offer.publicId());
         entity.setExternalId(offer.externalId());
+        entity.setUrl(offer.url());
         entity.setComponentName(offer.componentName());
         entity.setBrand(offer.brand());
         entity.setLabel(offer.label());
+        entity.setImageUrl(offer.imageUrl());
         entity.setLastSeen(offer.lastSeen());
         entity.setStatus(offer.status());
 
@@ -83,9 +97,11 @@ public class OfferRepositoryAdapter implements OfferRepository {
         return new Offer(
                 entity.getPublicId(),
                 entity.getExternalId(),
+                entity.getUrl(),
                 entity.getComponentName(),
                 entity.getBrand(),
                 entity.getLabel(),
+                entity.getImageUrl(),
                 price,
                 packageSize,
                 toDomain(entity.getProvider()),

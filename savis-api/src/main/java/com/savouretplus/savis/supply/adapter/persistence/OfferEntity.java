@@ -34,12 +34,16 @@ public class OfferEntity {
     @Column(nullable = false)
     private String externalId;
 
+    private String url;
+
     @Column(nullable = false)
     private String componentName;
 
     private String brand;
 
     private String label;
+
+    private String imageUrl;
 
     private BigDecimal priceAmount;
 

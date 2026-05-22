@@ -27,7 +27,7 @@ public class BomService {
     private final ComponentNeededEventPort componentNeededEventPublisher;
 
     public UUID saveBom(UUID bomId, Bom bom) {
-        log.info("Save bom {} with id : {}", bomId, bom);
+        log.info("Save bom {} with id : {}", bom, bomId);
 
         if (bomId != null) {
             Bom oldBom = getBom(bomId);

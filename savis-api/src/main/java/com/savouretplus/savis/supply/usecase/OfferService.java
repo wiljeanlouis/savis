@@ -28,6 +28,11 @@ public class OfferService {
         offers.forEach(repository::save);
     }
 
+    public List<Offer> searchAvailableOffers(String componentName) {
+        log.info("Search available offers for component {}", componentName);
+        return repository.searchAvailableByComponentName(componentName);
+    }
+
     public void invalidateOffer(UUID offerUuid) {
         log.info("Invalidate offer {}", offerUuid);
         repository.findByPublicId(offerUuid)

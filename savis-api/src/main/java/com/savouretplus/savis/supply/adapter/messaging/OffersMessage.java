@@ -69,9 +69,11 @@ record OfferMessage(
         return new Offer(
                 UUID.fromString(id),
                 externalId,
+                url,
                 searchTerm,
                 brand,
                 label,
+                imageUrl,
                 price == null ? null :price.toDomain(),
                 packageSize == null ? null :packageSize.toDomain(),
                 provider.toDomain(),

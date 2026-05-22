@@ -2,7 +2,29 @@ export interface RecipeIngredient {
   ingredientName: string;
   quantity: number;
   unit: string;
-  selectedIngredientId?: string;
+  selectedOfferId?: string | null;
+}
+
+export interface RecipeOffer {
+  id: string;
+  url: string | null;
+  componentName: string;
+  brand: string | null;
+  label: string | null;
+  imageUrl: string | null;
+  price: {
+    amount: number;
+    currency: string;
+  } | null;
+  packageSize: {
+    value: number;
+    unit: string;
+  } | null;
+  provider: {
+    name: string;
+    identifier: string;
+    site: string | null;
+  } | null;
 }
 
 export type ActivityType =
