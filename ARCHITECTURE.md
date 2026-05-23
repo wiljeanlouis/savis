@@ -2,14 +2,14 @@
 
 ## Project Vision
 
-SAVIS is the information system for SavouretPlus. Its purpose is to support the operational backbone of the business: recipes, product and ingredient sourcing, order pricing, catering, decoration services, and future inventory and margin analysis.
+SAVIS is the information system for SavouretPlus. Its purpose is to support the operational backbone of the business: BOMs/recipes, product and component sourcing, order pricing, catering, decoration services, and future inventory and margin analysis.
 
-The long-term product direction is to turn recipes and commercial operations into measurable business data:
+The long-term product direction is to turn BOMs and commercial operations into measurable business data:
 
-- recipes should know their ingredient requirements;
-- ingredients should be linked to real provider offers;
-- recipe costs should be calculated from current or selected offer prices;
-- order prices and margins should eventually be derived from recipe costs, labor, services, and business rules;
+- BOMs should know their component requirements, activities, and yield;
+- components should be linked to real provider offers;
+- BOM costs should be calculated from current or selected offer prices;
+- order prices and margins should eventually be derived from BOM costs, labor, services, and business rules;
 - external provider data should be collected asynchronously because provider collection is slow, failure-prone, and outside the control of the core application.
 
 The architecture therefore separates the stable business model from volatile infrastructure such as HTTP, RabbitMQ, Celery, Playwright, provider websites, and persistence.
@@ -18,8 +18,8 @@ The architecture therefore separates the stable business model from volatile inf
 
 SAVIS is currently split into three deployable modules:
 
-- `savis-api`: Java/Spring Boot backend. It owns the main business API, recipe domain, supply domain, persistence, and the public HTTP API consumed by the admin UI.
-- `savis-admin`: React/Vite admin back office. It is the user-facing administrative interface for managing recipes and future operational data.
+- `savis-api`: Java/Spring Boot backend. It owns the main business API, BOM domain, supply domain, persistence, and the public HTTP API consumed by the admin UI.
+- `savis-admin`: React/Vite admin back office. It is the user-facing administrative interface for managing BOMs/recipes and future operational data.
 - `savis-executor`: Python/FastAPI/Celery executor service. It receives offer collection requests, enqueues background work, executes provider scrapers, and publishes results back to the Java API through RabbitMQ.
 
 Supporting infrastructure:
@@ -42,14 +42,14 @@ Domain / Core
         <- Frameworks and infrastructure
 ```
 
-Inner layers should not know about outer layers. For example, the recipe domain should not know about RabbitMQ, HTTP controllers, JPA, Celery, or Playwright.
+Inner layers should not know about outer layers. For example, the BOM domain should not know about RabbitMQ, HTTP controllers, JPA, Celery, or Playwright.
 
 ### Java API Shape
 
 The Java API follows a feature-oriented clean architecture:
 
 ```text
-recipe/
+bom/
   domain/
   usecase/
   port/
@@ -72,10 +72,10 @@ supply/
 
 Examples:
 
-- `Recipe` and `IngredientRequirement` are domain objects.
-- `RecipeService` is the recipe use case layer.
-- `RecipeRepositoryPort`, `IngredientPricePort`, and `IngredientNeededEventPort` are ports.
-- `RecipeController`, JPA repositories, RabbitMQ producer, and external price adapters are adapters.
+- `Bom`, `BomComponent`, `Activity`, and `Yield` are domain objects.
+- `BomService` is the BOM use case layer.
+- `BomRepositoryPort`, `ComponentPricePort`, and `ComponentNeededEventPort` are ports.
+- `BomController`, JPA repositories, RabbitMQ publisher, and external price adapters are adapters.
 
 ### Python Executor Shape
 
@@ -144,14 +144,14 @@ Feature
 
 Current slices:
 
-- Recipe management: create, update, list, get, and delete recipes.
-- Ingredient need detection: when a recipe contains an ingredient with no selected offer, SAVIS emits an ingredient-needed event.
-- Offer collection: ingredient/search term requests are converted into executor tasks and Celery jobs.
-- Offer review and refresh: reviewed offers can be marked valid or rejected, and valid offers can be refreshed by URL.
+- BOM management: create, update, list, get, and delete BOMs for food and decoration workflows.
+- Component need detection: when a BOM contains a component with no selected offer, SAVIS emits a component-needed event.
+- Offer collection: component/search term requests are converted into executor tasks and Celery jobs.
+- Offer selection and refresh: persisted offers can be searched from the admin UI, selected on BOM components, and invalidated/refreshed through supply workflows.
 - Provider scraping: provider-specific scraper implementations extract normalized offers.
-- Supply result consumption: Java consumes executor offer results from RabbitMQ.
+- Supply result consumption: Java consumes executor offer results from RabbitMQ and persists/upserts available offers.
 
-This structure keeps business changes local. For example, adding a new provider should mostly touch the executor provider adapter and registration, not the recipe domain. Adding a new recipe pricing policy should mostly touch recipe pricing ports/use cases, not RabbitMQ or Celery.
+This structure keeps business changes local. For example, adding a new provider should mostly touch the executor provider adapter and registration, not the BOM domain. Adding a new BOM pricing policy should mostly touch BOM pricing ports/use cases, not RabbitMQ or Celery.
 
 ## Relationship Between Java and Python
 
@@ -160,12 +160,12 @@ Java is the system of record and the owner of business workflows. Python is an e
 Java responsibilities:
 
 - expose SAVIS business APIs;
-- own recipe and supply domain concepts;
-- persist recipes and supply state;
-- decide when an ingredient needs provider offers;
-- publish ingredient-needed messages;
+- own BOM and supply domain concepts;
+- persist BOMs and supply state;
+- decide when a component needs provider offers;
+- publish component-needed messages;
 - receive offer results from Python through RabbitMQ;
-- calculate recipe costs through `IngredientPricePort`.
+- calculate BOM costs through `ComponentPricePort`.
 
 Python responsibilities:
 
@@ -217,7 +217,7 @@ The current task is:
 app.adapters.celery.celery_tasks.get_offers_task
 ```
 
-It resolves the executor task use case, collects offers, persists/reconciles them, and publishes valid results to RabbitMQ.
+It resolves the executor task use case, collects offers, persists/reconciles them, and publishes result messages to RabbitMQ.
 
 ## Role of the Executor
 
@@ -244,51 +244,60 @@ The core model should remain provider-neutral:
 
 Provider adapters, such as the Maxi scraper, are responsible for browser/page handling, HTML extraction, parsing, and mapping raw provider data into core offers.
 
-## Recipe Pricing
+## BOM Pricing
 
-Recipe pricing starts in the Java recipe domain.
+BOM pricing starts in the Java BOM domain.
 
-A recipe contains ingredient requirements:
+A BOM contains component requirements, production activities, and yield:
 
 ```text
-IngredientRequirement
-  ingredientName
+BomComponent
+  componentName
   quantity
   selectedOfferId
+
+Activity
+  type
+  minutes
+  sequence
+
+Yield
+  quantity
+  unit
 ```
 
-The recipe domain calculates total cost through the `IngredientPricePort`:
+The BOM domain calculates total cost through the `ComponentPricePort`:
 
 ```text
-Recipe.calculateTotal(IngredientPricePort)
+Bom.calculateTotal(ComponentPricePort)
 ```
 
 This keeps the domain independent from where prices come from.
 
 The intended pricing flow is:
 
-1. A recipe is saved with ingredient requirements.
-2. Ingredients without `selectedOfferId` trigger `IngredientNeededEvent`.
-3. The supply side requests or refreshes offers for those ingredients.
-4. Collected offers are tracked by the executor and published to Java when valid.
-5. An admin or automated policy selects the offer to use for each ingredient.
-6. `IngredientPricePort` resolves selected offer prices.
-7. `Recipe.calculateTotal(...)` sums ingredient costs.
+1. A BOM is saved with component requirements, activities, and yield.
+2. Components without `selectedOfferId` trigger `ComponentNeededEvent`.
+3. The supply side requests or refreshes offers for those components.
+4. Collected offers are tracked by the executor and published to Java as available offer results.
+5. The admin can search available offers and select one on each component.
+6. `ComponentPricePort` resolves selected offer prices.
+7. `Bom.calculateTotal(...)` sums component costs.
 
-Current implementation note: `IngredientPriceAdapter` currently returns a placeholder value. `OfferService.processOffers(...)` receives result messages but persistence and reconciliation in the Java supply module are still being shaped.
+Current implementation note: `ComponentPriceAdapter` currently returns a placeholder value. `OfferService.processOffers(...)` saves new offers and updates existing ones by public id or provider/external id. The final pricing integration from selected offers is still being shaped.
 
 ## Event Flow
 
 The event-driven offer collection flow is:
 
 ```text
-Admin saves recipe
-  -> RecipeController
-  -> RecipeService.saveRecipe(...)
-  -> RecipeRepositoryPort.save(...)
-  -> RecipeService publishes IngredientNeededEvent for ingredients without selected offers
-  -> IngredientNeededEventPort
-  -> RabbitMqProducer
+Admin saves BOM
+  -> BomController
+  -> BomService.saveBom(...)
+  -> BomRepositoryPort.save(...)
+  -> BomService publishes ComponentNeededEvent for components without selected offers
+  -> ComponentNeededEventPort
+  -> RabbitMqPublisher
   -> RabbitMQ queue: savis.offer.requests
   -> Python subscriber
   -> SavisTaskUseCase.enqueue_savis_task(...)
@@ -370,4 +379,4 @@ Keeping the RabbitMQ subscriber inside FastAPI is acceptable while it only forwa
 - Use Celery for slow and retryable work.
 - Use RabbitMQ events for business-triggered offer collection and result delivery.
 - Keep Java result consumers idempotent because offer result messages may be retried or replayed.
-- Treat current supply/pricing persistence as an evolving slice; avoid coupling recipe pricing directly to executor internals.
+- Treat current supply/pricing persistence as an evolving slice; avoid coupling BOM pricing directly to executor internals.

@@ -1,15 +1,15 @@
 # SAVIS
 
-SAVIS is the information system for **SavouretPlus**. It is being built to manage recipes, ingredient sourcing, product/catalog data, order pricing, catering operations, decoration services, and future inventory and margin analysis.
+SAVIS is the information system for **SavouretPlus**. It is being built to manage BOMs/recipes, component sourcing, product/catalog data, order pricing, catering operations, decoration services, and future inventory and margin analysis.
 
-At a high level, SAVIS connects business workflows in Java with asynchronous offer collection work in Python:
+At a high level, SAVIS connects BOM management in Java with asynchronous offer collection work in Python:
 
 ```text
-Recipes and business data
-  -> ingredient needs
+Food or decoration BOMs
+  -> component needs
   -> provider offer collection
   -> selected offer prices
-  -> recipe and order pricing
+  -> BOM, service, and order pricing
 ```
 
 For a deeper architectural explanation, see [ARCHITECTURE.md](ARCHITECTURE.md).
@@ -18,9 +18,10 @@ For a deeper architectural explanation, see [ARCHITECTURE.md](ARCHITECTURE.md).
 
 SAVIS should eventually help SavouretPlus:
 
-- manage recipes and ingredient requirements;
+- manage BOMs for food recipes, decoration assemblies, and service workflows;
+- manage component requirements, activities, and yield;
 - manage product and provider offer data;
-- calculate recipe costs from real ingredient prices;
+- calculate BOM costs from selected provider offers;
 - calculate order prices and margins;
 - support catering and decoration services;
 - prepare future inventory, purchasing, automation, and margin reporting features.
@@ -44,21 +45,21 @@ savis/
 
 Location: [savis-api](savis-api/README.md)
 
-The Java API is the main business backend. It owns recipe management, supply concepts, persistence, business workflows, HTTP APIs consumed by the admin UI, and RabbitMQ listeners for executor results.
+The Java API is the main business backend. It owns BOM management, supply concepts, persistence, business workflows, HTTP APIs consumed by the admin UI, and RabbitMQ listeners for executor results.
 
 Main responsibilities:
 
-- expose recipe and supply endpoints;
+- expose BOM and supply endpoints;
 - persist business data in PostgreSQL;
-- publish ingredient-needed messages to RabbitMQ;
+- publish component-needed messages to RabbitMQ;
 - receive collected offers from Python through RabbitMQ;
-- calculate recipe costs through domain ports.
+- calculate BOM costs through domain ports.
 
 ### SAVIS Admin
 
 Location: [savis-admin](savis-admin/README.md)
 
-The admin app is the back office UI. It is used by internal users to manage recipes and, over time, operational data such as offers, products, providers, orders, and services.
+The admin app is the back office UI. It is used by internal users to manage BOMs/recipes and, over time, operational data such as offers, products, providers, orders, and services. In the BOM form, users define components, activities, yield, and can select a persisted provider offer for each component.
 
 ### SAVIS Executor
 
@@ -79,7 +80,6 @@ It is intentionally separate from the Java backend because provider collection i
 - Spring AMQP
 - Spring Modulith
 - PostgreSQL
-- MapStruct
 - Lombok
 - Maven
 
@@ -155,8 +155,8 @@ feature/
 
 Examples currently present in the repo:
 
-- `recipe`: recipe domain, recipe use cases, recipe controller, persistence, ingredient-needed messaging.
-- `supply`: offer/provider concepts, offer result consumption, offer request abstractions.
+- `bom`: BOM domain, BOM use cases, HTTP API, persistence, component-needed messaging, activities, and yield.
+- `supply`: offer/provider concepts, persisted offers, offer result/invalidation consumption, and offer search for the admin UI.
 - `executor`: task tracking, offer collection, offer refresh, provider scraper adapters, Celery integration, RabbitMQ result publishing.
 
 ## Naming Conventions
@@ -183,29 +183,29 @@ Examples currently present in the repo:
 
 ### General
 
-- Use business names for domain concepts: `Recipe`, `IngredientRequirement`, `Offer`, `Provider`.
+- Use business names for domain concepts: `Bom`, `BomComponent`, `Activity`, `Yield`, `Offer`, `Provider`.
 - Use technology names only at adapter boundaries: `RabbitMqProducer`, `CeleryQueue`, `RabbitMqResultPublisher`.
-- Prefer ports named after business capabilities: `IngredientPricePort`, `OfferRequestor`, `TaskQueue`.
+- Prefer ports named after business capabilities: `ComponentPricePort`, `OfferRequestor`, `TaskQueue`.
 
 ## Business Flows
 
-### Recipe Creation and Ingredient Need Detection
+### BOM Creation and Component Need Detection
 
 ```text
-Admin creates or updates a recipe
-  -> Java RecipeController
-  -> RecipeService.saveRecipe(...)
-  -> recipe is persisted
-  -> each ingredient without selectedOfferId emits IngredientNeededEvent
-  -> RabbitMqProducer publishes a message to RabbitMQ
+Admin creates or updates a BOM
+  -> Java BomController
+  -> BomService.saveBom(...)
+  -> BOM is persisted
+  -> each component without selectedOfferId emits ComponentNeededEvent
+  -> RabbitMqPublisher publishes a message to RabbitMQ
 ```
 
-This allows recipe management to stay fast while provider offer discovery happens asynchronously.
+This allows BOM management to stay fast while provider offer discovery happens asynchronously.
 
 ### Offer Collection Flow
 
 ```text
-RabbitMQ message: ingredient/search term
+RabbitMQ message: component/search term
   -> Python subscriber
   -> SavisTaskUseCase.enqueue_savis_task(...)
   -> CeleryQueue
@@ -220,18 +220,18 @@ RabbitMQ message: ingredient/search term
   -> OfferService
 ```
 
-### Recipe Pricing Flow
+### BOM Pricing Flow
 
 ```text
-Recipe
-  -> IngredientRequirement[]
+BOM
+  -> BomComponent[]
   -> selected offer prices
-  -> IngredientPricePort
-  -> Recipe.calculateTotal(...)
+  -> ComponentPricePort
+  -> Bom.calculateTotal(...)
   -> Money total
 ```
 
-Current note: recipe pricing is in progress. `IngredientPriceAdapter` currently returns a placeholder value and should later resolve real prices from the supply module or persisted offers.
+Current note: BOM pricing is in progress. `ComponentPriceAdapter` currently returns a placeholder value and should later resolve real prices from the supply module or persisted offers.
 
 ### Failure and Retry Flow
 
@@ -270,7 +270,7 @@ Java is the business system of record. Python is the offer collection execution 
 Java owns:
 
 - business workflows;
-- recipe and supply state;
+- BOM and supply state;
 - persistence;
 - pricing decisions;
 - admin-facing APIs.
@@ -327,7 +327,7 @@ REDIS_URL=
 JAVA_API_URL=
 ```
 
-In Docker Compose, `RABBIT_MQ_URL` and `DATABASE_URL` are provided to executor services. `REDIS_URL` and `JAVA_API_URL` are legacy optional settings and are not used by the current Compose stack.
+In Docker Compose, `RABBIT_MQ_URL` and `DATABASE_URL` are provided to executor services.
 
 ## Docker Commands
 
@@ -482,8 +482,8 @@ Before merging changes that touch cross-service flows, verify:
 
 SAVIS is under active development. The architecture is already oriented around clean boundaries and asynchronous offer collection, but some business slices are still evolving:
 
-- real recipe pricing through stored offers is not complete yet;
-- supply persistence and offer selection are still being shaped;
+- real BOM pricing through stored offers is not complete yet;
+- supply persistence and offer selection exist, but pricing integration is still being shaped;
 - executor provider coverage is currently limited;
 - RabbitMQ rejected-message handling should eventually use a dead-letter queue;
 - cross-service integration tests should be added as flows stabilize.
