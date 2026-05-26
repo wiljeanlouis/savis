@@ -1,5 +1,9 @@
 import { executorApi } from "@/shared/api";
-import type { SavisTasksPage } from "../types";
+import type {
+  CreateSavisTaskPayload,
+  SavisTask,
+  SavisTasksPage,
+} from "../types";
 
 interface GetTasksParams {
   page: number;
@@ -17,5 +21,15 @@ export const getTasks = async ({
   const { data }: { data: SavisTasksPage } = await executorApi.get("/tasks", {
     params: { page, size, sort_by: sortBy, sort_direction: sortDirection },
   });
+  return data;
+};
+
+export const createTask = async (
+  payload: CreateSavisTaskPayload,
+): Promise<SavisTask> => {
+  const { data }: { data: SavisTask } = await executorApi.post(
+    "/tasks",
+    payload,
+  );
   return data;
 };

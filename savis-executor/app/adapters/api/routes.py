@@ -127,7 +127,6 @@ async def patch_offer(
         offer_id,
         status=request.status,
         refresh_frequency_hours=request.refresh_frequency_hours,
-        refresh_now=request.refresh_now,
     )
     if offer is None:
         raise HTTPException(status_code=404, detail="Offer not found")

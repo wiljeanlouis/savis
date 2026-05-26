@@ -51,7 +51,6 @@ export const getIngredientSearchTermFacets = async (): Promise<
 export interface PatchIngredientPayload {
   status?: IngredientStatus;
   refresh_frequency_hours?: number;
-  refresh_now?: boolean;
 }
 
 export const patchIngredient = async (

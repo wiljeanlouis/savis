@@ -298,12 +298,10 @@ def test_patch_offer_updates_one_offer(
             *,
             status: OfferStatus | None,
             refresh_frequency_hours: int | None,
-            refresh_now: bool,
         ) -> Offer:
             assert offer_id == offer.id
             assert status == OfferStatus.VALID
             assert refresh_frequency_hours == REFRESH_FREQUENCY_SIX_HOURS
-            assert refresh_now is True
             return offer
 
     monkeypatch.setattr(routes, "offers_use_case", FixedOffersUseCase())
@@ -315,7 +313,6 @@ def test_patch_offer_updates_one_offer(
         json={
             "status": "VALID",
             "refresh_frequency_hours": REFRESH_FREQUENCY_SIX_HOURS,
-            "refresh_now": True,
         },
     )
 

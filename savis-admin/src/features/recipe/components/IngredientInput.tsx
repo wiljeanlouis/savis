@@ -51,17 +51,11 @@ export const IngredientInput = ({ value, onChange, onRemove }: Props) => {
   };
 
   const productUrl = (offer: (typeof offers)[number]) => {
-    if (!offer.provider?.site || !offer.url) {
+    if (!offer.url) {
       return null;
     }
 
-    try {
-      return new URL(offer.url, offer.provider.site).toString();
-    } catch {
-      const site = offer.provider.site.replace(/\/+$/, "");
-      const path = offer.url.replace(/^\/+/, "");
-      return `${site}/${path}`;
-    }
+    return offer.url;
   };
 
   const selectedProductUrl = selectedOffer ? productUrl(selectedOffer) : null;

@@ -22,9 +22,7 @@ class Container:
         """Build the offers use case."""
         return OffersUseCase(
             cls.offer_repository,
-            cls.celery_queue,
             cls.result_publisher,
-            cls.savis_task_repository,
             load_offer_providers(),
         )
 

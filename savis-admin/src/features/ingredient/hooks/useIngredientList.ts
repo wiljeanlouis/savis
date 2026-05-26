@@ -1,6 +1,7 @@
 import { useEffect, useMemo } from "react";
 import { useSearchParams } from "react-router";
 import { toast } from "sonner";
+import { useCreateTask } from "@/features/task/hooks/useTaskApi";
 import type {
   Ingredient,
   IngredientEditValues,
@@ -90,6 +91,7 @@ export const useIngredientList = () => {
     listState.searchTerm,
   );
   const patchIngredient = usePatchIngredient();
+  const createTask = useCreateTask();
 
   useEffect(() => {
     const nextSearchParams = createSearchParamsFromListState(
@@ -203,26 +205,45 @@ export const useIngredientList = () => {
   };
 
   const handleEdit = (ingredient: Ingredient, values: IngredientEditValues) => {
-    patchIngredient.mutate(
-      {
-        id: ingredient.id,
-        payload: {
-          status: values.status,
-          refresh_frequency_hours: values.refreshFrequencyHours,
-          refresh_now: values.refreshNow,
-        },
-      },
-      {
-        onSuccess: () => toast.success("Ingrédient mis à jour."),
-        onError: () => toast.error("La mise à jour de l'ingrédient a échoué."),
-      },
-    );
+    void (async () => {
+      try {
+        await patchIngredient.mutateAsync({
+          id: ingredient.id,
+          payload: {
+            status: values.status,
+            refresh_frequency_hours: values.refreshFrequencyHours,
+          },
+        });
+      } catch {
+        toast.error("La mise à jour de l'ingrédient a échoué.");
+        return;
+      }
+
+      try {
+        if (values.refreshNow) {
+          await createTask.mutateAsync({
+            type: "REFRESH_OFFER",
+            payload: {
+              offer_id: ingredient.id,
+              url: ingredient.url,
+            },
+          });
+        }
+        toast.success(
+          values.refreshNow
+            ? "Ingrédient mis à jour et refresh lancé."
+            : "Ingrédient mis à jour.",
+        );
+      } catch {
+        toast.error("L'ingrédient est mis à jour, mais le refresh a échoué.");
+      }
+    })();
   };
 
   return {
     data,
     isLoading: isPending,
-    isPatching: patchIngredient.isPending,
+    isPatching: patchIngredient.isPending || createTask.isPending,
     listState,
     handleEdit,
     handlePageSizeChange,

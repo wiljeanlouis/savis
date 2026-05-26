@@ -20,3 +20,19 @@ export interface SavisTasksPage {
   total_items: number;
   total_pages: number;
 }
+
+export type CreateSavisTaskPayload =
+  | {
+      type: "GET_OFFERS";
+      payload: {
+        search_term: string;
+        type?: "FOOD" | "DECORATION";
+      };
+    }
+  | {
+      type: "REFRESH_OFFER";
+      payload: {
+        offer_id: string;
+        url: string;
+      };
+    };

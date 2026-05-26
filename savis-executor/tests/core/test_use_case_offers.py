@@ -13,16 +13,11 @@ from app.core.models import (
     OfferType,
     Price,
     Provider,
-    SavisTask,
-    SavisTaskStatus,
-    SavisTaskType,
 )
 from app.core.ports import (
     OfferProvider,
     OfferPublisher,
     OfferRepository,
-    SavisTaskRepository,
-    TaskQueue,
 )
 from app.core.use_case_offers import OfferCollectionFailedError, OffersUseCase
 
@@ -90,22 +85,6 @@ class FakeOfferRepository(OfferRepository):
         return offer
 
 
-class FakeTaskQueue(TaskQueue):
-    def __init__(self) -> None:
-        self.refreshes: list[tuple[str, str]] = []
-
-    def push_get_offers(  # noqa: ARG002
-        self,
-        task_id: str,
-        search_term: str,
-        offer_type: OfferType = OfferType.FOOD,
-    ) -> None:
-        return None
-
-    def push_refresh_offer(self, task_id: str, offer_id: str, url: str) -> None:
-        self.refreshes.append((task_id, offer_id, url))
-
-
 class FakeOfferPublisher(OfferPublisher):
     def __init__(self) -> None:
         self.offers: list[Offer] = []
@@ -116,38 +95,6 @@ class FakeOfferPublisher(OfferPublisher):
 
     def publish_offer_invalidation(self, offer: Offer) -> None:
         self.invalidations.append(offer)
-
-
-class FakeTaskRepository(SavisTaskRepository):
-    def __init__(self) -> None:
-        self.tasks: list[SavisTask] = []
-        self.failed: list[tuple[UUID, str]] = []
-
-    def list(
-        self,
-        status: SavisTaskStatus | None = None,  # noqa: ARG002
-        task_type: SavisTaskType | None = None,  # noqa: ARG002
-        page: int = 1,  # noqa: ARG002
-        size: int = 20,  # noqa: ARG002
-    ) -> tuple[list[SavisTask], int]:
-        return self.tasks, len(self.tasks)
-
-    def save(self, task: SavisTask) -> SavisTask:
-        self.tasks.append(task)
-        return task
-
-    def mark_completed(self, task_id: UUID) -> None:  # noqa: ARG002
-        return None
-
-    def mark_failed(self, task_id: UUID, error: str) -> None:
-        self.failed.append((task_id, error))
-
-    def mark_stale_in_progress_as_failed(
-        self,
-        stale_before: datetime,  # noqa: ARG002
-        error: str,  # noqa: ARG002
-    ) -> int:
-        return 0
 
 
 class SuccessfulProvider(OfferProvider):
@@ -170,16 +117,12 @@ class FailingProvider(OfferProvider):
 
 def _use_case(
     repository: FakeOfferRepository | None = None,
-    queue: FakeTaskQueue | None = None,
     publisher: FakeOfferPublisher | None = None,
-    task_repository: FakeTaskRepository | None = None,
     providers: list[OfferProvider] | None = None,
 ) -> OffersUseCase:
     return OffersUseCase(
         repository or FakeOfferRepository(),
-        queue or FakeTaskQueue(),
         publisher or FakeOfferPublisher(),
-        task_repository or FakeTaskRepository(),
         providers or [],
     )
 
@@ -212,20 +155,16 @@ def test_save_observed_offers_preserves_existing_status() -> None:
     assert offers[0].next_refresh_at == now + timedelta(hours=12)
 
 
-def test_patch_updates_status_frequency_and_enqueues_refresh() -> None:
+def test_patch_updates_status_frequency_and_publishes_when_validated() -> None:
     existing = _offer()
     existing.id = uuid7()
     existing.status = OfferStatus.NEW
     existing.refresh_frequency_hours = 24
     repository = FakeOfferRepository(existing)
-    queue = FakeTaskQueue()
     publisher = FakeOfferPublisher()
-    task_repository = FakeTaskRepository()
     use_case = _use_case(
         repository=repository,
-        queue=queue,
         publisher=publisher,
-        task_repository=task_repository,
     )
     now = datetime(2026, 5, 18, 12, 0, tzinfo=UTC)
 
@@ -233,7 +172,6 @@ def test_patch_updates_status_frequency_and_enqueues_refresh() -> None:
         existing.id,
         status=OfferStatus.VALID,
         refresh_frequency_hours=REFRESH_FREQUENCY_SIX_HOURS,
-        refresh_now=True,
         now=now,
     )
 
@@ -243,10 +181,6 @@ def test_patch_updates_status_frequency_and_enqueues_refresh() -> None:
     assert offer.next_refresh_at == now + timedelta(
         hours=REFRESH_FREQUENCY_SIX_HOURS,
     )
-    refresh_task = task_repository.tasks[0]
-    assert queue.refreshes == [
-        (str(refresh_task.id), str(existing.id), existing.url),
-    ]
     assert publisher.offers == [offer]
 
 

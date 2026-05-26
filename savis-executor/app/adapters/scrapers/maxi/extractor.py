@@ -63,7 +63,9 @@ class MaxiOffer:
         """Extract and return an Offer object from the scraped data."""
         return Offer(
             external_id=self.external_id,
-            url=self.url,
+            url=self.url
+            if self.url.startswith(("http://", "https://"))
+            else f"{provider.website}{self.url}",
             brand=self.brand,
             label=self.label,
             price=self.price,

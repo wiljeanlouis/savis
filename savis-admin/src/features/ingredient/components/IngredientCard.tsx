@@ -58,7 +58,6 @@ export const IngredientCard = ({
         ingredient.package_size.unit,
       )
     : "-";
-  const offerUrl = `${ingredient.provider.site}${ingredient.url}`;
 
   return (
     <Card className="h-full">
@@ -73,7 +72,7 @@ export const IngredientCard = ({
       <CardHeader>
         <CardTitle>
           <a
-            href={offerUrl}
+            href={ingredient.url}
             target="_blank"
             rel="noreferrer"
             className="line-clamp-2 hover:underline"

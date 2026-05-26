@@ -6,7 +6,7 @@ from uuid import UUID  # noqa: TC003
 
 from pydantic import BaseModel, Field
 
-from app.core.models import (  # noqa: TC001
+from app.core.models import (
     OfferStatus,
     OfferType,
     SavisTaskStatus,
@@ -147,4 +147,3 @@ class PatchOfferRequest(BaseModel):
 
     status: OfferStatus | None = None
     refresh_frequency_hours: int | None = Field(default=None, ge=1)
-    refresh_now: bool = False

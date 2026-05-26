@@ -5,12 +5,15 @@
 from app.adapters.scrapers.maxi.extractor import MaxiOffer
 from app.core.models import Price
 
+RELATIVE_OFFER_URL = "/fr/farine/p/12345"
+FULL_OFFER_URL = "https://maxi.ca/fr/farine/p/12345"
+
 
 def test_get_offer_derives_total_price_from_unit_price() -> None:
     maxi_offer = MaxiOffer(
         badge="",
         external_id="external-id",
-        url="https://example.com/offer",
+        url=RELATIVE_OFFER_URL,
         brand="Example",
         label="Flour",
         _package_price_info="500 g, 2,50 $/100g",
@@ -19,6 +22,7 @@ def test_get_offer_derives_total_price_from_unit_price() -> None:
 
     offer = maxi_offer.get_offer()
 
+    assert offer.url == FULL_OFFER_URL
     assert offer.price == Price(amount="12.50")
 
 
@@ -62,7 +66,7 @@ def test_get_offer_keeps_price_empty_when_required_data_is_missing() -> None:
     maxi_offer = MaxiOffer(
         badge="",
         external_id="external-id",
-        url="https://example.com/offer",
+        url=RELATIVE_OFFER_URL,
         brand="Example",
         label="Flour",
         _package_price_info="",
@@ -78,7 +82,7 @@ def _maxi_offer(package_price_info: str) -> MaxiOffer:
     return MaxiOffer(
         badge="",
         external_id="external-id",
-        url="https://example.com/offer",
+        url=RELATIVE_OFFER_URL,
         brand="Example",
         label="Flour",
         _package_price_info=package_price_info,

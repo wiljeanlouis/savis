@@ -1,6 +1,5 @@
 package com.savouretplus.savis.bom.adapter.persistence;
 
-import java.math.BigDecimal;
 
 import com.savouretplus.savis.common.ActivityType;
 

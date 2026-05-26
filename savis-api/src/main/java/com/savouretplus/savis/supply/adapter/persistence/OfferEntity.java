@@ -4,7 +4,6 @@ import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.UUID;
 
-import com.savouretplus.savis.common.Unit;
 import com.savouretplus.savis.supply.domain.OfferStatus;
 
 import jakarta.persistence.Column;

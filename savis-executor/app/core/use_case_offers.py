@@ -14,8 +14,6 @@ from app.core.models import (
     OfferSortField,
     OfferStatus,
     OfferType,
-    SavisTask,
-    SavisTaskType,
     SortDirection,
 )
 
@@ -24,8 +22,6 @@ if TYPE_CHECKING:
         OfferProvider,
         OfferPublisher,
         OfferRepository,
-        SavisTaskRepository,
-        TaskQueue,
     )
 
 DEFAULT_REFRESH_FREQUENCY_HOURS = 24
@@ -50,18 +46,15 @@ class OffersUseCase:
     def __init__(
         self,
         offer_repository: OfferRepository,
-        task_queue: TaskQueue,
         offer_publisher: OfferPublisher,
-        task_repository: SavisTaskRepository,
         offer_providers: list[OfferProvider],
     ) -> None:
         """Initialize the use case."""
         self.offer_repository = offer_repository
-        self.task_queue = task_queue
         self.offer_publisher = offer_publisher
-        self.task_repository = task_repository
         self.offer_providers = offer_providers
 
+    # celery worker use case - begin
     def get_offers(
         self,
         search_term: str,
@@ -90,16 +83,6 @@ class OffersUseCase:
             offer_type=offer_type,
         )
         return offers
-
-    def refresh_offer_by_url(self, offer_id: UUID, url: str, task_id: UUID) -> None:
-        """Refresh one offer by URL once URL adapters are implemented."""
-        logger.info(
-            "[OFFERS] refresh offer pending URL adapter | "
-            "task_id=%s offer_id=%s url=%s",
-            task_id,
-            offer_id,
-            url,
-        )
 
     def save_observed_offers(
         self,
@@ -149,6 +132,49 @@ class OffersUseCase:
             persisted_offers.append(self.offer_repository.save(persisted_offer))
         return persisted_offers
 
+    def refresh_offer_by_url(self, offer_id: UUID, url: str, task_id: UUID) -> None:
+        """Refresh one offer by URL once URL adapters are implemented."""
+        logger.info(
+            "[OFFERS] refresh offer pending URL adapter | "
+            "task_id=%s offer_id=%s url=%s",
+            task_id,
+            offer_id,
+            url,
+        )
+
+    def apply_refreshed_offer(
+        self,
+        offer_id: UUID,
+        refreshed_offer: Offer,
+        now: datetime | None = None,
+    ) -> Offer | None:
+        """Apply a URL refresh and publish changed valid offers immediately."""
+        offer = self.offer_repository.find_by_id(offer_id)
+        if offer is None:
+            return None
+
+        observed_at = now or datetime.now(UTC)
+        has_changed = self._has_public_changes(offer, refreshed_offer)
+        offer.url = refreshed_offer.url
+        offer.brand = refreshed_offer.brand
+        offer.label = refreshed_offer.label
+        offer.price = refreshed_offer.price
+        offer.package_size = refreshed_offer.package_size
+        offer.image_url = refreshed_offer.image_url
+        offer.provider = refreshed_offer.provider
+        offer.last_retrieved_at = observed_at
+        offer.next_refresh_at = observed_at + timedelta(
+            hours=offer.refresh_frequency_hours or DEFAULT_REFRESH_FREQUENCY_HOURS,
+        )
+
+        saved_offer = self.offer_repository.save(offer)
+        if has_changed and saved_offer.status == OfferStatus.VALID:
+            self.offer_publisher.publish_offer(saved_offer)
+        return saved_offer
+
+    # celery worker use case - end
+
+    # api use case - begin
     def list(
         self,
         status: OfferStatus | None,
@@ -186,7 +212,6 @@ class OffersUseCase:
         *,
         status: OfferStatus | None = None,
         refresh_frequency_hours: int | None = None,
-        refresh_now: bool = False,
         now: datetime | None = None,
     ) -> Offer | None:
         """Update review and refresh settings for an offer."""
@@ -203,22 +228,6 @@ class OffersUseCase:
             offer.next_refresh_at = current_time + timedelta(
                 hours=refresh_frequency_hours,
             )
-        if refresh_now:
-            task = self.task_repository.save(
-                SavisTask.create(
-                    SavisTaskType.REFRESH_OFFER,
-                    {"offer_id": str(offer.id), "url": offer.url},
-                ),
-            )
-            try:
-                self.task_queue.push_refresh_offer(
-                    str(task.id),
-                    str(offer.id),
-                    offer.url,
-                )
-            except Exception as exc:
-                self.task_repository.mark_failed(task.id, str(exc))
-                raise
 
         saved_offer = self.offer_repository.save(offer)
         if (
@@ -233,35 +242,7 @@ class OffersUseCase:
             self.offer_publisher.publish_offer_invalidation(saved_offer)
         return saved_offer
 
-    def apply_refreshed_offer(
-        self,
-        offer_id: UUID,
-        refreshed_offer: Offer,
-        now: datetime | None = None,
-    ) -> Offer | None:
-        """Apply a URL refresh and publish changed valid offers immediately."""
-        offer = self.offer_repository.find_by_id(offer_id)
-        if offer is None:
-            return None
-
-        observed_at = now or datetime.now(UTC)
-        has_changed = self._has_public_changes(offer, refreshed_offer)
-        offer.url = refreshed_offer.url
-        offer.brand = refreshed_offer.brand
-        offer.label = refreshed_offer.label
-        offer.price = refreshed_offer.price
-        offer.package_size = refreshed_offer.package_size
-        offer.image_url = refreshed_offer.image_url
-        offer.provider = refreshed_offer.provider
-        offer.last_retrieved_at = observed_at
-        offer.next_refresh_at = observed_at + timedelta(
-            hours=offer.refresh_frequency_hours or DEFAULT_REFRESH_FREQUENCY_HOURS,
-        )
-
-        saved_offer = self.offer_repository.save(offer)
-        if has_changed and saved_offer.status == OfferStatus.VALID:
-            self.offer_publisher.publish_offer(saved_offer)
-        return saved_offer
+    # api use case - end
 
     @staticmethod
     def _has_public_changes(current: Offer, refreshed: Offer) -> bool:
