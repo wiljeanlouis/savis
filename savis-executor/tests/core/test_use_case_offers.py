@@ -9,10 +9,12 @@ import pytest
 
 from app.core.models import (
     Offer,
+    OfferSortField,
     OfferStatus,
     OfferType,
     Price,
     Provider,
+    SortDirection,
 )
 from app.core.ports import (
     OfferProvider,
@@ -65,8 +67,10 @@ class FakeOfferRepository(OfferRepository):
         status: OfferStatus | None,  # noqa: ARG002
         page: int,  # noqa: ARG002
         size: int,  # noqa: ARG002
-        *args: object,  # noqa: ARG002
+        sort_by: OfferSortField = OfferSortField.LAST_RETRIEVED_AT,  # noqa: ARG002
+        sort_direction: SortDirection = SortDirection.DESC,  # noqa: ARG002
         offer_type: OfferType | None = None,  # noqa: ARG002
+        search_term: str | None = None,  # noqa: ARG002
     ) -> tuple[list[Offer], int]:
         return (
             [] if self.offer is None else [self.offer],
@@ -103,10 +107,16 @@ class SuccessfulProvider(OfferProvider):
         offer.label = f"{search_term}-offer"
         return [offer]
 
+    def refresh_offer_price_by_url(self, url: str) -> Price:
+        return Price("2")
+
 
 class EmptyProvider(OfferProvider):
     def get_offers(self, search_term: str) -> list[Offer]:  # noqa: ARG002
         return []
+
+    def refresh_offer_price_by_url(self, url: str) -> Price:
+        return Price("")
 
 
 class FailingProvider(OfferProvider):
@@ -114,16 +124,19 @@ class FailingProvider(OfferProvider):
         msg = f"{search_term} timed out"
         raise TimeoutError(msg)
 
+    def refresh_offer_price_by_url(self, url: str) -> Price:
+        return Price("2")
+
 
 def _use_case(
     repository: FakeOfferRepository | None = None,
     publisher: FakeOfferPublisher | None = None,
-    providers: list[OfferProvider] | None = None,
+    providers: dict[str, OfferProvider] | None = None,
 ) -> OffersUseCase:
     return OffersUseCase(
         repository or FakeOfferRepository(),
         publisher or FakeOfferPublisher(),
-        providers or [],
+        providers or {},
     )
 
 
@@ -255,7 +268,10 @@ def test_apply_refreshed_offer_does_not_publish_unreviewed_or_unchanged_offer() 
 
 def test_get_offers_collects_tracks_and_returns_aggregated_results() -> None:
     repository = FakeOfferRepository()
-    use_case = _use_case(repository=repository, providers=[SuccessfulProvider()])
+    use_case = _use_case(
+        repository=repository,
+        providers={"success": SuccessfulProvider()},
+    )
     task_id = uuid7()
 
     offers = use_case.get_offers("flour", task_id)
@@ -266,14 +282,14 @@ def test_get_offers_collects_tracks_and_returns_aggregated_results() -> None:
 
 
 def test_get_offers_raises_when_all_adapters_fail() -> None:
-    use_case = _use_case(providers=[FailingProvider()])
+    use_case = _use_case(providers={"failure": FailingProvider()})
 
     with pytest.raises(OfferCollectionFailedError, match="All offer adapters failed"):
         use_case.get_offers("farine", uuid7())
 
 
 def test_get_offers_allows_successful_empty_results() -> None:
-    use_case = _use_case(providers=[EmptyProvider()])
+    use_case = _use_case(providers={"emppty": EmptyProvider()})
 
     assert use_case.get_offers("unknown", uuid7()) == []
 
@@ -282,6 +298,5 @@ def test_refresh_offer_by_url_is_placeholder_entrypoint() -> None:
     use_case = _use_case()
 
     assert (
-        use_case.refresh_offer_by_url(uuid7(), "https://example.com", uuid7())
-        is None
+        use_case.refresh_offer_by_url(uuid7(), "https://example.com", uuid7()) is None
     )

@@ -5,7 +5,11 @@ from typing import TYPE_CHECKING
 
 from app.core.ports import OfferProvider
 
-from .extractor import extract_offers
+from .extractor import (
+    PRICE_SELECTOR,
+    extract_offer_from_product_details_html,
+    extract_offer_from_product_list_html,
+)
 from .provider import provider
 
 if TYPE_CHECKING:
@@ -22,11 +26,12 @@ class MaxiScraper(OfferProvider):
         """Init function."""
         self.browser_manager = browser_manager
 
-    def load_page(self, url: str) -> str:
+    def load_page(self, url: str, wait_for_selector: str) -> str:
         """Load the page from the given url.
 
         Args:
             url (str): the url
+            wait_for_selector (str): the wait_for_selector
 
         Returns:
             str: the html content
@@ -35,7 +40,7 @@ class MaxiScraper(OfferProvider):
         with self.browser_manager as manager:
             page = manager.get_page()
             page.goto(url)
-            page.wait_for_selector('[data-srp-feedback-added="true"]')
+            page.wait_for_selector(wait_for_selector)
             return page.content()
 
     def get_offers(self, search_term: str) -> list[Offer]:
@@ -51,6 +56,21 @@ class MaxiScraper(OfferProvider):
         logger.info("[MAXI] Scraping term = %s", search_term)
 
         url = provider.build_search_url(search_term)
-        html = self.load_page(url)
+        html = self.load_page(url, '[data-srp-feedback-added="true"]')
 
-        return extract_offers(search_term, html)
+        return extract_offer_from_product_list_html(search_term, html)
+
+    def refresh_offer_price_by_url(self, url: str) -> Offer | None:
+        """Scrape maxi.ca for a specific product url and returns the offer.
+
+        Args:
+            url (str): url of the product
+
+        Returns:
+            Offer: the offer
+
+        """
+        logger.info("[MAXI] Scraping url = %s", url)
+        html = self.load_page(url, PRICE_SELECTOR)
+
+        return extract_offer_from_product_details_html(url, html)

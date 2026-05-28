@@ -73,7 +73,7 @@ def test_publish_success_sends_payload_to_offer_results_queue(
             "exchange": "",
             "routing_key": "savis.offer.results",
             "body": json.dumps({"id": "task-id", "offers": [{"label": "Flour"}]}),
-            "properties": {"delivery_mode": 2},
+            "properties": {"delivery_mode": 2, "content_type": "application/json"},
         },
     ]
 

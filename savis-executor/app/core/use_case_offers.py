@@ -47,7 +47,7 @@ class OffersUseCase:
         self,
         offer_repository: OfferRepository,
         offer_publisher: OfferPublisher,
-        offer_providers: list[OfferProvider],
+        offer_providers: dict[str, OfferProvider],
     ) -> None:
         """Initialize the use case."""
         self.offer_repository = offer_repository
@@ -64,7 +64,7 @@ class OffersUseCase:
         """Collect and persist offers for a search term."""
         results = []
         errors: list[Exception] = []
-        for provider in self.offer_providers:
+        for provider in self.offer_providers.values():
             try:
                 results.append(provider.get_offers(search_term))
             except Exception as exc:
@@ -141,6 +141,24 @@ class OffersUseCase:
             offer_id,
             url,
         )
+        offer = self.offer_repository.find_by_id(offer_id)
+        if offer is None:
+            return
+
+        provider = self.offer_providers[offer.provider.name]
+        refreshed_offer = provider.refresh_offer_price_by_url(url=url)
+
+        if refreshed_offer and refreshed_offer.price and refreshed_offer.price.amount:
+            offer.price = refreshed_offer.price
+            observed_at = datetime.now(UTC)
+            offer.last_retrieved_at = observed_at
+            offer.next_refresh_at = observed_at + timedelta(
+                hours=offer.refresh_frequency_hours or DEFAULT_REFRESH_FREQUENCY_HOURS,
+            )
+            logger.info("[OFFERS] saving %s", offer)
+            saved_offer = self.offer_repository.save(offer)
+            if saved_offer.status == OfferStatus.VALID:
+                self.offer_publisher.publish_offer(saved_offer)
 
     def apply_refreshed_offer(
         self,

@@ -9,7 +9,13 @@ if TYPE_CHECKING:
     from datetime import datetime
     from uuid import UUID
 
-    from .models import Offer, OfferStatus, SavisTask, SavisTaskStatus, SavisTaskType
+    from .models import (
+        Offer,
+        OfferStatus,
+        SavisTask,
+        SavisTaskStatus,
+        SavisTaskType,
+    )
 
 
 class OfferProvider(ABC):
@@ -18,6 +24,10 @@ class OfferProvider(ABC):
     @abstractmethod
     def get_offers(self, search_term: str) -> list[Offer]:
         """Get offers for a search term."""
+
+    @abstractmethod
+    def refresh_offer_price_by_url(self, url: str) -> Offer | None:
+        """Refresh offer from provided url."""
 
 
 class TaskQueue(ABC):
