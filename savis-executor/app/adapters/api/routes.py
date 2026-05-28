@@ -38,16 +38,17 @@ offers_use_case = Container.offers_use_case()
 @router.post("/tasks")
 async def create_task(request: SavisTaskRequest) -> SavisTaskResponse:
     """Enqueue a task."""
-    return _task_response(
-        savis_task_use_case.enqueue_savis_task(
-            request.type,
-            request.payload.model_dump(mode="json"),
-        ),
+    task = savis_task_use_case.enqueue_savis_task(
+        request.type,
+        request.payload.model_dump(mode="json"),
     )
+    if task is None:
+        raise HTTPException(status_code=409, detail="Offers already exist")
+    return _task_response(task)
 
 
 @router.get("/tasks")
-async def list_tasks(
+async def list_tasks(  # noqa: PLR0913
     page: Annotated[int, Query(ge=1)] = 1,
     size: Annotated[int, Query(ge=1)] = 20,
     status: SavisTaskStatus | None = None,
@@ -74,7 +75,7 @@ async def list_tasks(
 
 
 @router.get("/offers")
-async def list_offers(
+async def list_offers(  # noqa: PLR0913
     page: Annotated[int, Query(ge=1)] = 1,
     size: Annotated[int, Query(ge=1)] = 20,
     status: OfferStatus | None = None,

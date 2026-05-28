@@ -51,7 +51,7 @@ class SavisTaskRepository(ABC):
     """Port for task persistence."""
 
     @abstractmethod
-    def list(
+    def list(  # noqa: PLR0913
         self,
         status: SavisTaskStatus | None = None,
         task_type: SavisTaskType | None = None,
@@ -99,7 +99,7 @@ class OfferRepository(ABC):
         """Find an offer by id."""
 
     @abstractmethod
-    def list(
+    def list(  # noqa: PLR0913
         self,
         status: OfferStatus | None,
         page: int,
@@ -118,6 +118,18 @@ class OfferRepository(ABC):
         offer_type: OfferType | None = None,
     ) -> list[tuple[str, int]]:
         """Count offers grouped by search term."""
+
+    @abstractmethod
+    def find_due_for_refresh(self, now: datetime) -> list[Offer]:
+        """Find valid offers whose refresh time is due."""
+
+    @abstractmethod
+    def provider_identifiers_for_search_term(
+        self,
+        search_term: str,
+        offer_type: OfferType,
+    ) -> set[str]:
+        """Return provider identifiers with offers for a search term and type."""
 
     @abstractmethod
     def save(self, offer: Offer) -> Offer:

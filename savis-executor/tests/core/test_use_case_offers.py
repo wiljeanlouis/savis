@@ -12,6 +12,7 @@ from app.core.models import (
     OfferSortField,
     OfferStatus,
     OfferType,
+    PackageSize,
     Price,
     Provider,
     SortDirection,
@@ -50,6 +51,12 @@ def _offer() -> Offer:
 class FakeOfferRepository(OfferRepository):
     def __init__(self, offer: Offer | None = None) -> None:
         self.offer = offer
+        self.due_offers: list[Offer] = []
+        self.due_refresh_checks: list[datetime] = []
+        self.provider_identifiers_by_search_term: dict[
+            tuple[str, OfferType],
+            set[str],
+        ] = {}
         self.saved: list[Offer] = []
 
     def find_by_provider_and_external_id(
@@ -62,7 +69,7 @@ class FakeOfferRepository(OfferRepository):
     def find_by_id(self, offer_id: UUID) -> Offer | None:  # noqa: ARG002
         return self.offer
 
-    def list(
+    def list(  # noqa: PLR0913
         self,
         status: OfferStatus | None,  # noqa: ARG002
         page: int,  # noqa: ARG002
@@ -83,6 +90,20 @@ class FakeOfferRepository(OfferRepository):
         offer_type: OfferType | None = None,  # noqa: ARG002
     ) -> list[tuple[str, int]]:
         return [] if self.offer is None else [(self.offer.search_term or "", 1)]
+
+    def find_due_for_refresh(self, now: datetime) -> list[Offer]:
+        self.due_refresh_checks.append(now)
+        return self.due_offers
+
+    def provider_identifiers_for_search_term(
+        self,
+        search_term: str,
+        offer_type: OfferType,
+    ) -> set[str]:
+        return self.provider_identifiers_by_search_term.get(
+            (search_term, offer_type),
+            set(),
+        )
 
     def save(self, offer: Offer) -> Offer:
         self.saved.append(offer)
@@ -107,16 +128,20 @@ class SuccessfulProvider(OfferProvider):
         offer.label = f"{search_term}-offer"
         return [offer]
 
-    def refresh_offer_price_by_url(self, url: str) -> Price:
-        return Price("2")
+    def refresh_offer_price_by_url(self, url: str) -> Offer:  # noqa: ARG002
+        offer = _offer()
+        offer.price = Price("2")
+        return offer
 
 
 class EmptyProvider(OfferProvider):
     def get_offers(self, search_term: str) -> list[Offer]:  # noqa: ARG002
         return []
 
-    def refresh_offer_price_by_url(self, url: str) -> Price:
-        return Price("")
+    def refresh_offer_price_by_url(self, url: str) -> Offer:  # noqa: ARG002
+        offer = _offer()
+        offer.price = Price("")
+        return offer
 
 
 class FailingProvider(OfferProvider):
@@ -124,8 +149,10 @@ class FailingProvider(OfferProvider):
         msg = f"{search_term} timed out"
         raise TimeoutError(msg)
 
-    def refresh_offer_price_by_url(self, url: str) -> Price:
-        return Price("2")
+    def refresh_offer_price_by_url(self, url: str) -> Offer:  # noqa: ARG002
+        offer = _offer()
+        offer.price = Price("2")
+        return offer
 
 
 def _use_case(
@@ -230,39 +257,135 @@ def test_patch_invalidates_published_offer_when_rejected() -> None:
     assert publisher.invalidations == [offer]
 
 
-def test_apply_refreshed_offer_publishes_changed_valid_offer_immediately() -> None:
+def test_refresh_offer_by_url_applies_changed_valid_offer_immediately() -> None:
     existing = _offer()
     existing.id = uuid7()
     existing.status = OfferStatus.VALID
     existing.refresh_frequency_hours = 24
+    existing.package_size = PackageSize(value=1, unit="kg")
+    original_url = existing.url
+    original_brand = existing.brand
+    original_label = existing.label
+    original_image_url = existing.image_url
+    original_provider = existing.provider
     repository = FakeOfferRepository(existing)
     publisher = FakeOfferPublisher()
     use_case = _use_case(repository=repository, publisher=publisher)
     refreshed = _offer()
     refreshed.price = Price(amount="5.49")
+    refreshed.package_size = PackageSize(value=2, unit="kg")
+    refreshed.url = "https://example.com/updated-offer"
+    refreshed.brand = "Updated brand"
+    refreshed.label = "Updated flour"
+    refreshed.image_url = "https://example.com/updated-image.png"
+    refreshed.provider = Provider(
+        "Updated Provider",
+        "updated",
+        "https://updated.example.com",
+        "456 Street",
+    )
     now = datetime(2026, 5, 18, 12, 0, tzinfo=UTC)
 
-    offer = use_case.apply_refreshed_offer(existing.id, refreshed, now=now)
+    class RefreshProvider(OfferProvider):
+        def get_offers(self, search_term: str) -> list[Offer]:  # noqa: ARG002
+            return []
+
+        def refresh_offer_price_by_url(self, url: str) -> Offer:  # noqa: ARG002
+            return refreshed
+
+    use_case = _use_case(
+        repository=repository,
+        publisher=publisher,
+        providers={existing.provider.name: RefreshProvider()},
+    )
+
+    offer = use_case.refresh_offer_by_url(existing.id, existing.url, uuid7(), now=now)
 
     assert offer is not None
     assert offer.price == Price(amount="5.49")
+    assert offer.package_size == PackageSize(value=2, unit="kg")
+    assert offer.url == original_url
+    assert offer.brand == original_brand
+    assert offer.label == original_label
+    assert offer.image_url == original_image_url
+    assert offer.provider == original_provider
     assert offer.last_retrieved_at == now
     assert offer.next_refresh_at == now + timedelta(hours=24)
     assert publisher.offers == [offer]
 
 
-def test_apply_refreshed_offer_does_not_publish_unreviewed_or_unchanged_offer() -> None:
+def test_refresh_offer_by_url_keeps_existing_package_size_when_missing() -> None:
+    existing = _offer()
+    existing.id = uuid7()
+    existing.status = OfferStatus.VALID
+    existing.refresh_frequency_hours = 24
+    existing.package_size = PackageSize(value=1, unit="kg")
+    repository = FakeOfferRepository(existing)
+    publisher = FakeOfferPublisher()
+    refreshed = _offer()
+    refreshed.price = Price(amount="5.49")
+    refreshed.package_size = None
+
+    class RefreshProvider(OfferProvider):
+        def get_offers(self, search_term: str) -> list[Offer]:  # noqa: ARG002
+            return []
+
+        def refresh_offer_price_by_url(self, url: str) -> Offer:  # noqa: ARG002
+            return refreshed
+
+    use_case = _use_case(
+        repository=repository,
+        publisher=publisher,
+        providers={existing.provider.name: RefreshProvider()},
+    )
+
+    offer = use_case.refresh_offer_by_url(existing.id, existing.url, uuid7())
+
+    assert offer is not None
+    assert offer.price == Price(amount="5.49")
+    assert offer.package_size == PackageSize(value=1, unit="kg")
+
+
+def test_refresh_offer_by_url_does_not_publish_unreviewed_or_unchanged_offer() -> None:
     existing = _offer()
     existing.id = uuid7()
     existing.status = OfferStatus.NEW
     existing.refresh_frequency_hours = 24
     repository = FakeOfferRepository(existing)
     publisher = FakeOfferPublisher()
-    use_case = _use_case(repository=repository, publisher=publisher)
+    use_case = _use_case(
+        repository=repository,
+        publisher=publisher,
+        providers={existing.provider.name: SuccessfulProvider()},
+    )
 
-    offer = use_case.apply_refreshed_offer(existing.id, _offer())
+    offer = use_case.refresh_offer_by_url(existing.id, existing.url, uuid7())
 
     assert offer is not None
+    assert publisher.offers == []
+
+
+def test_refresh_offer_by_url_ignores_invalid_refreshed_offer() -> None:
+    existing = _offer()
+    existing.id = uuid7()
+    existing.status = OfferStatus.VALID
+    existing.refresh_frequency_hours = 24
+    original_price = existing.price
+    original_next_refresh_at = existing.next_refresh_at
+    repository = FakeOfferRepository(existing)
+    publisher = FakeOfferPublisher()
+    use_case = _use_case(
+        repository=repository,
+        publisher=publisher,
+        providers={existing.provider.name: EmptyProvider()},
+    )
+
+    offer = use_case.refresh_offer_by_url(existing.id, existing.url, uuid7())
+
+    assert offer is None
+    assert existing.price == original_price
+    assert existing.next_refresh_at == original_next_refresh_at
+    assert repository.saved == []
     assert publisher.offers == []
 
 
@@ -292,6 +415,55 @@ def test_get_offers_allows_successful_empty_results() -> None:
     use_case = _use_case(providers={"emppty": EmptyProvider()})
 
     assert use_case.get_offers("unknown", uuid7()) == []
+
+
+def test_find_due_valid_offers_delegates_to_repository() -> None:
+    now = datetime(2026, 5, 27, 12, 0, tzinfo=UTC)
+    due_offer = _offer()
+    repository = FakeOfferRepository()
+    repository.due_offers = [due_offer]
+    use_case = _use_case(repository=repository)
+
+    offers = use_case.find_due_valid_offers(now=now)
+
+    assert offers == [due_offer]
+    assert repository.due_refresh_checks == [now]
+
+
+def test_all_providers_have_offers_for_search_term_compares_providers() -> None:
+    repository = FakeOfferRepository()
+    repository.provider_identifiers_by_search_term = {
+        ("flour", OfferType.FOOD): {"example"},
+    }
+    use_case = _use_case(
+        repository=repository,
+        providers={"example": SuccessfulProvider()},
+    )
+
+    assert (
+        use_case.all_providers_have_offers_for_search_term("flour", OfferType.FOOD)
+        is True
+    )
+
+
+def test_all_providers_have_offers_for_search_term_detects_missing_provider() -> None:
+    repository = FakeOfferRepository()
+    repository.provider_identifiers_by_search_term = {
+        ("flour", OfferType.FOOD): {"example"},
+    }
+
+    class OtherProvider(SuccessfulProvider):
+        identifier = "other"
+
+    use_case = _use_case(
+        repository=repository,
+        providers={"example": SuccessfulProvider(), "other": OtherProvider()},
+    )
+
+    assert (
+        use_case.all_providers_have_offers_for_search_term("flour", OfferType.FOOD)
+        is False
+    )
 
 
 def test_refresh_offer_by_url_is_placeholder_entrypoint() -> None:

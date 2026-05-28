@@ -81,3 +81,19 @@ def refresh_offer_task(
         SavisTaskType.REFRESH_OFFER,
         {"offer_id": offer_id, "url": url},
     )
+
+
+@celery_app.task
+def schedule_due_offer_refresh_tasks() -> int:
+    """Create refresh tasks for valid offers due for refresh."""
+    tasks = get_savis_task_use_case().enqueue_due_offer_refresh_tasks()
+    logger.info("[CELERY TASK] scheduled %s due offer refresh tasks", len(tasks))
+    return len(tasks)
+
+
+@celery_app.task
+def cleanup_stale_savis_tasks() -> int:
+    """Mark stale in-progress tasks as failed."""
+    failed_count = get_savis_task_use_case().mark_stale_tasks_failed()
+    logger.info("[CELERY TASK] marked %s stale tasks as failed", failed_count)
+    return failed_count

@@ -132,8 +132,14 @@ class OffersUseCase:
             persisted_offers.append(self.offer_repository.save(persisted_offer))
         return persisted_offers
 
-    def refresh_offer_by_url(self, offer_id: UUID, url: str, task_id: UUID) -> None:
-        """Refresh one offer by URL once URL adapters are implemented."""
+    def refresh_offer_by_url(
+        self,
+        offer_id: UUID,
+        url: str,
+        task_id: UUID,
+        now: datetime | None = None,
+    ) -> Offer | None:
+        """Refresh one offer by URL and publish changed valid offers."""
         logger.info(
             "[OFFERS] refresh offer pending URL adapter | "
             "task_id=%s offer_id=%s url=%s",
@@ -143,43 +149,29 @@ class OffersUseCase:
         )
         offer = self.offer_repository.find_by_id(offer_id)
         if offer is None:
-            return
+            return None
 
         provider = self.offer_providers[offer.provider.name]
         refreshed_offer = provider.refresh_offer_price_by_url(url=url)
-
-        if refreshed_offer and refreshed_offer.price and refreshed_offer.price.amount:
-            offer.price = refreshed_offer.price
-            observed_at = datetime.now(UTC)
-            offer.last_retrieved_at = observed_at
-            offer.next_refresh_at = observed_at + timedelta(
-                hours=offer.refresh_frequency_hours or DEFAULT_REFRESH_FREQUENCY_HOURS,
+        if (
+            refreshed_offer is None
+            or refreshed_offer.price is None
+            or not refreshed_offer.price.amount
+        ):
+            logger.info(
+                "[OFFERS] skipping invalid refreshed offer | offer_id=%s",
+                offer_id,
             )
-            logger.info("[OFFERS] saving %s", offer)
-            saved_offer = self.offer_repository.save(offer)
-            if saved_offer.status == OfferStatus.VALID:
-                self.offer_publisher.publish_offer(saved_offer)
-
-    def apply_refreshed_offer(
-        self,
-        offer_id: UUID,
-        refreshed_offer: Offer,
-        now: datetime | None = None,
-    ) -> Offer | None:
-        """Apply a URL refresh and publish changed valid offers immediately."""
-        offer = self.offer_repository.find_by_id(offer_id)
-        if offer is None:
             return None
 
         observed_at = now or datetime.now(UTC)
-        has_changed = self._has_public_changes(offer, refreshed_offer)
-        offer.url = refreshed_offer.url
-        offer.brand = refreshed_offer.brand
-        offer.label = refreshed_offer.label
+        has_changed = self._has_refreshed_price_or_package_size_changed(
+            offer,
+            refreshed_offer,
+        )
         offer.price = refreshed_offer.price
-        offer.package_size = refreshed_offer.package_size
-        offer.image_url = refreshed_offer.image_url
-        offer.provider = refreshed_offer.provider
+        if refreshed_offer.package_size is not None:
+            offer.package_size = refreshed_offer.package_size
         offer.last_retrieved_at = observed_at
         offer.next_refresh_at = observed_at + timedelta(
             hours=offer.refresh_frequency_hours or DEFAULT_REFRESH_FREQUENCY_HOURS,
@@ -190,10 +182,46 @@ class OffersUseCase:
             self.offer_publisher.publish_offer(saved_offer)
         return saved_offer
 
+    def find_due_valid_offers(self, now: datetime | None = None) -> list[Offer]:
+        """Find valid offers due for scheduled refresh."""
+        current_time = now or datetime.now(UTC)
+        return self.offer_repository.find_due_for_refresh(current_time)
+
+    def all_providers_have_offers_for_search_term(
+        self,
+        search_term: str,
+        offer_type: OfferType,
+    ) -> bool:
+        """Return whether every configured provider already has offers."""
+        configured_provider_identifiers = {
+            getattr(provider, "identifier", provider_name)
+            for provider_name, provider in self.offer_providers.items()
+        }
+        provider_identifiers_with_offers = (
+            self.offer_repository.provider_identifiers_for_search_term(
+                search_term,
+                offer_type,
+            )
+        )
+        return configured_provider_identifiers.issubset(
+            provider_identifiers_with_offers,
+        )
+
+    def provider_identifiers_for_search_term(
+        self,
+        search_term: str,
+        offer_type: OfferType,
+    ) -> set[str]:
+        """Return provider identifiers with offers for a search term and type."""
+        return self.offer_repository.provider_identifiers_for_search_term(
+            search_term,
+            offer_type,
+        )
+
     # celery worker use case - end
 
     # api use case - begin
-    def list(
+    def list(  # noqa: PLR0913
         self,
         status: OfferStatus | None,
         page: int,
@@ -263,15 +291,14 @@ class OffersUseCase:
     # api use case - end
 
     @staticmethod
-    def _has_public_changes(current: Offer, refreshed: Offer) -> bool:
+    def _has_refreshed_price_or_package_size_changed(
+        current: Offer,
+        refreshed: Offer,
+    ) -> bool:
         return any(
             (
-                current.url != refreshed.url,
-                current.brand != refreshed.brand,
-                current.label != refreshed.label,
                 current.price != refreshed.price,
-                current.package_size != refreshed.package_size,
-                current.image_url != refreshed.image_url,
-                current.provider != refreshed.provider,
+                refreshed.package_size is not None
+                and current.package_size != refreshed.package_size,
             ),
         )

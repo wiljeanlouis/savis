@@ -73,6 +73,8 @@ services:
     build:
       context: ./savis-executor
       dockerfile: Dockerfile
+      target: api
+    init: true
     container_name: savis_executor_api
     ports:
       - "8000:8000"
@@ -89,10 +91,29 @@ services:
     build:
       context: ./savis-executor
       dockerfile: Dockerfile
+      target: worker
     init: true
     shm_size: "2gb"
     container_name: savis_executor_worker
-    command: celery -A app.adapters.celery.celery_app worker --loglevel=info --concurrency=2
+    volumes:
+      - ./savis-executor:/app
+      - /app/.venv
+    environment:
+      - RABBIT_MQ_URL=amqp://${RABBIT_MQ_USER}:${RABBIT_MQ_PASSWORD}@rabbitmq:5672/%2f
+      - DATABASE_URL=postgresql+psycopg://${DB_USER}:${DB_PASSWORD}@postgres:5432/${DB_NAME}
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+      postgres:
+        condition: service_healthy
+
+  executor_beat:
+    build:
+      context: ./savis-executor
+      dockerfile: Dockerfile
+      target: beat
+    init: true
+    container_name: savis_executor_beat
     volumes:
       - ./savis-executor:/app
       - /app/.venv

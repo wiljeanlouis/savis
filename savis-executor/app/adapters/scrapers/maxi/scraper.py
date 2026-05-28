@@ -22,6 +22,8 @@ logger = logging.getLogger(__name__)
 class MaxiScraper(OfferProvider):
     """Scrape the maxi website for collecting offers for a specific search term."""
 
+    identifier = provider.identifier
+
     def __init__(self, browser_manager: BrowserManager) -> None:
         """Init function."""
         self.browser_manager = browser_manager

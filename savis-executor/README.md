@@ -42,6 +42,7 @@ Java keeps enum constants internally, but API payloads and persisted unit values
 ```bash
 uv run fastapi dev
 uv run celery -A app.adapters.celery.celery_app worker --loglevel=info
+uv run celery -A app.adapters.celery.celery_app beat --loglevel=info
 uv run ruff check .
 ```
 

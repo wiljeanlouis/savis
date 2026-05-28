@@ -1,1 +1,0 @@
-"""Cleanup adapter tests."""

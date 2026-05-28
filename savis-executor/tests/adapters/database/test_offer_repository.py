@@ -23,8 +23,10 @@ from app.core.models import (
     OfferType,
     Price,
     Provider,
+    SortDirection,
 )
-from app.core.models import SortDirection
+
+EXPECTED_SORT_TOTAL = 2
 
 
 def _repository() -> tuple[SqlAlchemyOfferRepository, sessionmaker[Session]]:
@@ -46,6 +48,7 @@ def _offer(
     status: OfferStatus = OfferStatus.NEW,
     price_amount: str = "4.99",
     offer_type: OfferType = OfferType.FOOD,
+    next_refresh_at: datetime | None = None,
 ) -> Offer:
     now = datetime(2026, 5, 17, 12, 0, tzinfo=UTC)
     return Offer(
@@ -67,7 +70,7 @@ def _offer(
         status=status,
         offer_type=offer_type,
         last_retrieved_at=now,
-        next_refresh_at=now + timedelta(hours=24),
+        next_refresh_at=next_refresh_at or now + timedelta(hours=24),
         refresh_frequency_hours=24,
         last_seen_task_id=uuid7(),
     )
@@ -112,6 +115,36 @@ def test_list_filters_by_offer_type() -> None:
     assert [offer.external_id for offer in offers] == ["food"]
 
 
+def test_find_due_for_refresh_returns_valid_due_offers_only() -> None:
+    repository, _session_factory = _repository()
+    now = datetime(2026, 5, 18, 12, 0, tzinfo=UTC)
+    repository.save(
+        _offer(
+            external_id="due-valid",
+            status=OfferStatus.VALID,
+            next_refresh_at=now,
+        ),
+    )
+    repository.save(
+        _offer(
+            external_id="future-valid",
+            status=OfferStatus.VALID,
+            next_refresh_at=now + timedelta(minutes=1),
+        ),
+    )
+    repository.save(
+        _offer(
+            external_id="due-new",
+            status=OfferStatus.NEW,
+            next_refresh_at=now - timedelta(minutes=1),
+        ),
+    )
+
+    offers = repository.find_due_for_refresh(now)
+
+    assert [offer.external_id for offer in offers] == ["due-valid"]
+
+
 def test_list_filters_by_search_term() -> None:
     repository, _session_factory = _repository()
     flour = _offer(external_id="flour")
@@ -125,6 +158,35 @@ def test_list_filters_by_search_term() -> None:
 
     assert total == 1
     assert [offer.external_id for offer in offers] == ["flour"]
+
+
+def test_provider_identifiers_for_search_term_checks_search_term_and_type() -> None:
+    repository, _session_factory = _repository()
+    repository.save(_offer(external_id="food", offer_type=OfferType.FOOD))
+    decoration = _offer(external_id="decoration", offer_type=OfferType.DECORATION)
+    decoration.provider = Provider(
+        "Decoration Provider",
+        "decoration-provider",
+        "https://example.com",
+        "123 Street",
+    )
+    repository.save(decoration)
+
+    assert (
+        repository.provider_identifiers_for_search_term("flour", OfferType.FOOD)
+        == {"example"}
+    )
+    assert (
+        repository.provider_identifiers_for_search_term(
+            "flour",
+            OfferType.DECORATION,
+        )
+        == {"decoration-provider"}
+    )
+    assert (
+        repository.provider_identifiers_for_search_term("sugar", OfferType.FOOD)
+        == set()
+    )
 
 
 def test_search_term_facets_count_by_search_term() -> None:
@@ -157,7 +219,7 @@ def test_list_sorts_before_paginating() -> None:
         sort_direction=SortDirection.ASC,
     )
 
-    assert total == 2
+    assert total == EXPECTED_SORT_TOTAL
     assert [offer.external_id for offer in offers] == ["cheap"]
 
 

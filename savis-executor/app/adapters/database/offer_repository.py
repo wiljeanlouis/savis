@@ -202,7 +202,7 @@ class SqlAlchemyOfferRepository(OfferRepository):
             entity = session.get(OfferEntity, str(offer_id))
             return None if entity is None else _to_model(entity)
 
-    def list(
+    def list(  # noqa: PLR0913
         self,
         status: OfferStatus | None,
         page: int,
@@ -271,7 +271,42 @@ class SqlAlchemyOfferRepository(OfferRepository):
             statement = statement.where(OfferEntity.offer_type == offer_type.value)
 
         with self.session_factory() as session:
-            return [(search_term, count) for search_term, count in session.execute(statement)]
+            return [
+                (search_term, count)
+                for search_term, count in session.execute(statement)
+            ]
+
+    def find_due_for_refresh(self, now: datetime) -> list[Offer]:
+        """Find valid offers whose next refresh date is due."""
+        self.schema_creator()
+        statement = (
+            select(OfferEntity)
+            .where(
+                OfferEntity.status == OfferStatus.VALID.value,
+                OfferEntity.next_refresh_at <= now,
+            )
+            .order_by(OfferEntity.next_refresh_at.asc(), OfferEntity.id.asc())
+        )
+        with self.session_factory() as session:
+            return [_to_model(entity) for entity in session.scalars(statement).all()]
+
+    def provider_identifiers_for_search_term(
+        self,
+        search_term: str,
+        offer_type: OfferType,
+    ) -> set[str]:
+        """Return provider identifiers with offers for a search term and type."""
+        self.schema_creator()
+        statement = (
+            select(OfferEntity.provider_identifier)
+            .where(
+                OfferEntity.search_term == search_term,
+                OfferEntity.offer_type == offer_type.value,
+            )
+            .distinct()
+        )
+        with self.session_factory() as session:
+            return set(session.scalars(statement).all())
 
     def save(self, offer: Offer) -> Offer:
         """Save an offer."""

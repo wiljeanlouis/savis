@@ -61,9 +61,7 @@ public class BomService {
 
     private void publishComponentNeededEvents(Bom bom) {
         bom.getComponents().forEach(component -> {
-            if (component.selectedOfferId() == null) {
-                componentNeededEventPublisher.publish(ComponentNeededEvent.of(component.componentName(), bom.getType()));
-            }
+            componentNeededEventPublisher.publish(ComponentNeededEvent.of(component.componentName(), bom.getType()));
         });
     }
 
