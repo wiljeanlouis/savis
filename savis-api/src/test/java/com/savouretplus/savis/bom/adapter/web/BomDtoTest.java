@@ -23,7 +23,8 @@ public class BomDtoTest {
                 BomType.DECORATION,
                 List.of(new BomComponentDto("Balloon", 120, "PIECE", null)),
                 List.of(new ActivityDto(null, ActivityType.ASSEMBLY, 90, 1)),
-                new YieldDto(1, "PIECE"));
+                new YieldDto(1, "PIECE"),
+                null);
 
         Bom bom = dto.toBom();
 
@@ -49,7 +50,8 @@ public class BomDtoTest {
                 List.of(
                         new ActivityDto(null, ActivityType.PREP, 15, 1),
                         new ActivityDto(null, ActivityType.COOK, 30, 2)),
-                new YieldDto(12, "PORTION"));
+                new YieldDto(12, "PORTION"),
+                null);
 
         Bom bom = dto.toBom();
 
@@ -82,5 +84,23 @@ public class BomDtoTest {
 
         Assertions.assertEquals("portion", dto.bomYield().unit());
         Assertions.assertEquals("g", dto.components().get(0).unit());
+    }
+
+    @Test
+    void from_ShouldExposePriceWhenProvided() {
+        Bom bom = new Bom(
+                null,
+                "Cake",
+                "Food bom",
+                "image.jpg",
+                "Bake",
+                BomType.FOOD,
+                List.of(),
+                List.of(),
+                null);
+
+        BomDto dto = BomDto.from(bom, com.savouretplus.savis.common.Money.of(12));
+
+        Assertions.assertEquals(com.savouretplus.savis.common.Money.of(12), dto.price());
     }
 }

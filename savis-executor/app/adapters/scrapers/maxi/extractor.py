@@ -103,7 +103,7 @@ def parse_package_size(value: str) -> PackageSize | None:
 
     return PackageSize(
         value=float(_normalize_decimal_text(match.group(1))),
-        unit=match.group(2),
+        unit=_normalize_unit(match.group(2)),
     )
 
 
@@ -205,7 +205,7 @@ def _parse_unit_price_info(value: str) -> tuple[Price | None, PackageSize | None
     unit_price = Price(amount=_normalize_decimal_text(match.group(1)))
     reference_quantity = PackageSize(
         value=float(_normalize_decimal_text(match.group(2))),
-        unit=match.group(3),
+        unit=_normalize_unit(match.group(3)),
     )
     return unit_price, reference_quantity
 
@@ -242,14 +242,20 @@ def _normalize_decimal_text(value: str) -> str:
     return value.replace(",", ".")
 
 
+def _normalize_unit(unit: str) -> str:
+    normalized_unit = unit.lower()
+    if normalized_unit in {"ch", "ea"}:
+        return "piece"
+    return normalized_unit
+
+
 def _as_base_unit(package_size: PackageSize) -> tuple[Decimal, str] | None:
     conversion_factors = {
         "g": (Decimal(1), "g"),
         "kg": (Decimal(1000), "g"),
         "ml": (Decimal(1), "ml"),
         "l": (Decimal(1000), "ml"),
-        "ch": (Decimal(1), "ch"),
-        "ea": (Decimal(1), "ch"),
+        "piece": (Decimal(1), "piece"),
     }
     conversion = conversion_factors.get(package_size.unit.lower())
     if conversion is None:

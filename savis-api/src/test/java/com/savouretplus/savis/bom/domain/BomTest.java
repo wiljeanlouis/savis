@@ -1,6 +1,8 @@
 package com.savouretplus.savis.bom.domain;
 
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 import org.junit.jupiter.api.Assertions;
@@ -11,6 +13,7 @@ import com.savouretplus.savis.common.Money;
 import com.savouretplus.savis.common.Quantity;
 import com.savouretplus.savis.common.Unit;
 import com.savouretplus.savis.bom.port.ComponentPricePort;
+import com.savouretplus.savis.bom.port.ComponentPriceRequest;
 
 public class BomTest {
 
@@ -101,18 +104,34 @@ public class BomTest {
         bom.addComponent("Flour", 200, Unit.GRAM, UUID.fromString("59960a6c-9491-473a-87e9-3244396096d6"));
         bom.addComponent("Sugar", 100, Unit.GRAM, UUID.fromString("59960a6c-9491-473a-87e9-3244396096d1"));
 
-        ComponentPricePort priceCalculator = (name, offerUuid) -> {
+        Money total = bom.calculateTotal(new StubComponentPricePort());
+        Assertions.assertEquals(Money.of(25), total);
+
+    }
+
+    private static class StubComponentPricePort implements ComponentPricePort {
+        @Override
+        public Money getPrice(ComponentPriceRequest request) {
+            UUID offerUuid = request.selectedOfferId();
+
             if (offerUuid.toString().equals("59960a6c-9491-473a-87e9-3244396096d6")) {
                 return Money.of(5);
             } else if (offerUuid.toString().equals("59960a6c-9491-473a-87e9-3244396096d1")) {
                 return Money.of(20);
             }
             return Money.of(0);
-        };
+        }
 
-        Money total = bom.calculateTotal(priceCalculator);
-        Assertions.assertEquals(Money.of(25), total);
+        @Override
+        public Map<ComponentPriceRequest, Money> getPrices(List<ComponentPriceRequest> requests) {
+            Map<ComponentPriceRequest, Money> prices = new LinkedHashMap<>();
 
+            requests.stream().distinct().forEach(request -> prices.put(
+                    request,
+                    getPrice(request)));
+
+            return prices;
+        }
     }
 
 }

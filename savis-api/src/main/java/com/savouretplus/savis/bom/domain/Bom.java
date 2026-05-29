@@ -9,6 +9,7 @@ import com.savouretplus.savis.common.Money;
 import com.savouretplus.savis.common.Quantity;
 import com.savouretplus.savis.common.Unit;
 import com.savouretplus.savis.bom.port.ComponentPricePort;
+import com.savouretplus.savis.bom.port.ComponentPriceRequest;
 
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
@@ -84,9 +85,21 @@ public class Bom {
     }
 
     public Money calculateTotal(ComponentPricePort calculator) {
-        return components.stream()
-                .map(component -> calculator.getPrice(component.componentName(), component.selectedOfferId()))
+        return calculateTotal(calculator.getPrices(componentPriceRequests()));
+    }
+
+    public Money calculateTotal(java.util.Map<ComponentPriceRequest, Money> componentPrices) {
+        return componentPriceRequests().stream()
+                .map(request -> componentPrices.getOrDefault(request, Money.ZERO))
                 .reduce(Money.ZERO, Money::add);
     }
 
+    public List<ComponentPriceRequest> componentPriceRequests() {
+        return components.stream()
+                .map(component -> new ComponentPriceRequest(
+                        component.componentName(),
+                        component.quantity(),
+                        component.selectedOfferId()))
+                .toList();
+    }
 }

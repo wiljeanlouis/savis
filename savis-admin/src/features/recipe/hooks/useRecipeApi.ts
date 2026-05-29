@@ -1,5 +1,9 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { createRecipe, deleteRecipe, getRecipes } from "../api/recipeApi";
+import {
+  createRecipe,
+  deleteRecipe,
+  getRecipes,
+} from "../api/recipeApi";
 import { searchAvailableOffers } from "../api/supplyOfferApi";
 
 const RECIPES_QUERY_KEY = ["recipes"];

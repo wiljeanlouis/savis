@@ -30,4 +30,9 @@ public record Money(
     public Money multiply(int i) {
         return new Money(this.amount.multiply(BigDecimal.valueOf(i)), this.currency);
     }
+
+    public Money multiply(BigDecimal multiplier) {
+        return new Money(this.amount.multiply(multiplier), this.currency);
+    }
+
 }

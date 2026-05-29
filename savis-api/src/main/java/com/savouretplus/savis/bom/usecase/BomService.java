@@ -1,7 +1,9 @@
 package com.savouretplus.savis.bom.usecase;
 
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 import org.springframework.stereotype.Service;
 
@@ -11,6 +13,7 @@ import com.savouretplus.savis.bom.domain.Bom;
 import com.savouretplus.savis.bom.port.BomRepositoryPort;
 import com.savouretplus.savis.bom.port.ComponentNeededEventPort;
 import com.savouretplus.savis.bom.port.ComponentPricePort;
+import com.savouretplus.savis.bom.port.ComponentPriceRequest;
 
 import jakarta.transaction.Transactional;
 import lombok.AllArgsConstructor;
@@ -51,7 +54,25 @@ public class BomService {
 
     public Money calculateTotalCost(UUID bomId) {
         Bom bom = getBom(bomId);
+        return calculateTotalCost(bom);
+    }
+
+    public Money calculateTotalCost(Bom bom) {
         return bom.calculateTotal(priceCalculator);
+    }
+
+    public Map<UUID, Money> calculateTotalCosts(List<Bom> boms) {
+        List<ComponentPriceRequest> requests = boms.stream()
+                .flatMap(bom -> bom.componentPriceRequests().stream())
+                .distinct()
+                .toList();
+
+        Map<ComponentPriceRequest, Money> componentPrices = priceCalculator.getPrices(requests);
+
+        return boms.stream()
+                .collect(Collectors.toMap(
+                        Bom::getPublicId,
+                        bom -> bom.calculateTotal(componentPrices)));
     }
 
     private void publishComponentNeededEvents(Bom bom) {

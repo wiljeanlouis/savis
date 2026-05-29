@@ -118,7 +118,7 @@ export const IngredientInput = ({ value, onChange, onRemove }: Props) => {
                     mL
                   </SelectItem>
                   <SelectItem key="piece" value="piece">
-                    pièce
+                    unité
                   </SelectItem>
                   <SelectItem key="portion" value="portion">
                     portion

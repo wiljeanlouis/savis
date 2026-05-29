@@ -49,6 +49,11 @@ export interface RecipeYield {
   unit: string;
 }
 
+export interface RecipePrice {
+  amount: number;
+  currency: string;
+}
+
 export interface Recipe {
   id: string | null;
   name: string;
@@ -58,4 +63,5 @@ export interface Recipe {
   ingredients: RecipeIngredient[];
   activities: RecipeActivity[];
   yield: RecipeYield;
+  price?: RecipePrice | null;
 }

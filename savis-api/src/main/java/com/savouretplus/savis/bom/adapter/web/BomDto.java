@@ -6,6 +6,7 @@ import java.util.UUID;
 import com.fasterxml.jackson.annotation.JsonAlias;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.savouretplus.savis.common.ActivityType;
+import com.savouretplus.savis.common.Money;
 import com.savouretplus.savis.common.Quantity;
 import com.savouretplus.savis.common.Unit;
 import com.savouretplus.savis.bom.domain.Activity;
@@ -27,7 +28,8 @@ public record BomDto(
         BomType type,
         @JsonAlias("ingredients") @NotNull List<BomComponentDto> components,
         List<ActivityDto> activities,
-        @JsonProperty("yield") YieldDto bomYield) {
+        @JsonProperty("yield") YieldDto bomYield,
+        Money price) {
 
     public BomDto {
         components = components != null ? components : List.of();
@@ -48,7 +50,26 @@ public record BomDto(
                 bom.getActivities().stream()
                         .map(ActivityDto::from)
                         .toList(),
-                YieldDto.from(bom.getYield()));
+                YieldDto.from(bom.getYield()),
+                null);
+    }
+
+    public static BomDto from(Bom bom, Money price) {
+        return new BomDto(
+                bom.getPublicId(),
+                bom.getName(),
+                bom.getDescription(),
+                bom.getImageUrl(),
+                bom.getInstructions(),
+                bom.getType(),
+                bom.getComponents().stream()
+                        .map(BomComponentDto::from)
+                        .toList(),
+                bom.getActivities().stream()
+                        .map(ActivityDto::from)
+                        .toList(),
+                YieldDto.from(bom.getYield()),
+                price);
     }
 
     public Bom toBom() {

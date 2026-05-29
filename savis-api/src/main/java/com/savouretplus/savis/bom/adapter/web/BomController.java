@@ -1,5 +1,7 @@
 package com.savouretplus.savis.bom.adapter.web;
 
+import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 import org.springframework.http.ResponseEntity;
@@ -13,6 +15,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.savouretplus.savis.bom.usecase.BomService;
+import com.savouretplus.savis.common.Money;
 
 import jakarta.validation.Valid;
 import lombok.AllArgsConstructor;
@@ -45,6 +48,13 @@ public class BomController {
         return ResponseEntity.ok(response);
     }
 
+    @GetMapping("/{bomId}/price")
+    public ResponseEntity<Money> getBomPrice(@PathVariable UUID bomId) {
+        log.info("Received request to get bom price: {}", bomId);
+
+        return ResponseEntity.ok(bomService.calculateTotalCost(bomId));
+    }
+
     @DeleteMapping("/{bomId}")
     public ResponseEntity<Void> deleteBom(@PathVariable UUID bomId) {
         log.info("Received request to delete bom: {}", bomId);
@@ -57,9 +67,12 @@ public class BomController {
     public ResponseEntity<Iterable<BomDto>> listBoms() {
         log.info("Received request to list boms");
 
-        Iterable<BomDto> responses = bomService.listBoms()
+        var boms = bomService.listBoms();
+        Map<UUID, Money> pricesByBomId = bomService.calculateTotalCosts(boms);
+
+        List<BomDto> responses = boms
                 .stream()
-                .map(BomDto::from)
+                .map(bom -> BomDto.from(bom, pricesByBomId.getOrDefault(bom.getPublicId(), Money.ZERO)))
                 .toList();
 
         return ResponseEntity.ok(responses);

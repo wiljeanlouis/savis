@@ -120,6 +120,17 @@ def test_derive_total_price_converts_ml_to_l() -> None:
     assert price == Price(amount="2.00")
 
 
+def test_parse_package_size_converts_maxi_each_units_to_piece() -> None:
+    assert parse_package_size("1 ch") == PackageSize(value=1.0, unit="piece")
+    assert parse_package_size("1 ea") == PackageSize(value=1.0, unit="piece")
+
+
+def test_derive_total_price_converts_maxi_each_units_to_piece() -> None:
+    price = _derive_total_price("6 ch", "2.00", "1 ea")
+
+    assert price == Price(amount="12.00")
+
+
 def test_derive_total_price_rounds_to_two_decimals() -> None:
     price = _derive_total_price("333 g", "1.00", "100 g")
 
