@@ -94,7 +94,6 @@ app/adapters/
   rabbitmq/
   scrapers/
   database/
-  cleanup/
 
 app/container.py
 ```
@@ -104,8 +103,8 @@ Examples:
 - `Offer`, `Price`, `PackageSize`, and `Provider` are core models.
 - `OfferProvider` and `TaskQueue` are core ports.
 - `SavisTaskUseCase` creates, enqueues, executes, lists, and cleans up executor tasks.
-- `OffersUseCase` runs provider scrapers, reconciles offers, persists tracked offers, and schedules refresh work.
-- Celery, RabbitMQ, FastAPI, SQLAlchemy persistence, cleanup runners, and Playwright provider scrapers are adapters.
+- `OffersUseCase` runs provider scrapers, reconciles offers, persists tracked offers, and identifies offers due for refresh.
+- Celery, Celery Beat, RabbitMQ, FastAPI, SQLAlchemy persistence, and Playwright provider scrapers are adapters.
 - `Container` is the composition root for executor dependencies.
 
 ## Composition Root and Wiring
@@ -145,7 +144,7 @@ Feature
 Current slices:
 
 - BOM management: create, update, list, get, and delete BOMs for food and decoration workflows.
-- Component need detection: when a BOM contains a component with no selected offer, SAVIS emits a component-needed event.
+- Component need detection: when a BOM is saved, SAVIS emits component-needed events and lets the executor decide whether provider collection is required.
 - Offer collection: component/search term requests are converted into executor tasks and Celery jobs.
 - Offer selection and refresh: persisted offers can be searched from the admin UI, selected on BOM components, and invalidated/refreshed through supply workflows.
 - Provider scraping: provider-specific scraper implementations extract normalized offers.
@@ -162,8 +161,7 @@ Java responsibilities:
 - expose SAVIS business APIs;
 - own BOM and supply domain concepts;
 - persist BOMs and supply state;
-- decide when a component needs provider offers;
-- publish component-needed messages;
+- publish component-needed messages when BOMs are saved;
 - receive offer results from Python through RabbitMQ;
 - calculate BOM costs through `ComponentPricePort`.
 
@@ -172,6 +170,7 @@ Python responsibilities:
 - receive offer collection requests from HTTP or RabbitMQ;
 - create and persist executor tasks in PostgreSQL;
 - enqueue offer collection and refresh work into Celery;
+- use Celery Beat to schedule due-offer refresh and stale-task cleanup;
 - execute slow provider collection tasks outside the request/consumer path;
 - normalize provider-specific data into executor core `Offer` models;
 - publish successful offer results to RabbitMQ for the Java API.
@@ -211,13 +210,21 @@ Celery owns:
 - controlling worker concurrency;
 - tracking task failures through `ReportingTask`;
 
-The current task is:
+Current Celery tasks include:
 
 ```text
 app.adapters.celery.celery_tasks.get_offers_task
+app.adapters.celery.celery_tasks.refresh_offer_task
+app.adapters.celery.celery_tasks.schedule_due_offer_refresh_tasks
+app.adapters.celery.celery_tasks.cleanup_stale_savis_tasks
 ```
 
-It resolves the executor task use case, collects offers, persists/reconciles them, and publishes result messages to RabbitMQ.
+The worker resolves the executor task use case, collects or refreshes offers, persists/reconciles them, and publishes result messages to RabbitMQ when needed.
+
+Celery Beat runs as a separate executor process and schedules:
+
+- due-offer refresh every hour;
+- stale in-progress task cleanup every 15 minutes.
 
 ## Role of the Executor
 
@@ -277,12 +284,13 @@ This keeps the domain independent from where prices come from.
 The intended pricing flow is:
 
 1. A BOM is saved with component requirements, activities, and yield.
-2. Components without `selectedOfferId` trigger `ComponentNeededEvent`.
-3. The supply side requests or refreshes offers for those components.
-4. Collected offers are tracked by the executor and published to Java as available offer results.
-5. The admin can search available offers and select one on each component.
-6. `ComponentPricePort` resolves selected offer prices.
-7. `Bom.calculateTotal(...)` sums component costs.
+2. Components trigger `ComponentNeededEvent`.
+3. The executor skips collection only when all configured providers already have offers for the component term and type.
+4. The supply side requests or refreshes offers for those components.
+5. Collected offers are tracked by the executor and published to Java as available offer results.
+6. The admin can search available offers and select one on each component.
+7. `ComponentPricePort` resolves selected offer prices.
+8. `Bom.calculateTotal(...)` sums component costs.
 
 Current implementation note: `ComponentPriceAdapter` currently returns a placeholder value. `OfferService.processOffers(...)` saves new offers and updates existing ones by public id or provider/external id. The final pricing integration from selected offers is still being shaped.
 
@@ -295,12 +303,13 @@ Admin saves BOM
   -> BomController
   -> BomService.saveBom(...)
   -> BomRepositoryPort.save(...)
-  -> BomService publishes ComponentNeededEvent for components without selected offers
+  -> BomService publishes ComponentNeededEvent for components
   -> ComponentNeededEventPort
   -> RabbitMqPublisher
   -> RabbitMQ queue: savis.offer.requests
   -> Python subscriber
   -> SavisTaskUseCase.enqueue_savis_task(...)
+  -> skip if every configured provider already has offers for this term/type
   -> CeleryQueue
   -> get_offers_task
   -> SavisTaskUseCase.execute_savis_task(...)
@@ -363,6 +372,7 @@ The preferred production boundary is:
 - Admin frontend process: static/admin UI.
 - Executor API process: FastAPI routes and lightweight RabbitMQ subscriber if kept in-process.
 - Celery worker process: actual provider collection and refresh execution.
+- Celery Beat process: periodic due-offer refresh and stale-task cleanup scheduling.
 - RabbitMQ: event transport and Celery broker.
 - PostgreSQL: business persistence.
 

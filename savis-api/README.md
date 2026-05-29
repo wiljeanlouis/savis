@@ -38,7 +38,7 @@ The supply offer response includes the offer id, product name fields, image URL,
 
 ## Messaging
 
-The BOM slice publishes component-needed messages when a BOM component has no `selectedOfferId`.
+The BOM slice publishes component-needed messages for BOM components after a BOM is saved. The executor decides whether a provider collection task is needed, based on whether all configured providers already have offers for the component name and BOM type.
 
 Queues used by the Java API:
 

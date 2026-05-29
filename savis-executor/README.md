@@ -7,6 +7,7 @@
 - Receive offer collection requests from RabbitMQ and HTTP.
 - Track executor tasks.
 - Enqueue provider collection and refresh work into Celery.
+- Schedule due-offer refresh and stale-task cleanup through Celery Beat.
 - Run provider scraper adapters.
 - Normalize provider results into core `Offer` models.
 - Publish successful offer results and invalidations back to the Java API through RabbitMQ.
@@ -23,6 +24,21 @@ Output queues:
 - `savis.offer.invalidations`: offer invalidation messages.
 
 Offer result messages include product identity, provider data, price, package size, image URL, and product URL. The Java API stores those offers and exposes available offers back to the admin UI for BOM component selection.
+
+## Task Scheduling
+
+Celery Beat runs in its own `executor_beat` container and publishes periodic tasks to RabbitMQ:
+
+- every hour, enqueue refresh tasks for `VALID` offers whose `next_refresh_at` is due;
+- every 15 minutes, mark stale in-progress executor tasks as failed.
+
+FastAPI does not run stale-task cleanup in a background thread anymore. The API process only starts the HTTP app and the lightweight RabbitMQ subscriber.
+
+## Offer Request Deduplication
+
+The Java API may emit a `ComponentNeededEvent` for every BOM component. The executor decides whether collection is needed.
+
+For RabbitMQ offer requests, `SavisTaskUseCase` creates a `GET_OFFERS` task only when at least one configured provider does not already have offers for the incoming `search_term` and `type`. This means adding a new provider will cause old component terms to be scraped for that new provider, while already-known provider offers are reconciled by provider identifier and external id.
 
 ## Unit Symbols
 

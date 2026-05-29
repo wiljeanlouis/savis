@@ -65,7 +65,7 @@ The admin app is the back office UI. It is used by internal users to manage BOMs
 
 Location: [savis-executor](savis-executor/README.md)
 
-The executor service receives offer collection requests, tracks executor tasks, enqueues work into Celery, runs provider adapters, normalizes offers, and publishes results back to Java through RabbitMQ.
+The executor service receives offer collection requests, tracks executor tasks, enqueues work into Celery, runs provider adapters, refreshes valid offers on a schedule, normalizes offers, and publishes results back to Java through RabbitMQ.
 
 It is intentionally separate from the Java backend because provider collection is slow, unstable, retryable, and dependent on external provider websites.
 
@@ -196,11 +196,11 @@ Admin creates or updates a BOM
   -> Java BomController
   -> BomService.saveBom(...)
   -> BOM is persisted
-  -> each component without selectedOfferId emits ComponentNeededEvent
+  -> each component emits ComponentNeededEvent
   -> RabbitMqPublisher publishes a message to RabbitMQ
 ```
 
-This allows BOM management to stay fast while provider offer discovery happens asynchronously.
+This allows BOM management to stay fast while provider offer discovery happens asynchronously. The Python executor decides whether a `GET_OFFERS` task is actually needed: it skips collection only when every configured provider already has offers for the component search term and offer type.
 
 ### Offer Collection Flow
 
@@ -208,6 +208,7 @@ This allows BOM management to stay fast while provider offer discovery happens a
 RabbitMQ message: component/search term
   -> Python subscriber
   -> SavisTaskUseCase.enqueue_savis_task(...)
+  -> skip if all configured providers already have offers for that term/type
   -> CeleryQueue
   -> get_offers_task
   -> SavisTaskUseCase.execute_savis_task(...)
@@ -295,8 +296,9 @@ The default Compose stack contains:
 | `rabbitmq`       | Message broker and Celery broker                      | `5672`, `15672`                                    |
 | `backend_api`    | Java Spring Boot API                                  | `8080`                                             |
 | `frontend_admin` | Admin UI                                              | `80` in production, `5173` in development override |
-| `executor_api`   | Python FastAPI executor API, RabbitMQ subscriber, and stale task cleanup | `8000`                                             |
-| `executor_worker` | Celery worker executing provider collection and refresh tasks | internal                                    |
+| `executor_api`   | Python FastAPI executor API and lightweight RabbitMQ subscriber | `8000`                                             |
+| `executor_worker` | Celery worker executing provider collection, refresh, and cleanup tasks | internal                                    |
+| `executor_beat` | Celery Beat scheduler for due-offer refresh and stale-task cleanup | internal                                    |
 
 ## Environment Files
 
@@ -323,8 +325,6 @@ The executor also uses:
 ```env
 RABBIT_MQ_URL=
 DATABASE_URL=
-REDIS_URL=
-JAVA_API_URL=
 ```
 
 In Docker Compose, `RABBIT_MQ_URL` and `DATABASE_URL` are provided to executor services.
@@ -410,6 +410,7 @@ npm run build
 cd savis-executor
 uv run fastapi dev
 uv run celery -A app.adapters.celery.celery_app worker --loglevel=info
+uv run celery -A app.adapters.celery.celery_app beat --loglevel=info
 uv run ruff check .
 ```
 
@@ -427,6 +428,7 @@ Provider scrapers should implement the core `OfferProvider` port:
 
 ```text
 OfferProvider.get_offers(search_term) -> list[Offer]
+OfferProvider.refresh_offer_price_by_url(url) -> Offer | None
 ```
 
 A provider scraper should:
@@ -441,8 +443,11 @@ Adding a provider should generally involve:
 1. Create a new provider package under `savis-executor/app/adapters/scrapers/`.
 2. Implement `OfferProvider`.
 3. Normalize data into `app.core.models.Offer`.
-4. Register the scraper in the provider loader.
-5. Add focused tests or fixtures for parsing behavior.
+4. Expose a stable provider `identifier` on the scraper.
+5. Register the scraper in the provider loader.
+6. Add focused tests or fixtures for parsing behavior.
+
+The executor uses provider identifiers to decide whether an incoming component/search term still needs collection. If a new provider is configured and has no offers yet for an existing term/type, a new `GET_OFFERS` task will be created for that event.
 
 ## Operational Notes
 
@@ -469,6 +474,7 @@ Before merging changes that touch cross-service flows, verify:
 - the executor API imports and starts;
 - the RabbitMQ subscriber can enqueue a Celery task from `savis.offer.requests`;
 - the Celery worker can execute `get_offers_task`;
+- Celery Beat can publish scheduled refresh and stale-task cleanup tasks;
 - successful offers are published to `savis.offer.results` and consumed by Java `OffersListener`.
 
 ## Documentation
