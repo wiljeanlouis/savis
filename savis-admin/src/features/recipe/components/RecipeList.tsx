@@ -3,9 +3,41 @@ import { useRecipeList } from "../hooks/useRecipeList";
 import { Spinner } from "@/shared/ui/spinner";
 import { toast } from "sonner";
 import { NoData } from "@/shared/components/NoData";
+import { Button } from "@/shared/ui/button";
+import { Link } from "react-router";
+import { RecipeSearch } from "./RecipeSearch";
+import { useMemo, useState } from "react";
+
+const normalizeSearchValue = (value: string) =>
+  value
+    .normalize("NFD")
+    .replace(/\p{Diacritic}/gu, "")
+    .toLowerCase();
 
 export const RecipeList = () => {
   const { recipes, isLoading, isError, error, deleteRecipe } = useRecipeList();
+  const [searchQuery, setSearchQuery] = useState("");
+
+  const filteredRecipes = useMemo(() => {
+    const normalizedSearchQuery = normalizeSearchValue(searchQuery.trim());
+
+    if (!recipes || !normalizedSearchQuery) {
+      return recipes;
+    }
+
+    return recipes.filter((recipe) => {
+      const searchableContent = [
+        recipe.name,
+        recipe.description,
+        recipe.instructions,
+        ...recipe.ingredients.map((ingredient) => ingredient.ingredientName),
+      ].join(" ");
+
+      return normalizeSearchValue(searchableContent).includes(
+        normalizedSearchQuery,
+      );
+    });
+  }, [recipes, searchQuery]);
 
   if (isError) {
     const errorResponse = error as unknown as {
@@ -32,16 +64,32 @@ export const RecipeList = () => {
   }
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-      {recipes.map((recipe) => (
-        <RecipeCard
-          key={recipe.id}
-          recipe={recipe}
-          deleteRecipe={() => {
-            void (recipe.id && deleteRecipe(recipe.id));
-          }}
+    <>
+      <div className="space-y-2">
+        <RecipeSearch
+          searchQuery={searchQuery}
+          onSearchQueryChange={setSearchQuery}
         />
-      ))}
-    </div>
+        <Button>
+          <Link to="/recipes/add">+ Ajouter</Link>
+        </Button>
+      </div>
+
+      {!filteredRecipes || filteredRecipes.length === 0 ? (
+        <NoData />
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+          {filteredRecipes.map((recipe) => (
+            <RecipeCard
+              key={recipe.id}
+              recipe={recipe}
+              deleteRecipe={() => {
+                void (recipe.id && deleteRecipe(recipe.id));
+              }}
+            />
+          ))}
+        </div>
+      )}
+    </>
   );
 };
