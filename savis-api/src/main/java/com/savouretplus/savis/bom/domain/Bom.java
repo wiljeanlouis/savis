@@ -20,8 +20,6 @@ import lombok.ToString;
 public class Bom {
     private final UUID publicId;
 
-    private final Long id;
-
     private final String name;
 
     private final String description;
@@ -39,7 +37,6 @@ public class Bom {
     private final Yield bomYield;
 
     public Bom(UUID publicId,
-            Long id,
             String name,
             String description,
             String imageUrl,
@@ -49,7 +46,6 @@ public class Bom {
             List<Activity> activities,
             Yield bomYield) {
         this.publicId = publicId != null ? publicId : UUID.randomUUID();
-        this.id = id;
         this.name = name;
         this.description = description;
         this.imageUrl = imageUrl;
@@ -91,22 +87,6 @@ public class Bom {
         return components.stream()
                 .map(component -> calculator.getPrice(component.componentName(), component.selectedOfferId()))
                 .reduce(Money.ZERO, Money::add);
-    }
-
-    public static Bom merge(Bom idProvider, Bom dataProvider) {
-        Bom bom = new Bom(
-                idProvider.getPublicId(),
-                idProvider.getId(),
-                dataProvider.name,
-                dataProvider.description,
-                dataProvider.imageUrl,
-                dataProvider.instructions,
-                dataProvider.type,
-                dataProvider.components,
-                dataProvider.activities,
-                dataProvider.bomYield);
-
-        return bom;
     }
 
 }

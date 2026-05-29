@@ -66,7 +66,6 @@ public class BomDtoTest {
     void from_ShouldExposeUnitCodes() {
         Bom bom = new Bom(
                 null,
-                null,
                 "Cake",
                 "Food bom",
                 "image.jpg",

@@ -1,5 +1,6 @@
 package com.savouretplus.savis.bom.adapter.persistence;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -53,8 +54,8 @@ public class BomRepositoryAdapter implements BomRepositoryPort {
     @Override
     public void delete(Bom bom) {
         try {
-            BomEntity entity = toEntity(bom);
-            jpaRepository.deleteById(entity.getId());
+            jpaRepository.findByPublicId(bom.getPublicId())
+                    .ifPresent(entity -> jpaRepository.deleteById(entity.getId()));
         } catch (Exception e) {
             throw new BomPersistenceException(BOM_DELETE_ERROR, e.getCause());
         }
@@ -72,6 +73,10 @@ public class BomRepositoryAdapter implements BomRepositoryPort {
         }
     }
 
+    /*
+     * to domain mapper
+     */
+
     private Bom toDomain(BomEntity entity) {
         if (entity == null) {
             return null;
@@ -79,7 +84,6 @@ public class BomRepositoryAdapter implements BomRepositoryPort {
 
         return new Bom(
                 entity.getPublicId(),
-                entity.getId(),
                 entity.getName(),
                 entity.getDescription(),
                 entity.getImageUrl(),
@@ -90,25 +94,6 @@ public class BomRepositoryAdapter implements BomRepositoryPort {
                 toYield(entity.getBomYield()));
     }
 
-    private BomEntity toEntity(Bom bom) {
-        if (bom == null) {
-            return null;
-        }
-
-        BomEntity entity = new BomEntity();
-        entity.setId(bom.getId());
-        entity.setPublicId(bom.getPublicId());
-        entity.setName(bom.getName());
-        entity.setDescription(bom.getDescription());
-        entity.setImageUrl(bom.getImageUrl());
-        entity.setInstructions(bom.getInstructions());
-        entity.setType(bom.getType());
-        entity.setComponents(toComponentEntities(bom.getComponents()));
-        entity.setActivities(toActivityEntities(bom.getActivities()));
-        entity.setBomYield(toYieldEntity(bom.getYield()));
-        return entity;
-    }
-
     private List<BomComponent> toComponents(List<BomComponentEntity> entities) {
         if (entities == null) {
             return List.of();
@@ -116,16 +101,6 @@ public class BomRepositoryAdapter implements BomRepositoryPort {
 
         return entities.stream()
                 .map(this::toDomain)
-                .toList();
-    }
-
-    private List<BomComponentEntity> toComponentEntities(List<BomComponent> components) {
-        if (components == null) {
-            return List.of();
-        }
-
-        return components.stream()
-                .map(this::toEntity)
                 .toList();
     }
 
@@ -142,20 +117,6 @@ public class BomRepositoryAdapter implements BomRepositoryPort {
                 entity.getSelectedOfferId());
     }
 
-    private BomComponentEntity toEntity(BomComponent component) {
-        if (component == null) {
-            return null;
-        }
-
-        BomComponentEntity entity = new BomComponentEntity();
-        entity.setId(component.id());
-        entity.setComponentName(component.componentName());
-        entity.setQuantity(component.quantity().value());
-        entity.setUnit(component.quantity().unit().getSymbole());
-        entity.setSelectedOfferId(component.selectedOfferId());
-        return entity;
-    }
-
     private List<Activity> toActivities(List<ActivityEntity> entities) {
         if (entities == null) {
             return List.of();
@@ -163,16 +124,6 @@ public class BomRepositoryAdapter implements BomRepositoryPort {
 
         return entities.stream()
                 .map(this::toDomain)
-                .toList();
-    }
-
-    private List<ActivityEntity> toActivityEntities(List<Activity> activities) {
-        if (activities == null) {
-            return List.of();
-        }
-
-        return activities.stream()
-                .map(this::toEntity)
                 .toList();
     }
 
@@ -188,6 +139,93 @@ public class BomRepositoryAdapter implements BomRepositoryPort {
                 entity.getSequence());
     }
 
+    private Yield toYield(YieldEntity entity) {
+        if (entity == null) {
+            return null;
+        }
+
+        return new Yield(new Quantity(entity.getQuantity(), Unit.fromSymbole(entity.getUnit())),
+                Unit.fromSymbole(entity.getUnit()));
+    }
+
+    /*
+     * to entity mapper
+     */
+
+    private BomEntity toEntity(Bom bom) {
+        if (bom == null) {
+            return null;
+        }
+
+        BomEntity entity = jpaRepository.findByPublicId(bom.getPublicId())
+                .orElseGet(BomEntity::new);
+
+        entity.setPublicId(bom.getPublicId());
+        entity.setName(bom.getName());
+        entity.setDescription(bom.getDescription());
+        entity.setImageUrl(bom.getImageUrl());
+        entity.setInstructions(bom.getInstructions());
+        entity.setType(bom.getType());
+        replaceComponents(entity, toComponentEntities(bom.getComponents()));
+        replaceActivities(entity, toActivityEntities(bom.getActivities()));
+        entity.setBomYield(toYieldEntity(bom.getYield()));
+        return entity;
+    }
+
+    private void replaceComponents(BomEntity entity, List<BomComponentEntity> components) {
+        if (entity.getComponents() == null) {
+            entity.setComponents(components);
+            return;
+        }
+
+        entity.getComponents().clear();
+        entity.getComponents().addAll(components);
+    }
+
+    private List<BomComponentEntity> toComponentEntities(List<BomComponent> components) {
+        if (components == null) {
+            return List.of();
+        }
+
+        return components.stream()
+                .map(this::toEntity)
+                .collect(ArrayList::new, ArrayList::add, ArrayList::addAll);
+    }
+
+    private BomComponentEntity toEntity(BomComponent component) {
+        if (component == null) {
+            return null;
+        }
+
+        BomComponentEntity entity = new BomComponentEntity();
+        entity.setId(component.id());
+        entity.setComponentName(component.componentName());
+        entity.setQuantity(component.quantity().value());
+        entity.setUnit(component.quantity().unit().getSymbole());
+        entity.setSelectedOfferId(component.selectedOfferId());
+        return entity;
+    }
+
+    private void replaceActivities(BomEntity entity, List<ActivityEntity> activities) {
+        if (entity.getActivities() == null) {
+            entity.setActivities(activities);
+            return;
+        }
+
+        entity.getActivities().clear();
+        entity.getActivities().addAll(activities);
+    }
+
+    private List<ActivityEntity> toActivityEntities(List<Activity> activities) {
+        if (activities == null) {
+            return List.of();
+        }
+
+        return activities.stream()
+                .map(this::toEntity)
+                .collect(ArrayList::new, ArrayList::add, ArrayList::addAll);
+    }
+
     private ActivityEntity toEntity(Activity activity) {
         if (activity == null) {
             return null;
@@ -199,14 +237,6 @@ public class BomRepositoryAdapter implements BomRepositoryPort {
         entity.setMinutes(activity.minutes().value());
         entity.setSequence(activity.sequence());
         return entity;
-    }
-
-    private Yield toYield(YieldEntity entity) {
-        if (entity == null) {
-            return null;
-        }
-
-        return new Yield(new Quantity(entity.getQuantity(), Unit.fromSymbole(entity.getUnit())), Unit.fromSymbole(entity.getUnit()));
     }
 
     private YieldEntity toYieldEntity(Yield yield) {

@@ -58,7 +58,6 @@ public record BomDto(
 
         Bom bom = new Bom(
                 id,
-                null,
                 name,
                 description,
                 imageUrl,

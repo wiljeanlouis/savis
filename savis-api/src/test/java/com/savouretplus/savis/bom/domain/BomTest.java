@@ -26,7 +26,6 @@ public class BomTest {
 
         Bom bom = new Bom(
                 null,
-                null,
                 title,
                 description,
                 imageUrl,
@@ -51,7 +50,6 @@ public class BomTest {
     void testAddComponent() {
         Bom bom = new Bom(
                 UUID.randomUUID(),
-                1L,
                 "Oeufs brouillés",
                 "Oeufs brouillés",
                 "Instructions",
@@ -73,7 +71,6 @@ public class BomTest {
     void testAddComponent_ShouldThrowIllegalStateExceptionWhenAddingDuplicateComponent() {
         Bom bom = new Bom(
                 UUID.randomUUID(),
-                1L,
                 "Oeufs brouillés",
                 "Oeufs brouillés",
                 "Instructions",
@@ -93,7 +90,6 @@ public class BomTest {
     void testCalculateTotal() {
         Bom bom = new Bom(
                 UUID.randomUUID(),
-                1L,
                 "Oeufs brouillés",
                 "Oeufs brouillés",
                 "Instructions",

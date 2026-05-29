@@ -29,11 +29,6 @@ public class BomService {
     public UUID saveBom(UUID bomId, Bom bom) {
         log.info("Save bom {} with id : {}", bom, bomId);
 
-        if (bomId != null) {
-            Bom oldBom = getBom(bomId);
-            bom = Bom.merge(oldBom, bom);
-        }
-
         repository.save(bom);
         publishComponentNeededEvents(bom);
 
