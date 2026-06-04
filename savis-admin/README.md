@@ -7,6 +7,7 @@
 - BOM/recipe list and form.
 - Component entry with quantity, unit, and optional selected provider offer.
 - Activity entry for production work such as preparation, cooking, assembly, packaging, installation, delivery, cleanup, or custom work.
+- Activity-rate management for global hourly rates by activity type.
 - Yield entry using the shared unit symbols (`portion`, `piece`, `g`, `kg`, `l`, `ml`).
 - Offer review/ingredient screens backed by the executor API.
 
@@ -21,6 +22,24 @@ The BOM/recipe form edits a generic BOM model:
 - Once selected, the offer appears in the component row with the same compact summary and a `Voir` link to the provider product page.
 
 The product link is built from `provider.site` plus `offer.url`.
+
+## Activity Rates
+
+The activity-rate page is available at `/activity-rates`.
+
+It manages the global hourly rates used by the Java API when calculating BOM activity costs:
+
+- list configured `ActivityRate` rows;
+- add a rate for an unconfigured `ActivityType`;
+- edit the hourly rate and currency for an existing type;
+- delete an activity-rate configuration.
+
+The page uses one modal component for both creation and update. It calls the Java API through:
+
+- `GET /api/activity-rates`
+- `POST /api/activity-rates`
+- `PUT /api/activity-rates/{activityType}`
+- `DELETE /api/activity-rates/{activityType}`
 
 ## API Configuration
 

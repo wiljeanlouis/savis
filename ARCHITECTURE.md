@@ -8,7 +8,7 @@ The long-term product direction is to turn BOMs and commercial operations into m
 
 - BOMs should know their component requirements, activities, and yield;
 - components should be linked to real provider offers;
-- BOM costs should be calculated from current or selected offer prices;
+- BOM costs should be calculated from current or selected offer prices and global activity rates;
 - order prices and margins should eventually be derived from BOM costs, labor, services, and business rules;
 - external provider data should be collected asynchronously because provider collection is slow, failure-prone, and outside the control of the core application.
 
@@ -72,9 +72,9 @@ supply/
 
 Examples:
 
-- `Bom`, `BomComponent`, `Activity`, and `Yield` are domain objects.
+- `Bom`, `BomComponent`, `Activity`, `ActivityRate`, and `Yield` are domain objects.
 - `BomService` is the BOM use case layer.
-- `BomRepositoryPort`, `ComponentPricePort`, and `ComponentNeededEventPort` are ports.
+- `BomRepositoryPort`, `ActivityRateRepositoryPort`, `ComponentPricePort`, and `ComponentNeededEventPort` are ports.
 - `BomController`, JPA repositories, RabbitMQ publisher, and external price adapters are adapters.
 
 ### Python Executor Shape
@@ -144,6 +144,7 @@ Feature
 Current slices:
 
 - BOM management: create, update, list, get, and delete BOMs for food and decoration workflows.
+- Activity-rate management: configure one global hourly rate per activity type for BOM activity-cost calculations.
 - Component need detection: when a BOM is saved, SAVIS emits component-needed events and lets the executor decide whether provider collection is required.
 - Offer collection: component/search term requests are converted into executor tasks and Celery jobs.
 - Offer selection and refresh: persisted offers can be searched from the admin UI, selected on BOM components, and invalidated/refreshed through supply workflows.
@@ -161,9 +162,10 @@ Java responsibilities:
 - expose SAVIS business APIs;
 - own BOM and supply domain concepts;
 - persist BOMs and supply state;
+- persist global activity-rate configuration;
 - publish component-needed messages when BOMs are saved;
 - receive offer results from Python through RabbitMQ;
-- calculate BOM costs through `ComponentPricePort`.
+- calculate BOM costs from component prices and global activity rates.
 
 Python responsibilities:
 
@@ -268,18 +270,22 @@ Activity
   minutes
   sequence
 
+ActivityRate
+  activityType
+  hourlyRate
+
 Yield
   quantity
   unit
 ```
 
-The BOM domain calculates total cost through the `ComponentPricePort`:
+The BOM use case resolves component prices through `ComponentPricePort` and loads global activity rates through `ActivityRateRepositoryPort`. The BOM domain then calculates the total from those values:
 
 ```text
-Bom.calculateTotal(ComponentPricePort)
+Bom.calculateTotal(componentPrices, activityRates)
 ```
 
-This keeps the domain independent from where prices come from.
+This keeps the domain independent from where prices and persisted rates come from.
 
 The intended pricing flow is:
 
@@ -289,10 +295,17 @@ The intended pricing flow is:
 4. The supply side requests or refreshes offers for those components.
 5. Collected offers are tracked by the executor and published to Java as available offer results.
 6. The admin can search available offers and select one on each component.
-7. `ComponentPricePort` resolves selected offer prices.
-8. `Bom.calculateTotal(...)` sums component costs.
+7. `ComponentPricePort` resolves selected offer prices, or the cheapest compatible offer when no selected offer exists.
+8. `ActivityRateRepositoryPort` loads configured rates by `ActivityType`.
+9. `Bom.calculateTotal(...)` sums component costs and activity costs.
 
-Current implementation note: `ComponentPriceAdapter` currently returns a placeholder value. `OfferService.processOffers(...)` saves new offers and updates existing ones by public id or provider/external id. The final pricing integration from selected offers is still being shaped.
+Activity costs are calculated from the global rate:
+
+```text
+(minutes / 60) * hourlyRate
+```
+
+If no rate is configured for an activity type, that activity contributes zero cost. `OfferService.processOffers(...)` saves new offers and updates existing ones by public id or provider/external id.
 
 ## Event Flow
 

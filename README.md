@@ -9,6 +9,7 @@ Food or decoration BOMs
   -> component needs
   -> provider offer collection
   -> selected offer prices
+  -> activity rates
   -> BOM, service, and order pricing
 ```
 
@@ -21,7 +22,8 @@ SAVIS should eventually help SavouretPlus:
 - manage BOMs for food recipes, decoration assemblies, and service workflows;
 - manage component requirements, activities, and yield;
 - manage product and provider offer data;
-- calculate BOM costs from selected provider offers;
+- configure global hourly activity rates;
+- calculate BOM costs from selected provider offers and production activities;
 - calculate order prices and margins;
 - support catering and decoration services;
 - prepare future inventory, purchasing, automation, and margin reporting features.
@@ -53,13 +55,13 @@ Main responsibilities:
 - persist business data in PostgreSQL;
 - publish component-needed messages to RabbitMQ;
 - receive collected offers from Python through RabbitMQ;
-- calculate BOM costs through domain ports.
+- calculate BOM costs through component prices and activity rates.
 
 ### SAVIS Admin
 
 Location: [savis-admin](savis-admin/README.md)
 
-The admin app is the back office UI. It is used by internal users to manage BOMs/recipes and, over time, operational data such as offers, products, providers, orders, and services. In the BOM form, users define components, activities, yield, and can select a persisted provider offer for each component.
+The admin app is the back office UI. It is used by internal users to manage BOMs/recipes and, over time, operational data such as offers, products, providers, orders, and services. In the BOM form, users define components, activities, yield, and can select a persisted provider offer for each component. The admin also exposes activity-rate configuration for the global hourly rates used in BOM activity costs.
 
 ### SAVIS Executor
 
@@ -155,7 +157,7 @@ feature/
 
 Examples currently present in the repo:
 
-- `bom`: BOM domain, BOM use cases, HTTP API, persistence, component-needed messaging, activities, and yield.
+- `bom`: BOM domain, BOM use cases, HTTP API, persistence, component-needed messaging, activities, activity rates, and yield.
 - `supply`: offer/provider concepts, persisted offers, offer result/invalidation consumption, and offer search for the admin UI.
 - `executor`: task tracking, offer collection, offer refresh, provider scraper adapters, Celery integration, RabbitMQ result publishing.
 
@@ -228,11 +230,19 @@ BOM
   -> BomComponent[]
   -> selected offer prices
   -> ComponentPricePort
+  -> Activity[]
+  -> ActivityRate by ActivityType
   -> Bom.calculateTotal(...)
   -> Money total
 ```
 
-Current note: BOM pricing is in progress. `ComponentPriceAdapter` currently returns a placeholder value and should later resolve real prices from the supply module or persisted offers.
+Component costs are resolved from selected provider offers, or from the cheapest compatible available offer when no selected offer exists. Activity costs use the global `ActivityRate` configured for each `ActivityType`:
+
+```text
+(minutes / 60) * hourlyRate
+```
+
+The BOM total is the sum of component costs and activity costs. If an activity type has no configured rate, its activity cost is treated as zero.
 
 ### Failure and Retry Flow
 
@@ -273,7 +283,7 @@ Java owns:
 - business workflows;
 - BOM and supply state;
 - persistence;
-- pricing decisions;
+- pricing decisions, including global activity-rate configuration;
 - admin-facing APIs.
 
 Python owns:
@@ -379,6 +389,11 @@ Local development URLs:
 - Java API: `http://localhost:8080`
 - Executor API: `http://localhost:8000`
 - RabbitMQ management: `http://localhost:15672`
+
+Useful admin pages:
+
+- BOMs/recipes: `http://localhost:5173/recipes`
+- Activity rates: `http://localhost:5173/activity-rates`
 
 Production-style Compose exposes the admin UI on:
 
@@ -488,8 +503,8 @@ Before merging changes that touch cross-service flows, verify:
 
 SAVIS is under active development. The architecture is already oriented around clean boundaries and asynchronous offer collection, but some business slices are still evolving:
 
-- real BOM pricing through stored offers is not complete yet;
-- supply persistence and offer selection exist, but pricing integration is still being shaped;
+- BOM pricing now combines stored offer prices and configured activity rates, but broader margin and order-pricing rules are still evolving;
+- supply persistence and offer selection exist, while provider coverage and pricing policies are still being shaped;
 - executor provider coverage is currently limited;
 - RabbitMQ rejected-message handling should eventually use a dead-letter queue;
 - cross-service integration tests should be added as flows stabilize.
