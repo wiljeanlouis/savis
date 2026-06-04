@@ -73,7 +73,7 @@ It is intentionally separate from the Java backend because provider collection i
 
 ### Backend API
 
-- Java 21
+- Java 25
 - Spring Boot
 - Spring Web MVC
 - Spring Data JPA

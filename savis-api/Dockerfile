@@ -1,5 +1,5 @@
 # Étape 1 : Environnement de compilation et développement
-FROM maven:3.9.14-eclipse-temurin-21-alpine AS development
+FROM maven:3.9.14-eclipse-temurin-25-alpine AS development
 WORKDIR /app
 RUN apk update && apk upgrade --no-cache
 
@@ -18,7 +18,7 @@ FROM development AS build
 RUN mvn clean package -DskipTests
 
 # Étape 3 : Image finale de production ultra-légère
-FROM eclipse-temurin:21-jre-alpine AS production
+FROM eclipse-temurin:25-jre-alpine AS production
 WORKDIR /app
 COPY --from=build /app/target/*.jar /opt/app.jar
 EXPOSE 8080
