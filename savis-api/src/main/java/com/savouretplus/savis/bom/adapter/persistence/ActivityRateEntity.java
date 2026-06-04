@@ -1,5 +1,6 @@
 package com.savouretplus.savis.bom.adapter.persistence;
 
+import java.math.BigDecimal;
 
 import com.savouretplus.savis.bom.domain.ActivityType;
 
@@ -17,19 +18,19 @@ import lombok.ToString;
 @Getter
 @Setter
 @ToString
-@Entity(name = "bom_activities")
-public class ActivityEntity {
+@Entity(name = "activity_rates")
+public class ActivityRateEntity {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
     @Enumerated(EnumType.STRING)
-    @Column(nullable = false)
-    private ActivityType type;
+    @Column(unique = true, nullable = false)
+    private ActivityType activityType;
 
     @Column(nullable = false)
-    private Integer minutes;
+    private BigDecimal hourlyRateAmount;
 
     @Column(nullable = false)
-    private Integer sequence;
+    private String hourlyRateCurrency;
 }

@@ -3,6 +3,7 @@ package com.savouretplus.savis.bom.domain;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 import com.savouretplus.savis.common.Money;
@@ -88,12 +89,6 @@ public class Bom {
         return calculateTotal(calculator.getPrices(componentPriceRequests()));
     }
 
-    public Money calculateTotal(java.util.Map<ComponentPriceRequest, Money> componentPrices) {
-        return componentPriceRequests().stream()
-                .map(request -> componentPrices.getOrDefault(request, Money.ZERO))
-                .reduce(Money.ZERO, Money::add);
-    }
-
     public List<ComponentPriceRequest> componentPriceRequests() {
         return components.stream()
                 .map(component -> new ComponentPriceRequest(
@@ -102,4 +97,32 @@ public class Bom {
                         component.selectedOfferId()))
                 .toList();
     }
+
+    public Money calculateTotal(Map<ComponentPriceRequest, Money> componentPrices) {
+        return calculateComponentTotal(componentPrices);
+    }
+
+    public Money calculateTotal(
+            Map<ComponentPriceRequest, Money> componentPrices,
+            Map<ActivityType, Money> activityRates) {
+        return calculateComponentTotal(componentPrices)
+                .add(calculateActivityTotal(activityRates));
+    }
+
+    private Money calculateComponentTotal(Map<ComponentPriceRequest, Money> componentPrices) {
+        return componentPriceRequests().stream()
+                .map(request -> componentPrices.getOrDefault(request, Money.ZERO))
+                .reduce(Money.ZERO, Money::add);
+    }
+
+    private Money calculateActivityTotal(Map<ActivityType, Money> activityRates) {
+        if (activityRates == null) {
+            return Money.ZERO;
+        }
+
+        return activities.stream()
+                .map(activity -> activity.calculateCost(activityRates.get(activity.type())))
+                .reduce(Money.ZERO, Money::add);
+    }
+
 }

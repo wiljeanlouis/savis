@@ -20,6 +20,7 @@ import {
   Dish02Icon,
   Task01Icon,
   RiceBowl01FreeIcons,
+  Money03Icon,
 } from "@hugeicons/core-free-icons";
 import { Link } from "react-router";
 import { ModeToggle } from "./components/ModeToggle";
@@ -51,6 +52,11 @@ const data = {
       name: "Tasks",
       url: "/tasks",
       icon: <HugeiconsIcon icon={Task01Icon} strokeWidth={2} />,
+    },
+    {
+      name: "Taux horaire",
+      url: "/activity-rates",
+      icon: <HugeiconsIcon icon={Money03Icon} strokeWidth={2} />,
     },
   ],
   navSecondary: [

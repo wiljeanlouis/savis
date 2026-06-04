@@ -5,11 +5,11 @@ import java.util.UUID;
 
 import com.fasterxml.jackson.annotation.JsonAlias;
 import com.fasterxml.jackson.annotation.JsonProperty;
-import com.savouretplus.savis.common.ActivityType;
 import com.savouretplus.savis.common.Money;
 import com.savouretplus.savis.common.Quantity;
 import com.savouretplus.savis.common.Unit;
 import com.savouretplus.savis.bom.domain.Activity;
+import com.savouretplus.savis.bom.domain.ActivityType;
 import com.savouretplus.savis.bom.domain.Bom;
 import com.savouretplus.savis.bom.domain.BomComponent;
 import com.savouretplus.savis.bom.domain.BomType;

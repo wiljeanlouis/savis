@@ -5,9 +5,9 @@ import java.util.List;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
+import com.savouretplus.savis.bom.domain.ActivityType;
 import com.savouretplus.savis.bom.domain.Bom;
 import com.savouretplus.savis.bom.domain.BomType;
-import com.savouretplus.savis.common.ActivityType;
 import com.savouretplus.savis.common.Unit;
 
 public class BomDtoTest {

@@ -8,7 +8,6 @@ import java.util.UUID;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
-import com.savouretplus.savis.common.ActivityType;
 import com.savouretplus.savis.common.Money;
 import com.savouretplus.savis.common.Quantity;
 import com.savouretplus.savis.common.Unit;
@@ -107,6 +106,58 @@ public class BomTest {
         Money total = bom.calculateTotal(new StubComponentPricePort());
         Assertions.assertEquals(Money.of(25), total);
 
+    }
+
+    @Test
+    void testCalculateTotal_ShouldIncludeActivityCosts() {
+        Bom bom = new Bom(
+                UUID.randomUUID(),
+                "Oeufs brouillés",
+                "Oeufs brouillés",
+                "Instructions",
+                "image.jpg",
+                BomType.FOOD,
+                List.of(),
+                List.of(
+                        new Activity(null, ActivityType.PREP, Minute.of(30), 1),
+                        new Activity(null, ActivityType.COOK, Minute.of(15), 2)),
+                null);
+        bom.addComponent("Flour", 200, Unit.GRAM, UUID.fromString("59960a6c-9491-473a-87e9-3244396096d6"));
+
+        Map<ComponentPriceRequest, Money> componentPrices = new StubComponentPricePort()
+                .getPrices(bom.componentPriceRequests());
+        Map<ActivityType, Money> activityRates = Map.of(
+                ActivityType.PREP, Money.of(60),
+                ActivityType.COOK, Money.of(80));
+
+        Money total = bom.calculateTotal(componentPrices, activityRates);
+
+        Assertions.assertEquals(0, total.amount().compareTo(Money.of(55).amount()));
+        Assertions.assertEquals("CAD", total.currency());
+    }
+
+    @Test
+    void testActivityCalculateCost() {
+        Activity activity = new Activity(null, ActivityType.PREP, Minute.of(30), 1);
+
+        Money cost = activity.calculateCost(Money.of(60));
+
+        Assertions.assertEquals(0, cost.amount().compareTo(Money.of(30).amount()));
+        Assertions.assertEquals("CAD", cost.currency());
+    }
+
+    @Test
+    void testActivityRate_ShouldRequireActivityType() {
+        Assertions.assertThrows(IllegalArgumentException.class, () -> {
+            new ActivityRate(null, null, Money.of(60));
+        });
+    }
+
+    @Test
+    void testActivityRate_ShouldRequireHourlyRate() {
+        Assertions.assertThrows(IllegalArgumentException.class, () -> {
+            new ActivityRate(null, ActivityType.PREP, null);
+        });
     }
 
     private static class StubComponentPricePort implements ComponentPricePort {

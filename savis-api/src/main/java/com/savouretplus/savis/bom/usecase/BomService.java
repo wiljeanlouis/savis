@@ -8,8 +8,11 @@ import java.util.stream.Collectors;
 import org.springframework.stereotype.Service;
 
 import com.savouretplus.savis.common.Money;
+import com.savouretplus.savis.bom.domain.ActivityRate;
+import com.savouretplus.savis.bom.domain.ActivityType;
 import com.savouretplus.savis.bom.domain.ComponentNeededEvent;
 import com.savouretplus.savis.bom.domain.Bom;
+import com.savouretplus.savis.bom.port.ActivityRateRepositoryPort;
 import com.savouretplus.savis.bom.port.BomRepositoryPort;
 import com.savouretplus.savis.bom.port.ComponentNeededEventPort;
 import com.savouretplus.savis.bom.port.ComponentPricePort;
@@ -27,6 +30,7 @@ public class BomService {
 
     private final BomRepositoryPort repository;
     private final ComponentPricePort priceCalculator;
+    private final ActivityRateRepositoryPort activityRateRepository;
     private final ComponentNeededEventPort componentNeededEventPublisher;
 
     public UUID saveBom(UUID bomId, Bom bom) {
@@ -58,7 +62,9 @@ public class BomService {
     }
 
     public Money calculateTotalCost(Bom bom) {
-        return bom.calculateTotal(priceCalculator);
+        return bom.calculateTotal(
+                priceCalculator.getPrices(bom.componentPriceRequests()),
+                activityRatesByType());
     }
 
     public Map<UUID, Money> calculateTotalCosts(List<Bom> boms) {
@@ -68,11 +74,19 @@ public class BomService {
                 .toList();
 
         Map<ComponentPriceRequest, Money> componentPrices = priceCalculator.getPrices(requests);
+        Map<ActivityType, Money> activityRates = activityRatesByType();
 
         return boms.stream()
                 .collect(Collectors.toMap(
                         Bom::getPublicId,
-                        bom -> bom.calculateTotal(componentPrices)));
+                        bom -> bom.calculateTotal(componentPrices, activityRates)));
+    }
+
+    private Map<ActivityType, Money> activityRatesByType() {
+        return activityRateRepository.findAll().stream()
+                .collect(Collectors.toMap(
+                        ActivityRate::activityType,
+                        ActivityRate::hourlyRate));
     }
 
     private void publishComponentNeededEvents(Bom bom) {

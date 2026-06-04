@@ -13,6 +13,7 @@ import { getRecipe } from "@/features/recipe/api/recipeApi";
 import type { Recipe } from "@/features/recipe/types";
 import { TasksPage } from "@/features/task/pages/TasksPage";
 import { IngredientsPage } from "@/features/ingredient/pages/IngredientsPage";
+import { ActivityRatesPage } from "@/features/activity-rate/pages/ActivityRatesPage";
 
 const router = createBrowserRouter([
   {
@@ -114,6 +115,25 @@ const router = createBrowserRouter([
               <BreadcrumbSeparator className="hidden md:block" />
               <BreadcrumbItem>
                 <BreadcrumbPage>Tasks</BreadcrumbPage>
+              </BreadcrumbItem>
+            </>
+          ),
+        },
+      },
+      {
+        path: "/activity-rates",
+        element: <ActivityRatesPage />,
+        handle: {
+          breadcrumb: () => (
+            <>
+              <BreadcrumbItem className="hidden md:block">
+                <BreadcrumbLink asChild>
+                  <Link to="/">Accueil</Link>
+                </BreadcrumbLink>
+              </BreadcrumbItem>
+              <BreadcrumbSeparator className="hidden md:block" />
+              <BreadcrumbItem>
+                <BreadcrumbPage>Taux horaire</BreadcrumbPage>
               </BreadcrumbItem>
             </>
           ),
