@@ -48,3 +48,7 @@ build/
 ### savis-executor
 .venv
 __pycache__
+
+### Supabase local
+supabase/.temp/
+.env.supabase.local
