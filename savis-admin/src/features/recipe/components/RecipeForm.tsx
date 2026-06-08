@@ -3,7 +3,7 @@ import { useRecipeForm } from "../hooks/useRecipeForm";
 import { IngredientInput } from "./IngredientInput";
 import { ActivityInput } from "./ActivityInput";
 import { Button } from "@/shared/ui/button";
-import type { RecipeActivity, RecipeIngredient } from "../types";
+import type { RecipeActivity, RecipeComponent } from "../types";
 import {
   FieldGroup,
   FieldSet,
@@ -31,9 +31,9 @@ export const RecipeForm = () => {
     form,
     updateField,
     updateYield,
-    addIngredient,
-    updateIngredient,
-    removeIngredient,
+    addComponent,
+    updateComponent,
+    removeComponent,
     addActivity,
     updateActivity,
     removeActivity,
@@ -196,16 +196,16 @@ export const RecipeForm = () => {
                   La liste des ingrédients de la recette.
                 </FieldDescription>
                 <FieldGroup>
-                  {form.ingredients.map(
-                    (ingredient: RecipeIngredient, index: number) => (
+                  {form.components.map(
+                    (component: RecipeComponent, index: number) => (
                       <IngredientInput
                         key={index}
-                        value={ingredient}
+                        value={component}
                         onChange={(val) => {
-                          updateIngredient(index, val);
+                          updateComponent(index, val);
                         }}
                         onRemove={() => {
-                          removeIngredient(index);
+                          removeComponent(index);
                         }}
                       />
                     ),
@@ -214,7 +214,7 @@ export const RecipeForm = () => {
                     type="button"
                     variant="destructive"
                     className="w-32"
-                    onClick={addIngredient}
+                    onClick={addComponent}
                   >
                     Ajouter Ingrédient
                   </Button>

@@ -3,8 +3,9 @@ import {
   useGetIngredients,
   usePatchIngredient,
 } from "@/features/ingredient/hooks/useIngredientApi";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { act, renderHook, waitFor } from "@testing-library/react";
-import type { ReactNode } from "react";
+import { useState, type ReactNode } from "react";
 import { BrowserRouter } from "react-router";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -21,9 +22,23 @@ const ingredientsPage = {
   total_pages: 5,
 };
 
-const wrapper = ({ children }: { children: ReactNode }) => (
-  <BrowserRouter>{children}</BrowserRouter>
-);
+const Wrapper = ({ children }: { children: ReactNode }) => {
+  const [queryClient] = useState(
+    () =>
+      new QueryClient({
+        defaultOptions: {
+          queries: { retry: false },
+          mutations: { retry: false },
+        },
+      }),
+  );
+
+  return (
+    <QueryClientProvider client={queryClient}>
+      <BrowserRouter>{children}</BrowserRouter>
+    </QueryClientProvider>
+  );
+};
 
 const mockUseGetIngredients = vi.mocked(useGetIngredients);
 const mockUsePatchIngredient = vi.mocked(usePatchIngredient);
@@ -53,7 +68,9 @@ describe("useIngredientList", () => {
       "/ingredients?page=3&size=50&sort_by=price&sort_direction=asc&search_term=lait&type=FOOD",
     );
 
-    const { result } = renderHook(() => useIngredientList(), { wrapper });
+    const { result } = renderHook(() => useIngredientList(), {
+      wrapper: Wrapper,
+    });
 
     expect(result.current.listState).toEqual({
       page: 3,
@@ -82,7 +99,9 @@ describe("useIngredientList", () => {
       "/ingredients?page=-2&size=abc&sort_direction=sideways&type=FOOD",
     );
 
-    const { result } = renderHook(() => useIngredientList(), { wrapper });
+    const { result } = renderHook(() => useIngredientList(), {
+      wrapper: Wrapper,
+    });
 
     expect(result.current.listState).toEqual({
       page: 1,
@@ -110,7 +129,9 @@ describe("useIngredientList", () => {
       "/ingredients?page=4&size=30&sort_by=brand&sort_direction=asc",
     );
 
-    const { result } = renderHook(() => useIngredientList(), { wrapper });
+    const { result } = renderHook(() => useIngredientList(), {
+      wrapper: Wrapper,
+    });
 
     act(() => {
       result.current.handleSearchTermChange("beurre");
@@ -129,7 +150,9 @@ describe("useIngredientList", () => {
   });
 
   it("updates sorting, direction, and pagination in the URL", async () => {
-    const { result } = renderHook(() => useIngredientList(), { wrapper });
+    const { result } = renderHook(() => useIngredientList(), {
+      wrapper: Wrapper,
+    });
 
     act(() => {
       result.current.handleSortByChange("label");

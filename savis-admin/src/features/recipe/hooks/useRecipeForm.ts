@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import type { Recipe, RecipeActivity, RecipeIngredient } from "../types";
+import type { Recipe, RecipeActivity, RecipeComponent } from "../types";
 import {
   saveDraft,
   loadDraft,
@@ -35,7 +35,7 @@ export const useRecipeForm = () => {
     description: initForm?.description ?? "",
     imageUrl: initForm?.imageUrl ?? "",
     instructions: initForm?.instructions ?? "",
-    ingredients: initForm?.ingredients ?? [],
+    components: initForm?.components ?? [],
     activities:
       initForm?.activities && initForm.activities.length >= 2
         ? initForm.activities
@@ -76,33 +76,33 @@ export const useRecipeForm = () => {
     setIsDirty(true);
   };
 
-  const addIngredient = () => {
+  const addComponent = () => {
     setForm((prev) => ({
       ...prev,
-      ingredients: [
-        ...prev.ingredients,
-        { ingredientName: "", quantity: 0, unit: "", selectedOfferId: null },
+      components: [
+        ...prev.components,
+        { componentName: "", quantity: 0, unit: "", selectedOfferId: null },
       ],
     }));
   };
 
-  const updateIngredient = (index: number, updated: RecipeIngredient) => {
+  const updateComponent = (index: number, updated: RecipeComponent) => {
     setForm((prev) => ({
       ...prev,
-      ingredients: [
-        ...prev.ingredients.map((item: RecipeIngredient, i: number) =>
+      components: [
+        ...prev.components.map((item: RecipeComponent, i: number) =>
           i === index ? updated : item,
         ),
       ],
     }));
   };
 
-  const removeIngredient = (index: number) => {
+  const removeComponent = (index: number) => {
     setForm((prev) => ({
       ...prev,
-      ingredients: [
-        ...prev.ingredients.filter(
-          (_: RecipeIngredient, i: number) => i !== index,
+      components: [
+        ...prev.components.filter(
+          (_: RecipeComponent, i: number) => i !== index,
         ),
       ],
     }));
@@ -185,9 +185,9 @@ export const useRecipeForm = () => {
     form,
     updateField,
     updateYield,
-    addIngredient,
-    updateIngredient,
-    removeIngredient,
+    addComponent,
+    updateComponent,
+    removeComponent,
     addActivity,
     updateActivity,
     removeActivity,

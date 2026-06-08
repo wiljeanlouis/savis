@@ -17,9 +17,9 @@ const mockRecipe: Recipe = {
   description: "A delicious test recipe",
   imageUrl: "http://example.com/image.jpg",
   instructions: "Mix ingredients and cook.",
-  ingredients: [
-    { ingredientName: "Flour", quantity: 2, unit: "cups" },
-    { ingredientName: "Sugar", quantity: 1, unit: "cup" },
+  components: [
+    { componentName: "Flour", quantity: 2, unit: "cups" },
+    { componentName: "Sugar", quantity: 1, unit: "cup" },
   ],
   activities: [
     { type: "PREP", minutes: 15, sequence: 1 },
@@ -74,7 +74,7 @@ describe("useRecipeForm", () => {
         description: "A draft recipe",
         imageUrl: "",
         instructions: "",
-        ingredients: [],
+        components: [],
         activities: [
           { type: "PREP", minutes: 0, sequence: 1 },
           { type: "COOK", minutes: 0, sequence: 2 },
@@ -104,12 +104,12 @@ describe("useRecipeForm", () => {
         description: "",
         imageUrl: "",
         instructions: "",
-        ingredients: [],
+        components: [],
         activities: [
           { type: "PREP", minutes: 0, sequence: 1 },
           { type: "COOK", minutes: 0, sequence: 2 },
         ],
-        yield: { quantity: 1, unit: "PORTION" },
+        yield: { quantity: 1, unit: "portion" },
       });
     });
   });
@@ -145,33 +145,34 @@ describe("useRecipeForm", () => {
     });
   });
 
-  describe("ingredient management", () => {
-    it("should add ingredient to form", () => {
+  describe("component management", () => {
+    it("should add component to form", () => {
       vi.mocked(useLoaderData).mockReturnValue(null);
       vi.mocked(usePostRecipe).mockReturnValue(mockMutation);
 
       const { result } = renderHook(() => useRecipeForm());
 
       act(() => {
-        result.current.addIngredient();
+        result.current.addComponent();
       });
 
-      expect(result.current.form.ingredients).toHaveLength(1);
-      expect(result.current.form.ingredients[0]).toEqual({
-        ingredientName: "",
+      expect(result.current.form.components).toHaveLength(1);
+      expect(result.current.form.components[0]).toEqual({
+        componentName: "",
         quantity: 0,
         unit: "",
+        selectedOfferId: null,
       });
     });
 
-    it("should update ingredient in form", () => {
+    it("should update component in form", () => {
       const initialRecipe: Recipe = {
         id: "1",
         name: "Test Recipe",
         description: "",
         imageUrl: "",
         instructions: "",
-        ingredients: [{ ingredientName: "Flour", quantity: 2, unit: "cups" }],
+        components: [{ componentName: "Flour", quantity: 2, unit: "cups" }],
         activities: [
           { type: "PREP", minutes: 0, sequence: 1 },
           { type: "COOK", minutes: 0, sequence: 2 },
@@ -185,30 +186,30 @@ describe("useRecipeForm", () => {
       const { result } = renderHook(() => useRecipeForm());
 
       act(() => {
-        result.current.updateIngredient(0, {
-          ingredientName: "Sugar",
+        result.current.updateComponent(0, {
+          componentName: "Sugar",
           quantity: 1,
           unit: "cup",
         });
       });
 
-      expect(result.current.form.ingredients[0]).toEqual({
-        ingredientName: "Sugar",
+      expect(result.current.form.components[0]).toEqual({
+        componentName: "Sugar",
         quantity: 1,
         unit: "cup",
       });
     });
 
-    it("should remove ingredient from form", () => {
+    it("should remove component from form", () => {
       const initialRecipe: Recipe = {
         id: "1",
         name: "Test Recipe",
         description: "",
         imageUrl: "",
         instructions: "",
-        ingredients: [
-          { ingredientName: "Flour", quantity: 2, unit: "cups" },
-          { ingredientName: "Sugar", quantity: 1, unit: "cup" },
+        components: [
+          { componentName: "Flour", quantity: 2, unit: "cups" },
+          { componentName: "Sugar", quantity: 1, unit: "cup" },
         ],
         activities: [
           {
@@ -231,11 +232,11 @@ describe("useRecipeForm", () => {
       const { result } = renderHook(() => useRecipeForm());
 
       act(() => {
-        result.current.removeIngredient(0);
+        result.current.removeComponent(0);
       });
 
-      expect(result.current.form.ingredients).toEqual([
-        { ingredientName: "Sugar", quantity: 1, unit: "cup" },
+      expect(result.current.form.components).toEqual([
+        { componentName: "Sugar", quantity: 1, unit: "cup" },
       ]);
     });
   });

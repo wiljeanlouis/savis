@@ -1,5 +1,5 @@
 import { Input } from "@/shared/ui/input";
-import { type RecipeIngredient } from "../types";
+import { type RecipeComponent } from "../types";
 import { Button } from "@/shared/ui/button";
 import { Field } from "@/shared/ui/field";
 import { Select } from "@/shared/ui/select";
@@ -21,14 +21,14 @@ import { HugeiconsIcon } from "@hugeicons/react";
 import { Share } from "@hugeicons/core-free-icons";
 
 interface Props {
-  value: RecipeIngredient;
-  onChange: (value: RecipeIngredient) => void;
+  value: RecipeComponent;
+  onChange: (value: RecipeComponent) => void;
   onRemove: () => void;
 }
 
 export const IngredientInput = ({ value, onChange, onRemove }: Props) => {
   const { data: offers = [], isFetching } = useSearchAvailableOffers(
-    value.ingredientName,
+    value.componentName,
   );
 
   const selectedOffer = offers.find(
@@ -72,12 +72,12 @@ export const IngredientInput = ({ value, onChange, onRemove }: Props) => {
         <Field className="col-span-2">
           <Input
             placeholder="Ingredient Name"
-            value={value.ingredientName}
+            value={value.componentName}
             required
             onChange={(e) =>
               onChange({
                 ...value,
-                ingredientName: e.target.value,
+                componentName: e.target.value,
                 selectedOfferId: null,
               })
             }
@@ -133,7 +133,7 @@ export const IngredientInput = ({ value, onChange, onRemove }: Props) => {
         </div>
       </div>
 
-      {value.ingredientName.trim().length >= 2 && (
+      {value.componentName.trim().length >= 2 && (
         <div className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3">
           <DropdownMenu>
             <DropdownMenuTrigger asChild>

@@ -21,7 +21,7 @@ describe("RecipeDraftStorage", () => {
         description: "A test recipe",
         imageUrl: "",
         instructions: "",
-        ingredients: [],
+        components: [],
         activities: [
           { type: "PREP", minutes: 0, sequence: 1 },
           { type: "COOK", minutes: 0, sequence: 2 },
@@ -47,7 +47,7 @@ describe("RecipeDraftStorage", () => {
         description: "A test recipe",
         imageUrl: "",
         instructions: "",
-        ingredients: [],
+        components: [],
         activities: [
           {
             type: "PREP",
@@ -80,7 +80,7 @@ describe("RecipeDraftStorage", () => {
         description: "A test recipe",
         imageUrl: "",
         instructions: "",
-        ingredients: [],
+        components: [],
         activities: [
           {
             type: "PREP",
@@ -113,7 +113,7 @@ describe("RecipeDraftStorage", () => {
         description: "First recipe",
         imageUrl: "",
         instructions: "",
-        ingredients: [],
+        components: [],
         activities: [
           {
             type: "PREP",
@@ -134,7 +134,7 @@ describe("RecipeDraftStorage", () => {
         description: "Second recipe",
         imageUrl: "",
         instructions: "",
-        ingredients: [],
+        components: [],
         activities: [
           {
             type: "PREP",
@@ -179,7 +179,7 @@ describe("RecipeDraftStorage", () => {
         description: "A test recipe",
         imageUrl: "",
         instructions: "",
-        ingredients: [],
+        components: [],
         activities: [
           {
             type: "PREP",
@@ -213,7 +213,7 @@ describe("RecipeDraftStorage", () => {
         description: "A test recipe",
         imageUrl: "",
         instructions: "",
-        ingredients: [],
+        components: [],
         activities: [
           {
             type: "PREP",
@@ -246,7 +246,7 @@ describe("RecipeDraftStorage", () => {
         description: "A test recipe",
         imageUrl: "",
         instructions: "",
-        ingredients: [],
+        components: [],
         activities: [
           {
             type: "PREP",

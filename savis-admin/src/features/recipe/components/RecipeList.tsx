@@ -30,7 +30,7 @@ export const RecipeList = () => {
         recipe.name,
         recipe.description,
         recipe.instructions,
-        ...recipe.ingredients.map((ingredient) => ingredient.ingredientName),
+        ...recipe.components.map((component) => component.componentName),
       ].join(" ");
 
       return normalizeSearchValue(searchableContent).includes(
@@ -51,44 +51,47 @@ export const RecipeList = () => {
     );
   }
 
-  if (isLoading) {
-    return (
-      <div className="flex justify-center items-center h-full">
-        <Spinner />
-      </div>
-    );
-  }
-
-  if (!recipes || recipes.length === 0) {
-    return <NoData />;
-  }
-
   return (
     <>
       <div className="space-y-2">
-        <RecipeSearch
-          searchQuery={searchQuery}
-          onSearchQueryChange={setSearchQuery}
-        />
-        <Button>
-          <Link to="/recipes/add">+ Ajouter</Link>
-        </Button>
+        <h1 className="text-2xl font-semibold">Recettes</h1>
+
+        <div className="flex flex-row gap-3">
+          <RecipeSearch
+            searchQuery={searchQuery}
+            onSearchQueryChange={setSearchQuery}
+          />
+          <Button>
+            <Link to="/recipes/add">+ Ajouter</Link>
+          </Button>
+        </div>
       </div>
 
-      {!filteredRecipes || filteredRecipes.length === 0 ? (
-        <NoData />
-      ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-          {filteredRecipes.map((recipe) => (
-            <RecipeCard
-              key={recipe.id}
-              recipe={recipe}
-              deleteRecipe={() => {
-                void (recipe.id && deleteRecipe(recipe.id));
-              }}
-            />
-          ))}
+      {isLoading ? (
+        <div className="flex min-h-64 items-center justify-center">
+          <Spinner />
         </div>
+      ) : (
+        <>
+          {!recipes ||
+          recipes.length === 0 ||
+          !filteredRecipes ||
+          filteredRecipes.length === 0 ? (
+            <NoData />
+          ) : (
+            <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+              {filteredRecipes.map((recipe) => (
+                <RecipeCard
+                  key={recipe.id}
+                  recipe={recipe}
+                  deleteRecipe={() => {
+                    void (recipe.id && deleteRecipe(recipe.id));
+                  }}
+                />
+              ))}
+            </div>
+          )}
+        </>
       )}
     </>
   );

@@ -3,7 +3,6 @@ package com.savouretplus.savis.bom.adapter.web;
 import java.util.List;
 import java.util.UUID;
 
-import com.fasterxml.jackson.annotation.JsonAlias;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.savouretplus.savis.common.Money;
 import com.savouretplus.savis.common.Quantity;
@@ -26,7 +25,7 @@ public record BomDto(
         @NotBlank String imageUrl,
         String instructions,
         BomType type,
-        @JsonAlias("ingredients") @NotNull List<BomComponentDto> components,
+        @NotNull List<BomComponentDto> components,
         List<ActivityDto> activities,
         @JsonProperty("yield") YieldDto bomYield,
         Money price) {
@@ -93,11 +92,6 @@ public record BomDto(
         return bom;
     }
 
-    @JsonProperty("ingredients")
-    public List<BomComponentDto> ingredients() {
-        return components;
-    }
-
 }
 
 record ActivityDto(
@@ -137,7 +131,7 @@ record YieldDto(
 }
 
 record BomComponentDto(
-        @JsonAlias("ingredientName") @NotBlank String componentName,
+        @NotBlank String componentName,
         @NotNull double quantity,
         @NotBlank String unit,
         UUID selectedOfferId) {
@@ -157,10 +151,4 @@ record BomComponentDto(
                 componentRequirement.quantity().unit().getSymbole(),
                 componentRequirement.selectedOfferId());
     }
-
-    @JsonProperty("ingredientName")
-    public String ingredientName() {
-        return componentName;
-    }
-
 }

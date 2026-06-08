@@ -1,5 +1,5 @@
-export interface RecipeIngredient {
-  ingredientName: string;
+export interface RecipeComponent {
+  componentName: string;
   quantity: number;
   unit: string;
   selectedOfferId?: string | null;
@@ -60,7 +60,7 @@ export interface Recipe {
   description: string;
   imageUrl: string;
   instructions: string;
-  ingredients: RecipeIngredient[];
+  components: RecipeComponent[];
   activities: RecipeActivity[];
   yield: RecipeYield;
   price?: RecipePrice | null;
