@@ -90,7 +90,7 @@ const router = createBrowserRouter([
               </BreadcrumbItem>
               <BreadcrumbSeparator className="hidden md:block" />
               <BreadcrumbItem>
-                <BreadcrumbPage>BOM</BreadcrumbPage>
+                <BreadcrumbPage>Compositions BOM</BreadcrumbPage>
               </BreadcrumbItem>
             </>
           ),

@@ -55,7 +55,7 @@ export const BomList = () => {
     <>
       <div className="space-y-4">
         <div>
-          <h1 className="text-2xl font-semibold">BOM</h1>
+          <h1 className="text-2xl font-semibold">Compositions BOM</h1>
           <p className="text-sm text-muted-foreground">
             Tout ce qui rentre dans la fabrication d'un élément vendable. Il
             peut être une recette, un matériel, etc

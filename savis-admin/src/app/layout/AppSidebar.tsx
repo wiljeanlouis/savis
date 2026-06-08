@@ -17,11 +17,9 @@ import {
   HelpCircleIcon,
   Database01Icon,
   Analytics01Icon,
-  Dish02Icon,
-  Task01Icon,
-  RiceBowl01FreeIcons,
   Money03Icon,
   PackageIcon,
+  GearsFreeIcons,
 } from "@hugeicons/core-free-icons";
 import { Link } from "react-router";
 import { ModeToggle } from "./components/ModeToggle";
@@ -36,33 +34,35 @@ const data = {
     email: "m@example.com",
     avatar: "/avatars/shadcn.jpg",
   },
-  foods: [
-    {
-      name: "Produits",
-      url: "/catalog-products",
-      icon: <HugeiconsIcon icon={PackageIcon} strokeWidth={2} />,
-    },
-    {
-      name: "BOM",
-      url: "/boms",
-      icon: <HugeiconsIcon icon={Dish02Icon} strokeWidth={2} />,
-    },
-    {
-      name: "Composants BOM",
-      url: "/bom-components",
-      icon: <HugeiconsIcon icon={RiceBowl01FreeIcons} strokeWidth={2} />,
-    },
-  ],
+  foods: [],
   configs: [
-    {
-      name: "Tasks",
-      url: "/tasks",
-      icon: <HugeiconsIcon icon={Task01Icon} strokeWidth={2} />,
-    },
     {
       name: "Taux horaire",
       url: "/activity-rates",
       icon: <HugeiconsIcon icon={Money03Icon} strokeWidth={2} />,
+    },
+    {
+      name: "BOM",
+      icon: <HugeiconsIcon icon={GearsFreeIcons} strokeWidth={2} />,
+      children: [
+        {
+          name: "Composants",
+          url: "/bom-components",
+        },
+        {
+          name: "Compositions",
+          url: "/boms",
+        },
+        {
+          name: "Tasks",
+          url: "/tasks",
+        },
+      ],
+    },
+    {
+      name: "Produits",
+      url: "/catalog-products",
+      icon: <HugeiconsIcon icon={PackageIcon} strokeWidth={2} />,
     },
   ],
   navSecondary: [
