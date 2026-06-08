@@ -3,7 +3,7 @@
 from typing import Annotated
 from uuid import UUID  # noqa: TC003
 
-from fastapi import APIRouter, HTTPException, Query
+from fastapi import APIRouter, HTTPException, Query, Response, status
 
 from app.adapters.api.schemas import (
     OfferResponse,
@@ -132,6 +132,14 @@ async def patch_offer(
     if offer is None:
         raise HTTPException(status_code=404, detail="Offer not found")
     return _offer_response(offer)
+
+
+@router.delete("/offers/{offer_id}", status_code=status.HTTP_204_NO_CONTENT)
+async def delete_offer(offer_id: UUID) -> Response:
+    """Delete one offer."""
+    if not offers_use_case.delete(offer_id):
+        raise HTTPException(status_code=404, detail="Offer not found")
+    return Response(status_code=status.HTTP_204_NO_CONTENT)
 
 
 def _offer_response(offer: Offer) -> OfferResponse:

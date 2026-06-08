@@ -288,6 +288,16 @@ class OffersUseCase:
             self.offer_publisher.publish_offer_invalidation(saved_offer)
         return saved_offer
 
+    def delete(self, offer_id: UUID) -> bool:
+        """Delete an offer and invalidate it when it was published."""
+        offer = self.offer_repository.find_by_id(offer_id)
+        if offer is None:
+            return False
+
+        if offer.status == OfferStatus.VALID:
+            self.offer_publisher.publish_offer_invalidation(offer)
+        return self.offer_repository.delete(offer_id)
+
     # api use case - end
 
     @staticmethod

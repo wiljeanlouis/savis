@@ -29,6 +29,8 @@ if TYPE_CHECKING:
     import pytest
 
 HTTP_OK = 200
+HTTP_NO_CONTENT = 204
+HTTP_NOT_FOUND = 404
 HTTP_UNPROCESSABLE_ENTITY = 422
 PAGE_TWO = 2
 TOTAL_SIX = 6
@@ -322,3 +324,40 @@ def test_patch_offer_updates_one_offer(
         response.json()["refresh_frequency_hours"]
         == REFRESH_FREQUENCY_SIX_HOURS
     )
+
+
+def test_delete_offer_returns_no_content(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    offer_id = uuid7()
+
+    class FixedOffersUseCase:
+        def delete(self, deleted_offer_id: object) -> bool:
+            assert deleted_offer_id == offer_id
+            return True
+
+    monkeypatch.setattr(routes, "offers_use_case", FixedOffersUseCase())
+    app = FastAPI()
+    app.include_router(routes.router)
+
+    response = TestClient(app).delete(f"/offers/{offer_id}")
+
+    assert response.status_code == HTTP_NO_CONTENT
+    assert response.content == b""
+
+
+def test_delete_offer_returns_not_found(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    class FixedOffersUseCase:
+        def delete(self, _offer_id: object) -> bool:
+            return False
+
+    monkeypatch.setattr(routes, "offers_use_case", FixedOffersUseCase())
+    app = FastAPI()
+    app.include_router(routes.router)
+
+    response = TestClient(app).delete(f"/offers/{uuid7()}")
+
+    assert response.status_code == HTTP_NOT_FOUND
+    assert response.json() == {"detail": "Offer not found"}

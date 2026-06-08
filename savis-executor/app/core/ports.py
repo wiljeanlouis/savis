@@ -135,6 +135,10 @@ class OfferRepository(ABC):
     def save(self, offer: Offer) -> Offer:
         """Save an offer."""
 
+    @abstractmethod
+    def delete(self, offer_id: UUID) -> bool:
+        """Delete an offer and return whether it existed."""
+
 
 class OfferPublisher(ABC):
     """Port for publishing offers outside the executor."""

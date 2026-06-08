@@ -91,6 +91,16 @@ def test_save_persists_complete_offer() -> None:
     assert entity.offer_type == OfferType.FOOD.value
 
 
+def test_delete_removes_offer() -> None:
+    repository, _session_factory = _repository()
+    offer = _offer()
+    repository.save(offer)
+
+    assert repository.delete(offer.id) is True
+    assert repository.find_by_id(offer.id) is None
+    assert repository.delete(offer.id) is False
+
+
 def test_list_filters_and_paginates() -> None:
     repository, _session_factory = _repository()
     repository.save(_offer(external_id="a", status=OfferStatus.NEW))

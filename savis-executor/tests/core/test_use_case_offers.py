@@ -58,6 +58,7 @@ class FakeOfferRepository(OfferRepository):
             set[str],
         ] = {}
         self.saved: list[Offer] = []
+        self.deleted: list[UUID] = []
 
     def find_by_provider_and_external_id(
         self,
@@ -108,6 +109,13 @@ class FakeOfferRepository(OfferRepository):
     def save(self, offer: Offer) -> Offer:
         self.saved.append(offer)
         return offer
+
+    def delete(self, offer_id: UUID) -> bool:
+        if self.offer is None:
+            return False
+        self.deleted.append(offer_id)
+        self.offer = None
+        return True
 
 
 class FakeOfferPublisher(OfferPublisher):
@@ -464,6 +472,29 @@ def test_all_providers_have_offers_for_search_term_detects_missing_provider() ->
         use_case.all_providers_have_offers_for_search_term("flour", OfferType.FOOD)
         is False
     )
+
+
+def test_delete_removes_offer_and_invalidates_valid_offer() -> None:
+    existing = _offer()
+    existing.id = uuid7()
+    existing.status = OfferStatus.VALID
+    repository = FakeOfferRepository(existing)
+    publisher = FakeOfferPublisher()
+    use_case = _use_case(repository=repository, publisher=publisher)
+
+    assert use_case.delete(existing.id) is True
+    assert repository.deleted == [existing.id]
+    assert publisher.invalidations == [existing]
+
+
+def test_delete_returns_false_when_offer_does_not_exist() -> None:
+    repository = FakeOfferRepository()
+    publisher = FakeOfferPublisher()
+    use_case = _use_case(repository=repository, publisher=publisher)
+
+    assert use_case.delete(uuid7()) is False
+    assert repository.deleted == []
+    assert publisher.invalidations == []
 
 
 def test_refresh_offer_by_url_is_placeholder_entrypoint() -> None:

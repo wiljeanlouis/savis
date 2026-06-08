@@ -315,3 +315,14 @@ class SqlAlchemyOfferRepository(OfferRepository):
             session.merge(_to_entity(offer))
             session.commit()
             return offer
+
+    def delete(self, offer_id: UUID) -> bool:
+        """Delete an offer."""
+        self.schema_creator()
+        with self.session_factory() as session:
+            entity = session.get(OfferEntity, str(offer_id))
+            if entity is None:
+                return False
+            session.delete(entity)
+            session.commit()
+            return True
