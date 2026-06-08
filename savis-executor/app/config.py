@@ -19,6 +19,7 @@ class EnvParams:
         "DATABASE_URL",
         "postgresql+psycopg://postgres:postgres@postgres:5432/postgres",
     )
+    DATABASE_SCHEMA = os.getenv("DATABASE_SCHEMA", "savis_executor")
     REDIS_URL = os.getenv("REDIS_URL", "redis://redis:xxxx/x")
     RABBIT_MQ_URL = os.getenv("RABBIT_MQ_URL", "amqp://xxxx:xxxx@rabbitmq:xxxx//")
 
