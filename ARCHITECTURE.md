@@ -68,6 +68,17 @@ supply/
     persistence/
     external/
     event/
+
+catalog/
+  domain/
+  usecase/
+  port/
+  adapter/
+    web/
+    persistence/
+    bom/
+    supabase/
+  config/
 ```
 
 Examples:
@@ -145,6 +156,9 @@ Current slices:
 
 - BOM management: create, update, list, get, and delete BOMs for food and decoration workflows.
 - Activity-rate management: configure one global hourly rate per activity type for BOM activity-cost calculations.
+- Catalog management: manage categories and sellable products independently from the internal BOM model.
+- Catalog pricing analysis: combine common product BOMs, customer choices, extras, and purchase-mode quantities without changing commercial prices.
+- Catalog publication: publish the customer-facing projection to Supabase explicitly or on a schedule.
 - Component need detection: when a BOM is saved, SAVIS emits component-needed events and lets the executor decide whether provider collection is required.
 - Offer collection: component/search term requests are converted into executor tasks and Celery jobs.
 - Offer selection and refresh: persisted offers can be searched from the admin UI, selected on BOM components, and invalidated/refreshed through supply workflows.
@@ -160,12 +174,14 @@ Java is the system of record and the owner of business workflows. Python is an e
 Java responsibilities:
 
 - expose SAVIS business APIs;
-- own BOM and supply domain concepts;
-- persist BOMs and supply state;
+- own BOM, supply, and catalog domain concepts;
+- persist BOMs, supply state, product categories, and products;
 - persist global activity-rate configuration;
 - publish component-needed messages when BOMs are saved;
 - receive offer results from Python through RabbitMQ;
 - calculate BOM costs from component prices and global activity rates.
+- analyze product costs and margins through the BOM module's public pricing API;
+- publish a deliberately limited catalog projection to Supabase.
 
 Python responsibilities:
 
@@ -315,6 +331,34 @@ choice options, ingredient options and an ordered collection of common
 `ProductBom` references. Each reference stores only a BOM UUID and the quantity
 required to sell the product; choices and extras may reference their own BOM.
 
+The module boundary is:
+
+```text
+Catalog Product
+  -> BomPricingPort
+  -> BomPricingAdapter
+  -> BOM public API: BomPricingApi
+```
+
+Catalog never loads BOM entities or depends on BOM persistence. The public BOM
+API exposes only existence and pricing by UUID. A `ProductBom` is validated
+during product creation and update, so an unknown common BOM is rejected.
+Choice and ingredient BOM references remain optional because a product may
+still be sold before its full cost model is available.
+
+```text
+ProductBom
+  publicId
+  bomId
+  quantity > 0
+  displayOrder >= 0
+```
+
+`Product.productBoms` contains only the common configuration needed for every
+sale: production base, packaging, utensils, or shared service resources. It
+does not contain customer-specific choices or extras, and no semantic
+`ProductBomRole` is currently modeled.
+
 SAVIS PostgreSQL remains the source of truth for:
 
 - public product content and availability;
@@ -328,6 +372,33 @@ through `BomPricingPort`; `ProductPricingService` calculates actual margin,
 `GOOD`/`REVIEW`/`LOSS`/`INCOMPLETE` health, the next-$0.25 recommended price,
 and a conservative worst case for composable bundles. Recommendations are
 consultative and never overwrite a product price.
+
+The cost rules are:
+
+```text
+common cost =
+  sum(unitCost(productBom.bomId) * productBom.quantity)
+
+standard =
+  common cost
+
+single choice =
+  common cost + unitCost(choice.bomId) * purchaseMode.quantity
+
+choice allocation =
+  common cost + sum(unitCost(choice.bomId) * allocatedQuantity)
+
+ingredient customization =
+  common cost
+  + sum(unitCost(ingredient.bomId)
+        * max(0, selectedQuantity - defaultQuantity))
+```
+
+For a single choice without a selected purchase mode, the quantity is `1`.
+A missing, deleted, or non-calculable BOM makes the analysis `INCOMPLETE`.
+This includes a formerly valid `ProductBom` that becomes unavailable after the
+product was saved. Missing choice or ingredient BOMs do not prevent the sale;
+they are reported by the cost analysis.
 
 For ingredient customization, `productBoms` represent the complete default
 configuration. Extra BOM cost and extra sale price apply only to quantities
@@ -353,9 +424,42 @@ common `productBoms`. Supabase is a public projection, not the product system of
 Orders must retain the price and configuration snapshots accepted by the
 customer.
 
-The JPA model uses `ddl-auto=update`. It creates relational catalog tables but
-cannot remove the former `catalog_product_definitions` JSONB table, so local
-development databases require the one-time reset documented in `README.md`.
+The JPA model uses relational tables for products, categories, product BOMs,
+purchase modes, choice groups/options, and ingredient options. Child
+collections use cascade and orphan removal, while BOM links remain plain UUID
+columns with no JPA relation to the BOM module. The current runtime uses
+`spring.jpa.hibernate.ddl-auto=update`; tests use H2 in PostgreSQL mode with
+`create-drop`. SAVIS does not currently use Flyway for its Java-owned schema.
+
+## Admin Feature Boundaries
+
+The React admin mirrors business ownership rather than backend implementation
+details:
+
+```text
+features/
+  bom/
+  bom-component/
+    task/
+  activity-rate/
+  catalog/
+```
+
+`bom-component` is the user-facing feature for reviewing collected offers,
+validating or deleting them, and requesting a new collection. Executor tasks
+are an implementation detail of that workflow, so their API, hooks, page, and
+types live under `features/bom-component/task`.
+
+React Router exposes the task screen as a nested route:
+
+```text
+/bom-components
+/bom-components/tasks
+```
+
+The nested route preserves the BOM component breadcrumb and sidebar active
+state. List pagination and sorting are stored in URL search parameters so the
+views remain linkable and browser navigation behaves predictably.
 
 ## Event Flow
 

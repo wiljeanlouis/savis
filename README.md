@@ -47,11 +47,17 @@ savis/
 
 Location: [savis-api](savis-api/README.md)
 
-The Java API is the main business backend. It owns BOM management, supply concepts, persistence, business workflows, HTTP APIs consumed by the admin UI, and RabbitMQ listeners for executor results.
+The Java API is the main business backend. It owns BOM management, supply
+concepts, the sellable product catalog, persistence, business workflows, HTTP
+APIs consumed by the admin UI, and RabbitMQ listeners for executor results.
 
 Main responsibilities:
 
 - expose BOM and supply endpoints;
+- manage product categories and sellable catalog products;
+- reference one or more common BOMs from a product through `ProductBom`;
+- analyze product cost, margin health, and recommended prices without changing sale prices;
+- publish the customer-facing product projection to Supabase;
 - persist business data in PostgreSQL;
 - publish component-needed messages to RabbitMQ;
 - receive collected offers from Python through RabbitMQ;
@@ -61,7 +67,12 @@ Main responsibilities:
 
 Location: [savis-admin](savis-admin/README.md)
 
-The admin app is the back office UI. It is used by internal users to manage BOMs/recipes and, over time, operational data such as offers, products, providers, orders, and services. In the BOM form, users define components, activities, yield, and can select a persisted provider offer for each component. The admin also exposes activity-rate configuration for the global hourly rates used in BOM activity costs.
+The admin app is the back office UI. It is used by internal users to manage
+BOMs, BOM components and their executor tasks, activity rates, product
+categories, and catalog products. In the BOM form, users define components,
+activities, yield, and can select a persisted provider offer for each
+component. The catalog form manages common `ProductBom` references separately
+from customer choices and ingredient extras.
 
 ### SAVIS Executor
 
@@ -159,6 +170,7 @@ Examples currently present in the repo:
 
 - `bom`: BOM domain, BOM use cases, HTTP API, persistence, component-needed messaging, activities, activity rates, and yield.
 - `supply`: offer/provider concepts, persisted offers, offer result/invalidation consumption, and offer search for the admin UI.
+- `catalog`: categories, products, `ProductBom` references, purchase modes, choices, extras, pricing analysis, and Supabase publication.
 - `executor`: task tracking, offer collection, offer refresh, provider scraper adapters, Celery integration, RabbitMQ result publishing.
 
 ## Naming Conventions
@@ -398,21 +410,16 @@ Supabase stores the public projection expected by Savouretplus in
 publication metadata remain in SAVIS. RLS exposes only rows where
 `is_available = true`; no additional catalog view is used.
 
-### Local catalog schema reset
+### Catalog persistence
 
-SAVIS currently uses `spring.jpa.hibernate.ddl-auto=update`, not Flyway.
-Hibernate creates the new relational catalog tables but does not remove the
-legacy `catalog_product_definitions` JSONB table. Existing local environments
-must therefore be reset once before using the new catalog model:
+SAVIS currently uses `spring.jpa.hibernate.ddl-auto=update`, not Flyway, for
+the Java-owned PostgreSQL schema. Catalog products, categories, common
+`ProductBom` references, purchase modes, choice groups/options, and ingredient
+options are stored in relational tables under the `savis_api` schema.
 
-```bash
-docker compose down -v
-make run-local
-```
-
-This deletes local Docker volumes. Do not run it against an environment whose
-data must be retained. For a retained database, back it up and drop only the
-legacy catalog table after confirming that its products have been migrated.
+Supabase migrations are separate: they define the public
+`published_catalog_products` projection and commerce-facing tables. They do
+not manage SAVIS API entities.
 
 The Makefile automatically activates Node.js 24 through `nvm` for Supabase
 commands. Docker, `nvm`, and Node.js 24 must be installed locally.
@@ -586,7 +593,9 @@ Before merging changes that touch cross-service flows, verify:
 
 SAVIS is under active development. The architecture is already oriented around clean boundaries and asynchronous offer collection, but some business slices are still evolving:
 
-- BOM pricing combines stored offer prices and configured activity rates, and catalog products can derive sale prices from BOM unit cost plus a configured margin;
+- BOM pricing combines stored offer prices and configured activity rates;
+- catalog pricing combines common Product BOMs, choices, and extras to report cost, margin health, and a consultative recommended price without modifying sale prices;
+- catalog products and categories are stored relationally in SAVIS and can be published as a limited Supabase projection;
 - supply persistence and offer selection exist, while provider coverage and pricing policies are still being shaped;
 - executor provider coverage is currently limited;
 - RabbitMQ rejected-message handling should eventually use a dead-letter queue;

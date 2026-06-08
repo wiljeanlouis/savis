@@ -9,7 +9,9 @@
 - Activity entry for production work such as preparation, cooking, assembly, packaging, installation, delivery, cleanup, or custom work.
 - Activity-rate management for global hourly rates by activity type.
 - Yield entry using the shared unit symbols (`portion`, `piece`, `g`, `kg`, `l`, `ml`).
-- BOM component review screens backed by the executor API.
+- BOM component review, validation, editing, deletion, and manual offer retrieval backed by the executor API.
+- Executor task monitoring as a child workflow of BOM component management.
+- Catalog product and category management, including common Product BOM references and pricing analysis.
 
 ## BOM Form
 
@@ -40,6 +42,51 @@ The page uses one modal component for both creation and update. It calls the Jav
 - `POST /api/activity-rates`
 - `PUT /api/activity-rates/{activityType}`
 - `DELETE /api/activity-rates/{activityType}`
+
+## BOM Components and Retrieval Tasks
+
+The BOM component feature is available at `/bom-components`. It lists executor
+offers of every supported component type, not only food offers. Users can:
+
+- request offer retrieval by component name and type;
+- validate, reject, edit, or delete a component offer;
+- inspect the executor tasks created for retrieval and refresh operations.
+
+Tasks are a technical detail of BOM component acquisition. Their code is
+therefore colocated under:
+
+```text
+src/features/bom-component/task/
+  api/
+  components/
+  hooks/
+  pages/
+  types.ts
+```
+
+React Router exposes the task list as the nested route
+`/bom-components/tasks`. Breadcrumbs return to `/bom-components`, and the BOM
+component sidebar entry remains active on the task page. Pagination and sorting
+are stored in URL search parameters. Task payloads and error messages are shown
+in full with line wrapping.
+
+## Catalog
+
+The product catalog page is available at `/catalog-products`.
+
+The product form manages:
+
+- product categories, with category creation directly from the searchable category combobox;
+- one or more common `ProductBom` references with decimal quantities and display order;
+- purchase modes and their sale prices;
+- optional BOM references for choice options and ingredient extras;
+- pricing analysis and worst-case analysis;
+- explicit publication of products marked for publication.
+
+Common Product BOMs represent the base configuration for every sale. Choice
+BOMs and ingredient BOMs remain attached to their respective customer options.
+The UI treats recommended prices as information only and never applies them
+automatically.
 
 ## API Configuration
 

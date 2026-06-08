@@ -40,6 +40,22 @@ The Java API may emit a `ComponentNeededEvent` for every BOM component. The exec
 
 For RabbitMQ offer requests, `SavisTaskUseCase` creates a `GET_OFFERS` task only when at least one configured provider does not already have offers for the incoming `search_term` and `type`. This means adding a new provider will cause old component terms to be scraped for that new provider, while already-known provider offers are reconciled by provider identifier and external id.
 
+## HTTP API Used by SAVIS Admin
+
+The BOM component feature in `savis-admin` calls the executor directly:
+
+- `GET /offers`: list offers with pagination, sorting, status, type, and search-term filters;
+- `GET /offers/facets/search-terms`: list search-term facets;
+- `PATCH /offers/{offerId}`: change review status or refresh frequency;
+- `DELETE /offers/{offerId}`: delete an offer;
+- `POST /tasks`: enqueue `GET_OFFERS` or `REFRESH_OFFER`;
+- `GET /tasks`: inspect paginated executor tasks and their complete payload/error details.
+
+In the admin code, task screens live below the `bom-component` feature because
+tasks are an acquisition detail rather than a top-level user-facing business
+feature. The executor domain remains the owner of task creation, execution,
+status, and persistence.
+
 ## Unit Symbols
 
 The executor emits package units using the same symbols consumed by Java:
