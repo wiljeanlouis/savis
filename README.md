@@ -1,495 +1,662 @@
 # SAVIS
 
-SAVIS is the information system for **SavouretPlus**. It is being built to manage BOMs/recipes, component sourcing, product/catalog data, order pricing, catering operations, decoration services, and future inventory and margin analysis.
+SAVIS is the back-office information system for **SavouretPlus**. It is
+organized around three deployable applications with distinct ownership:
 
-At a high level, SAVIS connects BOM management in Java with asynchronous offer collection work in Python:
+- **SAVIS Admin** provides the internal management interface;
+- **SAVIS API** owns business rules and business state for BOMs, supply,
+  activity rates, and the sellable catalog;
+- **SAVIS Executor** owns provider acquisition, executor tasks, and retryable
+  background work.
+
+Supabase is not the business backend. It is a separate public projection used
+by the Savouretplus customer-facing application.
 
 ```text
-Food or decoration BOMs
-  -> component needs
-  -> provider offer collection
-  -> selected offer prices
-  -> activity rates
-  -> BOM, service, and order pricing
+SAVIS Admin --HTTP--> SAVIS API
+SAVIS Admin --HTTP--> SAVIS Executor API
+
+SAVIS API --offer requests / RabbitMQ--> SAVIS Executor
+SAVIS API <--offer results / RabbitMQ--- SAVIS Executor
+
+SAVIS API ------> PostgreSQL schema savis_api
+SAVIS Executor -> PostgreSQL schema savis_executor
+
+SAVIS API --catalog publication--> Supabase --public data--> Savouretplus
 ```
 
-For a deeper architectural explanation, see [ARCHITECTURE.md](ARCHITECTURE.md).
+For the detailed dependency rules and runtime flows, see
+[docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
 
-## Project Goals
+## Current Capabilities
 
-SAVIS should eventually help SavouretPlus:
+SAVIS currently supports:
 
-- manage BOMs for food recipes, decoration assemblies, and service workflows;
-- manage component requirements, activities, and yield;
-- manage product and provider offer data;
-- configure global hourly activity rates;
-- calculate BOM costs from selected provider offers and production activities;
-- calculate order prices and margins;
-- support catering and decoration services;
-- prepare future inventory, purchasing, automation, and margin reporting features.
+- generic BOMs for food, decoration, activities, packaging, utensils, and
+  other resource assemblies;
+- BOM components, production activities, yield, and global activity rates;
+- provider offer discovery, review, selection, invalidation, refresh, and
+  deletion;
+- asynchronous executor tasks with Celery retry and scheduled maintenance;
+- product categories and sellable catalog products;
+- multiple common BOM references per product through `ProductBom`;
+- purchase modes, customer choices, bundles, and customizable ingredients;
+- product cost, margin health, worst-case, and recommended-price analysis;
+- explicit and scheduled publication of a limited catalog projection to
+  Supabase.
+
+Future slices include orders, catering operations, decoration services,
+inventory, purchasing, and broader margin reporting.
 
 ## Repository Structure
 
 ```text
 savis/
-  savis-api/       Java Spring Boot backend and business API
-  savis-admin/     React admin back office
-  savis-executor/  Python FastAPI, RabbitMQ subscriber, Celery workers, provider scrapers
+  savis-api/       Java 25 / Spring Boot business API
+  savis-admin/     React / Vite administration UI
+  savis-executor/  FastAPI / Celery provider acquisition service
+  supabase/        Public catalog and commerce projection
+  scripts/         Local integration helpers
   docker-compose.yml
   docker-compose.override.yml
   Makefile
-  ARCHITECTURE.md
+  docs/
+    ARCHITECTURE.md
 ```
+
+Module documentation:
+
+- [SAVIS API](savis-api/README.md)
+- [SAVIS Admin](savis-admin/README.md)
+- [SAVIS Executor](savis-executor/README.md)
+
+## Quick Start
+
+### Prerequisites
+
+For the complete local stack:
+
+- Docker with Docker Compose;
+- Node.js 22 or newer and `npm`;
+- the Supabase CLI, invoked by the Makefile through `npx`;
+- a `.env.local` file containing the local database and RabbitMQ credentials.
+
+For development outside Docker:
+
+- Java 25;
+- Python 3.14.4 or newer;
+- `uv`;
+- Maven is available through `savis-api/mvnw`.
+
+### Local Environment
+
+Create `.env.local` at the repository root:
+
+```env
+DB_USER=savis
+DB_PASSWORD=change-me
+DB_NAME=savis
+RABBIT_MQ_USER=savis
+RABBIT_MQ_PASSWORD=change-me
+```
+
+Start SAVIS and the local Supabase stack:
+
+```bash
+make run-local
+```
+
+The command:
+
+1. starts Supabase from `supabase/config.toml`;
+2. reads its local URL and keys;
+3. generates the ignored `.env.supabase.local` file;
+4. optionally configures the sibling `../savouretplus` frontend;
+5. builds and starts the SAVIS Compose services with the development override.
+
+Use another Savouretplus checkout when necessary:
+
+```bash
+make run-local SAVOURETPLUS_DIR=/path/to/savouretplus
+```
+
+SAVIS PostgreSQL remains the system of record. Supabase stores only the public
+catalog and commerce-facing projection.
 
 ## Modules
 
 ### SAVIS API
 
-Location: [savis-api](savis-api/README.md)
+Location: [`savis-api`](savis-api/README.md)
 
-The Java API is the main business backend. It owns BOM management, supply
-concepts, the sellable product catalog, persistence, business workflows, HTTP
-APIs consumed by the admin UI, and RabbitMQ listeners for executor results.
+The Java API owns business state and admin-facing workflows.
 
-Main responsibilities:
+Main slices:
 
-- expose BOM and supply endpoints;
-- manage product categories and sellable catalog products;
-- reference one or more common BOMs from a product through `ProductBom`;
-- analyze product cost, margin health, and recommended prices without changing sale prices;
-- publish the customer-facing product projection to Supabase;
-- persist business data in PostgreSQL;
-- publish component-needed messages to RabbitMQ;
-- receive collected offers from Python through RabbitMQ;
-- calculate BOM costs through component prices and activity rates.
+- `bom`: BOMs, components, activities, yield, activity rates, and BOM pricing;
+- `supply`: provider offers consumed from the executor and exposed to BOM
+  workflows;
+- `catalog`: categories, products, Product BOMs, purchase modes, customer
+  options, pricing analysis, and publication;
+- `common`: shared value objects such as `Money`, `Quantity`, and `Unit`.
+
+The API persists its entities in the PostgreSQL `savis_api` schema. It publishes
+component-needed events to RabbitMQ and consumes executor results and
+invalidations.
 
 ### SAVIS Admin
 
-Location: [savis-admin](savis-admin/README.md)
+Location: [`savis-admin`](savis-admin/README.md)
 
-The admin app is the back office UI. It is used by internal users to manage
-BOMs, BOM components and their executor tasks, activity rates, product
-categories, and catalog products. In the BOM form, users define components,
-activities, yield, and can select a persisted provider offer for each
-component. The catalog form manages common `ProductBom` references separately
-from customer choices and ingredient extras.
+The React application provides:
+
+- BOM list and editor;
+- BOM component offer review and retrieval;
+- executor task monitoring nested under the BOM component workflow;
+- activity-rate configuration;
+- product category creation from a searchable combobox;
+- catalog product editing, pricing analysis, and publication.
+
+Frontend features are organized by business capability:
+
+```text
+src/features/
+  activity-rate/
+  bom/
+  bom-component/
+    task/
+  catalog/
+  dashboard/
+```
 
 ### SAVIS Executor
 
-Location: [savis-executor](savis-executor/README.md)
+Location: [`savis-executor`](savis-executor/README.md)
 
-The executor service receives offer collection requests, tracks executor tasks, enqueues work into Celery, runs provider adapters, refreshes valid offers on a schedule, normalizes offers, and publishes results back to Java through RabbitMQ.
+The Python service owns external offer acquisition:
 
-It is intentionally separate from the Java backend because provider collection is slow, unstable, retryable, and dependent on external provider websites.
+- FastAPI exposes offers and executor tasks;
+- a RabbitMQ subscriber converts component-needed messages into tasks;
+- Celery workers execute provider scraping and refresh jobs;
+- Celery Beat schedules due-offer refresh and stale-task cleanup;
+- SQLAlchemy persists tracked offers and tasks in the `savis_executor` schema;
+- successful results and invalidations are published back to Java.
+
+Provider collection remains outside Java and HTTP request handlers because it
+is slow, failure-prone, and retryable.
+
+### Supabase Projection
+
+Location: [`supabase`](supabase)
+
+Supabase contains:
+
+- `published_catalog_products`: customer-facing product projection;
+- `customer_orders`: submitted customer orders;
+- `quote_requests`: quote-request payloads;
+- RLS policies and grants for public/customer access.
+
+Supabase migrations do not manage JPA entities. The tables in this directory
+are the public projection consumed outside the SAVIS API.
 
 ## Technical Stack
 
-### Backend API
+### API
 
 - Java 25
-- Spring Boot
+- Spring Boot 4
 - Spring Web MVC
 - Spring Data JPA
 - Spring AMQP
 - Spring Modulith
 - PostgreSQL
-- Lombok
+- H2 in PostgreSQL mode for tests
 - Maven
 
-### Admin UI
+### Admin
 
-- React
-- TypeScript
-- Vite
-- React Router
-- TanStack Query
-- Tailwind CSS
-- shadcn/Radix-style UI components
-- Vitest
-- ESLint and Prettier
+- React 19
+- TypeScript 6
+- Vite 8
+- React Router 7
+- TanStack Query and TanStack Table
+- Tailwind CSS 4
+- shadcn/Radix UI primitives
+- Vitest, Testing Library, ESLint, and Prettier
 
 ### Executor
 
-- Python
+- Python 3.14
 - FastAPI
-- Celery
+- Celery and Celery Beat
+- SQLAlchemy and psycopg
 - RabbitMQ
 - Playwright
-- BeautifulSoup
-- httpx
+- BeautifulSoup and lxml
 - Pydantic
-- Ruff
-- uv
+- pytest, Ruff, and uv
 
 ### Infrastructure
 
 - Docker Compose
-- PostgreSQL
+- PostgreSQL 18 for SAVIS runtime data
 - RabbitMQ with management UI
+- local Supabase stack with PostgreSQL 15
+- Nginx for the production admin image
 
-## Architecture Principles
+## Architecture
 
-SAVIS uses a simplified clean architecture with vertical slicing.
-
-The dependency direction should be:
+SAVIS uses pragmatic clean architecture with vertical slicing.
 
 ```text
 Domain / Core
   <- Use cases
-    <- Ports
+    <- Ports and public module APIs
       <- Adapters
         <- Frameworks and infrastructure
 ```
 
 Practical rules:
 
-- Domain objects should not know about HTTP, RabbitMQ, Celery, JPA, Playwright, or UI details.
-- Use cases coordinate business workflows.
-- Ports describe dependencies needed by use cases.
-- Adapters implement ports using concrete technologies.
-- Runtime wiring belongs in composition roots such as Spring configuration or the Python `Container`.
-- Business features should evolve as vertical slices instead of isolated horizontal layers.
+- domain objects do not depend on HTTP, JPA, RabbitMQ, Celery, Playwright, or
+  React;
+- use cases coordinate workflows;
+- ports describe required capabilities;
+- adapters implement persistence, messaging, HTTP, and external integrations;
+- Spring configuration and the Python `Container` are composition roots;
+- cross-module Java access uses public APIs or ports rather than entity or
+  repository access;
+- business features evolve as vertical slices.
 
-## Vertical Slicing
+### Catalog and BOM Boundary
 
-A vertical slice groups everything needed for one business capability:
+Catalog owns sellable products. BOM owns technical compositions and production
+costs.
 
 ```text
-feature/
-  domain/
-  usecase/
-  port/
-  adapter/
-    web/
-    persistence/
-    messaging/
-    external/
+Catalog Product
+  -> BomPricingPort
+  -> BomPricingAdapter
+  -> BomPricingApi
+  -> BOM use case
 ```
 
-Examples currently present in the repo:
+Catalog stores BOM references as UUID values only. It has no JPA association to
+BOM entities.
 
-- `bom`: BOM domain, BOM use cases, HTTP API, persistence, component-needed messaging, activities, activity rates, and yield.
-- `supply`: offer/provider concepts, persisted offers, offer result/invalidation consumption, and offer search for the admin UI.
-- `catalog`: categories, products, `ProductBom` references, purchase modes, choices, extras, pricing analysis, and Supabase publication.
-- `executor`: task tracking, offer collection, offer refresh, provider scraper adapters, Celery integration, RabbitMQ result publishing.
+`Product.productBoms` contains common resources required for every sale:
 
-## Naming Conventions
+```text
+ProductBom
+  publicId
+  bomId
+  quantity > 0
+  displayOrder >= 0
+```
 
-### Java
+Create and update reject an unknown common BOM. Choice and ingredient BOMs
+remain optional; missing or non-calculable references make pricing analysis
+`INCOMPLETE` without preventing the product from being sold.
 
-- `domain`: business objects and domain rules.
-- `usecase`: application services and workflow orchestration.
-- `port`: interfaces required by the domain or use cases.
-- `adapter/web`: REST controllers and DTOs.
-- `adapter/persistence`: JPA entities, repositories, mappers.
-- `adapter/messaging`: RabbitMQ producers/consumers.
-- `adapter/external`: clients or adapters to external systems.
-- `config`: Spring wiring and feature configuration.
-
-### Python
-
-- `core`: framework-independent models, ports, and use cases.
-- `adapters/api`: FastAPI routes and schemas.
-- `adapters/celery`: Celery app, queue adapter, tasks, and Celery-specific wiring.
-- `adapters/rabbitmq`: RabbitMQ subscriber.
-- `adapters/scrapers`: provider-specific scraping implementations.
-- `container.py`: dependency composition root.
-
-### General
-
-- Use business names for domain concepts: `Bom`, `BomComponent`, `Activity`, `Yield`, `Offer`, `Provider`.
-- Use technology names only at adapter boundaries: `RabbitMqProducer`, `CeleryQueue`, `RabbitMqResultPublisher`.
-- Prefer ports named after business capabilities: `ComponentPricePort`, `OfferRequestor`, `TaskQueue`.
+There is currently no `ProductBomRole`.
 
 ## Business Flows
 
-### BOM Creation and Component Need Detection
+### BOM and Offer Collection
 
 ```text
-Admin creates or updates a BOM
-  -> Java BomController
-  -> BomService.saveBom(...)
-  -> BOM is persisted
-  -> each component emits ComponentNeededEvent
-  -> RabbitMqPublisher publishes a message to RabbitMQ
-```
-
-This allows BOM management to stay fast while provider offer discovery happens asynchronously. The Python executor decides whether a `GET_OFFERS` task is actually needed: it skips collection only when every configured provider already has offers for the component search term and offer type.
-
-### Offer Collection Flow
-
-```text
-RabbitMQ message: component/search term
-  -> Python subscriber
-  -> SavisTaskUseCase.enqueue_savis_task(...)
-  -> skip if all configured providers already have offers for that term/type
-  -> CeleryQueue
-  -> get_offers_task
-  -> SavisTaskUseCase.execute_savis_task(...)
-  -> OffersUseCase.get_offers(...)
+Admin saves a BOM
+  -> BomController
+  -> BomService
+  -> BOM persistence
+  -> ComponentNeededEvent per component
+  -> RabbitMQ: savis.offer.requests
+  -> Executor subscriber
+  -> SavisTaskUseCase
+  -> Celery get_offers_task
   -> provider scrapers
   -> normalized offers
-  -> RabbitMqResultPublisher
-  -> RabbitMQ queue: savis.offer.results
+  -> RabbitMQ: savis.offer.results
   -> Java OffersListener
-  -> OfferService
+  -> supply persistence
 ```
 
-### BOM Pricing Flow
+The executor skips a `GET_OFFERS` request only when every configured provider
+already has offers for the incoming search term and component type.
+
+### BOM Component Retrieval and Offer Review
 
 ```text
-BOM
-  -> BomComponent[]
-  -> selected offer prices
-  -> ComponentPricePort
-  -> Activity[]
-  -> ActivityRate by ActivityType
-  -> Bom.calculateTotal(...)
-  -> Money total
+Admin requests a BOM component retrieval
+  -> Executor API /tasks
+  -> SavisTaskUseCase creates GET_OFFERS
+  -> Celery get_offers_task
+  -> provider scrapers
+  -> executor offer persistence
+  -> Admin reviews offers in /bom-components
 ```
 
-Component costs are resolved from selected provider offers, or from the cheapest compatible available offer when no selected offer exists. Activity costs use the global `ActivityRate` configured for each `ActivityType`:
+When an offer is validated, the executor publishes it to Java through
+RabbitMQ. When a previously valid offer is rejected or deleted, the executor
+publishes an invalidation message so SAVIS API can stop using it.
+
+### Scheduled Offer Refresh
 
 ```text
-(minutes / 60) * hourlyRate
+Celery Beat runs hourly
+  -> find VALID offers whose next_refresh_at is due
+  -> create REFRESH_OFFER tasks
+  -> Celery worker refreshes provider price/package
+  -> executor persists the refreshed offer
+  -> if a valid offer changed, publish the result to SAVIS API
+  -> Supply updates the available offer
 ```
 
-The BOM total is the sum of component costs and activity costs. If an activity type has no configured rate, its activity cost is treated as zero.
+Each reviewed offer has a refresh frequency. Refresh work stays asynchronous
+and uses the same task persistence and retry reporting as initial collection.
 
-### Failure and Retry Flow
-
-RabbitMQ subscriber retry:
+### Activity Rate Configuration
 
 ```text
-subscriber connection fails
-  -> run_forever logs the failure
-  -> waits a few seconds
-  -> opens a new RabbitMQ connection/channel
+Admin creates or updates an activity rate
+  -> ActivityRateController
+  -> ActivityRateService
+  -> activity_rates persistence
+  -> future BOM pricing reads the new rate by ActivityType
 ```
 
-RabbitMQ message handling:
+Only one activity rate exists per `ActivityType`. BOM activities keep minutes
+and type, not copied hourly rates.
+
+### BOM Pricing
 
 ```text
-message received
-  -> enqueue into Celery succeeds
-  -> basic_ack
+BOM component requirements
+  -> selected offer or cheapest compatible available offer
+  -> component costs
 
-message cannot be processed
-  -> basic_nack(requeue=False)
+BOM activities
+  -> global ActivityRate by ActivityType
+  -> (minutes / 60) * hourly rate
+
+BOM total
+  = sum(component costs) + sum(activity costs)
 ```
 
-Celery task retry:
+An activity whose type has no configured rate currently contributes zero.
+
+### Catalog Product Management
 
 ```text
-provider collection task fails
-  -> Celery retries with backoff
-  -> after max retries, ReportingTask marks the executor task as failed
+Admin creates or updates a product
+  -> CatalogController
+  -> ProductService
+  -> validate category
+  -> validate common ProductBom UUIDs through BomPricingPort.exists(...)
+  -> catalog relational persistence
 ```
 
-## Java/Python Relationship
+Product categories can be created from the catalog UI category combobox.
+Common `ProductBom` references must point to existing BOMs. Choice and
+ingredient BOMs remain optional and are checked during pricing analysis.
 
-Java is the business system of record. Python is the offer collection execution engine.
+### Product Pricing
 
-Java owns:
+The unit cost of a BOM reference is:
 
-- business workflows;
-- BOM and supply state;
-- persistence;
-- pricing decisions, including global activity-rate configuration;
-- admin-facing APIs.
+```text
+unitCost(bomId) = BOM total cost / BOM yield quantity
+```
 
-Python owns:
+Product cost rules:
 
-- offer collection orchestration;
-- provider-specific extraction;
-- browser/network collection;
-- retryable background execution;
-- publishing executor results back to Java through RabbitMQ.
+```text
+common cost =
+  sum(unitCost(productBom.bomId) * productBom.quantity)
 
-The services should remain loosely coupled. Java should not depend on Python internals, and Python should not own SAVIS business state.
+standard =
+  common cost
+
+single choice =
+  common cost + unitCost(choice.bomId) * purchaseMode.quantity
+
+choice allocation =
+  common cost + sum(unitCost(choice.bomId) * allocatedQuantity)
+
+ingredient customization =
+  common cost
+  + sum(unitCost(ingredient.bomId)
+        * max(0, selectedQuantity - defaultQuantity))
+```
+
+Without a selected purchase mode, a single choice uses quantity `1`. Removing
+an ingredient does not reduce the reference cost, and default extras are not
+counted twice.
+
+Pricing analysis reports:
+
+- `GOOD`: target margin is met;
+- `REVIEW`: profitable but below target;
+- `LOSS`: cost exceeds sale price;
+- `INCOMPLETE`: at least one required BOM cost is unavailable.
+
+Recommended prices are rounded up to the next `$0.25` increment and remain
+consultative. They never update sale prices automatically.
+
+### Catalog Publication
+
+```text
+Admin or scheduled refresh
+  -> CatalogPublicationService
+  -> PublishedCatalogProductMapper
+  -> PublishedCatalogPort
+  -> Supabase published_catalog_products
+  -> Savouretplus
+```
+
+Only products marked `published` are projected. The public payload includes
+customer-facing content, active modes, choices, ingredients, and prices in
+cents. It excludes common Product BOMs, internal costs, missing-BOM
+diagnostics, target margins, and recommended prices.
+
+Publication runs explicitly through the API and hourly by default through
+`savis.catalog.refresh-cron`.
+
+### Retry and Scheduling
+
+RabbitMQ callbacks only translate and enqueue work:
+
+```text
+enqueue succeeds -> basic_ack
+enqueue fails    -> basic_nack(requeue=False)
+```
+
+Celery retries provider work with backoff. After retries are exhausted,
+`ReportingTask` marks the executor task as failed.
+
+Celery Beat schedules:
+
+- due-offer refresh every hour;
+- stale in-progress task cleanup every 15 minutes.
+
+A dead-letter queue for rejected RabbitMQ messages remains future work.
+
+## Persistence
+
+SAVIS uses one PostgreSQL server in Docker with separate schemas:
+
+- `savis_api`: JPA business entities owned by Java;
+- `savis_executor`: SQLAlchemy offers and task state owned by Python.
+
+The Java application currently uses
+`spring.jpa.hibernate.ddl-auto=update`. Java-owned schema changes do not use
+Flyway. API tests use H2 in PostgreSQL compatibility mode with
+`ddl-auto=create-drop`.
+
+Catalog persistence is relational:
+
+- `catalog_products`
+- `catalog_product_categories`
+- `catalog_product_boms`
+- `catalog_product_purchase_modes`
+- `catalog_product_choice_groups`
+- `catalog_product_choice_options`
+- `catalog_product_ingredient_options`
+
+Supabase uses its own migrations under `supabase/migrations` and remains a
+separate public projection.
 
 ## Docker Services
 
-The default Compose stack contains:
+| Service           | Responsibility                                | Host port      |
+| ----------------- | --------------------------------------------- | -------------- |
+| `postgres`        | SAVIS API and executor PostgreSQL server      | `5434`         |
+| `rabbitmq`        | SAVIS event transport and Celery broker       | `5672`         |
+| `rabbitmq`        | RabbitMQ management UI                        | `15672`        |
+| `backend_api`     | Spring Boot API                               | `8080`         |
+| `frontend_admin`  | Nginx admin build or Vite dev server          | `80` or `5173` |
+| `executor_api`    | FastAPI and lightweight RabbitMQ subscriber   | `8000`         |
+| `executor_worker` | Celery provider collection and refresh worker | internal       |
+| `executor_beat`   | Celery periodic scheduler                     | internal       |
 
-| Service          | Purpose                                               | Port                                               |
-| ---------------- | ----------------------------------------------------- | -------------------------------------------------- |
-| `postgres`       | Business database                                     | `5434 -> 5432`                                     |
-| `rabbitmq`       | Message broker and Celery broker                      | `5672`, `15672`                                    |
-| `backend_api`    | Java Spring Boot API                                  | `8080`                                             |
-| `frontend_admin` | Admin UI                                              | `80` in production, `5173` in development override |
-| `executor_api`   | Python FastAPI executor API and lightweight RabbitMQ subscriber | `8000`                                             |
-| `executor_worker` | Celery worker executing provider collection, refresh, and cleanup tasks | internal                                    |
-| `executor_beat` | Celery Beat scheduler for due-offer refresh and stale-task cleanup | internal                                    |
+The development override mounts source directories, runs Spring Boot through
+Maven, starts Vite with hot reload, and starts Uvicorn with reload.
 
-## Environment Files
+## Configuration
 
-The Makefile expects:
+### Compose Environment
 
-- `.env.local` for local development;
-- `.env` for production-like runs.
-
-Expected variables include:
+Both `.env.local` and the production `.env` use:
 
 ```env
 DB_USER=
 DB_PASSWORD=
 DB_NAME=
-SPRING_DATASOURCE_URL=
-SPRING_DATASOURCE_USERNAME=
-SPRING_DATASOURCE_PASSWORD=
 RABBIT_MQ_USER=
 RABBIT_MQ_PASSWORD=
 ```
 
-The executor also uses:
+`make run-local` generates these additional values in
+`.env.supabase.local`:
 
 ```env
-RABBIT_MQ_URL=
-DATABASE_URL=
+SUPABASE_ENABLED=true
+SUPABASE_URL=
+SUPABASE_SERVICE_ROLE_KEY=
 ```
 
-In Docker Compose, `RABBIT_MQ_URL` and `DATABASE_URL` are provided to executor services.
+Optional API configuration:
 
-## Docker Commands
+```env
+SAVIS_CATALOG_REFRESH_CRON=0 0 * * * *
+```
 
-Start the local development stack:
+Compose builds the internal datasource, RabbitMQ, and executor database URLs
+from the shared credentials.
+
+### Standalone Admin
+
+When running Vite outside Docker:
+
+```env
+VITE_API_URL=http://localhost:8080
+VITE_EXECUTOR_API_URL=http://localhost:8000
+```
+
+`VITE_API_URL` is used with the `/api` prefix. The executor URL defaults to
+`http://localhost:8000`.
+
+### Standalone Executor
+
+```env
+RABBIT_MQ_URL=amqp://user:password@localhost:5672/%2f
+DATABASE_URL=postgresql+psycopg://user:password@localhost:5434/savis
+DATABASE_SCHEMA=savis_executor
+```
+
+Never commit real credentials. Root environment files and generated Supabase
+configuration are ignored by Git.
+
+## Commands
+
+Show available Make targets:
+
+```bash
+make help
+```
+
+Start local development with Supabase:
 
 ```bash
 make run-local
 ```
 
-This command starts:
-
-- the Supabase local stack and its dedicated PostgreSQL database;
-- SAVIS services from `docker-compose.yml`;
-- SAVIS API connected to the PostgreSQL database from Docker Compose;
-- the SAVIS outbound Supabase adapter;
-- automatic local Supabase configuration for the sibling
-  `../savouretplus` repository.
-
-SAVIS PostgreSQL remains the system of record. Supabase contains public
-projections consumed by Savouretplus. The generated `.env.supabase.local`
-file combines the normal local SAVIS variables with the URL and server key
-used by the outbound adapter, and is not committed.
-
-### Catalog publication
-
-Products are managed from **Dégustation > Produits** in `savis-admin` and
-through `/api/catalog/products`.
-
-The catalog is a relational `Product` aggregate. It owns its purchase modes,
-choice group and options, customizable ingredients, and an ordered collection
-of common `ProductBom` references with decimal quantities. Each choice or extra
-may reference another BOM by UUID. There is deliberately no JPA relationship or
-foreign key to the BOM module.
-
-The sale price is always configured explicitly by an admin. BOMs never change
-it automatically. They provide current production cost, actual margin, price
-health, and a recommended price:
-
-```text
-actual margin = (sale price - actual cost) / sale price
-raw recommendation = actual cost / (1 - target margin)
-recommendation = next upper $0.25 increment
-```
-
-`GOOD` means the target margin is met, `REVIEW` means the product remains
-profitable below target, `LOSS` means cost exceeds sale price, and `INCOMPLETE`
-means at least one required BOM cost is unavailable. Bundle worst-case analysis
-uses the most expensive active choice. Ingredient extras are priced and costed
-only above their default quantity.
-
-Publication is explicit from the admin and also refreshed hourly by default.
-Override the schedule with `SAVIS_CATALOG_REFRESH_CRON`. Only active modes,
-choices and ingredients are included in the Supabase projection. Target margin,
-common product BOMs, costs and diagnostics remain private in SAVIS.
-
-Supabase stores the public projection expected by Savouretplus in
-`published_catalog_products`. Pricing configuration, BOM cost snapshots, and
-publication metadata remain in SAVIS. RLS exposes only rows where
-`is_available = true`; no additional catalog view is used.
-
-### Catalog persistence
-
-SAVIS currently uses `spring.jpa.hibernate.ddl-auto=update`, not Flyway, for
-the Java-owned PostgreSQL schema. Catalog products, categories, common
-`ProductBom` references, purchase modes, choice groups/options, and ingredient
-options are stored in relational tables under the `savis_api` schema.
-
-Supabase migrations are separate: they define the public
-`published_catalog_products` projection and commerce-facing tables. They do
-not manage SAVIS API entities.
-
-The Makefile automatically activates Node.js 24 through `nvm` for Supabase
-commands. Docker, `nvm`, and Node.js 24 must be installed locally.
-
-Use a different Savouretplus path when necessary:
-
-```bash
-make run-local SAVOURETPLUS_DIR=/path/to/savouretplus
-```
-
-Start the production-style stack:
+Start the production Compose targets using `.env`:
 
 ```bash
 make run-prod
 ```
 
-Stop containers:
+Operate the stack:
 
 ```bash
+make logs
 make stop
+make clean
 ```
 
-Inspect or rebuild Supabase:
+`make clean` removes SAVIS Docker volumes and stops Supabase without preserving
+its local database.
+
+Operate local Supabase:
 
 ```bash
 make supabase-status
 make supabase-reset
 ```
 
-Follow logs:
+Raw Compose equivalents:
 
 ```bash
-make logs
-```
-
-Stop containers and remove volumes:
-
-```bash
-make clean
-```
-
-Equivalent raw Docker commands:
-
-```bash
-docker compose --env-file .env.local up -d --build
+docker compose --env-file .env.supabase.local up -d --build
 docker compose --env-file .env up -d --build
 docker compose logs -f
 docker compose down
 docker compose down -v
 ```
 
-## Useful URLs
+## Local URLs
 
-Local development URLs:
+### SAVIS
 
 - Admin UI: `http://localhost:5173`
 - Java API: `http://localhost:8080`
+- Java Swagger UI: `http://localhost:8080/swagger-ui.html`
 - Executor API: `http://localhost:8000`
+- Executor OpenAPI UI: `http://localhost:8000/docs`
 - RabbitMQ management: `http://localhost:15672`
+- PostgreSQL: `localhost:5434`
 
-Useful admin pages:
+The production admin Compose target is exposed at `http://localhost`.
 
-- BOMs/recipes: `http://localhost:5173/recipes`
+### Supabase
+
+- API: `http://127.0.0.1:54321`
+- PostgreSQL: `localhost:54322`
+- Studio: `http://127.0.0.1:54323`
+- Inbucket: `http://127.0.0.1:54324`
+
+### Admin Routes
+
+- Dashboard: `http://localhost:5173/dashboard`
+- BOMs: `http://localhost:5173/boms`
+- New BOM: `http://localhost:5173/boms/add`
+- BOM components: `http://localhost:5173/bom-components`
+- Retrieval tasks: `http://localhost:5173/bom-components/tasks`
 - Activity rates: `http://localhost:5173/activity-rates`
+- Catalog products: `http://localhost:5173/catalog-products`
 
-Production-style Compose exposes the admin UI on:
-
-- Admin UI: `http://localhost`
-
-## Development Commands
+## Module Development
 
 ### Java API
 
@@ -499,12 +666,17 @@ cd savis-api
 ./mvnw spring-boot:run
 ```
 
-### Admin UI
+The default application configuration expects PostgreSQL on port `5432`.
+Override `SPRING_DATASOURCE_URL` when using the Compose database exposed on
+port `5434`.
+
+### Admin
 
 ```bash
 cd savis-admin
+npm install
 npm run dev
-npm run test
+npm test -- --run
 npm run lint
 npm run build
 ```
@@ -513,90 +685,103 @@ npm run build
 
 ```bash
 cd savis-executor
+uv sync
 uv run fastapi dev
 uv run celery -A app.adapters.celery.celery_app worker --loglevel=info
 uv run celery -A app.adapters.celery.celery_app beat --loglevel=info
+uv run pytest
 uv run ruff check .
 ```
 
-If using the checked-in virtual environment locally:
+The API, worker, and Beat scheduler are separate processes.
 
-```bash
-cd savis-executor
-./.venv/bin/python -m compileall -q app
-./.venv/bin/ruff check app
-```
+## Provider Adapters
 
-## Executor Provider Model
-
-Provider scrapers should implement the core `OfferProvider` port:
+Provider scrapers implement the core `OfferProvider` port:
 
 ```text
 OfferProvider.get_offers(search_term) -> list[Offer]
 OfferProvider.refresh_offer_price_by_url(url) -> Offer | None
 ```
 
-A provider scraper should:
+A provider adapter should:
 
-- isolate provider-specific URLs, browser behavior, selectors, parsing, and normalization;
-- return core `Offer` objects;
-- avoid leaking provider-specific HTML or DTOs into core use cases;
-- fail loudly enough for Celery retry/failure reporting to work.
+1. isolate provider URLs, browser behavior, selectors, parsing, and
+   normalization;
+2. return provider-neutral core `Offer` objects;
+3. expose a stable provider identifier;
+4. allow failures to reach Celery retry and failure reporting;
+5. include focused parser or adapter tests.
 
-Adding a provider should generally involve:
-
-1. Create a new provider package under `savis-executor/app/adapters/scrapers/`.
-2. Implement `OfferProvider`.
-3. Normalize data into `app.core.models.Offer`.
-4. Expose a stable provider `identifier` on the scraper.
-5. Register the scraper in the provider loader.
-6. Add focused tests or fixtures for parsing behavior.
-
-The executor uses provider identifiers to decide whether an incoming component/search term still needs collection. If a new provider is configured and has no offers yet for an existing term/type, a new `GET_OFFERS` task will be created for that event.
-
-## Operational Notes
-
-- Do not run provider collection directly inside HTTP request handlers.
-- Do not run provider collection directly inside RabbitMQ callbacks.
-- RabbitMQ subscriber callbacks should only validate/translate the message and enqueue Celery work.
-- Celery workers should handle slow browser and network work.
-- Rejected RabbitMQ messages currently use `requeue=False`; a dead-letter queue should be added before relying on this in production.
-- Executor result publishing and Java result consumption should be idempotent where possible.
-- Java should remain the source of truth for business state.
-- Python should remain the execution engine for external data acquisition.
+New providers are registered in the executor provider loader. Provider
+identifiers are also used to determine whether an existing search term still
+needs collection.
 
 ## Testing and Quality
 
-Recommended quality gates by module:
+Expected checks by module:
 
-- Java API: Maven tests and compile checks.
-- Admin UI: TypeScript build, ESLint, Vitest.
-- Executor: Ruff, import/compile checks, parser tests, and integration checks with RabbitMQ/Celery where needed.
+```bash
+# Java
+cd savis-api
+./mvnw test
 
-Before merging changes that touch cross-service flows, verify:
+# Admin
+cd savis-admin
+npm test -- --run
+npm run lint
+npm run build
 
-- the Java API starts;
-- the executor API imports and starts;
-- the RabbitMQ subscriber can enqueue a Celery task from `savis.offer.requests`;
-- the Celery worker can execute `get_offers_task`;
-- Celery Beat can publish scheduled refresh and stale-task cleanup tasks;
-- successful offers are published to `savis.offer.results` and consumed by Java `OffersListener`.
+# Executor
+cd savis-executor
+uv run pytest
+uv run ruff check .
+```
+
+For cross-service changes, also verify:
+
+- the Java API and executor API start;
+- RabbitMQ requests create executor tasks;
+- Celery workers execute collection and refresh tasks;
+- Celery Beat publishes scheduled jobs;
+- successful results are consumed by Java;
+- catalog publication reaches the local Supabase projection.
+
+## Operational Guidelines
+
+- Keep provider collection out of HTTP handlers and RabbitMQ callbacks.
+- Keep RabbitMQ callbacks limited to validation, translation, and enqueueing.
+- Keep Java result consumers idempotent because messages may be replayed.
+- Keep SAVIS API as the owner of business state.
+- Keep the executor as the owner of acquisition execution and task state.
+- Keep Supabase as a public projection, not the catalog source of truth.
+- Treat recommended prices as advisory.
+- Do not introduce JPA relationships across the Catalog/BOM module boundary.
 
 ## Documentation
 
-- [ARCHITECTURE.md](ARCHITECTURE.md): architecture vision, clean architecture, slicing, Java/Python relationship, Celery, executor role, pricing, event flow, and retry flow.
-- [savis-api/README.md](savis-api/README.md): Java API module notes.
-- [savis-admin/README.md](savis-admin/README.md): admin UI module notes.
-- [savis-executor/README.md](savis-executor/README.md): executor module notes.
+- [Architecture](docs/ARCHITECTURE.md)
+- [SAVIS API](savis-api/README.md)
+- [SAVIS Admin](savis-admin/README.md)
+- [SAVIS Executor](savis-executor/README.md)
 
 ## Current Status
 
-SAVIS is under active development. The architecture is already oriented around clean boundaries and asynchronous offer collection, but some business slices are still evolving:
+SAVIS is under active development.
 
-- BOM pricing combines stored offer prices and configured activity rates;
-- catalog pricing combines common Product BOMs, choices, and extras to report cost, margin health, and a consultative recommended price without modifying sale prices;
-- catalog products and categories are stored relationally in SAVIS and can be published as a limited Supabase projection;
-- supply persistence and offer selection exist, while provider coverage and pricing policies are still being shaped;
-- executor provider coverage is currently limited;
-- RabbitMQ rejected-message handling should eventually use a dead-letter queue;
-- cross-service integration tests should be added as flows stabilize.
+Implemented foundations:
+
+- clean module boundaries and vertical slices;
+- asynchronous offer acquisition and refresh;
+- relational BOM, supply, and catalog persistence;
+- multiple common Product BOMs and generic product cost calculation;
+- admin workflows for BOMs, offers, tasks, rates, categories, and products;
+- Supabase catalog publication.
+
+Known areas still evolving:
+
+- provider coverage and scraper resilience;
+- dead-letter handling for rejected RabbitMQ messages;
+- cross-service integration test coverage;
+- order, inventory, purchasing, catering, and decoration workflows;
+- production hardening, observability, and deployment automation.
