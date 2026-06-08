@@ -14,6 +14,7 @@ import type { Recipe } from "@/features/recipe/types";
 import { TasksPage } from "@/features/task/pages/TasksPage";
 import { IngredientsPage } from "@/features/ingredient/pages/IngredientsPage";
 import { ActivityRatesPage } from "@/features/activity-rate/pages/ActivityRatesPage";
+import { CatalogProductsPage } from "@/features/catalog/pages/CatalogProductsPage";
 
 const router = createBrowserRouter([
   {
@@ -52,6 +53,25 @@ const router = createBrowserRouter([
               <BreadcrumbSeparator className="hidden md:block" />
               <BreadcrumbItem>
                 <BreadcrumbPage>Dashboard</BreadcrumbPage>
+              </BreadcrumbItem>
+            </>
+          ),
+        },
+      },
+      {
+        path: "/catalog-products",
+        element: <CatalogProductsPage />,
+        handle: {
+          breadcrumb: () => (
+            <>
+              <BreadcrumbItem className="hidden md:block">
+                <BreadcrumbLink asChild>
+                  <Link to="/">Accueil</Link>
+                </BreadcrumbLink>
+              </BreadcrumbItem>
+              <BreadcrumbSeparator className="hidden md:block" />
+              <BreadcrumbItem>
+                <BreadcrumbPage>Produits</BreadcrumbPage>
               </BreadcrumbItem>
             </>
           ),

@@ -347,6 +347,82 @@ Start the local development stack:
 make run-local
 ```
 
+This command starts:
+
+- the Supabase local stack and its dedicated PostgreSQL database;
+- SAVIS services from `docker-compose.yml`;
+- SAVIS API connected to the PostgreSQL database from Docker Compose;
+- the SAVIS outbound Supabase adapter;
+- automatic local Supabase configuration for the sibling
+  `../savouretplus` repository.
+
+SAVIS PostgreSQL remains the system of record. Supabase contains public
+projections consumed by Savouretplus. The generated `.env.supabase.local`
+file combines the normal local SAVIS variables with the URL and server key
+used by the outbound adapter, and is not committed.
+
+### Catalog publication
+
+Products are managed from **Dégustation > Produits** in `savis-admin` and
+through `/api/catalog/products`.
+
+The catalog is a relational `Product` aggregate. It owns its purchase modes,
+choice group and options, customizable ingredients, and an ordered collection
+of common `ProductBom` references with decimal quantities. Each choice or extra
+may reference another BOM by UUID. There is deliberately no JPA relationship or
+foreign key to the BOM module.
+
+The sale price is always configured explicitly by an admin. BOMs never change
+it automatically. They provide current production cost, actual margin, price
+health, and a recommended price:
+
+```text
+actual margin = (sale price - actual cost) / sale price
+raw recommendation = actual cost / (1 - target margin)
+recommendation = next upper $0.25 increment
+```
+
+`GOOD` means the target margin is met, `REVIEW` means the product remains
+profitable below target, `LOSS` means cost exceeds sale price, and `INCOMPLETE`
+means at least one required BOM cost is unavailable. Bundle worst-case analysis
+uses the most expensive active choice. Ingredient extras are priced and costed
+only above their default quantity.
+
+Publication is explicit from the admin and also refreshed hourly by default.
+Override the schedule with `SAVIS_CATALOG_REFRESH_CRON`. Only active modes,
+choices and ingredients are included in the Supabase projection. Target margin,
+common product BOMs, costs and diagnostics remain private in SAVIS.
+
+Supabase stores the public projection expected by Savouretplus in
+`published_catalog_products`. Pricing configuration, BOM cost snapshots, and
+publication metadata remain in SAVIS. RLS exposes only rows where
+`is_available = true`; no additional catalog view is used.
+
+### Local catalog schema reset
+
+SAVIS currently uses `spring.jpa.hibernate.ddl-auto=update`, not Flyway.
+Hibernate creates the new relational catalog tables but does not remove the
+legacy `catalog_product_definitions` JSONB table. Existing local environments
+must therefore be reset once before using the new catalog model:
+
+```bash
+docker compose down -v
+make run-local
+```
+
+This deletes local Docker volumes. Do not run it against an environment whose
+data must be retained. For a retained database, back it up and drop only the
+legacy catalog table after confirming that its products have been migrated.
+
+The Makefile automatically activates Node.js 24 through `nvm` for Supabase
+commands. Docker, `nvm`, and Node.js 24 must be installed locally.
+
+Use a different Savouretplus path when necessary:
+
+```bash
+make run-local SAVOURETPLUS_DIR=/path/to/savouretplus
+```
+
 Start the production-style stack:
 
 ```bash
@@ -357,6 +433,13 @@ Stop containers:
 
 ```bash
 make stop
+```
+
+Inspect or rebuild Supabase:
+
+```bash
+make supabase-status
+make supabase-reset
 ```
 
 Follow logs:
@@ -503,7 +586,7 @@ Before merging changes that touch cross-service flows, verify:
 
 SAVIS is under active development. The architecture is already oriented around clean boundaries and asynchronous offer collection, but some business slices are still evolving:
 
-- BOM pricing now combines stored offer prices and configured activity rates, but broader margin and order-pricing rules are still evolving;
+- BOM pricing combines stored offer prices and configured activity rates, and catalog products can derive sale prices from BOM unit cost plus a configured margin;
 - supply persistence and offer selection exist, while provider coverage and pricing policies are still being shaped;
 - executor provider coverage is currently limited;
 - RabbitMQ rejected-message handling should eventually use a dead-letter queue;

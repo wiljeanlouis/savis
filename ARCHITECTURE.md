@@ -307,6 +307,56 @@ Activity costs are calculated from the global rate:
 
 If no rate is configured for an activity type, that activity contributes zero cost. `OfferService.processOffers(...)` saves new offers and updates existing ones by public id or provider/external id.
 
+## Catalog and Public Product Projection
+
+The `catalog` module owns commercial product definitions. A catalog product is
+not a BOM. `Product` is a relational aggregate containing purchase modes,
+choice options, ingredient options and an ordered collection of common
+`ProductBom` references. Each reference stores only a BOM UUID and the quantity
+required to sell the product; choices and extras may reference their own BOM.
+
+SAVIS PostgreSQL remains the source of truth for:
+
+- public product content and availability;
+- categories and typed product configurations;
+- commercial base and purchase-mode prices;
+- target margin and BOM references;
+- publication state.
+
+Commercial prices are admin decisions. `ProductCostService` resolves BOM costs
+through `BomPricingPort`; `ProductPricingService` calculates actual margin,
+`GOOD`/`REVIEW`/`LOSS`/`INCOMPLETE` health, the next-$0.25 recommended price,
+and a conservative worst case for composable bundles. Recommendations are
+consultative and never overwrite a product price.
+
+For ingredient customization, `productBoms` represent the complete default
+configuration. Extra BOM cost and extra sale price apply only to quantities
+above the default. Removing an ingredient does not reduce the reference cost or
+price.
+
+The publication flow is:
+
+```text
+SAVIS Admin explicitly publishes
+  -> CatalogController
+  -> CatalogPublicationService
+  -> PublishedCatalogProductMapper
+  -> PublishedCatalogPort
+  -> Supabase published_catalog_products
+  -> Savouretplus
+```
+
+Published products are also refreshed periodically using
+`savis.catalog.refresh-cron`. The mapper publishes active customer-facing
+configuration and prices in cents, but never internal costs, target margins or
+common `productBoms`. Supabase is a public projection, not the product system of record.
+Orders must retain the price and configuration snapshots accepted by the
+customer.
+
+The JPA model uses `ddl-auto=update`. It creates relational catalog tables but
+cannot remove the former `catalog_product_definitions` JSONB table, so local
+development databases require the one-time reset documented in `README.md`.
+
 ## Event Flow
 
 The event-driven offer collection flow is:

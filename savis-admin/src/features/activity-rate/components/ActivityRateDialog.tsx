@@ -21,11 +21,7 @@ import {
 import { HugeiconsIcon } from "@hugeicons/react";
 import { Add01Icon, Edit02Icon } from "@hugeicons/core-free-icons";
 import { useEffect, useState } from "react";
-import type {
-  ActivityRate,
-  ActivityRateValues,
-  ActivityType,
-} from "../types";
+import type { ActivityRate, ActivityRateValues, ActivityType } from "../types";
 import { activityTypeLabel, activityTypes } from "../types";
 
 interface ActivityRateDialogProps {
@@ -64,6 +60,7 @@ export const ActivityRateDialog = ({
       return;
     }
 
+    // eslint-disable-next-line react-hooks/set-state-in-effect, react-x/set-state-in-effect
     setValues(
       activityRate
         ? {

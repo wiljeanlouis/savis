@@ -16,7 +16,8 @@ public class OffersListener {
 
     @RabbitListener(
             queues = "${savis.offer.result.queue}",
-            containerFactory = "supplyRabbitListenerContainerFactory")
+            containerFactory = "supplyRabbitListenerContainerFactory",
+            autoStartup = "${savis.offer.listener.auto-startup:true}")
     public void onOffers(OffersMessage message) {
         log.info("onOffers {}", message);
         offerService.processOffers(message.toOffers());
@@ -24,7 +25,8 @@ public class OffersListener {
 
     @RabbitListener(
             queues = "${savis.offer.invalidation.queue}",
-            containerFactory = "supplyRabbitListenerContainerFactory")
+            containerFactory = "supplyRabbitListenerContainerFactory",
+            autoStartup = "${savis.offer.listener.auto-startup:true}")
     public void onOfferInvalidation(OfferInvalidationMessage message) {
         log.info("onOfferInvalidation {}", message);
         offerService.invalidateOffer(message.toOfferUuid());

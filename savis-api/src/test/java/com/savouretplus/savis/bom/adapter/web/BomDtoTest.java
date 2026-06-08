@@ -5,6 +5,8 @@ import java.util.List;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.savouretplus.savis.bom.domain.ActivityType;
 import com.savouretplus.savis.bom.domain.Bom;
 import com.savouretplus.savis.bom.domain.BomType;
@@ -102,5 +104,27 @@ public class BomDtoTest {
         BomDto dto = BomDto.from(bom, com.savouretplus.savis.common.Money.of(12));
 
         Assertions.assertEquals(com.savouretplus.savis.common.Money.of(12), dto.price());
+    }
+
+    @Test
+    void serialization_ShouldOnlyExposeComponentNames() throws JsonProcessingException {
+        BomDto dto = new BomDto(
+                null,
+                "Cake",
+                "Food bom",
+                "image.jpg",
+                "Bake",
+                BomType.FOOD,
+                List.of(new BomComponentDto("Flour", 200, "g", null)),
+                List.of(),
+                null,
+                null);
+
+        String json = new ObjectMapper().writeValueAsString(dto);
+
+        Assertions.assertTrue(json.contains("\"components\""));
+        Assertions.assertTrue(json.contains("\"componentName\""));
+        Assertions.assertFalse(json.contains("\"ingredients\""));
+        Assertions.assertFalse(json.contains("\"ingredientName\""));
     }
 }

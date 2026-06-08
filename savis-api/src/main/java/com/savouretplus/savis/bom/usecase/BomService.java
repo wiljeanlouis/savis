@@ -1,5 +1,6 @@
 package com.savouretplus.savis.bom.usecase;
 
+import java.math.BigDecimal;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -8,6 +9,7 @@ import java.util.stream.Collectors;
 import org.springframework.stereotype.Service;
 
 import com.savouretplus.savis.common.Money;
+import com.savouretplus.savis.bom.api.BomPricingApi;
 import com.savouretplus.savis.bom.domain.ActivityRate;
 import com.savouretplus.savis.bom.domain.ActivityType;
 import com.savouretplus.savis.bom.domain.ComponentNeededEvent;
@@ -26,7 +28,7 @@ import lombok.extern.slf4j.Slf4j;
 @Service
 @Transactional
 @AllArgsConstructor
-public class BomService {
+public class BomService implements BomPricingApi {
 
     private final BomRepositoryPort repository;
     private final ComponentPricePort priceCalculator;
@@ -80,6 +82,19 @@ public class BomService {
                 .collect(Collectors.toMap(
                         Bom::getPublicId,
                         bom -> bom.calculateTotal(componentPrices, activityRates)));
+    }
+
+    @Override
+    public boolean existsBom(UUID bomId) {
+        return bomId != null && repository.findByPublicId(bomId).isPresent();
+    }
+
+    @Override
+    public BomPricing getBomPricing(UUID bomId) {
+        Bom bom = getBom(bomId);
+        return new BomPricing(
+                calculateTotalCost(bom),
+                BigDecimal.valueOf(bom.getYield().quantity().value()));
     }
 
     private Map<ActivityType, Money> activityRatesByType() {

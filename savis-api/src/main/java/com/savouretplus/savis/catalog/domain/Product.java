@@ -1,0 +1,229 @@
+package com.savouretplus.savis.catalog.domain;
+
+import java.math.BigDecimal;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Objects;
+import java.util.Set;
+import java.util.UUID;
+
+import com.savouretplus.savis.common.Money;
+
+public record Product(
+        UUID publicId,
+        String code,
+        String slug,
+        String name,
+        String description,
+        ProductType productType,
+        UUID categoryId,
+        List<ProductBom> productBoms,
+        Money basePrice,
+        BigDecimal targetMarginRate,
+        String unitLabel,
+        String imageUrl,
+        List<String> gallery,
+        String availabilityNote,
+        boolean available,
+        boolean published,
+        int displayOrder,
+        List<ProductPurchaseMode> purchaseModes,
+        ProductChoiceGroup choiceGroup,
+        List<ProductIngredientOption> ingredientOptions) {
+
+    public Product {
+        publicId = publicId != null ? publicId : UUID.randomUUID();
+        requireText(code, "Le code du produit est requis");
+        requireText(slug, "Le slug du produit est requis");
+        requireText(name, "Le nom du produit est requis");
+        description = description != null ? description : "";
+        productType = productType != null ? productType : ProductType.STANDARD;
+        if (categoryId == null) {
+            throw new IllegalArgumentException("La catégorie du produit est requise");
+        }
+        if (basePrice == null || basePrice.amount().signum() < 0) {
+            throw new IllegalArgumentException("Le prix de base est requis et ne peut pas être négatif");
+        }
+        if (targetMarginRate == null
+                || targetMarginRate.compareTo(BigDecimal.ZERO) < 0
+                || targetMarginRate.compareTo(BigDecimal.ONE) >= 0) {
+            throw new IllegalArgumentException("La marge cible doit être comprise entre 0 inclus et 1 exclu");
+        }
+        unitLabel = isBlank(unitLabel) ? "unité" : unitLabel;
+        requireText(imageUrl, "L'image principale du produit est requise");
+        gallery = gallery != null ? List.copyOf(gallery) : List.of();
+        availabilityNote = isBlank(availabilityNote) ? "Disponible sur commande" : availabilityNote;
+        if (displayOrder < 0) {
+            throw new IllegalArgumentException("L'ordre d'affichage ne peut pas être négatif");
+        }
+        productBoms = productBoms != null ? List.copyOf(productBoms) : List.of();
+        purchaseModes = purchaseModes != null ? List.copyOf(purchaseModes) : List.of();
+        ingredientOptions = ingredientOptions != null ? List.copyOf(ingredientOptions) : List.of();
+        requireUniqueCodes(purchaseModes.stream().map(ProductPurchaseMode::code).toList(), "mode d'achat");
+        requireUniqueCodes(ingredientOptions.stream().map(ProductIngredientOption::code).toList(), "ingrédient");
+        validateStructure(productType, choiceGroup, ingredientOptions);
+    }
+
+    public Money calculateSalePrice(ProductConfiguration configuration) {
+        ProductConfiguration safeConfiguration = configuration != null ? configuration : ProductConfiguration.empty();
+        Money price = isBlank(safeConfiguration.purchaseModeCode())
+                ? basePrice
+                : requireActiveMode(safeConfiguration.purchaseModeCode()).price();
+
+        validateChoices(safeConfiguration);
+        validateIngredients(safeConfiguration);
+
+        if (productType != ProductType.INGREDIENT_CUSTOMIZATION) {
+            return price;
+        }
+
+        for (ProductIngredientOption ingredient : ingredientOptions.stream()
+                .filter(ProductIngredientOption::active)
+                .toList()) {
+            int selectedQuantity = safeConfiguration.ingredients().stream()
+                    .filter(selection -> selection.ingredientCode().equals(ingredient.code()))
+                    .mapToInt(IngredientSelection::quantity)
+                    .findFirst()
+                    .orElse(ingredient.defaultQuantity());
+            price = price.add(ingredient.extraPrice().multiply(ingredient.extraQuantity(selectedQuantity)));
+        }
+        return price;
+    }
+
+    public ProductPurchaseMode requireActiveMode(String code) {
+        return selectedMode(code)
+                .orElseThrow(() -> new IllegalArgumentException("Mode d'achat actif introuvable: " + code));
+    }
+
+    public ProductChoiceOption requireActiveChoice(String code) {
+        if (choiceGroup == null) {
+            throw new IllegalArgumentException("Ce produit ne possède pas de groupe de choix");
+        }
+        return choiceGroup.activeOption(code);
+    }
+
+    public ProductIngredientOption requireActiveIngredient(String code) {
+        return ingredientOptions.stream()
+                .filter(ProductIngredientOption::active)
+                .filter(option -> option.code().equals(code))
+                .findFirst()
+                .orElseThrow(() -> new IllegalArgumentException("Ingrédient actif introuvable: " + code));
+    }
+
+    public void validateConfiguration(ProductConfiguration configuration) {
+        ProductConfiguration safeConfiguration = configuration != null ? configuration : ProductConfiguration.empty();
+        validateChoices(safeConfiguration);
+        validateIngredients(safeConfiguration);
+    }
+
+    public Product withPurchaseModes(List<ProductPurchaseMode> modes) {
+        return copy(modes, choiceGroup, ingredientOptions);
+    }
+
+    public Product withChoiceGroup(ProductChoiceGroup group) {
+        return copy(purchaseModes, group, ingredientOptions);
+    }
+
+    public Product withIngredientOptions(List<ProductIngredientOption> ingredients) {
+        return copy(purchaseModes, choiceGroup, ingredients);
+    }
+
+    private Product copy(
+            List<ProductPurchaseMode> modes,
+            ProductChoiceGroup group,
+            List<ProductIngredientOption> ingredients) {
+        return new Product(
+                publicId, code, slug, name, description, productType, categoryId, productBoms,
+                basePrice, targetMarginRate, unitLabel, imageUrl, gallery, availabilityNote,
+                available, published, displayOrder, modes, group, ingredients);
+    }
+
+    private java.util.Optional<ProductPurchaseMode> selectedMode(String code) {
+        if (code == null || code.isBlank()) {
+            return java.util.Optional.empty();
+        }
+        return purchaseModes.stream()
+                .filter(ProductPurchaseMode::active)
+                .filter(mode -> mode.code().equals(code))
+                .findFirst();
+    }
+
+    private void validateChoices(ProductConfiguration configuration) {
+        if (productType != ProductType.SINGLE_CHOICE
+                && productType != ProductType.SINGLE_CHOICE_BUNDLE) {
+            return;
+        }
+        if (choiceGroup == null) {
+            throw new IllegalStateException("Le groupe de choix est requis pour ce type de produit");
+        }
+
+        ProductPurchaseMode mode = configuration.purchaseModeCode() != null
+                ? requireActiveMode(configuration.purchaseModeCode())
+                : null;
+        AllocationType allocationType = mode != null ? mode.allocationType() : AllocationType.SINGLE_CHOICE;
+
+        if (allocationType == AllocationType.CHOICE_ALLOCATION) {
+            int allocatedQuantity = configuration.allocations().stream()
+                    .peek(allocation -> requireActiveChoice(allocation.choiceCode()))
+                    .mapToInt(ChoiceAllocation::quantity)
+                    .sum();
+            if (allocatedQuantity != mode.quantity()) {
+                throw new IllegalArgumentException(
+                        "La somme des choix doit être égale à " + mode.quantity());
+            }
+            return;
+        }
+
+        if (choiceGroup.required() && isBlank(configuration.choiceCode())) {
+            throw new IllegalArgumentException("Un choix est requis");
+        }
+        if (!isBlank(configuration.choiceCode())) {
+            requireActiveChoice(configuration.choiceCode());
+        }
+    }
+
+    private void validateIngredients(ProductConfiguration configuration) {
+        if (productType != ProductType.INGREDIENT_CUSTOMIZATION) {
+            if (!configuration.ingredients().isEmpty()) {
+                throw new IllegalArgumentException("Ce produit ne permet pas de personnaliser les ingrédients");
+            }
+            return;
+        }
+        configuration.ingredients().forEach(selection -> requireActiveIngredient(selection.ingredientCode())
+                .validateQuantity(selection.quantity()));
+    }
+
+    private static void validateStructure(
+            ProductType type,
+            ProductChoiceGroup choiceGroup,
+            List<ProductIngredientOption> ingredients) {
+        if ((type == ProductType.SINGLE_CHOICE || type == ProductType.SINGLE_CHOICE_BUNDLE)
+                && choiceGroup == null) {
+            throw new IllegalArgumentException("Un groupe de choix est requis pour ce type de produit");
+        }
+        if (type == ProductType.INGREDIENT_CUSTOMIZATION && ingredients.isEmpty()) {
+            throw new IllegalArgumentException("Au moins un ingrédient personnalisable est requis");
+        }
+    }
+
+    static void requireUniqueCodes(List<String> codes, String label) {
+        Set<String> seen = new HashSet<>();
+        codes.stream()
+                .filter(Objects::nonNull)
+                .forEach(code -> {
+                    if (!seen.add(code)) {
+                        throw new IllegalArgumentException("Code de %s dupliqué: %s".formatted(label, code));
+                    }
+                });
+    }
+
+    private static void requireText(String value, String message) {
+        if (isBlank(value)) {
+            throw new IllegalArgumentException(message);
+        }
+    }
+
+    private static boolean isBlank(String value) {
+        return value == null || value.isBlank();
+    }
+}

@@ -1,19 +1,42 @@
-{
-  "properties": [
-    {
-      "name": "savis.offer.request.queue",
-      "type": "java.lang.String",
-      "description": "The queue to send request for offers."
-    },
-    {
-      "name": "savis.offer.result.queue",
-      "type": "java.lang.String",
-      "description": "The queue to receive scraped offer results."
-    },
-    {
-      "name": "savis.offer.invalidation.queue",
-      "type": "java.lang.String",
-      "description": "The queue to receive invalidated offers."
-    }
-  ]
-}
+{"properties": [
+  {
+    "name": "savis.offer.request.queue",
+    "type": "java.lang.String",
+    "description": "The queue to send request for offers."
+  },
+  {
+    "name": "savis.offer.result.queue",
+    "type": "java.lang.String",
+    "description": "The queue to receive scraped offer results."
+  },
+  {
+    "name": "savis.offer.invalidation.queue",
+    "type": "java.lang.String",
+    "description": "The queue to receive invalidated offers."
+  },
+  {
+    "name": "savis.catalog.refresh-cron",
+    "type": "java.lang.String",
+    "description": "Cron expression used to refresh published catalog product projections."
+  },
+  {
+    "name": "savis.supabase.enabled",
+    "type": "java.lang.String",
+    "description": "A description for 'savis.supabase.enabled'"
+  },
+  {
+    "name": "savis.supabase.url",
+    "type": "java.lang.String",
+    "description": "A description for 'savis.supabase.url'"
+  },
+  {
+    "name": "savis.supabase.service-role-key",
+    "type": "java.lang.String",
+    "description": "A description for 'savis.supabase.service-role-key'"
+  },
+  {
+    "name": "savis.offer.listener.auto-startup",
+    "type": "java.lang.String",
+    "description": "A description for 'savis.offer.listener.auto-startup'"
+  }
+]}

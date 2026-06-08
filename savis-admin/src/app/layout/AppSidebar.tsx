@@ -21,6 +21,7 @@ import {
   Task01Icon,
   RiceBowl01FreeIcons,
   Money03Icon,
+  PackageIcon,
 } from "@hugeicons/core-free-icons";
 import { Link } from "react-router";
 import { ModeToggle } from "./components/ModeToggle";
@@ -36,6 +37,11 @@ const data = {
     avatar: "/avatars/shadcn.jpg",
   },
   foods: [
+    {
+      name: "Produits",
+      url: "/catalog-products",
+      icon: <HugeiconsIcon icon={PackageIcon} strokeWidth={2} />,
+    },
     {
       name: "Recettes",
       url: "/recipes",
