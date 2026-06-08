@@ -1,5 +1,5 @@
 import { useState } from "react";
-import type { Recipe } from "@/features/recipe/types";
+import type { Bom } from "@/features/bom/types";
 import { Button } from "@/shared/ui/button";
 import { Checkbox } from "@/shared/ui/checkbox";
 import {
@@ -42,7 +42,7 @@ import { ProductCategoryCombobox } from "./ProductCategoryCombobox";
 interface Props {
   product?: CatalogProduct;
   categories: ProductCategory[];
-  recipes: Recipe[];
+  boms: Bom[];
   saving: boolean;
   onSave: (product: CatalogProduct) => void;
 }
@@ -52,7 +52,7 @@ const number = (value: string) => Number(value) || 0;
 export function CatalogProductDialog({
   product,
   categories,
-  recipes,
+  boms,
   saving,
   onSave,
 }: Props) {
@@ -211,7 +211,7 @@ export function CatalogProductDialog({
                 ...form.productBoms,
                 emptyProductBom(
                   form.productBoms.length,
-                  recipes.find((recipe) => recipe.id)?.id ?? "",
+                  boms.find((bom) => bom.id)?.id ?? "",
                 ),
               ])
             }
@@ -224,7 +224,7 @@ export function CatalogProductDialog({
                 <BomField
                   label="BOM"
                   value={productBom.bomId}
-                  recipes={recipes}
+                  boms={boms}
                   required
                   onChange={(bomId) =>
                     updateProductBom(index, { bomId: bomId ?? "" })
@@ -386,7 +386,7 @@ export function CatalogProductDialog({
                   <BomField
                     label="BOM"
                     value={option.bomId}
-                    recipes={recipes}
+                    boms={boms}
                     onChange={(bomId) => updateChoice(index, { bomId })}
                   />
                   <RemoveButton
@@ -436,7 +436,7 @@ export function CatalogProductDialog({
                   <BomField
                     label="BOM extra"
                     value={option.bomId}
-                    recipes={recipes}
+                    boms={boms}
                     onChange={(bomId) => updateIngredient(index, { bomId })}
                   />
                   <NumberField
@@ -706,13 +706,13 @@ function CheckField({
 function BomField({
   label,
   value,
-  recipes,
+  boms,
   required = false,
   onChange,
 }: {
   label: string;
   value: string | null;
-  recipes: Recipe[];
+  boms: Bom[];
   required?: boolean;
   onChange: (value: string | null) => void;
 }) {
@@ -728,11 +728,11 @@ function BomField({
         </SelectTrigger>
         <SelectContent>
           {!required && <SelectItem value="none">Aucun BOM</SelectItem>}
-          {recipes
-            .filter((recipe) => recipe.id)
-            .map((recipe) => (
-              <SelectItem key={recipe.id} value={recipe.id!}>
-                {recipe.name}
+          {boms
+            .filter((bom) => bom.id)
+            .map((bom) => (
+              <SelectItem key={bom.id} value={bom.id!}>
+                {bom.name}
               </SelectItem>
             ))}
         </SelectContent>

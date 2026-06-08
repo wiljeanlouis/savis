@@ -1,8 +1,8 @@
 import { useState } from "react";
 import axios from "axios";
 import { toast } from "sonner";
-import { useGetRecipes } from "@/features/recipe/hooks/useRecipeApi";
-import type { Recipe } from "@/features/recipe/types";
+import { useGetBoms } from "@/features/bom/hooks/useBomApi";
+import type { Bom } from "@/features/bom/types";
 import { DeleteAlert } from "@/shared/components/DeleteAlert";
 import { NoData } from "@/shared/components/NoData";
 import { Badge } from "@/shared/ui/badge";
@@ -45,7 +45,7 @@ const money = (amount?: number | null) =>
 export function CatalogProductsPage() {
   const productsQuery = useCatalogProducts();
   const categoriesQuery = useProductCategories();
-  const recipesQuery = useGetRecipes();
+  const bomsQuery = useGetBoms();
   const saveProduct = useSaveCatalogProduct();
   const deleteProduct = useDeleteCatalogProduct();
   const publishCatalog = usePublishCatalog();
@@ -57,7 +57,7 @@ export function CatalogProductsPage() {
 
   const products = productsQuery.data ?? [];
   const categories = categoriesQuery.data ?? [];
-  const recipes = recipesQuery.data ?? [];
+  const boms = bomsQuery.data ?? [];
 
   const save = (product: CatalogProduct) =>
     saveProduct.mutate(product, {
@@ -100,7 +100,7 @@ export function CatalogProductsPage() {
   if (
     productsQuery.isPending ||
     categoriesQuery.isPending ||
-    recipesQuery.isPending
+    bomsQuery.isPending
   ) {
     return (
       <div className="flex min-h-64 items-center justify-center">
@@ -138,7 +138,7 @@ export function CatalogProductsPage() {
           </Button>
           <CatalogProductDialog
             categories={categories}
-            recipes={recipes}
+            boms={boms}
             saving={saveProduct.isPending}
             onSave={save}
           />
@@ -155,7 +155,7 @@ export function CatalogProductsPage() {
               product={product}
               result={product.id ? analysis[product.id] : undefined}
               categories={categories}
-              recipes={recipes}
+              boms={boms}
               saving={saveProduct.isPending}
               onAnalyze={() => runAnalysis(product)}
               onSave={save}
@@ -172,7 +172,7 @@ function ProductCard({
   product,
   result,
   categories,
-  recipes,
+  boms,
   saving,
   onAnalyze,
   onSave,
@@ -181,7 +181,7 @@ function ProductCard({
   product: CatalogProduct;
   result?: ProductPricingAnalysis;
   categories: ProductCategory[];
-  recipes: Recipe[];
+  boms: Bom[];
   saving: boolean;
   onAnalyze: () => void;
   onSave: (product: CatalogProduct) => void;
@@ -189,9 +189,7 @@ function ProductCard({
 }) {
   const category = categories.find((item) => item.id === product.categoryId);
   const bomName = (bomId: string | null) =>
-    bomId
-      ? (recipes.find((recipe) => recipe.id === bomId)?.name ?? bomId)
-      : "Aucun BOM";
+    bomId ? (boms.find((bom) => bom.id === bomId)?.name ?? bomId) : "Aucun BOM";
 
   return (
     <Card className="gap-0 py-0">
@@ -339,7 +337,7 @@ function ProductCard({
         <CatalogProductDialog
           product={product}
           categories={categories}
-          recipes={recipes}
+          boms={boms}
           saving={saving}
           onSave={onSave}
         />

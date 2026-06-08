@@ -7,12 +7,12 @@ import {
   BreadcrumbPage,
   BreadcrumbSeparator,
 } from "@/shared/ui/breadcrumb";
-import { RecipePage } from "@/features/recipe/pages/RecipePage";
-import { RecipesPage } from "@/features/recipe/pages/RecipesPage";
-import { getRecipe } from "@/features/recipe/api/recipeApi";
-import type { Recipe } from "@/features/recipe/types";
+import { BomPage } from "@/features/bom/pages/BomPage";
+import { BomsPage } from "@/features/bom/pages/BomsPage";
+import { getBom } from "@/features/bom/api/bomApi";
+import type { Bom } from "@/features/bom/types";
 import { TasksPage } from "@/features/task/pages/TasksPage";
-import { IngredientsPage } from "@/features/ingredient/pages/IngredientsPage";
+import { BomComponentsPage } from "@/features/bom-component/pages/BomComponentsPage";
 import { ActivityRatesPage } from "@/features/activity-rate/pages/ActivityRatesPage";
 import { CatalogProductsPage } from "@/features/catalog/pages/CatalogProductsPage";
 
@@ -78,8 +78,8 @@ const router = createBrowserRouter([
         },
       },
       {
-        path: "/recipes",
-        element: <RecipesPage />,
+        path: "/boms",
+        element: <BomsPage />,
         handle: {
           breadcrumb: () => (
             <>
@@ -90,15 +90,15 @@ const router = createBrowserRouter([
               </BreadcrumbItem>
               <BreadcrumbSeparator className="hidden md:block" />
               <BreadcrumbItem>
-                <BreadcrumbPage>Recettes</BreadcrumbPage>
+                <BreadcrumbPage>BOM</BreadcrumbPage>
               </BreadcrumbItem>
             </>
           ),
         },
       },
       {
-        path: "/recipes/add",
-        element: <RecipePage />,
+        path: "/boms/add",
+        element: <BomPage />,
         handle: {
           breadcrumb: () => (
             <>
@@ -110,12 +110,12 @@ const router = createBrowserRouter([
               <BreadcrumbSeparator className="hidden md:block" />
               <BreadcrumbItem className="hidden md:block">
                 <BreadcrumbLink asChild>
-                  <Link to="/recipes">Recettes</Link>
+                  <Link to="/boms">BOM</Link>
                 </BreadcrumbLink>
               </BreadcrumbItem>
               <BreadcrumbSeparator className="hidden md:block" />
               <BreadcrumbItem>
-                <BreadcrumbPage>Nouvelle recette</BreadcrumbPage>
+                <BreadcrumbPage>Nouveau BOM</BreadcrumbPage>
               </BreadcrumbItem>
             </>
           ),
@@ -160,8 +160,8 @@ const router = createBrowserRouter([
         },
       },
       {
-        path: "/ingredients",
-        element: <IngredientsPage />,
+        path: "/bom-components",
+        element: <BomComponentsPage />,
         handle: {
           breadcrumb: () => (
             <>
@@ -172,20 +172,20 @@ const router = createBrowserRouter([
               </BreadcrumbItem>
               <BreadcrumbSeparator className="hidden md:block" />
               <BreadcrumbItem>
-                <BreadcrumbPage>Ingrédients</BreadcrumbPage>
+                <BreadcrumbPage>Composants BOM</BreadcrumbPage>
               </BreadcrumbItem>
             </>
           ),
         },
       },
       {
-        path: "/recipes/:id",
-        element: <RecipePage />,
-        loader: async ({ params }): Promise<Recipe> => {
+        path: "/boms/:id",
+        element: <BomPage />,
+        loader: async ({ params }): Promise<Bom> => {
           if (!params.id) {
-            return Promise.reject(new Error("Recipe ID is required"));
+            return Promise.reject(new Error("Bom ID is required"));
           }
-          return getRecipe(params.id);
+          return getBom(params.id);
         },
         handle: {
           breadcrumb: () => (
@@ -198,12 +198,12 @@ const router = createBrowserRouter([
               <BreadcrumbSeparator className="hidden md:block" />
               <BreadcrumbItem className="hidden md:block">
                 <BreadcrumbLink asChild>
-                  <Link to="/recipes">Recettes</Link>
+                  <Link to="/boms">BOM</Link>
                 </BreadcrumbLink>
               </BreadcrumbItem>
               <BreadcrumbSeparator className="hidden md:block" />
               <BreadcrumbItem>
-                <BreadcrumbPage>Recette</BreadcrumbPage>
+                <BreadcrumbPage>BOM</BreadcrumbPage>
               </BreadcrumbItem>
             </>
           ),

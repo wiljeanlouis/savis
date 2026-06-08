@@ -4,18 +4,18 @@
 
 ## Main Features
 
-- BOM/recipe list and form.
-- Component entry with quantity, unit, and optional selected provider offer.
+- BOM list and form.
+- BOM component entry with quantity, unit, and optional selected provider offer.
 - Activity entry for production work such as preparation, cooking, assembly, packaging, installation, delivery, cleanup, or custom work.
 - Activity-rate management for global hourly rates by activity type.
 - Yield entry using the shared unit symbols (`portion`, `piece`, `g`, `kg`, `l`, `ml`).
-- Offer review/ingredient screens backed by the executor API.
+- BOM component review screens backed by the executor API.
 
 ## BOM Form
 
-The BOM/recipe form edits a generic BOM model:
+The BOM form edits a generic BOM model:
 
-- `ingredients` in the UI map to BOM `components` in the API.
+- BOM components in the UI map to BOM `components` in the API.
 - Each component can store `selectedOfferId`.
 - The form searches `/api/supply/offers?componentName=...` once the user enters a component name.
 - Available offers are shown in a rich shadcn/Radix dropdown with image, name, price, package size, and provider.

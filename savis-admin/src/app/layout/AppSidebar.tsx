@@ -43,13 +43,13 @@ const data = {
       icon: <HugeiconsIcon icon={PackageIcon} strokeWidth={2} />,
     },
     {
-      name: "Recettes",
-      url: "/recipes",
+      name: "BOM",
+      url: "/boms",
       icon: <HugeiconsIcon icon={Dish02Icon} strokeWidth={2} />,
     },
     {
-      name: "Ingrédients",
-      url: "/ingredients",
+      name: "Composants BOM",
+      url: "/bom-components",
       icon: <HugeiconsIcon icon={RiceBowl01FreeIcons} strokeWidth={2} />,
     },
   ],
