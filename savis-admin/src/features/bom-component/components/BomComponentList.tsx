@@ -7,6 +7,8 @@ import { BomComponentCard } from "./BomComponentCard";
 import { BomComponentSearchTermFacets } from "./BomComponentSearchTermFacets";
 import { BomComponentListSorting } from "./BomComponentListSorting";
 import { BomComponentRetrieveDialog } from "./BomComponentRetrieveDialog";
+import { Button } from "@/shared/ui/button";
+import { Link } from "react-router";
 
 export const BomComponentList = () => {
   const {
@@ -38,10 +40,15 @@ export const BomComponentList = () => {
             BOM.
           </p>
         </div>
-        <BomComponentRetrieveDialog
-          isRetrieving={isCreatingTask}
-          onRetrieve={handleRetrieve}
-        />
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+          <Button variant="outline" asChild>
+            <Link to="tasks">Voir les tâches de récupération</Link>
+          </Button>
+          <BomComponentRetrieveDialog
+            isRetrieving={isCreatingTask}
+            onRetrieve={handleRetrieve}
+          />
+        </div>
       </div>
 
       {isLoading ? (

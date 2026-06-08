@@ -11,7 +11,7 @@ import { BomPage } from "@/features/bom/pages/BomPage";
 import { BomsPage } from "@/features/bom/pages/BomsPage";
 import { getBom } from "@/features/bom/api/bomApi";
 import type { Bom } from "@/features/bom/types";
-import { TasksPage } from "@/features/task/pages/TasksPage";
+import { BomComponentTasksPage } from "@/features/bom-component/task/pages/BomComponentTasksPage";
 import { BomComponentsPage } from "@/features/bom-component/pages/BomComponentsPage";
 import { ActivityRatesPage } from "@/features/activity-rate/pages/ActivityRatesPage";
 import { CatalogProductsPage } from "@/features/catalog/pages/CatalogProductsPage";
@@ -122,25 +122,6 @@ const router = createBrowserRouter([
         },
       },
       {
-        path: "/tasks",
-        element: <TasksPage />,
-        handle: {
-          breadcrumb: () => (
-            <>
-              <BreadcrumbItem className="hidden md:block">
-                <BreadcrumbLink asChild>
-                  <Link to="/">Accueil</Link>
-                </BreadcrumbLink>
-              </BreadcrumbItem>
-              <BreadcrumbSeparator className="hidden md:block" />
-              <BreadcrumbItem>
-                <BreadcrumbPage>Tasks</BreadcrumbPage>
-              </BreadcrumbItem>
-            </>
-          ),
-        },
-      },
-      {
         path: "/activity-rates",
         element: <ActivityRatesPage />,
         handle: {
@@ -161,22 +142,52 @@ const router = createBrowserRouter([
       },
       {
         path: "/bom-components",
-        element: <BomComponentsPage />,
-        handle: {
-          breadcrumb: () => (
-            <>
-              <BreadcrumbItem className="hidden md:block">
-                <BreadcrumbLink asChild>
-                  <Link to="/">Accueil</Link>
-                </BreadcrumbLink>
-              </BreadcrumbItem>
-              <BreadcrumbSeparator className="hidden md:block" />
-              <BreadcrumbItem>
-                <BreadcrumbPage>Composants BOM</BreadcrumbPage>
-              </BreadcrumbItem>
-            </>
-          ),
-        },
+        children: [
+          {
+            index: true,
+            element: <BomComponentsPage />,
+            handle: {
+              breadcrumb: () => (
+                <>
+                  <BreadcrumbItem className="hidden md:block">
+                    <BreadcrumbLink asChild>
+                      <Link to="/">Accueil</Link>
+                    </BreadcrumbLink>
+                  </BreadcrumbItem>
+                  <BreadcrumbSeparator className="hidden md:block" />
+                  <BreadcrumbItem>
+                    <BreadcrumbPage>Composants BOM</BreadcrumbPage>
+                  </BreadcrumbItem>
+                </>
+              ),
+            },
+          },
+          {
+            path: "tasks",
+            element: <BomComponentTasksPage />,
+            handle: {
+              breadcrumb: () => (
+                <>
+                  <BreadcrumbItem className="hidden md:block">
+                    <BreadcrumbLink asChild>
+                      <Link to="/">Accueil</Link>
+                    </BreadcrumbLink>
+                  </BreadcrumbItem>
+                  <BreadcrumbSeparator className="hidden md:block" />
+                  <BreadcrumbItem className="hidden md:block">
+                    <BreadcrumbLink asChild>
+                      <Link to="/bom-components">Composants BOM</Link>
+                    </BreadcrumbLink>
+                  </BreadcrumbItem>
+                  <BreadcrumbSeparator className="hidden md:block" />
+                  <BreadcrumbItem>
+                    <BreadcrumbPage>Tâches de récupération</BreadcrumbPage>
+                  </BreadcrumbItem>
+                </>
+              ),
+            },
+          },
+        ],
       },
       {
         path: "/boms/:id",

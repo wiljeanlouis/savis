@@ -26,7 +26,11 @@ import {
   SelectValue,
 } from "@/shared/ui/select";
 
-export const BomForm = () => {
+interface BomFormProps {
+  showTitle?: boolean;
+}
+
+export const BomForm = ({ showTitle = true }: BomFormProps) => {
   const {
     form,
     updateField,
@@ -71,19 +75,19 @@ export const BomForm = () => {
 
   return (
     <>
-      <h1 className="text-2xl font-semibold">{formTitle}</h1>
+      {showTitle && <h1 className="text-2xl font-semibold">{formTitle}</h1>}
 
       <form onSubmit={submitForm}>
         <FieldGroup>
-          <div className="grid grid-cols-3 gap-4">
-            <div className="space-y-10 col-span-2">
+          <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
+            <div className="space-y-10 lg:col-span-2">
               <FieldSet>
                 <FieldGroup>
                   <Field>
                     <FieldLabel htmlFor="bom-form-name">Nom</FieldLabel>
                     <Input
                       id="bom-form-name"
-                      placeholder="Boeuf bourgignon"
+                      placeholder="Boeuf bourgignon, Arche de ballons, Sac d'emballage 10'', etc"
                       value={form.name}
                       onChange={(e) => {
                         updateField("name", e.target.value);
@@ -97,7 +101,7 @@ export const BomForm = () => {
                     </FieldLabel>
                     <Input
                       id="bom-form-description"
-                      placeholder="Un BOM à base de viande de boeuf"
+                      placeholder="Une recette à base de viande de boeuf, Un arche fait de ballon de taille 8'', Sac d'emballage 10'' "
                       value={form.description}
                       onChange={(e) => {
                         updateField("description", e.target.value);
@@ -206,7 +210,7 @@ export const BomForm = () => {
                   <Button
                     type="button"
                     variant="destructive"
-                    className="w-32"
+                    className="w-48"
                     onClick={addComponent}
                   >
                     Ajouter un composant BOM

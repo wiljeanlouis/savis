@@ -34,7 +34,13 @@ const data = {
     email: "m@example.com",
     avatar: "/avatars/shadcn.jpg",
   },
-  foods: [],
+  operations: [
+    {
+      name: "Produits",
+      url: "/catalog-products",
+      icon: <HugeiconsIcon icon={PackageIcon} strokeWidth={2} />,
+    },
+  ],
   configs: [
     {
       name: "Taux horaire",
@@ -53,16 +59,7 @@ const data = {
           name: "Compositions",
           url: "/boms",
         },
-        {
-          name: "Tasks",
-          url: "/tasks",
-        },
       ],
-    },
-    {
-      name: "Produits",
-      url: "/catalog-products",
-      icon: <HugeiconsIcon icon={PackageIcon} strokeWidth={2} />,
     },
   ],
   navSecondary: [
@@ -120,7 +117,7 @@ export const AppSidebar = ({
       </SidebarHeader>
       <SidebarContent>
         <NavMain />
-        <NavSection title="Dégustation" items={data.foods} />
+        <NavSection items={data.operations} />
         <NavSection title="Configuration" items={data.configs} />
         {/* <NavDocuments items={data.documents} />
         <NavSecondary items={data.navSecondary} className="mt-auto" /> */}

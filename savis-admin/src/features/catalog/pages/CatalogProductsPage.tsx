@@ -113,9 +113,9 @@ export function CatalogProductsPage() {
     <div className="space-y-6">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-2xl font-semibold">Catalogue</h1>
+          <h1 className="text-2xl font-semibold">Produits</h1>
           <p className="text-sm text-muted-foreground">
-            Prix commerciaux, configurations et analyse de rentabilité par BOM.
+            Prix, configurations et analyse de rentabilité.
           </p>
         </div>
         <div className="flex gap-2">

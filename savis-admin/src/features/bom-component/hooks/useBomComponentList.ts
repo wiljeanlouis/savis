@@ -1,7 +1,7 @@
 import { useEffect, useMemo } from "react";
 import { useSearchParams } from "react-router";
 import { toast } from "sonner";
-import { useCreateTask } from "@/features/task/hooks/useTaskApi";
+import { useCreateBomComponentTask } from "@/features/bom-component/task/hooks/useBomComponentTaskApi";
 import type {
   BomComponent,
   BomComponentEditValues,
@@ -99,7 +99,7 @@ export const useBomComponentList = () => {
   );
   const patchBomComponent = usePatchBomComponent();
   const deleteBomComponent = useDeleteBomComponent();
-  const createTask = useCreateTask();
+  const createTask = useCreateBomComponentTask();
 
   useEffect(() => {
     const nextSearchParams = createSearchParamsFromListState(
@@ -291,7 +291,7 @@ export const useBomComponentList = () => {
     data,
     isLoading: isPending,
     isCreatingTask: createTask.isPending,
-    isPatching: patchBomComponent.isPending ?? createTask.isPending,
+    isPatching: patchBomComponent.isPending || createTask.isPending,
     isDeleting: deleteBomComponent.isPending,
     listState,
     handleDelete,

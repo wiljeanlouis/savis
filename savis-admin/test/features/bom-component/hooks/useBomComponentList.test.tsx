@@ -4,7 +4,7 @@ import {
   useGetBomComponents,
   usePatchBomComponent,
 } from "@/features/bom-component/hooks/useBomComponentApi";
-import { useCreateTask } from "@/features/task/hooks/useTaskApi";
+import { useCreateBomComponentTask } from "@/features/bom-component/task/hooks/useBomComponentTaskApi";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { act, renderHook, waitFor } from "@testing-library/react";
 import { useState, type ReactNode } from "react";
@@ -17,8 +17,8 @@ vi.mock("@/features/bom-component/hooks/useBomComponentApi", () => ({
   usePatchBomComponent: vi.fn(),
 }));
 
-vi.mock("@/features/task/hooks/useTaskApi", () => ({
-  useCreateTask: vi.fn(),
+vi.mock("@/features/bom-component/task/hooks/useBomComponentTaskApi", () => ({
+  useCreateBomComponentTask: vi.fn(),
 }));
 
 const bomComponentsPage = {
@@ -50,7 +50,7 @@ const Wrapper = ({ children }: { children: ReactNode }) => {
 const mockUseGetBomComponents = vi.mocked(useGetBomComponents);
 const mockUsePatchBomComponent = vi.mocked(usePatchBomComponent);
 const mockUseDeleteBomComponent = vi.mocked(useDeleteBomComponent);
-const mockUseCreateTask = vi.mocked(useCreateTask);
+const mockUseCreateTask = vi.mocked(useCreateBomComponentTask);
 const mutateTaskAsync = vi.fn();
 const mutateDelete = vi.fn();
 
@@ -78,7 +78,7 @@ describe("useBomComponentList", () => {
     mockUseCreateTask.mockReturnValue({
       isPending: false,
       mutateAsync: mutateTaskAsync,
-    } as unknown as ReturnType<typeof useCreateTask>);
+    } as unknown as ReturnType<typeof useCreateBomComponentTask>);
   });
 
   it("initializes list state from the URL and removes type", async () => {

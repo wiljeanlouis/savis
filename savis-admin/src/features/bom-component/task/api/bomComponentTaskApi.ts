@@ -12,7 +12,7 @@ interface GetTasksParams {
   sortDirection?: "asc" | "desc";
 }
 
-export const getTasks = async ({
+export const getBomComponentTasks = async ({
   page,
   size,
   sortBy,
@@ -24,7 +24,7 @@ export const getTasks = async ({
   return data;
 };
 
-export const createTask = async (
+export const createBomComponentTask = async (
   payload: CreateSavisTaskPayload,
 ): Promise<SavisTask> => {
   const { data }: { data: SavisTask } = await executorApi.post(

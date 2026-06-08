@@ -27,25 +27,30 @@ interface NavItem {
   children?: {
     name: string;
     url: string;
+    activeUrls?: string[];
   }[];
 }
 
 interface Props {
-  title: string;
+  title?: string;
   items: NavItem[];
 }
 
 export function NavSection({ title, items }: Props) {
   const { pathname } = useLocation();
+  const isRouteActive = (url: string) =>
+    pathname === url || pathname.startsWith(`${url}/`);
+  const isChildRouteActive = (
+    child: NonNullable<NavItem["children"]>[number],
+  ) => (child.activeUrls ?? [child.url]).some(isRouteActive);
 
   return (
     <SidebarGroup className="group-data-[collapsible=icon]:hidden">
-      <SidebarGroupLabel>{title}</SidebarGroupLabel>
+      {title && <SidebarGroupLabel>{title}</SidebarGroupLabel>}
+
       <SidebarMenu>
         {items.map((item) => {
-          const isChildActive = item.children?.some((child) =>
-            pathname.startsWith(child.url),
-          );
+          const isChildActive = item.children?.some(isChildRouteActive);
 
           if (item.children) {
             return (
@@ -73,7 +78,7 @@ export function NavSection({ title, items }: Props) {
                   <CollapsibleContent>
                     <SidebarMenuSub>
                       {item.children.map((child) => {
-                        const isActive = pathname.startsWith(child.url);
+                        const isActive = isChildRouteActive(child);
 
                         return (
                           <SidebarMenuSubItem key={child.name}>
@@ -100,7 +105,7 @@ export function NavSection({ title, items }: Props) {
             return null;
           }
 
-          const isActive = pathname.startsWith(item.url);
+          const isActive = isRouteActive(item.url);
           return (
             <SidebarMenuItem key={item.name}>
               <SidebarMenuButton
