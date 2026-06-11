@@ -74,11 +74,12 @@ The `/bom-components` page calls SAVIS Executor directly and displays offers
 of every supported type:
 
 - `FOOD`;
-- `DECORATION`.
+- `MATERIAL`.
 
 Users can:
 
-- start a `GET_OFFERS` task for a component name and type;
+- start a `GET_OFFER` task with a component name, type, provider, and exact
+  product URL;
 - filter offers with search-term facets;
 - paginate and sort the result list;
 - validate, reject, invalidate, edit, or delete an offer;
@@ -106,7 +107,7 @@ src/features/bom-component/task/
 
 The `/bom-components/tasks` page displays:
 
-- task type: `GET_OFFERS` or `REFRESH_OFFER`;
+- task type: `GET_OFFER`, `GET_OFFERS`, or `REFRESH_OFFER`;
 - status: `IN_PROGRESS`, `COMPLETED`, or `FAILED`;
 - complete JSON payload;
 - creation and update timestamps;

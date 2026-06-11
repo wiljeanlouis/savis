@@ -19,9 +19,18 @@ describe("BomComponentRetrieveDialog", () => {
       screen.getByRole("button", { name: "Récupérer un composant BOM" }),
     );
     await user.type(screen.getByLabelText("Nom du composant BOM"), "farine");
+    await user.type(
+      screen.getByLabelText("URL de l'offre"),
+      "https://www.maxi.ca/farine/p/12345",
+    );
     await user.click(screen.getByRole("button", { name: "Récupérer" }));
 
-    expect(onRetrieve).toHaveBeenCalledWith("farine", "FOOD");
+    expect(onRetrieve).toHaveBeenCalledWith({
+      searchTerm: "farine",
+      type: "FOOD",
+      provider: "Maxi",
+      url: "https://www.maxi.ca/farine/p/12345",
+    });
     await waitFor(() => {
       expect(
         screen.queryByRole("dialog", {
@@ -46,11 +55,43 @@ describe("BomComponentRetrieveDialog", () => {
       screen.getByRole("button", { name: "Récupérer un composant BOM" }),
     );
     await user.type(screen.getByLabelText("Nom du composant BOM"), "farine");
+    await user.type(
+      screen.getByLabelText("URL de l'offre"),
+      "https://www.maxi.ca/farine/p/12345",
+    );
     await user.click(screen.getByRole("button", { name: "Récupérer" }));
 
     expect(
       screen.getByRole("dialog", { name: "Récupérer un composant BOM" }),
     ).toBeInTheDocument();
     expect(screen.getByLabelText("Nom du composant BOM")).toHaveValue("farine");
+    expect(screen.getByLabelText("URL de l'offre")).toHaveValue(
+      "https://www.maxi.ca/farine/p/12345",
+    );
+  });
+
+  it("requires both a component name and an offer URL", async () => {
+    const user = userEvent.setup();
+    const onRetrieve = vi.fn();
+
+    render(
+      <BomComponentRetrieveDialog
+        isRetrieving={false}
+        onRetrieve={onRetrieve}
+      />,
+    );
+
+    await user.click(
+      screen.getByRole("button", { name: "Récupérer un composant BOM" }),
+    );
+
+    expect(screen.getByRole("button", { name: "Récupérer" })).toBeDisabled();
+    await user.type(screen.getByLabelText("Nom du composant BOM"), "farine");
+    expect(screen.getByRole("button", { name: "Récupérer" })).toBeDisabled();
+    await user.type(
+      screen.getByLabelText("URL de l'offre"),
+      "https://www.maxi.ca/farine/p/12345",
+    );
+    expect(screen.getByRole("button", { name: "Récupérer" })).toBeEnabled();
   });
 });

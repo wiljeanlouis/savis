@@ -14,6 +14,7 @@ from app.core.models import (
     OfferSortField,
     OfferStatus,
     OfferType,
+    ProviderName,
     SortDirection,
 )
 
@@ -55,6 +56,43 @@ class OffersUseCase:
         self.offer_providers = offer_providers
 
     # celery worker use case - begin
+    def get_offer(
+        self,
+        url: str,
+        search_term: str,
+        task_id: UUID,
+        provider_name: ProviderName = ProviderName.MAXI,
+        offer_type: OfferType = OfferType.FOOD,
+    ) -> Offer | None:
+        """Collect and persist one known provider offer."""
+        provider = self.offer_providers.get(provider_name)
+        if provider is None:
+            msg = f"Unsupported offer provider: {provider_name}"
+            raise ValueError(msg)
+
+        try:
+            offer = provider.get_offer_by_url(url=url)
+        except Exception as exc:
+            logger.exception(
+                "Offer provider failed for term %s and url %s",
+                search_term,
+                url,
+            )
+            msg = (
+                f"Offer adapter {provider_name!r} failed for "
+                f"term {search_term!r} and URL {url!r}"
+            )
+            raise OfferCollectionFailedError(msg) from exc
+
+        offers = [] if offer is None else [offer]
+        self.save_observed_offers(
+            offers=offers,
+            search_term=search_term,
+            task_id=task_id,
+            offer_type=offer_type,
+        )
+        return offer
+
     def get_offers(
         self,
         search_term: str,
@@ -152,7 +190,7 @@ class OffersUseCase:
             return None
 
         provider = self.offer_providers[offer.provider.name]
-        refreshed_offer = provider.refresh_offer_price_by_url(url=url)
+        refreshed_offer = provider.get_offer_by_url(url)
         if (
             refreshed_offer is None
             or refreshed_offer.price is None

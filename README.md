@@ -329,12 +329,15 @@ already has offers for the incoming search term and component type.
 ```text
 Admin requests a BOM component retrieval
   -> Executor API /tasks
-  -> SavisTaskUseCase creates GET_OFFERS
-  -> Celery get_offers_task
-  -> provider scrapers
+  -> SavisTaskUseCase creates GET_OFFER with provider and URL
+  -> Celery get_offer_task
+  -> selected provider scraper
   -> executor offer persistence
   -> Admin reviews offers in /bom-components
 ```
+
+Manual retrieval targets one known provider product URL. Automatic BOM
+collection continues to use `GET_OFFERS` to search every configured provider.
 
 When an offer is validated, the executor publishes it to Java through
 RabbitMQ. When a previously valid offer is rejected or deleted, the executor
@@ -701,7 +704,7 @@ Provider scrapers implement the core `OfferProvider` port:
 
 ```text
 OfferProvider.get_offers(search_term) -> list[Offer]
-OfferProvider.refresh_offer_price_by_url(url) -> Offer | None
+OfferProvider.get_offer_by_url(url) -> Offer | None
 ```
 
 A provider adapter should:

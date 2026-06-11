@@ -23,6 +23,7 @@ from app.core.models import (
     OfferType,
     Price,
     Provider,
+    ProviderName,
     SortDirection,
 )
 
@@ -61,7 +62,7 @@ def _offer(
         package_size=None,
         image_url="https://example.com/image.png",
         provider=Provider(
-            "Example Provider",
+            ProviderName.MAXI,
             "example",
             "https://example.com",
             "123 Street",
@@ -96,9 +97,9 @@ def test_delete_removes_offer() -> None:
     offer = _offer()
     repository.save(offer)
 
-    assert repository.delete(offer.id) is True
-    assert repository.find_by_id(offer.id) is None
-    assert repository.delete(offer.id) is False
+    assert repository.delete(offer.id) is True  # pyright: ignore[reportArgumentType]
+    assert repository.find_by_id(offer.id) is None  # pyright: ignore[reportArgumentType]
+    assert repository.delete(offer.id) is False  # pyright: ignore[reportArgumentType]
 
 
 def test_list_filters_and_paginates() -> None:
@@ -116,7 +117,7 @@ def test_list_filters_by_offer_type() -> None:
     repository, _session_factory = _repository()
     repository.save(_offer(external_id="food", offer_type=OfferType.FOOD))
     repository.save(
-        _offer(external_id="decoration", offer_type=OfferType.DECORATION),
+        _offer(external_id="material", offer_type=OfferType.MATERIAL),
     )
 
     offers, total = repository.list(None, page=1, size=10, offer_type=OfferType.FOOD)
@@ -173,26 +174,25 @@ def test_list_filters_by_search_term() -> None:
 def test_provider_identifiers_for_search_term_checks_search_term_and_type() -> None:
     repository, _session_factory = _repository()
     repository.save(_offer(external_id="food", offer_type=OfferType.FOOD))
-    decoration = _offer(external_id="decoration", offer_type=OfferType.DECORATION)
-    decoration.provider = Provider(
-        "Decoration Provider",
-        "decoration-provider",
+    material = _offer(
+        external_id="material",
+        offer_type=OfferType.MATERIAL,
+    )
+    material.provider = Provider(
+        ProviderName.MAXI,
+        "material-provider",
         "https://example.com",
         "123 Street",
     )
-    repository.save(decoration)
+    repository.save(material)
 
-    assert (
-        repository.provider_identifiers_for_search_term("flour", OfferType.FOOD)
-        == {"example"}
-    )
-    assert (
-        repository.provider_identifiers_for_search_term(
-            "flour",
-            OfferType.DECORATION,
-        )
-        == {"decoration-provider"}
-    )
+    assert repository.provider_identifiers_for_search_term("flour", OfferType.FOOD) == {
+        "example",
+    }
+    assert repository.provider_identifiers_for_search_term(
+        "flour",
+        OfferType.MATERIAL,
+    ) == {"material-provider"}
     assert (
         repository.provider_identifiers_for_search_term("sugar", OfferType.FOOD)
         == set()

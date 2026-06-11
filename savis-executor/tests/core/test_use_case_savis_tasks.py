@@ -13,6 +13,7 @@ from app.core.models import (
     OfferType,
     Price,
     Provider,
+    ProviderName,
     SavisTask,
     SavisTaskStatus,
     SavisTaskType,
@@ -26,8 +27,22 @@ STALE_COUNT = 2
 class FakeTaskQueue(TaskQueue):
     def __init__(self, *, fail: bool = False) -> None:
         self.fail = fail
+        self.get_offer: list[tuple[str, str, str, ProviderName, OfferType]] = []
         self.get_offers: list[tuple[str, str, OfferType]] = []
         self.refreshes: list[tuple[str, str, str]] = []
+
+    def push_get_offer(
+        self,
+        task_id: str,
+        url: str,
+        search_term: str,
+        provider: ProviderName = ProviderName.MAXI,
+        offer_type: OfferType = OfferType.FOOD,
+    ) -> None:
+        if self.fail:
+            msg = "queue unavailable"
+            raise RuntimeError(msg)
+        self.get_offer.append((task_id, url, search_term, provider, offer_type))
 
     def push_get_offers(
         self,
@@ -59,6 +74,7 @@ class FakeTaskRepository(SavisTaskRepository):
         page: int = 1,
         size: int = 20,
         *_args: object,
+        **_kwargs: object,
     ) -> tuple[list[SavisTask], int]:
         self.filters.append((status, task_type))
         self.pages.append((page, size))
@@ -85,10 +101,23 @@ class FakeTaskRepository(SavisTaskRepository):
 class FakeOffersUseCase:
     def __init__(self) -> None:
         self.get_offers_calls: list[tuple[str, UUID, OfferType]] = []
+        self.get_offer_calls: list[tuple[str, str, UUID, ProviderName, OfferType]] = []
         self.refresh_calls: list[tuple[UUID, str, UUID]] = []
         self.due_refresh_checks: list[datetime | None] = []
         self.due_offers: list[Offer] = []
         self.covered_search_terms: set[tuple[str, OfferType]] = set()
+
+    def get_offer(
+        self,
+        url: str,
+        search_term: str,
+        task_id: UUID,
+        provider_name: ProviderName = ProviderName.MAXI,
+        offer_type: OfferType = OfferType.FOOD,
+    ) -> None:
+        self.get_offer_calls.append(
+            (url, search_term, task_id, provider_name, offer_type),
+        )
 
     def get_offers(
         self,
@@ -118,13 +147,13 @@ def _use_case(
     queue: FakeTaskQueue | None = None,
 ) -> tuple[SavisTaskUseCase, FakeTaskRepository, FakeTaskQueue, FakeOffersUseCase]:
     task_repository = repository or FakeTaskRepository()
-    task_queue = queue or FakeTaskQueue()
+    task_queue = queue or FakeTaskQueue()  # pyright: ignore[reportAbstractUsage]
     offers_use_case = FakeOffersUseCase()
     return (
         SavisTaskUseCase(
             task_queue,
             task_repository,
-            offers_use_case,
+            offers_use_case,  # pyright: ignore[reportArgumentType]
         ),
         task_repository,
         task_queue,
@@ -140,11 +169,37 @@ def test_enqueue_savis_task_get_offers_creates_and_pushes_task() -> None:
         {"search_term": "flour", "offer_type": "FOOD"},
     )
 
-    assert task.type == SavisTaskType.GET_OFFERS
-    assert task.payload == {"search_term": "flour", "offer_type": "FOOD"}
-    assert task.status == SavisTaskStatus.IN_PROGRESS
+    assert task.type == SavisTaskType.GET_OFFERS  # pyright: ignore[reportOptionalMemberAccess]
+    assert task.payload == {"search_term": "flour", "offer_type": "FOOD"}  # pyright: ignore[reportOptionalMemberAccess]
+    assert task.status == SavisTaskStatus.IN_PROGRESS  # pyright: ignore[reportOptionalMemberAccess]
     assert repository.tasks == [task]
-    assert queue.get_offers == [(str(task.id), "flour", OfferType.FOOD)]
+    assert queue.get_offers == [(str(task.id), "flour", OfferType.FOOD)]  # pyright: ignore[reportOptionalMemberAccess]
+
+
+def test_enqueue_savis_task_get_offer_creates_and_pushes_task() -> None:
+    use_case, repository, queue, _offers_use_case = _use_case()
+    payload = {
+        "search_term": "flour",
+        "url": "https://www.maxi.ca/flour/p/12345",
+        "provider": "Maxi",
+        "offer_type": "MATERIAL",
+    }
+
+    task = use_case.enqueue_savis_task(SavisTaskType.GET_OFFER, payload)
+
+    assert task is not None
+    assert task.type == SavisTaskType.GET_OFFER
+    assert task.payload == payload
+    assert repository.tasks == [task]
+    assert queue.get_offer == [
+        (
+            str(task.id),
+            payload["url"],
+            "flour",
+            ProviderName.MAXI,
+            OfferType.MATERIAL,
+        ),
+    ]
 
 
 def test_enqueue_savis_task_marks_failed_when_queue_fails() -> None:
@@ -161,31 +216,6 @@ def test_enqueue_savis_task_marks_failed_when_queue_fails() -> None:
     assert repository.failed == [(repository.tasks[0].id, "queue unavailable")]
 
 
-def test_enqueue_get_offers_if_missing_skips_existing_search_term() -> None:
-    use_case, repository, queue, offers_use_case = _use_case()
-    offers_use_case.covered_search_terms = {("flour", OfferType.FOOD)}
-
-    task = use_case.enqueue_savis_task(
-        SavisTaskType.GET_OFFERS,
-        {"search_term": "flour", "offer_type": "FOOD"},
-    )
-
-    assert task is None
-    assert repository.tasks == []
-    assert queue.get_offers == []
-
-
-def test_enqueue_get_offers_if_missing_creates_task_when_missing() -> None:
-    use_case, repository, queue, _offers_use_case = _use_case()
-
-    task = use_case.enqueue_get_offers_if_missing("flour", OfferType.FOOD)
-
-    assert task is not None
-    assert repository.tasks == [task]
-    assert task.payload == {"search_term": "flour", "offer_type": "FOOD"}
-    assert queue.get_offers == [(str(task.id), "flour", OfferType.FOOD)]
-
-
 def test_enqueue_savis_task_refresh_offer_creates_persisted_task() -> None:
     use_case, repository, queue, _offers_use_case = _use_case()
 
@@ -194,13 +224,13 @@ def test_enqueue_savis_task_refresh_offer_creates_persisted_task() -> None:
         {"offer_id": "offer-id", "url": "https://example.com/offer"},
     )
 
-    assert task.type == SavisTaskType.REFRESH_OFFER
-    assert task.payload == {
+    assert task.type == SavisTaskType.REFRESH_OFFER  # pyright: ignore[reportOptionalMemberAccess]
+    assert task.payload == {  # pyright: ignore[reportOptionalMemberAccess]
         "offer_id": "offer-id",
         "url": "https://example.com/offer",
     }
     assert repository.tasks == [task]
-    assert queue.refreshes == [(str(task.id), "offer-id", "https://example.com/offer")]
+    assert queue.refreshes == [(str(task.id), "offer-id", "https://example.com/offer")]  # pyright: ignore[reportOptionalMemberAccess]
 
 
 def test_execute_savis_task_get_offers_delegates_and_completes_task() -> None:
@@ -214,6 +244,33 @@ def test_execute_savis_task_get_offers_delegates_and_completes_task() -> None:
     )
 
     assert offers_use_case.get_offers_calls == [("flour", task_id, OfferType.FOOD)]
+    assert repository.completed == [task_id]
+
+
+def test_execute_savis_task_get_offer_delegates_and_completes_task() -> None:
+    use_case, repository, _queue, offers_use_case = _use_case()
+    task_id = uuid7()
+
+    use_case.execute_savis_task(
+        task_id,
+        SavisTaskType.GET_OFFER,
+        {
+            "url": "https://www.maxi.ca/flour/p/12345",
+            "search_term": "flour",
+            "provider": "Maxi",
+            "offer_type": "MATERIAL",
+        },
+    )
+
+    assert offers_use_case.get_offer_calls == [
+        (
+            "https://www.maxi.ca/flour/p/12345",
+            "flour",
+            task_id,
+            ProviderName.MAXI,
+            OfferType.MATERIAL,
+        ),
+    ]
     assert repository.completed == [task_id]
 
 
@@ -246,7 +303,12 @@ def test_enqueue_due_offer_refresh_tasks_creates_tasks_for_due_offers() -> None:
         price=Price("4.99"),
         package_size=None,
         image_url="https://example.com/image.png",
-        provider=Provider("Example", "example", "https://example.com", "123 Street"),
+        provider=Provider(
+            ProviderName.MAXI,
+            "example",
+            "https://example.com",
+            "123 Street",
+        ),
         status=OfferStatus.VALID,
     )
     offers_use_case.due_offers = [due_offer]

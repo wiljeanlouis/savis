@@ -6,8 +6,10 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Self
 
-from app.adapters.scrapers.maxi.extractor import PRICE_SELECTOR
+from app.adapters.scrapers.maxi.extractor import ITEM_SELECTOR
 from app.adapters.scrapers.maxi.scraper import MaxiScraper
+
+from .html_loader import load_product_details_page_html
 
 if TYPE_CHECKING:
     from types import TracebackType
@@ -28,19 +30,7 @@ class FakePage:
         self.waited_for_selector = selector
 
     def content(self) -> str:
-        return """
-        <div class="product-details-page-details__visibility-sensor">
-          <span class="product-name__item product-name__item--brand">Natrel</span>
-          <h1 class="product-name__item product-name__item--name">Milk</h1>
-          <span class="product-name__item product-name__item--package-size">2 l</span>
-          <div class="selling-price-list__item">
-            <span class="price__value selling-price-list__item__price
-              selling-price-list__item__price--sale__value">
-              4,99 $
-            </span>
-          </div>
-        </div>
-        """
+        return load_product_details_page_html()
 
 
 class FakeBrowserManager:
@@ -66,13 +56,13 @@ class FakeBrowserManager:
         return self.page
 
 
-def test_refresh_offer_price_by_url_waits_for_price_selector() -> None:
+def test_get_offer_by_url_waits_for_item_selector() -> None:
     manager = FakeBrowserManager()
-    scraper = MaxiScraper(browser_manager=manager)
+    scraper = MaxiScraper(browser_manager=manager)  # pyright: ignore[reportArgumentType]
 
-    offer = scraper.refresh_offer_price_by_url("https://maxi.ca/fr/product/p/123")
+    offer = scraper.get_offer_by_url("https://maxi.ca/fr/product/p/123")
 
-    assert manager.page.waited_for_selector == PRICE_SELECTOR
+    assert manager.page.waited_for_selector == ITEM_SELECTOR
     assert offer is not None
     assert offer.price is not None
-    assert offer.price.amount == "4.99"
+    assert offer.price.amount == "6.49"

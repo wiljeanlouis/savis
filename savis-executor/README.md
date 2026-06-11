@@ -91,6 +91,7 @@ Supabase.
 
 Supported task types:
 
+- `GET_OFFER`: collect one known offer from a selected provider URL.
 - `GET_OFFERS`: collect offers for a search term and offer type.
 - `REFRESH_OFFER`: refresh one known offer from its provider URL.
 
@@ -111,7 +112,7 @@ configuration, and last task that observed it.
 Supported offer types:
 
 - `FOOD`
-- `DECORATION`
+- `MATERIAL`
 
 Review statuses:
 
@@ -126,7 +127,7 @@ Provider results are reconciled by `(provider_identifier, external_id)`.
 ### Collect Offers
 
 1. SAVIS API publishes a component request to `savis.offer.requests`, or SAVIS
-   Admin creates a `GET_OFFERS` task through HTTP.
+   Admin creates a `GET_OFFER` task through HTTP for an exact provider URL.
 2. The executor checks whether every configured provider already has offers for
    the requested search term and type.
 3. If acquisition is required, it persists an `IN_PROGRESS` task before
@@ -138,6 +139,10 @@ Provider results are reconciled by `(provider_identifier, external_id)`.
 
 A failure from one provider does not discard successful results from another.
 Collection fails only when all configured providers fail.
+
+Manual `GET_OFFER` collection selects one provider adapter by name and invokes
+its URL retrieval strategy. It does not run the all-provider coverage check
+used by `GET_OFFERS`.
 
 ### Review and Publish an Offer
 
@@ -181,6 +186,20 @@ Collect food offers:
   "payload": {
     "search_term": "farine",
     "type": "FOOD"
+  }
+}
+```
+
+Collect one known offer:
+
+```json
+{
+  "type": "GET_OFFER",
+  "payload": {
+    "search_term": "farine",
+    "type": "FOOD",
+    "provider": "Maxi",
+    "url": "https://www.maxi.ca/example-offer/p/12345"
   }
 }
 ```

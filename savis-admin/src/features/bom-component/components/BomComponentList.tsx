@@ -97,7 +97,7 @@ export const BomComponentList = () => {
                 ))}
               </div>
               <PageNavigator
-                itemName="composant BOM"
+                itemName="composant"
                 totalItems={data.total_items}
                 page={data.page}
                 totalPages={data.total_pages}

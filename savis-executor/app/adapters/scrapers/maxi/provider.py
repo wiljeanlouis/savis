@@ -1,10 +1,12 @@
 """Configuration Module for the Maxi provider."""
 
+from app.core.models import ProviderName
+
 
 class MaxiProvider:
     """Maxi provider info."""
 
-    name: str = "Maxi"
+    name: ProviderName = ProviderName.MAXI
     identifier: str = "8772"
     website: str = "https://maxi.ca"
     address: str = "1870 Bd Saint-Joseph, Drummondville, QC"

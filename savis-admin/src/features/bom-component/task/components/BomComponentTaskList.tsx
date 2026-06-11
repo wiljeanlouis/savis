@@ -29,8 +29,9 @@ const statusLabel: Record<SavisTaskStatus, string> = {
 };
 
 const taskTypeLabel: Record<SavisTask["type"], string> = {
-  GET_OFFERS: "Récupération d'offres",
-  REFRESH_OFFER: "Actualisation d'une offre",
+  GET_OFFER: "Récupération",
+  GET_OFFERS: "Recherche",
+  REFRESH_OFFER: "Actualisation",
 };
 
 const parsePositiveInteger = (value: string | null, fallback: number) => {

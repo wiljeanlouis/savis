@@ -15,6 +15,7 @@ from app.core.models import (
     PackageSize,
     Price,
     Provider,
+    ProviderName,
     SortDirection,
 )
 from app.core.ports import (
@@ -38,7 +39,7 @@ def _offer() -> Offer:
         package_size=None,
         image_url="https://example.com/image.png",
         provider=Provider(
-            name="Example Provider",
+            name=ProviderName.MAXI,
             identifier="example",
             site="https://example.com",
             address="123 Example Street",
@@ -136,7 +137,7 @@ class SuccessfulProvider(OfferProvider):
         offer.label = f"{search_term}-offer"
         return [offer]
 
-    def refresh_offer_price_by_url(self, url: str) -> Offer:  # noqa: ARG002
+    def get_offer_by_url(self, url: str) -> Offer:  # noqa: ARG002
         offer = _offer()
         offer.price = Price("2")
         return offer
@@ -146,7 +147,7 @@ class EmptyProvider(OfferProvider):
     def get_offers(self, search_term: str) -> list[Offer]:  # noqa: ARG002
         return []
 
-    def refresh_offer_price_by_url(self, url: str) -> Offer:  # noqa: ARG002
+    def get_offer_by_url(self, url: str) -> Offer:  # noqa: ARG002
         offer = _offer()
         offer.price = Price("")
         return offer
@@ -157,10 +158,9 @@ class FailingProvider(OfferProvider):
         msg = f"{search_term} timed out"
         raise TimeoutError(msg)
 
-    def refresh_offer_price_by_url(self, url: str) -> Offer:  # noqa: ARG002
-        offer = _offer()
-        offer.price = Price("2")
-        return offer
+    def get_offer_by_url(self, url: str) -> Offer:
+        msg = f"{url} timed out"
+        raise TimeoutError(msg)
 
 
 def _use_case(
@@ -287,7 +287,7 @@ def test_refresh_offer_by_url_applies_changed_valid_offer_immediately() -> None:
     refreshed.label = "Updated flour"
     refreshed.image_url = "https://example.com/updated-image.png"
     refreshed.provider = Provider(
-        "Updated Provider",
+        ProviderName.MAXI,
         "updated",
         "https://updated.example.com",
         "456 Street",
@@ -298,13 +298,13 @@ def test_refresh_offer_by_url_applies_changed_valid_offer_immediately() -> None:
         def get_offers(self, search_term: str) -> list[Offer]:  # noqa: ARG002
             return []
 
-        def refresh_offer_price_by_url(self, url: str) -> Offer:  # noqa: ARG002
+        def get_offer_by_url(self, url: str) -> Offer:  # noqa: ARG002
             return refreshed
 
     use_case = _use_case(
         repository=repository,
         publisher=publisher,
-        providers={existing.provider.name: RefreshProvider()},
+        providers={existing.provider.name: RefreshProvider()},  # pyright: ignore[reportAbstractUsage]
     )
 
     offer = use_case.refresh_offer_by_url(existing.id, existing.url, uuid7(), now=now)
@@ -338,13 +338,13 @@ def test_refresh_offer_by_url_keeps_existing_package_size_when_missing() -> None
         def get_offers(self, search_term: str) -> list[Offer]:  # noqa: ARG002
             return []
 
-        def refresh_offer_price_by_url(self, url: str) -> Offer:  # noqa: ARG002
+        def get_offer_by_url(self, url: str) -> Offer:  # noqa: ARG002
             return refreshed
 
     use_case = _use_case(
         repository=repository,
         publisher=publisher,
-        providers={existing.provider.name: RefreshProvider()},
+        providers={existing.provider.name: RefreshProvider()},  # pyright: ignore[reportAbstractUsage]
     )
 
     offer = use_case.refresh_offer_by_url(existing.id, existing.url, uuid7())
@@ -364,7 +364,7 @@ def test_refresh_offer_by_url_does_not_publish_unreviewed_or_unchanged_offer() -
     use_case = _use_case(
         repository=repository,
         publisher=publisher,
-        providers={existing.provider.name: SuccessfulProvider()},
+        providers={existing.provider.name: SuccessfulProvider()},  # pyright: ignore[reportAbstractUsage]
     )
 
     offer = use_case.refresh_offer_by_url(existing.id, existing.url, uuid7())
@@ -385,7 +385,7 @@ def test_refresh_offer_by_url_ignores_invalid_refreshed_offer() -> None:
     use_case = _use_case(
         repository=repository,
         publisher=publisher,
-        providers={existing.provider.name: EmptyProvider()},
+        providers={existing.provider.name: EmptyProvider()},  # pyright: ignore[reportAbstractUsage]
     )
 
     offer = use_case.refresh_offer_by_url(existing.id, existing.url, uuid7())
@@ -401,7 +401,7 @@ def test_get_offers_collects_tracks_and_returns_aggregated_results() -> None:
     repository = FakeOfferRepository()
     use_case = _use_case(
         repository=repository,
-        providers={"success": SuccessfulProvider()},
+        providers={"success": SuccessfulProvider()},  # pyright: ignore[reportAbstractUsage]
     )
     task_id = uuid7()
 
@@ -412,15 +412,52 @@ def test_get_offers_collects_tracks_and_returns_aggregated_results() -> None:
     assert repository.saved[0].last_seen_task_id == task_id
 
 
+def test_get_offer_uses_selected_provider_and_tracks_result() -> None:
+    repository = FakeOfferRepository()
+    provider = SuccessfulProvider()
+    use_case = _use_case(
+        repository=repository,
+        providers={ProviderName.MAXI: provider},
+    )
+    task_id = uuid7()
+
+    offer = use_case.get_offer(
+        url="https://www.maxi.ca/flour/p/12345",
+        search_term="flour",
+        task_id=task_id,
+        provider_name=ProviderName.MAXI,
+        offer_type=OfferType.MATERIAL,
+    )
+
+    assert offer is not None
+    assert repository.saved[0].search_term == "flour"
+    assert repository.saved[0].offer_type == OfferType.MATERIAL
+    assert repository.saved[0].last_seen_task_id == task_id
+
+
+def test_get_offer_raises_when_selected_provider_fails() -> None:
+    use_case = _use_case(
+        providers={ProviderName.MAXI: FailingProvider()},
+    )
+
+    with pytest.raises(OfferCollectionFailedError, match="Maxi"):
+        use_case.get_offer(
+            url="https://www.maxi.ca/flour/p/12345",
+            search_term="flour",
+            task_id=uuid7(),
+            provider_name=ProviderName.MAXI,
+        )
+
+
 def test_get_offers_raises_when_all_adapters_fail() -> None:
-    use_case = _use_case(providers={"failure": FailingProvider()})
+    use_case = _use_case(providers={"failure": FailingProvider()})  # pyright: ignore[reportAbstractUsage]
 
     with pytest.raises(OfferCollectionFailedError, match="All offer adapters failed"):
         use_case.get_offers("farine", uuid7())
 
 
 def test_get_offers_allows_successful_empty_results() -> None:
-    use_case = _use_case(providers={"emppty": EmptyProvider()})
+    use_case = _use_case(providers={"emppty": EmptyProvider()})  # pyright: ignore[reportAbstractUsage]
 
     assert use_case.get_offers("unknown", uuid7()) == []
 
@@ -445,7 +482,7 @@ def test_all_providers_have_offers_for_search_term_compares_providers() -> None:
     }
     use_case = _use_case(
         repository=repository,
-        providers={"example": SuccessfulProvider()},
+        providers={"example": SuccessfulProvider()},  # pyright: ignore[reportAbstractUsage]
     )
 
     assert (
@@ -465,7 +502,7 @@ def test_all_providers_have_offers_for_search_term_detects_missing_provider() ->
 
     use_case = _use_case(
         repository=repository,
-        providers={"example": SuccessfulProvider(), "other": OtherProvider()},
+        providers={"example": SuccessfulProvider(), "other": OtherProvider()},  # pyright: ignore[reportAbstractUsage]
     )
 
     assert (

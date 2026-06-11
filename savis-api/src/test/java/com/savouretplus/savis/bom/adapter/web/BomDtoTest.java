@@ -22,7 +22,7 @@ public class BomDtoTest {
                 "Decoration bom",
                 "image.jpg",
                 "Assemble and install",
-                BomType.DECORATION,
+                BomType.MATERIAL,
                 List.of(new BomComponentDto("Balloon", 120, "PIECE", null)),
                 List.of(new ActivityDto(null, ActivityType.ASSEMBLY, 90, 1)),
                 new YieldDto(1, "PIECE"),
@@ -30,7 +30,7 @@ public class BomDtoTest {
 
         Bom bom = dto.toBom();
 
-        Assertions.assertEquals(BomType.DECORATION, bom.getType());
+        Assertions.assertEquals(BomType.MATERIAL, bom.getType());
         Assertions.assertEquals(1, bom.components().size());
         Assertions.assertEquals("balloon", bom.components().get(0).componentName());
         Assertions.assertEquals(1, bom.activities().size());

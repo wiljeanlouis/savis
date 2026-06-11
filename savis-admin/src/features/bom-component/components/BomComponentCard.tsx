@@ -80,12 +80,22 @@ export const BomComponentCard = ({
   return (
     <Card className="h-full">
       <div className="flex justify-center bg-muted p-4">
-        <img
-          src={bomComponent.image_url}
-          alt={bomComponent.label}
-          className="size-40 object-contain"
-          loading="lazy"
-        />
+        {bomComponent.image_url ? (
+          <img
+            src={bomComponent.image_url}
+            alt={bomComponent.label}
+            className="size-40 object-contain"
+            loading="lazy"
+          />
+        ) : (
+          <div
+            className="flex size-40 items-center justify-center text-sm text-muted-foreground"
+            role="img"
+            aria-label={`Image indisponible pour ${bomComponent.label}`}
+          >
+            Image indisponible
+          </div>
+        )}
       </div>
       <CardHeader>
         <CardTitle>

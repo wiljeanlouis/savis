@@ -18,6 +18,7 @@ from app.core.models import (
     OfferType,
     Price,
     Provider,
+    ProviderName,
     SavisTask,
     SavisTaskSortField,
     SavisTaskStatus,
@@ -75,6 +76,52 @@ def test_create_task_returns_created_task(
     }
 
 
+def test_create_get_offer_task_maps_public_payload_to_core_contract(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    captured: list[tuple[SavisTaskType, dict[str, str]]] = []
+
+    class FixedTaskUseCase:
+        def enqueue_savis_task(
+            self,
+            task_type: SavisTaskType,
+            payload: dict[str, str],
+        ) -> SavisTask:
+            captured.append((task_type, payload))
+            return SavisTask.create(task_type, payload)
+
+    monkeypatch.setattr(routes, "savis_task_use_case", FixedTaskUseCase())
+    app = FastAPI()
+    app.include_router(routes.router)
+    client = TestClient(app)
+
+    response = client.post(
+        "/tasks",
+        json={
+            "type": "GET_OFFER",
+            "payload": {
+                "search_term": "flour",
+                "type": "MATERIAL",
+                "provider": "Maxi",
+                "url": "https://www.maxi.ca/flour/p/12345",
+            },
+        },
+    )
+
+    assert response.status_code == HTTP_OK
+    assert captured == [
+        (
+            SavisTaskType.GET_OFFER,
+            {
+                "provider": "Maxi",
+                "url": "https://www.maxi.ca/flour/p/12345",
+                "search_term": "flour",
+                "offer_type": "MATERIAL",
+            },
+        ),
+    ]
+
+
 def test_create_task_rejects_payload_missing_required_fields(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
@@ -117,7 +164,7 @@ def test_list_tasks_filters_by_status_and_type(
         def __init__(self) -> None:
             self.filters: list[tuple[SavisTaskStatus | None, SavisTaskType | None]] = []
 
-        def list(
+        def list(  # noqa: PLR0913
             self,
             status: SavisTaskStatus | None,
             task_type: SavisTaskType | None,
@@ -190,7 +237,12 @@ def test_list_offers_returns_paged_response(
         price=Price(amount="4.99"),
         package_size=None,
         image_url="https://example.com/image.png",
-        provider=Provider("Example", "example", "https://example.com", "123 Street"),
+        provider=Provider(
+            ProviderName.MAXI,
+            "example",
+            "https://example.com",
+            "123 Street",
+        ),
         search_term="flour",
         status=OfferStatus.NEW,
         last_retrieved_at=now,
@@ -200,7 +252,7 @@ def test_list_offers_returns_paged_response(
     )
 
     class FixedOffersUseCase:
-        def list(
+        def list(  # noqa: PLR0913
             self,
             status: OfferStatus | None,
             page: int,
@@ -284,7 +336,12 @@ def test_patch_offer_updates_one_offer(
         price=Price(amount="4.99"),
         package_size=None,
         image_url="https://example.com/image.png",
-        provider=Provider("Example", "example", "https://example.com", "123 Street"),
+        provider=Provider(
+            ProviderName.MAXI,
+            "example",
+            "https://example.com",
+            "123 Street",
+        ),
         search_term="flour",
         status=OfferStatus.VALID,
         last_retrieved_at=now,
@@ -320,10 +377,7 @@ def test_patch_offer_updates_one_offer(
 
     assert response.status_code == HTTP_OK
     assert response.json()["status"] == "VALID"
-    assert (
-        response.json()["refresh_frequency_hours"]
-        == REFRESH_FREQUENCY_SIX_HOURS
-    )
+    assert response.json()["refresh_frequency_hours"] == REFRESH_FREQUENCY_SIX_HOURS
 
 
 def test_delete_offer_returns_no_content(

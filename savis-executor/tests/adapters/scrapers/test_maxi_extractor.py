@@ -1,7 +1,6 @@
 """Tests for Maxi offer extraction helpers."""
 
 # ruff: noqa: D103, S101
-
 from app.adapters.scrapers.maxi.extractor import (
     MaxiProductDraft,
     derive_total_price,
@@ -10,73 +9,15 @@ from app.adapters.scrapers.maxi.extractor import (
 )
 from app.core.models import PackageSize, Price
 
+from .html_loader import load_product_details_page_html
+
 RELATIVE_OFFER_URL = "/fr/farine/p/12345"
 FULL_OFFER_URL = "https://maxi.ca/fr/farine/p/12345"
 PRODUCT_DETAILS_URL = (
     "https://maxi.ca/fr/produit-laitier-sans-lactose-2/p/20077874001_EA"
 )
-PRODUCT_DETAILS_HTML = """
-<div class="product-details-page-details__visibility-sensor">
-  <div class="flex w-fit items-center">Préparé au Canada</div>
-  <div class="product-name product-name--product-details-page">
-    <span class="product-name__item product-name__item--brand">Natrel</span>
-    <h1 class="product-name__item product-name__item--name"
-        title="Produit laitier sans lactose 2 %">
-      Produit laitier sans lactose 2 %
-    </h1>
-    <span class="product-name__item product-name__item--package-size">2 l</span>
-  </div>
-  <div class="product-details-page-details__content__prices">
-    <div class="product-prices product-prices--product-details-page">
-      <div aria-label="6,25 $ chacun,  étai 6,49 $"
-           class="selling-price-list selling-price-list--sale
-             selling-price-list--product-details-page"
-           role="group">
-        <div class="selling-price-list__item">
-          <span class="price selling-price-list__item__price
-            selling-price-list__item__price--sale">
-            <span class="price__value selling-price-list__item__price
-              selling-price-list__item__price--sale__value">
-              6,25 $
-            </span>
-            <span class="price__unit selling-price-list__item__price
-              selling-price-list__item__price--sale__unit">
-              ch
-            </span>
-          </span>
-        </div>
-        <div class="selling-price-list__item">
-          <del class="price selling-price-list__item__price
-            selling-price-list__item__price--was-price">
-            <span class="price__value selling-price-list__item__price
-              selling-price-list__item__price--was-price__value">
-              6,49 $
-            </span>
-          </del>
-        </div>
-      </div>
-      <ul class="comparison-price-list comparison-price-list--product-details-page">
-        <li class="comparison-price-list__item">
-          <span class="price comparison-price-list__item__price">
-            <span class="price__value comparison-price-list__item__price__value">
-              0,31 $
-            </span>
-            <span class="price__unit comparison-price-list__item__price__unit">
-              / 100ml
-            </span>
-          </span>
-        </li>
-      </ul>
-    </div>
-  </div>
-  <button
-    data-track-products-array='[{"productSKU":"20077874001_EA",
-      "productName":"Produit laitier sans lactose 2 %",
-      "productBrand":"Natrel","productPrice":"6.25"}]'>
-    Ajouter
-  </button>
-</div>
-"""
+
+PRODUCT_DETAILS_HTML = load_product_details_page_html()
 
 
 def test_get_offer_derives_total_price_from_unit_price() -> None:
@@ -170,8 +111,42 @@ def test_extract_offer_from_product_details_html() -> None:
     assert offer.url == PRODUCT_DETAILS_URL
     assert offer.brand == "Natrel"
     assert offer.label == "Produit laitier sans lactose 2 %"
-    assert offer.price == Price(amount="6.25")
+    assert offer.price == Price(amount="6.49")
     assert offer.package_size == PackageSize(value=2.0, unit="l")
+    assert offer.image_url == (
+        "https://digital.loblaws.ca/PCX/20077874001_EA/fr/1/"
+        "20077874001_fr_front_800.png"
+    )
+
+
+def test_extract_offer_uses_first_original_slider_image() -> None:
+    html = """
+    <div class="product-details-page-details">
+      <div class="slick-slide slick-cloned" data-index="-1">
+        <img class="responsive-image--product-details-page"
+             src="https://example.com/last-image-clone.png">
+      </div>
+      <div class="slick-slide" data-index="0">
+        <img class="responsive-image--product-details-page"
+             src="https://example.com/main-image.png">
+      </div>
+      <div class="slick-slide slick-active slick-current" data-index="1">
+        <img class="responsive-image--product-details-page"
+             src="https://example.com/active-secondary-image.png">
+      </div>
+      <span class="product-name__item--brand">Five Roses</span>
+      <h1 class="product-name__item--name">Farine blanche tout usage</h1>
+      <span class="product-name__item--package-size">2.5 kg</span>
+      <div class="selling-price-list__item">
+        <span class="price__value">6,29 $</span>
+      </div>
+    </div>
+    """
+
+    offer = extract_offer_from_product_details_html(PRODUCT_DETAILS_URL, html)
+
+    assert offer is not None
+    assert offer.image_url == "https://example.com/main-image.png"
 
 
 def _derive_total_price(

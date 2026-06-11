@@ -5,8 +5,8 @@ import { useCreateBomComponentTask } from "@/features/bom-component/task/hooks/u
 import type {
   BomComponent,
   BomComponentEditValues,
+  BomComponentRetrievalValues,
   BomComponentStatus,
-  BomComponentType,
 } from "../types";
 import {
   useDeleteBomComponent,
@@ -253,21 +253,21 @@ export const useBomComponentList = () => {
     })();
   };
 
-  const handleRetrieve = async (
-    componentName: string,
-    componentType: BomComponentType,
-  ) => {
-    const searchTerm = componentName.trim();
-    if (!searchTerm) {
+  const handleRetrieve = async (values: BomComponentRetrievalValues) => {
+    const searchTerm = values.searchTerm.trim();
+    const url = values.url.trim();
+    if (!searchTerm || !url) {
       return false;
     }
 
     try {
       await createTask.mutateAsync({
-        type: "GET_OFFERS",
+        type: "GET_OFFER",
         payload: {
           search_term: searchTerm,
-          type: componentType,
+          type: values.type,
+          provider: values.provider,
+          url,
         },
       });
       toast.success(`Récupération lancée pour « ${searchTerm} ».`);

@@ -21,7 +21,7 @@ export const PageNavigator = ({
     <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
       <p className="text-xs text-muted-foreground">
         {totalItems} {itemName}
-        {totalPages > 1 ? "s" : ""}
+        {totalItems > 1 ? "s" : ""}
       </p>
       <div className="flex items-center justify-end gap-3">
         <Button

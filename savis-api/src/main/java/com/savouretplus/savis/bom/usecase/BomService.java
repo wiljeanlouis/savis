@@ -106,7 +106,11 @@ public class BomService implements BomPricingApi {
 
     private void publishComponentNeededEvents(Bom bom) {
         bom.getComponents().forEach(component -> {
-            componentNeededEventPublisher.publish(ComponentNeededEvent.of(component.componentName(), bom.getType()));
+            if (component.selectedOfferId() == null) {
+                componentNeededEventPublisher
+                        .publish(ComponentNeededEvent.of(component.componentName(), bom.getType()));
+
+            }
         });
     }
 

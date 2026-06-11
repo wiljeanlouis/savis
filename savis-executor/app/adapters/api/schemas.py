@@ -9,9 +9,30 @@ from pydantic import BaseModel, Field
 from app.core.models import (
     OfferStatus,
     OfferType,
+    ProviderName,
     SavisTaskStatus,
     SavisTaskType,
 )
+
+
+class GetOfferPayload(BaseModel):
+    """Payload for collecting a known offer by URL."""
+
+    provider: ProviderName = Field(
+        default=ProviderName.MAXI,
+    )
+    url: str = Field(
+        examples=["https://www.maxi.ca/example-offer/p/12345"],
+        min_length=1,
+    )
+    search_term: str = Field(
+        examples=["farine"],
+        min_length=1,
+    )
+    offer_type: OfferType = Field(
+        default=OfferType.FOOD,
+        validation_alias="type",
+    )
 
 
 class GetOffersPayload(BaseModel):
@@ -24,7 +45,6 @@ class GetOffersPayload(BaseModel):
     offer_type: OfferType = Field(
         default=OfferType.FOOD,
         validation_alias="type",
-        serialization_alias="type",
     )
 
 
@@ -36,6 +56,13 @@ class RefreshOfferPayload(BaseModel):
         examples=["https://www.maxi.ca/example-offer/p/12345"],
         min_length=1,
     )
+
+
+class GetOfferTaskRequest(BaseModel):
+    """Schema for GET_OFFER task creation."""
+
+    type: Literal[SavisTaskType.GET_OFFER]
+    payload: GetOfferPayload
 
 
 class GetOffersTaskRequest(BaseModel):
@@ -53,7 +80,7 @@ class RefreshOfferTaskRequest(BaseModel):
 
 
 SavisTaskRequest = Annotated[
-    GetOffersTaskRequest | RefreshOfferTaskRequest,
+    GetOfferTaskRequest | GetOffersTaskRequest | RefreshOfferTaskRequest,
     Field(discriminator="type"),
 ]
 

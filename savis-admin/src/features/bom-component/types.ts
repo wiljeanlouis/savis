@@ -1,5 +1,13 @@
 export type BomComponentStatus = "NEW" | "VALID" | "REJECTED";
-export type BomComponentType = "FOOD" | "DECORATION";
+export type BomComponentType = "FOOD" | "MATERIAL";
+export type BomComponentProviderName = "Maxi";
+
+export interface BomComponentRetrievalValues {
+  searchTerm: string;
+  type: BomComponentType;
+  provider: BomComponentProviderName;
+  url: string;
+}
 
 export interface BomComponentEditValues {
   status: BomComponentStatus;

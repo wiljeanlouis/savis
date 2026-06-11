@@ -55,7 +55,7 @@ class BrowserManager:
         page = context.new_page()
 
         def block_resources(route: Route) -> None:
-            if route.request.resource_type in ["image", "media", "font"]:
+            if route.request.resource_type in ["media", "font"]:
                 route.abort()
             else:
                 route.continue_()

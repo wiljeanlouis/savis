@@ -6,7 +6,7 @@ export function BomComponentTasksPage() {
       <div className="space-y-1">
         <h1 className="text-2xl font-semibold">Tâches de récupération</h1>
         <p className="text-sm text-muted-foreground">
-          Suivez les récupérations et actualisations d'offres des composants
+          Suivez les récupérations, recherches et actualisations des composants
           BOM.
         </p>
       </div>

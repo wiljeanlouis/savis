@@ -9,7 +9,7 @@ from app.adapters.celery.celery_app import celery_app
 from app.adapters.celery.celery_wiring import (
     get_savis_task_use_case,
 )
-from app.core.models import OfferType, SavisTaskType
+from app.core.models import OfferType, ProviderName, SavisTaskType
 
 logger = logging.getLogger(__name__)
 
@@ -38,6 +38,35 @@ class ReportingTask(Task):
             return
 
         get_savis_task_use_case().task_repository.mark_failed(UUID(args[0]), str(exc))
+
+
+@celery_app.task(
+    bind=True,
+    autoretry_for=(Exception,),
+    retry_backoff=True,
+    retry_kwargs={"max_retries": 3},
+    base=ReportingTask,
+)
+def get_offer_task(
+    _self: Task,
+    task_id: str,
+    url: str,
+    search_term: str,
+    provider: str = ProviderName.MAXI.value,
+    offer_type: str = OfferType.FOOD.value,
+) -> None:
+    """Run a get-offer request."""
+    logger.info("[CELERY TASK] get_offer_task begin with %s", task_id)
+    get_savis_task_use_case().execute_savis_task(
+        UUID(task_id),
+        SavisTaskType.GET_OFFER,
+        {
+            "url": url,
+            "search_term": search_term,
+            "offer_type": offer_type,
+            "provider": provider,
+        },
+    )
 
 
 @celery_app.task(

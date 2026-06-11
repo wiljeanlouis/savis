@@ -198,7 +198,7 @@ describe("useBomComponentList", () => {
     });
   });
 
-  it("creates a GET_OFFERS task for a component name", async () => {
+  it("creates a GET_OFFER task for a provider URL", async () => {
     mutateTaskAsync.mockResolvedValueOnce({});
     const { result } = renderHook(() => useBomComponentList(), {
       wrapper: Wrapper,
@@ -206,18 +206,22 @@ describe("useBomComponentList", () => {
 
     let retrieved = false;
     await act(async () => {
-      retrieved = await result.current.handleRetrieve(
-        "  boîte à pâtisserie  ",
-        "DECORATION",
-      );
+      retrieved = await result.current.handleRetrieve({
+        searchTerm: "  boîte à pâtisserie  ",
+        type: "MATERIAL",
+        provider: "Maxi",
+        url: "  https://www.maxi.ca/boite/p/12345  ",
+      });
     });
 
     expect(retrieved).toBe(true);
     expect(mutateTaskAsync).toHaveBeenCalledWith({
-      type: "GET_OFFERS",
+      type: "GET_OFFER",
       payload: {
         search_term: "boîte à pâtisserie",
-        type: "DECORATION",
+        type: "MATERIAL",
+        provider: "Maxi",
+        url: "https://www.maxi.ca/boite/p/12345",
       },
     });
   });

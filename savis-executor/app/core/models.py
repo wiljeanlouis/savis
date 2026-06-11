@@ -18,6 +18,7 @@ class SavisTaskType(StrEnum):
     """Supported executor task types."""
 
     GET_OFFERS = "GET_OFFERS"
+    GET_OFFER = "GET_OFFER"
     REFRESH_OFFER = "REFRESH_OFFER"
 
 
@@ -81,6 +82,12 @@ class Price:
     currency: str = "CAD"
 
 
+class ProviderName(StrEnum):
+    """Represents the provider name."""
+
+    MAXI = "Maxi"
+
+
 @dataclass
 class Provider:
     """Represents the provider of a product offer."""
@@ -103,7 +110,7 @@ class OfferType(StrEnum):
     """Business type for a retrieved offer."""
 
     FOOD = "FOOD"
-    DECORATION = "DECORATION"
+    MATERIAL = "MATERIAL"
 
 
 class OfferSortField(StrEnum):

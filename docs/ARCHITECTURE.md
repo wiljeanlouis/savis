@@ -294,7 +294,7 @@ sequenceDiagram
   Api->>Api: Persist BOM
   Api->>Rabbit: Publish ComponentNeededEvent
   Rabbit->>Executor: Consume offer request
-  Executor->>PgExec: Create GET_OFFERS task if providers are missing
+  Executor->>PgExec: Create GET_OFFERS task
   Executor->>Rabbit: Enqueue Celery task
   Rabbit->>Worker: Deliver get_offers_task
   Worker->>Provider: Scrape provider offers
@@ -317,12 +317,12 @@ sequenceDiagram
   participant Rabbit as RabbitMQ
   participant Supply as SAVIS API Supply slice
 
-  Admin->>Executor: POST /tasks GET_OFFERS
+  Admin->>Executor: POST /tasks GET_OFFER(provider, URL)
   Executor->>TaskUseCase: enqueue_savis_task(payload)
   TaskUseCase->>PgExec: Persist IN_PROGRESS task
-  TaskUseCase->>Rabbit: Enqueue get_offers_task
+  TaskUseCase->>Rabbit: Enqueue get_offer_task
   Rabbit->>Worker: Deliver task
-  Worker->>OfferUseCase: Collect and reconcile offers
+  Worker->>OfferUseCase: Retrieve URL with selected provider strategy
   OfferUseCase->>PgExec: Persist NEW offers
   Worker->>PgExec: Mark task COMPLETED
   Admin->>Executor: GET /offers

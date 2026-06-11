@@ -10,6 +10,7 @@ from uuid import UUID
 
 from app.core.models import (
     OfferType,
+    ProviderName,
     SavisTask,
     SavisTaskSortField,
     SavisTaskStatus,
@@ -52,15 +53,36 @@ class SavisTaskUseCase:
             SavisTaskType,
             Callable[[dict[str, str]], SavisTask | None],
         ] = {
+            SavisTaskType.GET_OFFER: self._enqueue_get_offer_task,
             SavisTaskType.GET_OFFERS: self._enqueue_get_offers_task,
             SavisTaskType.REFRESH_OFFER: self._enqueue_refresh_offer_task,
         }
         return handlers[task_type](payload)
 
+    def _enqueue_get_offer_task(self, payload: dict[str, str]) -> SavisTask | None:
+        return self._save_and_push(
+            SavisTaskType.GET_OFFER,
+            payload,
+            lambda task_id: self.task_queue.push_get_offer(
+                task_id=task_id,
+                url=payload["url"],
+                search_term=payload["search_term"],
+                provider=ProviderName(
+                    payload.get("provider", ProviderName.MAXI.value),
+                ),
+                offer_type=OfferType(payload.get("offer_type", OfferType.FOOD.value)),
+            ),
+        )
+
     def _enqueue_get_offers_task(self, payload: dict[str, str]) -> SavisTask | None:
-        return self.enqueue_get_offers_if_missing(
-            payload["search_term"],
-            OfferType(payload.get("offer_type", OfferType.FOOD.value)),
+        return self._save_and_push(
+            SavisTaskType.GET_OFFERS,
+            payload,
+            lambda task_id: self.task_queue.push_get_offers(
+                task_id=task_id,
+                search_term=payload["search_term"],
+                offer_type=OfferType(payload.get("offer_type", OfferType.FOOD.value)),
+            ),
         )
 
     def _enqueue_refresh_offer_task(self, payload: dict[str, str]) -> SavisTask:
@@ -68,9 +90,9 @@ class SavisTaskUseCase:
             SavisTaskType.REFRESH_OFFER,
             payload,
             lambda task_id: self.task_queue.push_refresh_offer(
-                task_id,
-                payload["offer_id"],
-                payload["url"],
+                task_id=task_id,
+                offer_id=payload["offer_id"],
+                url=payload["url"],
             ),
         )
 
@@ -80,42 +102,15 @@ class SavisTaskUseCase:
         payload: dict[str, str],
         push: Callable[[str], None],
     ) -> SavisTask:
-        task = self.task_repository.save(SavisTask.create(task_type, payload))
+        task = self.task_repository.save(
+            SavisTask.create(task_type=task_type, payload=payload),
+        )
         try:
             push(str(task.id))
         except Exception as exc:
             self.task_repository.mark_failed(task.id, str(exc))
             raise
         return task
-
-    def enqueue_get_offers_if_missing(
-        self,
-        search_term: str,
-        offer_type: OfferType = OfferType.FOOD,
-    ) -> SavisTask | None:
-        """Create a get-offers task when at least one provider is missing."""
-        if self.offers_use_case.all_providers_have_offers_for_search_term(
-            search_term,
-            offer_type,
-        ):
-            logger.info(
-                "[TASKS] Skipping get-offers; all providers already covered | "
-                "search_term=%s offer_type=%s",
-                search_term,
-                offer_type.value,
-            )
-            return None
-
-        payload = {"search_term": search_term, "offer_type": offer_type.value}
-        return self._save_and_push(
-            SavisTaskType.GET_OFFERS,
-            payload,
-            lambda task_id: self.task_queue.push_get_offers(
-                task_id,
-                search_term,
-                offer_type,
-            ),
-        )
 
     def enqueue_due_offer_refresh_tasks(
         self,
@@ -149,19 +144,46 @@ class SavisTaskUseCase:
         payload: dict[str, str],
     ) -> None:
         """Execute a task according to its type."""
-        if task_type == SavisTaskType.GET_OFFERS:
-            self.offers_use_case.get_offers(
-                search_term=payload["search_term"],
-                task_id=task_id,
-                offer_type=OfferType(payload.get("offer_type", OfferType.FOOD.value)),
-            )
-        elif task_type == SavisTaskType.REFRESH_OFFER:
-            self.offers_use_case.refresh_offer_by_url(
-                offer_id=UUID(payload["offer_id"]),
-                url=payload["url"],
-                task_id=task_id,
-            )
+        handlers: dict[
+            SavisTaskType,
+            Callable[[UUID, dict[str, str]], None],
+        ] = {
+            SavisTaskType.GET_OFFER: self._execute_get_offer_task,
+            SavisTaskType.GET_OFFERS: self._execute_get_offers_task,
+            SavisTaskType.REFRESH_OFFER: self._execute_refresh_offer_task,
+        }
+
+        handlers[task_type](task_id, payload)
         self.task_repository.mark_completed(task_id)
+
+    def _execute_get_offer_task(self, task_id: UUID, payload: dict[str, str]) -> None:
+        self.offers_use_case.get_offer(
+            url=payload["url"],
+            search_term=payload["search_term"],
+            task_id=task_id,
+            provider_name=ProviderName(
+                payload.get("provider", ProviderName.MAXI.value),
+            ),
+            offer_type=OfferType(payload.get("offer_type", OfferType.FOOD.value)),
+        )
+
+    def _execute_get_offers_task(self, task_id: UUID, payload: dict[str, str]) -> None:
+        self.offers_use_case.get_offers(
+            search_term=payload["search_term"],
+            task_id=task_id,
+            offer_type=OfferType(payload.get("offer_type", OfferType.FOOD.value)),
+        )
+
+    def _execute_refresh_offer_task(
+        self,
+        task_id: UUID,
+        payload: dict[str, str],
+    ) -> None:
+        self.offers_use_case.refresh_offer_by_url(
+            offer_id=UUID(payload["offer_id"]),
+            url=payload["url"],
+            task_id=task_id,
+        )
 
     def list(  # noqa: PLR0913
         self,
@@ -174,12 +196,12 @@ class SavisTaskUseCase:
     ) -> tuple[list[SavisTask], int, int]:
         """List paginated tasks, optionally filtered by status and type."""
         tasks, total_items = self.task_repository.list(
-            status,
-            task_type,
-            page,
-            size,
-            sort_by,
-            sort_direction,
+            status=status,
+            task_type=task_type,
+            page=page,
+            size=size,
+            sort_by=sort_by,
+            sort_direction=sort_direction,
         )
         total_pages = ceil(total_items / size) if total_items else 0
         return tasks, total_items, total_pages

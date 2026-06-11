@@ -3,7 +3,13 @@
 from abc import ABC, abstractmethod
 from typing import TYPE_CHECKING
 
-from .models import OfferSortField, OfferType, SavisTaskSortField, SortDirection
+from .models import (
+    OfferSortField,
+    OfferType,
+    ProviderName,
+    SavisTaskSortField,
+    SortDirection,
+)
 
 if TYPE_CHECKING:
     from datetime import datetime
@@ -22,16 +28,27 @@ class OfferProvider(ABC):
     """Port for provider offer retrieval."""
 
     @abstractmethod
-    def get_offers(self, search_term: str) -> list[Offer]:
-        """Get offers for a search term."""
+    def get_offer_by_url(self, url: str) -> Offer | None:
+        """Get offer from provided url."""
 
     @abstractmethod
-    def refresh_offer_price_by_url(self, url: str) -> Offer | None:
-        """Refresh offer from provided url."""
+    def get_offers(self, search_term: str) -> list[Offer]:
+        """Get offers for a search term."""
 
 
 class TaskQueue(ABC):
     """Port for background task queues."""
+
+    @abstractmethod
+    def push_get_offer(
+        self,
+        task_id: str,
+        url: str,
+        search_term: str,
+        provider: ProviderName = ProviderName.MAXI,
+        offer_type: OfferType = OfferType.FOOD,
+    ) -> None:
+        """Push a  get-offer task to a worker queue."""
 
     @abstractmethod
     def push_get_offers(

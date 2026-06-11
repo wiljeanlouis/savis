@@ -27,12 +27,18 @@ URL_EXTERNAL_ID_PATTERN = re.compile(r"/p/([^/?#]+)")
 class Selectors:
     """CSS selectors used by the Maxi extractor."""
 
+    # list
     PRODUCT_LIST_ITEM: ClassVar[str] = (
         '[data-testid="product-grid-component"] > [data-srp-feedback-added="true"]'
     )
-    PRODUCT_DETAILS_ROOT: ClassVar[str] = (
-        ".product-details-page-details__visibility-sensor"
-    )
+    TRACK_PRODUCTS: ClassVar[str] = "[data-track-products-array]"
+    PRODUCT_BADGE: ClassVar[str] = '[data-testid="product-badge"]'
+    PRODUCT_TITLE: ClassVar[str] = '[data-testid="product-title"]'
+    PRODUCT_BRAND: ClassVar[str] = '[data-testid="product-brand"]'
+    PRODUCT_PACKAGE_SIZE: ClassVar[str] = '[data-testid="product-package-size"]'
+
+    # details
+    PRODUCT_DETAILS_ROOT: ClassVar[str] = ".product-details-page-details"
     PRODUCT_DETAILS_PRICE: ClassVar[str] = ".selling-price-list__item .price__value"
     PRODUCT_DETAILS_BRAND: ClassVar[str] = (
         ".product-name__item.product-name__item--brand"
@@ -43,16 +49,15 @@ class Selectors:
     PRODUCT_DETAILS_PACKAGE_SIZE: ClassVar[str] = (
         ".product-name__item.product-name__item--package-size"
     )
-    TRACK_PRODUCTS: ClassVar[str] = "[data-track-products-array]"
-    PRODUCT_BADGE: ClassVar[str] = '[data-testid="product-badge"]'
-    PRODUCT_TITLE: ClassVar[str] = '[data-testid="product-title"]'
-    PRODUCT_BRAND: ClassVar[str] = '[data-testid="product-brand"]'
-    PRODUCT_PACKAGE_SIZE: ClassVar[str] = '[data-testid="product-package-size"]'
+    PRODUCT_DETAILS_IMAGE: ClassVar[str] = ".responsive-image--product-details-page"
+    PRODUCT_DETAILS_PRIMARY_SLIDE_IMAGE: ClassVar[str] = (
+        '.slick-slide[data-index="0"]:not(.slick-cloned) '
+        ".responsive-image--product-details-page"
+    )
 
 
 ITEM_LIST_SELECTOR = Selectors.PRODUCT_LIST_ITEM
-ITEM_SELECTOR = Selectors.PRODUCT_DETAILS_ROOT
-PRICE_SELECTOR = Selectors.PRODUCT_DETAILS_PRICE
+ITEM_SELECTOR = Selectors.PRODUCT_DETAILS_PRICE
 
 
 @dataclass(frozen=True)
@@ -189,7 +194,16 @@ def _product_details_draft(item: Tag, url: str) -> MaxiProductDraft:
         label=get_text(item.select_one(Selectors.PRODUCT_DETAILS_LABEL)),
         price=parse_money(get_text(item.select_one(Selectors.PRODUCT_DETAILS_PRICE))),
         package_size=package_size,
+        image_url=_extract_product_details_image_url(item),
     )
+
+
+def _extract_product_details_image_url(item: Tag) -> str:
+    primary_slide_image = item.select_one(
+        Selectors.PRODUCT_DETAILS_PRIMARY_SLIDE_IMAGE,
+    )
+    image = primary_slide_image or item.select_one(Selectors.PRODUCT_DETAILS_IMAGE)
+    return get_attr(image, "src")
 
 
 def _parse_package_size_from_package_price_info(value: str) -> PackageSize | None:

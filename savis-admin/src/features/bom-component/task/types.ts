@@ -1,6 +1,6 @@
 export type SavisTaskStatus = "IN_PROGRESS" | "COMPLETED" | "FAILED";
 
-export type SavisTaskType = "GET_OFFERS" | "REFRESH_OFFER";
+export type SavisTaskType = "GET_OFFER" | "GET_OFFERS" | "REFRESH_OFFER";
 
 export interface SavisTask {
   id: string;
@@ -23,10 +23,19 @@ export interface SavisTasksPage {
 
 export type CreateSavisTaskPayload =
   | {
+      type: "GET_OFFER";
+      payload: {
+        search_term: string;
+        type: "FOOD" | "MATERIAL";
+        provider: "Maxi";
+        url: string;
+      };
+    }
+  | {
       type: "GET_OFFERS";
       payload: {
         search_term: string;
-        type?: "FOOD" | "DECORATION";
+        type?: "FOOD" | "MATERIAL";
       };
     }
   | {
