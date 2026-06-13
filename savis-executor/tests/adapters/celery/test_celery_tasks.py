@@ -7,7 +7,7 @@ from uuid import UUID, uuid7
 
 from app.adapters.celery import celery_tasks
 from app.core.models import SavisTaskType
-from app.core.ports import OfferProviderNonRetryableError
+from app.core.ports import OfferProviderNonRetryableError, ProviderCircuitOpenError
 
 if TYPE_CHECKING:
     import pytest
@@ -25,6 +25,10 @@ def test_scraping_tasks_do_not_retry_maxi_block_errors() -> None:
 
     for task in scraping_tasks:
         assert OfferProviderNonRetryableError in task.dont_autoretry_for
+
+
+def test_provider_circuit_open_error_is_non_retryable() -> None:
+    assert issubclass(ProviderCircuitOpenError, OfferProviderNonRetryableError)
 
 
 class FakeTaskRepository:

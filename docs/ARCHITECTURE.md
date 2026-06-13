@@ -243,6 +243,8 @@ flowchart TB
 - Transient failures use Celery backoff. Provider blocks, challenge pages, and
   browser connection failures are non-retryable because an immediate retry
   would only repeat the refusal.
+- A PostgreSQL-backed provider policy reserves navigation starts 1 to 10
+  minutes apart and opens a progressive circuit breaker after blocks.
 - Failed Celery tasks are reported to executor task persistence through
   `ReportingTask`.
 
@@ -529,6 +531,11 @@ content, and failures to connect to external Chrome raise
 `OfferProviderNonRetryableError` subclasses. Other unexpected failures retain
 the normal Celery retry policy.
 
+Before navigating, the worker reserves the provider's next request slot in
+PostgreSQL. A block opens the circuit for 15 minutes, then 1 hour, 6 hours, and
+24 hours for consecutive failures. When a cooldown expires, one recovery probe
+is reserved; success closes the circuit and resets its counter.
+
 RabbitMQ subscriber callbacks use `basic_ack` only after enqueueing succeeds.
 Malformed or unprocessable messages currently use `basic_nack(requeue=false)`;
 a dead-letter queue is a future hardening step.
@@ -542,7 +549,7 @@ flowchart LR
   Api --> Supabase[("External System<br/>Supabase public schema")]
 
   PgApi --> ApiTables["BOMs<br/>Supply offers<br/>Catalog products<br/>Activity rates"]
-  PgExecutor --> ExecutorTables["Executor tasks<br/>Tracked offers"]
+  PgExecutor --> ExecutorTables["Executor tasks<br/>Tracked offers<br/>Provider access state"]
   Supabase --> PublicTables["published_catalog_products<br/>customer_orders<br/>quote_requests"]
 ```
 

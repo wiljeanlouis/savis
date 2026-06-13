@@ -2,6 +2,9 @@
 
 from app.adapters.celery.celery_queue import CeleryQueue
 from app.adapters.database.offer_repository import SqlAlchemyOfferRepository
+from app.adapters.database.provider_access_policy import (
+    SqlAlchemyProviderAccessPolicy,
+)
 from app.adapters.database.savis_task_repository import SqlAlchemySavisTaskRepository
 from app.adapters.rabbitmq.publisher import RabbitMqResultPublisher
 from app.adapters.scrapers import load_offer_providers
@@ -16,6 +19,7 @@ class Container:
     result_publisher = RabbitMqResultPublisher()
     savis_task_repository = SqlAlchemySavisTaskRepository()
     offer_repository = SqlAlchemyOfferRepository()
+    provider_access_policy = SqlAlchemyProviderAccessPolicy()
 
     @classmethod
     def offers_use_case(cls) -> OffersUseCase:
@@ -23,7 +27,7 @@ class Container:
         return OffersUseCase(
             cls.offer_repository,
             cls.result_publisher,
-            load_offer_providers(),
+            load_offer_providers(cls.provider_access_policy),
         )
 
     @classmethod

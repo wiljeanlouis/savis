@@ -11,6 +11,7 @@ from playwright.sync_api import TimeoutError as PlaywrightTimeoutError
 
 from app.adapters.scrapers.maxi.extractor import ITEM_SELECTOR
 from app.adapters.scrapers.maxi.scraper import MaxiScraper, MaxiScraperBlockedError
+from app.core.ports import ProviderCircuitOpenError
 
 from .html_loader import load_product_details_page_html
 
@@ -95,21 +96,84 @@ class FakeBrowserManager:
         return self.page
 
 
+class FakeProviderAccessPolicy:
+    """Capture provider pacing and circuit-breaker calls."""
+
+    def __init__(self) -> None:
+        """Initialize captured policy calls."""
+        self.waited: list[str] = []
+        self.successes: list[str] = []
+        self.blocks: list[str] = []
+
+    def wait_for_request(self, provider_identifier: str) -> None:
+        self.waited.append(provider_identifier)
+
+    def record_success(self, provider_identifier: str) -> None:
+        self.successes.append(provider_identifier)
+
+    def record_block(self, provider_identifier: str) -> None:
+        self.blocks.append(provider_identifier)
+
+
+class OpenCircuitProviderAccessPolicy(FakeProviderAccessPolicy):
+    """Reject provider access before opening the browser."""
+
+    def wait_for_request(self, provider_identifier: str) -> None:
+        super().wait_for_request(provider_identifier)
+        msg = "Provider access is suspended"
+        raise ProviderCircuitOpenError(msg)
+
+
+class UnexpectedBrowserManager(FakeBrowserManager):
+    """Fail if a test unexpectedly opens Chrome."""
+
+    def __enter__(self) -> Self:
+        """Reject unexpected browser access."""
+        msg = "Browser should not be opened"
+        raise AssertionError(msg)
+
+
 def test_get_offer_by_url_waits_for_item_selector() -> None:
     manager = FakeBrowserManager()
-    scraper = MaxiScraper(browser_manager=manager)  # pyright: ignore[reportArgumentType]
+    policy = FakeProviderAccessPolicy()
+    scraper = MaxiScraper(  # pyright: ignore[reportArgumentType]
+        browser_manager=manager,
+        access_policy=policy,
+    )
 
     offer = scraper.get_offer_by_url("https://maxi.ca/fr/product/p/123")
 
     assert manager.page.waited_for_selector == ITEM_SELECTOR
+    assert policy.waited == ["8772"]
+    assert policy.successes == ["8772"]
+    assert policy.blocks == []
     assert offer is not None
     assert offer.price is not None
     assert offer.price.amount == "6.49"
 
 
+def test_open_circuit_prevents_browser_navigation() -> None:
+    policy = OpenCircuitProviderAccessPolicy()
+    scraper = MaxiScraper(  # pyright: ignore[reportArgumentType]
+        browser_manager=UnexpectedBrowserManager(),
+        access_policy=policy,
+    )
+
+    with pytest.raises(ProviderCircuitOpenError, match="suspended"):
+        scraper.get_offer_by_url("https://maxi.ca/fr/product/p/123")
+
+    assert policy.waited == ["8772"]
+    assert policy.successes == []
+    assert policy.blocks == []
+
+
 def test_get_offer_by_url_reports_when_maxi_blocks_the_scraper() -> None:
     manager = FakeBrowserManager(page=BlockedFakePage())
-    scraper = MaxiScraper(browser_manager=manager)  # pyright: ignore[reportArgumentType]
+    policy = FakeProviderAccessPolicy()
+    scraper = MaxiScraper(  # pyright: ignore[reportArgumentType]
+        browser_manager=manager,
+        access_policy=policy,
+    )
 
     with pytest.raises(
         MaxiScraperBlockedError,
@@ -118,11 +182,17 @@ def test_get_offer_by_url_reports_when_maxi_blocks_the_scraper() -> None:
         scraper.get_offer_by_url("https://maxi.ca/fr/product/p/123")
 
     assert manager.page.waited_for_selector is None
+    assert policy.successes == []
+    assert policy.blocks == ["8772"]
 
 
 def test_get_offer_by_url_treats_missing_content_as_blocked() -> None:
     manager = FakeBrowserManager(page=ChallengeFakePage())
-    scraper = MaxiScraper(browser_manager=manager)  # pyright: ignore[reportArgumentType]
+    policy = FakeProviderAccessPolicy()
+    scraper = MaxiScraper(  # pyright: ignore[reportArgumentType]
+        browser_manager=manager,
+        access_policy=policy,
+    )
 
     with pytest.raises(
         MaxiScraperBlockedError,
@@ -131,3 +201,5 @@ def test_get_offer_by_url_treats_missing_content_as_blocked() -> None:
         scraper.get_offer_by_url("https://maxi.ca/fr/product/p/123")
 
     assert manager.page.waited_for_selector == ITEM_SELECTOR
+    assert policy.successes == []
+    assert policy.blocks == ["8772"]

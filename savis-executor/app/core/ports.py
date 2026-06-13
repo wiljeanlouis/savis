@@ -32,6 +32,26 @@ class OfferProviderBlockedError(OfferProviderNonRetryableError):
     """Raised when an offer provider explicitly blocks collection."""
 
 
+class ProviderCircuitOpenError(OfferProviderNonRetryableError):
+    """Raised when provider access is suspended after previous blocks."""
+
+
+class ProviderAccessPolicy(ABC):
+    """Control provider request pacing and circuit-breaker state."""
+
+    @abstractmethod
+    def wait_for_request(self, provider_identifier: str) -> None:
+        """Wait until one provider request is allowed or reject it."""
+
+    @abstractmethod
+    def record_success(self, provider_identifier: str) -> None:
+        """Record one successful provider request."""
+
+    @abstractmethod
+    def record_block(self, provider_identifier: str) -> None:
+        """Record one provider block and open its circuit."""
+
+
 class OfferProvider(ABC):
     """Port for provider offer retrieval."""
 

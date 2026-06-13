@@ -483,6 +483,11 @@ non-retryable because an immediate retry would repeat the same refusal.
 `ReportingTask` marks the executor task as failed after either a non-retryable
 error or exhausted retries.
 
+Provider navigation starts are persisted and spaced by 1 to 10 minutes by
+default. After consecutive blocks, the provider circuit opens for 15 minutes,
+1 hour, 6 hours, then 24 hours. After each cooldown, one recovery request is
+allowed; a success resets the circuit.
+
 Celery Beat schedules:
 
 - due-offer refresh every hour;
@@ -582,6 +587,10 @@ RABBIT_MQ_URL=amqp://user:password@localhost:5672/%2f
 DATABASE_URL=postgresql+psycopg://user:password@localhost:5434/savis
 DATABASE_SCHEMA=savis_executor
 BROWSER_CDP_URL=http://localhost:9222
+PROVIDER_MIN_REQUEST_DELAY_SECONDS=60
+PROVIDER_MAX_REQUEST_DELAY_SECONDS=600
+PROVIDER_BLOCK_COOLDOWN_SECONDS=900,3600,21600,86400
+PROVIDER_PROBE_TIMEOUT_SECONDS=1800
 ```
 
 Never commit real credentials. Root environment files and generated Supabase
@@ -651,6 +660,10 @@ DB_NAME=
 RABBIT_MQ_USER=
 RABBIT_MQ_PASSWORD=
 BROWSER_CDP_URL=http://host.docker.internal:9223
+PROVIDER_MIN_REQUEST_DELAY_SECONDS=60
+PROVIDER_MAX_REQUEST_DELAY_SECONDS=600
+PROVIDER_BLOCK_COOLDOWN_SECONDS=900,3600,21600,86400
+PROVIDER_PROBE_TIMEOUT_SECONDS=1800
 SUPABASE_ENABLED=true
 SUPABASE_URL=
 SUPABASE_SERVICE_ROLE_KEY=

@@ -20,6 +20,7 @@ from .provider import provider
 if TYPE_CHECKING:
     from app.adapters.scrapers.browser_manager import BrowserManager
     from app.core.models import Offer
+    from app.core.ports import ProviderAccessPolicy
 
 logger = logging.getLogger(__name__)
 
@@ -33,9 +34,14 @@ class MaxiScraper(OfferProvider):
 
     identifier = provider.identifier
 
-    def __init__(self, browser_manager: BrowserManager) -> None:
+    def __init__(
+        self,
+        browser_manager: BrowserManager,
+        access_policy: ProviderAccessPolicy,
+    ) -> None:
         """Init function."""
         self.browser_manager = browser_manager
+        self.access_policy = access_policy
 
     def load_page(self, url: str, wait_for_selector: str) -> str:
         """Load the page from the given url.
@@ -48,6 +54,7 @@ class MaxiScraper(OfferProvider):
             str: the html content
 
         """
+        self.access_policy.wait_for_request(provider.identifier)
         with self.browser_manager as manager:
             page = manager.get_page()
             response = page.goto(url, wait_until="domcontentloaded")
@@ -57,6 +64,7 @@ class MaxiScraper(OfferProvider):
                     f"at {page.url} ({page.title()})"
                 )
                 logger.error("[MAXI] %s", msg)
+                self._record_block()
                 raise MaxiScraperBlockedError(msg)
             try:
                 page.wait_for_selector(wait_for_selector)
@@ -66,8 +74,23 @@ class MaxiScraper(OfferProvider):
                     f"a challenge page at {page.url} ({page.title()})"
                 )
                 logger.exception("[MAXI] %s", msg)
+                self._record_block()
                 raise MaxiScraperBlockedError(msg) from exc
-            return page.content()
+            html = page.content()
+            self._record_success()
+            return html
+
+    def _record_success(self) -> None:
+        try:
+            self.access_policy.record_success(provider.identifier)
+        except Exception:
+            logger.exception("[MAXI] Failed to persist provider access success")
+
+    def _record_block(self) -> None:
+        try:
+            self.access_policy.record_block(provider.identifier)
+        except Exception:
+            logger.exception("[MAXI] Failed to persist provider access block")
 
     def get_offer_by_url(self, url: str) -> Offer | None:
         """Scrape maxi.ca for a specific product url and returns the offer.

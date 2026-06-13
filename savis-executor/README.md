@@ -366,17 +366,28 @@ three retries. The following failures inherit from
 This prevents one access refusal from producing three additional requests.
 `ReportingTask` still records the final error on the executor task.
 
+Before each Maxi navigation, the persistent access policy reserves a request
+slot. Navigation starts are separated by 1 to 10 minutes by default, and the
+reservation survives worker restarts because it is stored in PostgreSQL.
+
+After a block, the circuit opens progressively for 15 minutes, 1 hour, 6 hours,
+then 24 hours for subsequent consecutive blocks. Once a cooldown expires, only
+one recovery request is reserved. A successful page closes the circuit and
+resets the consecutive-block counter; another block advances the cooldown.
+
 The worker runs with `--concurrency=1`. Increasing concurrency would allow
 multiple tasks to manipulate the same persistent browser session and is not
 supported by the current design.
 
 ## Persistence
 
-The executor owns two SQLAlchemy tables:
+The executor owns three SQLAlchemy tables:
 
 - `savis_tasks`: task type, payload, status, timestamps, and error.
 - `offers`: provider product data, price, package size, review status, offer
   type, and refresh metadata.
+- `provider_access_states`: request pacing, consecutive blocks, cooldown, and
+  recovery-probe state for each provider.
 
 PostgreSQL uses the `savis_executor` schema by default. At FastAPI startup, the
 executor creates the schema when needed and calls `Base.metadata.create_all()`.
@@ -391,6 +402,10 @@ The module does not currently use a migration framework.
 | `RABBIT_MQ_URL` | `amqp://guest:guest@localhost:5672/%2f` | RabbitMQ URL used by the subscriber, publisher, and Celery. |
 | `REDIS_URL` | `redis://localhost:6379/0` | Present in configuration, but not used by the active runtime paths. |
 | `BROWSER_CDP_URL` | `http://localhost:9222` | CDP endpoint of the external Google Chrome process. |
+| `PROVIDER_MIN_REQUEST_DELAY_SECONDS` | `60` | Minimum delay reserved between provider navigations. |
+| `PROVIDER_MAX_REQUEST_DELAY_SECONDS` | `600` | Maximum delay reserved between provider navigations. |
+| `PROVIDER_BLOCK_COOLDOWN_SECONDS` | `900,3600,21600,86400` | Progressive cooldowns after consecutive provider blocks. |
+| `PROVIDER_PROBE_TIMEOUT_SECONDS` | `1800` | Reservation timeout for the recovery probe after a cooldown. |
 
 The root Docker Compose file provides concrete values from the repository
 environment.
