@@ -119,6 +119,43 @@ def test_extract_offer_from_product_details_html() -> None:
     )
 
 
+def test_extract_offer_uses_metric_comparison_price_unit_as_package_size() -> None:
+    html = """
+    <div class="product-details-page-details">
+      <h1 class="product-name__item product-name__item--name">
+        Poitrine de poulet désossée et sans peau
+      </h1>
+      <div class="selling-price-list__item">
+        <span class="price__value">17,62 $</span>
+      </div>
+      <ul class="comparison-price-list">
+        <li class="comparison-price-list__item">
+          <span class="price__unit comparison-price-list__item__price__unit">
+            / 1kg
+          </span>
+        </li>
+        <li class="comparison-price-list__item">
+          <span class="price__unit comparison-price-list__item__price__unit">
+            / 1lb
+          </span>
+        </li>
+      </ul>
+      <div class="product-avarage-weight">
+        Le poids moyen est de 1.177 KG
+      </div>
+    </div>
+    """
+
+    offer = extract_offer_from_product_details_html(
+        "https://maxi.ca/fr/poitrine-de-poulet/p/20028450_KG",
+        html,
+    )
+
+    assert offer is not None
+    assert offer.price == Price(amount="17.62")
+    assert offer.package_size == PackageSize(value=1.0, unit="kg")
+
+
 def test_extract_offer_uses_first_original_slider_image() -> None:
     html = """
     <div class="product-details-page-details">

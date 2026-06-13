@@ -3,12 +3,16 @@
 import logging
 from typing import TYPE_CHECKING
 
-from app.core.ports import OfferProvider
+from playwright.sync_api import TimeoutError as PlaywrightTimeoutError
 
-from .extractor import (
-    ITEM_LIST_SELECTOR,
+from app.core.ports import OfferProvider, OfferProviderBlockedError
+
+from .details_extractor import (
     ITEM_SELECTOR,
     extract_offer_from_product_details_html,
+)
+from .list_extractor import (
+    ITEM_LIST_SELECTOR,
     extract_offer_from_product_list_html,
 )
 from .provider import provider
@@ -18,6 +22,10 @@ if TYPE_CHECKING:
     from app.core.models import Offer
 
 logger = logging.getLogger(__name__)
+
+
+class MaxiScraperBlockedError(OfferProviderBlockedError):
+    """Raised when Maxi refuses the scraper request."""
 
 
 class MaxiScraper(OfferProvider):
@@ -42,8 +50,23 @@ class MaxiScraper(OfferProvider):
         """
         with self.browser_manager as manager:
             page = manager.get_page()
-            page.goto(url)
-            page.wait_for_selector(wait_for_selector)
+            response = page.goto(url, wait_until="domcontentloaded")
+            if response is not None and response.status in {403, 429}:
+                msg = (
+                    f"Maxi blocked the scraper with HTTP {response.status} "
+                    f"at {page.url} ({page.title()})"
+                )
+                logger.error("[MAXI] %s", msg)
+                raise MaxiScraperBlockedError(msg)
+            try:
+                page.wait_for_selector(wait_for_selector)
+            except PlaywrightTimeoutError as exc:
+                msg = (
+                    "Maxi did not expose the expected content, likely due to "
+                    f"a challenge page at {page.url} ({page.title()})"
+                )
+                logger.exception("[MAXI] %s", msg)
+                raise MaxiScraperBlockedError(msg) from exc
             return page.content()
 
     def get_offer_by_url(self, url: str) -> Offer | None:
