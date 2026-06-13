@@ -20,6 +20,7 @@ from app.core.models import (
 )
 from app.core.ports import (
     OfferProvider,
+    OfferProviderBlockedError,
     OfferPublisher,
     OfferRepository,
 )
@@ -161,6 +162,16 @@ class FailingProvider(OfferProvider):
     def get_offer_by_url(self, url: str) -> Offer:
         msg = f"{url} timed out"
         raise TimeoutError(msg)
+
+
+class BlockedProvider(OfferProvider):
+    def get_offers(self, search_term: str) -> list[Offer]:
+        msg = f"{search_term} blocked"
+        raise OfferProviderBlockedError(msg)
+
+    def get_offer_by_url(self, url: str) -> Offer:
+        msg = f"{url} blocked"
+        raise OfferProviderBlockedError(msg)
 
 
 def _use_case(
@@ -449,10 +460,31 @@ def test_get_offer_raises_when_selected_provider_fails() -> None:
         )
 
 
+def test_get_offer_preserves_provider_block_error() -> None:
+    use_case = _use_case(
+        providers={ProviderName.MAXI: BlockedProvider()},
+    )
+
+    with pytest.raises(OfferProviderBlockedError, match="blocked"):
+        use_case.get_offer(
+            url="https://www.maxi.ca/flour/p/12345",
+            search_term="flour",
+            task_id=uuid7(),
+            provider_name=ProviderName.MAXI,
+        )
+
+
 def test_get_offers_raises_when_all_adapters_fail() -> None:
     use_case = _use_case(providers={"failure": FailingProvider()})  # pyright: ignore[reportAbstractUsage]
 
     with pytest.raises(OfferCollectionFailedError, match="All offer adapters failed"):
+        use_case.get_offers("farine", uuid7())
+
+
+def test_get_offers_preserves_provider_block_error() -> None:
+    use_case = _use_case(providers={"blocked": BlockedProvider()})  # pyright: ignore[reportAbstractUsage]
+
+    with pytest.raises(OfferProviderBlockedError, match="blocked"):
         use_case.get_offers("farine", uuid7())
 
 

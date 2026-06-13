@@ -97,7 +97,6 @@ services:
       dockerfile: Dockerfile
       target: worker
     init: true
-    shm_size: "2gb"
     container_name: savis_executor_worker
     volumes:
       - ./savis-executor:/app
@@ -106,6 +105,9 @@ services:
       - RABBIT_MQ_URL=amqp://${RABBIT_MQ_USER}:${RABBIT_MQ_PASSWORD}@rabbitmq:5672/%2f
       - DATABASE_URL=postgresql+psycopg://${DB_USER}:${DB_PASSWORD}@postgres:5432/${DB_NAME}
       - DATABASE_SCHEMA=savis_executor
+      - BROWSER_CDP_URL=${BROWSER_CDP_URL:-http://host.docker.internal:9222}
+    extra_hosts:
+      - host.docker.internal:host-gateway
     depends_on:
       rabbitmq:
         condition: service_healthy

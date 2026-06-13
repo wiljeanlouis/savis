@@ -17,6 +17,7 @@ from app.core.models import (
     ProviderName,
     SortDirection,
 )
+from app.core.ports import OfferProviderNonRetryableError
 
 if TYPE_CHECKING:
     from app.core.ports import (
@@ -72,6 +73,13 @@ class OffersUseCase:
 
         try:
             offer = provider.get_offer_by_url(url=url)
+        except OfferProviderNonRetryableError:
+            logger.exception(
+                "Offer provider blocked collection for term %s and url %s",
+                search_term,
+                url,
+            )
+            raise
         except Exception as exc:
             logger.exception(
                 "Offer provider failed for term %s and url %s",
@@ -102,13 +110,19 @@ class OffersUseCase:
         """Collect and persist offers for a search term."""
         results = []
         errors: list[Exception] = []
+        non_retryable_errors: list[OfferProviderNonRetryableError] = []
         for provider in self.offer_providers.values():
             try:
                 results.append(provider.get_offers(search_term))
+            except OfferProviderNonRetryableError as exc:
+                logger.exception("Offer provider cannot collect term %s", search_term)
+                non_retryable_errors.append(exc)
             except Exception as exc:
                 logger.exception("Offer provider failed for term %s", search_term)
                 errors.append(exc)
 
+        if not results and non_retryable_errors:
+            raise non_retryable_errors[-1]
         if not results and errors:
             msg = f"All offer adapters failed for term {search_term!r}"
             raise OfferCollectionFailedError(msg) from errors[-1]

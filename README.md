@@ -6,8 +6,8 @@ organized around three deployable applications with distinct ownership:
 - **SAVIS Admin** provides the internal management interface;
 - **SAVIS API** owns business rules and business state for BOMs, supply,
   activity rates, and the sellable catalog;
-- **SAVIS Executor** owns provider acquisition, executor tasks, and retryable
-  background work.
+- **SAVIS Executor** owns provider acquisition, executor tasks, and background
+  work with explicit retry policies.
 
 Supabase is not the business backend. It is a separate public projection used
 by the Savouretplus customer-facing application.
@@ -56,7 +56,7 @@ savis/
   savis-admin/     React / Vite administration UI
   savis-executor/  FastAPI / Celery provider acquisition service
   supabase/        Public catalog and commerce projection
-  scripts/         Local integration helpers
+  scripts/         Local and deployment helpers
   docker-compose.yml
   docker-compose.override.yml
   Makefile
@@ -108,11 +108,12 @@ make run-local
 
 The command:
 
-1. starts Supabase from `supabase/config.toml`;
-2. reads its local URL and keys;
-3. generates the ignored `.env.supabase.local` file;
-4. optionally configures the sibling `../savouretplus` frontend;
-5. builds and starts the SAVIS Compose services with the development override.
+1. starts a dedicated Google Chrome CDP session on macOS;
+2. starts Supabase from `supabase/config.toml`;
+3. reads its local URL and keys;
+4. generates the ignored `.env.supabase.local` file;
+5. optionally configures the sibling `../savouretplus` frontend;
+6. builds and starts the SAVIS Compose services with the development override.
 
 Use another Savouretplus checkout when necessary:
 
@@ -180,10 +181,12 @@ The Python service owns external offer acquisition:
 - Celery workers execute provider scraping and refresh jobs;
 - Celery Beat schedules due-offer refresh and stale-task cleanup;
 - SQLAlchemy persists tracked offers and tasks in the `savis_executor` schema;
+- Playwright connects to a host Google Chrome session over CDP;
 - successful results and invalidations are published back to Java.
 
 Provider collection remains outside Java and HTTP request handlers because it
-is slow, failure-prone, and retryable.
+is slow and failure-prone. The worker uses concurrency one because all scraping
+tasks share the same persistent Chrome session.
 
 ### Supabase Projection
 
@@ -474,8 +477,11 @@ enqueue succeeds -> basic_ack
 enqueue fails    -> basic_nack(requeue=False)
 ```
 
-Celery retries provider work with backoff. After retries are exhausted,
-`ReportingTask` marks the executor task as failed.
+Celery retries unexpected provider failures with backoff. Provider blocks,
+challenge pages, and unavailable external Chrome sessions are explicitly
+non-retryable because an immediate retry would repeat the same refusal.
+`ReportingTask` marks the executor task as failed after either a non-retryable
+error or exhausted retries.
 
 Celery Beat schedules:
 
@@ -575,10 +581,137 @@ VITE_EXECUTOR_API_URL=http://localhost:8000
 RABBIT_MQ_URL=amqp://user:password@localhost:5672/%2f
 DATABASE_URL=postgresql+psycopg://user:password@localhost:5434/savis
 DATABASE_SCHEMA=savis_executor
+BROWSER_CDP_URL=http://localhost:9222
 ```
 
 Never commit real credentials. Root environment files and generated Supabase
 configuration are ignored by Git.
+
+## Production Deployment
+
+The expected production target is an Ubuntu host running:
+
+- Docker Engine with Docker Compose;
+- a graphical desktop session;
+- Google Chrome stable and `socat`;
+- a self-hosted GitHub Actions runner;
+- the SAVIS Compose services.
+
+The GitHub runner should run as the same Ubuntu user that owns the graphical
+session and the Chrome `systemd --user` services.
+
+### One-Time Server Provisioning
+
+Install Docker, Google Chrome stable, and `socat` on the Ubuntu host. Register
+the GitHub Actions runner under the graphical Ubuntu user.
+
+After the repository has been checked out on the server, install the Chrome
+services once:
+
+```bash
+make install-chrome-cdp-ubuntu
+```
+
+The installer reads the unit templates from
+`savis-executor/deploy/systemd/`, copies them to
+`~/.config/systemd/user/`, and starts them. The copied units and the Chrome
+profile remain on the server independently of the GitHub Actions checkout and
+future SAVIS deployments.
+
+The services require an active graphical session and assume `DISPLAY=:0`.
+Adjust `~/.config/systemd/user/savis-chrome-cdp.service` if the production
+display differs, then reload and restart it:
+
+```bash
+systemctl --user daemon-reload
+systemctl --user restart savis-chrome-cdp.service
+```
+
+Verify the browser and Docker relay:
+
+```bash
+systemctl --user is-active savis-chrome-cdp.service
+systemctl --user is-active savis-chrome-cdp-proxy.service
+curl http://127.0.0.1:9222/json/version
+curl http://127.0.0.1:9223/json/version
+```
+
+Port `9223` gives control of the browser. Restrict it with the host firewall so
+it is reachable by Docker but not from the public network.
+
+### Production Environment
+
+Store the production environment outside Git, for example at
+`/etc/savis/savis.env`, and grant read access only to the deployment user:
+
+```env
+DB_USER=
+DB_PASSWORD=
+DB_NAME=
+RABBIT_MQ_USER=
+RABBIT_MQ_PASSWORD=
+BROWSER_CDP_URL=http://host.docker.internal:9223
+SUPABASE_ENABLED=true
+SUPABASE_URL=
+SUPABASE_SERVICE_ROLE_KEY=
+```
+
+Add any other application-specific production variables required by the API
+or admin frontend. Never commit this file.
+
+### GitHub Actions Deployment
+
+`actions/checkout` makes the tracked scripts and service templates available
+inside the runner workspace. Chrome provisioning should not run on every
+deployment; the workflow only verifies the existing services and deploys the
+Compose stack.
+
+Example job for a self-hosted runner:
+
+```yaml
+name: Deploy production
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+
+jobs:
+  deploy:
+    runs-on: [self-hosted, linux, x64]
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Verify Chrome CDP
+        run: |
+          export XDG_RUNTIME_DIR="/run/user/$(id -u)"
+          systemctl --user is-active savis-chrome-cdp.service
+          systemctl --user is-active savis-chrome-cdp-proxy.service
+          curl --fail http://127.0.0.1:9223/json/version >/dev/null
+
+      - name: Deploy SAVIS
+        run: |
+          docker compose \
+            --env-file /etc/savis/savis.env \
+            up -d --build --remove-orphans
+
+      - name: Show service status
+        run: docker compose --env-file /etc/savis/savis.env ps
+```
+
+The runner user must have permission to use Docker and read the production
+environment file. `XDG_RUNTIME_DIR` lets a runner installed as a background
+service reach that user's `systemd` manager. If Chrome verification fails, the
+workflow stops before replacing the SAVIS containers.
+
+After deployment, verify at minimum:
+
+```bash
+docker compose --env-file /etc/savis/savis.env ps
+docker compose --env-file /etc/savis/savis.env logs --tail=100 executor_worker
+curl --fail http://127.0.0.1:8000/docs >/dev/null
+curl --fail http://127.0.0.1:8080/actuator/health
+```
 
 ## Commands
 
@@ -592,6 +725,24 @@ Start local development with Supabase:
 
 ```bash
 make run-local
+```
+
+Start only the macOS Chrome CDP session:
+
+```bash
+make chrome-cdp-start
+```
+
+Install and start the persistent Chrome CDP services on Ubuntu:
+
+```bash
+make install-chrome-cdp-ubuntu
+```
+
+Production Docker uses the Ubuntu relay:
+
+```env
+BROWSER_CDP_URL=http://host.docker.internal:9223
 ```
 
 Start the production Compose targets using `.env`:
@@ -713,7 +864,9 @@ A provider adapter should:
    normalization;
 2. return provider-neutral core `Offer` objects;
 3. expose a stable provider identifier;
-4. allow failures to reach Celery retry and failure reporting;
+4. classify blocks and configuration failures as
+   `OfferProviderNonRetryableError`, while allowing transient failures to reach
+   Celery retry and failure reporting;
 5. include focused parser or adapter tests.
 
 New providers are registered in the executor provider loader. Provider

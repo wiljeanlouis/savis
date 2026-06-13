@@ -1,4 +1,4 @@
-.PHONY: help run-local run-prod stop logs clean \
+.PHONY: help chrome-cdp-start install-chrome-cdp-ubuntu run-local run-prod stop logs clean \
 	supabase-start supabase-stop supabase-status supabase-reset \
 	configure-local-supabase
 
@@ -10,6 +10,8 @@ help:
 	@echo "Command available for SAVIS :"
 	@echo "  make run-local            - Launch SAVIS and Supabase locally"
 	@echo "  make run-prod             - Launch prod environment (.env)"
+	@echo "  make chrome-cdp-start     - Start Chrome CDP on macOS"
+	@echo "  make install-chrome-cdp-ubuntu - Install Chrome CDP services on Ubuntu"
 	@echo "  make stop                 - Stop SAVIS and Supabase containers"
 	@echo "  make logs                 - Show SAVIS logs live"
 	@echo "  make clean                - Stop containers and remove local data"
@@ -17,7 +19,13 @@ help:
 	@echo "  make supabase-reset       - Rebuild the Supabase database"
 
 # DEV mode (Local)
-run-local: supabase-start configure-local-supabase
+chrome-cdp-start:
+	./scripts/start-chrome-cdp-macos.sh
+
+install-chrome-cdp-ubuntu:
+	./scripts/install-chrome-cdp-ubuntu.sh
+
+run-local: chrome-cdp-start supabase-start configure-local-supabase
 	@echo "Launch SAVIS in DEV mode..."
 	docker compose \
 		--env-file .env.supabase.local \

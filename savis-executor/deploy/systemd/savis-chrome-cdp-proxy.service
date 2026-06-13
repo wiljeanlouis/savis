@@ -1,0 +1,13 @@
+[Unit]
+Description=SAVIS Chrome CDP relay for Docker
+After=savis-chrome-cdp.service
+Requires=savis-chrome-cdp.service
+
+[Service]
+Type=simple
+ExecStart=/usr/bin/socat TCP-LISTEN:9223,bind=0.0.0.0,reuseaddr,fork TCP:127.0.0.1:9222
+Restart=always
+RestartSec=2
+
+[Install]
+WantedBy=default.target

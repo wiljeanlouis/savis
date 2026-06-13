@@ -7,12 +7,24 @@ from uuid import UUID, uuid7
 
 from app.adapters.celery import celery_tasks
 from app.core.models import SavisTaskType
+from app.core.ports import OfferProviderNonRetryableError
 
 if TYPE_CHECKING:
     import pytest
 
 SCHEDULED_REFRESH_COUNT = 2
 STALE_TASK_COUNT = 3
+
+
+def test_scraping_tasks_do_not_retry_maxi_block_errors() -> None:
+    scraping_tasks = (
+        celery_tasks.get_offer_task,
+        celery_tasks.get_offers_task,
+        celery_tasks.refresh_offer_task,
+    )
+
+    for task in scraping_tasks:
+        assert OfferProviderNonRetryableError in task.dont_autoretry_for
 
 
 class FakeTaskRepository:

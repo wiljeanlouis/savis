@@ -24,6 +24,14 @@ if TYPE_CHECKING:
     )
 
 
+class OfferProviderNonRetryableError(RuntimeError):
+    """Raised when retrying an offer provider immediately would not help."""
+
+
+class OfferProviderBlockedError(OfferProviderNonRetryableError):
+    """Raised when an offer provider explicitly blocks collection."""
+
+
 class OfferProvider(ABC):
     """Port for provider offer retrieval."""
 

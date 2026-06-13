@@ -10,6 +10,7 @@ from app.adapters.celery.celery_wiring import (
     get_savis_task_use_case,
 )
 from app.core.models import OfferType, ProviderName, SavisTaskType
+from app.core.ports import OfferProviderNonRetryableError
 
 logger = logging.getLogger(__name__)
 
@@ -43,6 +44,7 @@ class ReportingTask(Task):
 @celery_app.task(
     bind=True,
     autoretry_for=(Exception,),
+    dont_autoretry_for=(OfferProviderNonRetryableError,),
     retry_backoff=True,
     retry_kwargs={"max_retries": 3},
     base=ReportingTask,
@@ -72,6 +74,7 @@ def get_offer_task(
 @celery_app.task(
     bind=True,
     autoretry_for=(Exception,),
+    dont_autoretry_for=(OfferProviderNonRetryableError,),
     retry_backoff=True,
     retry_kwargs={"max_retries": 3},
     base=ReportingTask,
@@ -94,6 +97,7 @@ def get_offers_task(
 @celery_app.task(
     bind=True,
     autoretry_for=(Exception,),
+    dont_autoretry_for=(OfferProviderNonRetryableError,),
     retry_backoff=True,
     retry_kwargs={"max_retries": 3},
     base=ReportingTask,

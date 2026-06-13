@@ -1,0 +1,14 @@
+[Unit]
+Description=SAVIS Google Chrome CDP session
+After=graphical-session.target
+PartOf=graphical-session.target
+
+[Service]
+Type=simple
+Environment=DISPLAY=:0
+ExecStart=/usr/bin/google-chrome --remote-debugging-port=9222 --remote-allow-origins=* --user-data-dir=%h/.local/share/savis/maxi-cdp-profile https://www.maxi.ca/
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=default.target

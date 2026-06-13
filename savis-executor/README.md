@@ -38,11 +38,17 @@ SAVIS API                           SAVIS Admin
           v                                 |
 +-------------------+                       |
 | Executor Worker   |-----------------------+
-| Celery + Chromium |
+| Celery, one process |
++---------+---------+
+          | Playwright over CDP
+          v
++-------------------+
+| Host Google Chrome |
+| persistent profile |
 +---------+---------+
           |
           v
- Provider websites
+  Provider websites
 
 +-------------------+
 | Executor Beat     |
@@ -56,7 +62,7 @@ Executor -> SAVIS API: offer results and invalidations through RabbitMQ
 | Process | Role |
 | --- | --- |
 | `executor_api` | Serves FastAPI, creates the database schema, and runs the RabbitMQ request subscriber. |
-| `executor_worker` | Executes Celery collection and refresh tasks with Playwright Chromium. |
+| `executor_worker` | Executes Celery collection and refresh tasks through an external Google Chrome CDP session. |
 | `executor_beat` | Schedules due-offer refreshes and stale-task cleanup. |
 
 ## Architecture
@@ -75,7 +81,14 @@ app/
 │   ├── celery/                    # Queue adapter, worker tasks, and Beat schedule
 │   ├── database/                  # SQLAlchemy repositories
 │   ├── rabbitmq/                  # SAVIS request subscriber and result publisher
-│   └── scrapers/                  # Provider adapters and extraction logic
+│   └── scrapers/
+│       ├── browser_manager.py     # External Chrome CDP connection lifecycle
+│       └── maxi/
+│           ├── scraper.py         # Navigation, block detection, provider adapter
+│           ├── list_extractor.py  # Search-result extraction
+│           ├── details_extractor.py # Product-detail extraction
+│           ├── parsing.py         # Shared provider parsing and normalization
+│           └── models.py          # Provider draft conversion
 ├── config.py                      # Environment configuration
 ├── container.py                   # Dependency composition
 └── main.py                        # FastAPI application and lifespan
@@ -316,12 +329,46 @@ The provider registry currently loads one adapter:
 - **Maxi**, store `8772` in Drummondville, using Playwright and
   BeautifulSoup-based extraction.
 
-The worker blocks image, media, and font requests while scraping. New providers
-must implement the `OfferProvider` port and be registered by
-`load_offer_providers()`.
+The worker connects over CDP to a Google Chrome process running on the host.
+Chrome owns its persistent profile and remains open between tasks. The scraper
+blocks media and font requests. New providers must implement the
+`OfferProvider` port and be registered by `load_offer_providers()`.
+
+Maxi extraction is separated by page type:
+
+- `list_extractor.py` parses search-result cards and derives a total price from
+  the package size and comparison price when required;
+- `details_extractor.py` parses one product page, its selling price, stable
+  product identity, image, and package size;
+- `parsing.py` owns shared money, decimal, unit, and package normalization;
+- `models.py` converts provider-specific drafts into core offers;
+- `extractor.py` remains a compatibility facade for existing imports.
+
+On product details, an explicit package size is preferred. When it is absent,
+the extractor uses the quantity beside the comparison price, for example
+`/ 1kg` or `/ 100g`. It intentionally does not use Maxi's average-weight text
+as the package size.
 
 Package quantities are normalized to the symbols consumed by SAVIS API,
 including `g`, `kg`, `l`, `ml`, and `piece`.
+
+## Failure and Retry Policy
+
+Scraping tasks normally retry unexpected failures with Celery backoff, up to
+three retries. The following failures inherit from
+`OfferProviderNonRetryableError` and fail immediately:
+
+- Maxi returns HTTP `403` or `429`;
+- the expected list or product selector never appears, which usually indicates
+  a challenge or access-denied page;
+- `BrowserManager` cannot reach the configured Chrome CDP endpoint.
+
+This prevents one access refusal from producing three additional requests.
+`ReportingTask` still records the final error on the executor task.
+
+The worker runs with `--concurrency=1`. Increasing concurrency would allow
+multiple tasks to manipulate the same persistent browser session and is not
+supported by the current design.
 
 ## Persistence
 
@@ -339,10 +386,11 @@ The module does not currently use a migration framework.
 
 | Variable | Default | Purpose |
 | --- | --- | --- |
-| `DATABASE_URL` | `postgresql+psycopg://postgres:postgres@postgres:5432/postgres` | SQLAlchemy connection URL. |
+| `DATABASE_URL` | `postgresql+psycopg://postgres:postgres@localhost:5432/postgres` | SQLAlchemy connection URL. |
 | `DATABASE_SCHEMA` | `savis_executor` | PostgreSQL schema owned by the executor. |
-| `RABBIT_MQ_URL` | Development placeholder | RabbitMQ URL used by the subscriber, publisher, and Celery. |
-| `REDIS_URL` | Development placeholder | Present in configuration, but not used by the active runtime paths. |
+| `RABBIT_MQ_URL` | `amqp://guest:guest@localhost:5672/%2f` | RabbitMQ URL used by the subscriber, publisher, and Celery. |
+| `REDIS_URL` | `redis://localhost:6379/0` | Present in configuration, but not used by the active runtime paths. |
+| `BROWSER_CDP_URL` | `http://localhost:9222` | CDP endpoint of the external Google Chrome process. |
 
 The root Docker Compose file provides concrete values from the repository
 environment.
@@ -355,13 +403,12 @@ Requirements:
 - [uv](https://docs.astral.sh/uv/);
 - PostgreSQL;
 - RabbitMQ;
-- Chromium installed through Playwright.
+- Google Chrome running with remote debugging enabled.
 
-Install dependencies and the browser:
+Install dependencies:
 
 ```bash
 uv sync
-uv run playwright install chromium
 ```
 
 Start each process in a separate terminal:
@@ -370,8 +417,32 @@ Start each process in a separate terminal:
 uv run fastapi dev
 ```
 
+On macOS, start the dedicated Chrome session from the repository root:
+
 ```bash
-uv run celery -A app.adapters.celery.celery_app worker --loglevel=info
+make chrome-cdp-start
+```
+
+The command is idempotent: it reuses Chrome when port `9222` already responds.
+`make run-local` invokes it automatically. Chrome uses
+`~/Library/Application Support/Savis/maxi-cdp-profile` by default. Override
+`CHROME_CDP_PORT`, `CHROME_CDP_PROFILE_DIR`, or `CHROME_APP_PATH` when needed.
+
+Verify the local endpoint:
+
+```bash
+curl http://127.0.0.1:9222/json/version
+```
+
+Keep port `9222` private; anyone who can reach it can control the browser.
+
+```bash
+RABBIT_MQ_URL="amqp://user:password@localhost:5672/%2f" \
+DATABASE_URL="postgresql+psycopg://user:password@localhost:5434/database" \
+BROWSER_CDP_URL="http://localhost:9222" \
+uv run celery -A app.adapters.celery.celery_app worker \
+  --loglevel=info \
+  --concurrency=1
 ```
 
 ```bash
@@ -386,8 +457,107 @@ To run the complete SAVIS environment from the repository root:
 docker compose up --build
 ```
 
-The Dockerfile provides dedicated `api`, `worker`, and `beat` targets. The
-worker image includes Playwright Chromium and runs with a concurrency of two.
+The Dockerfile provides dedicated `api`, `worker`, and `beat` targets. Chrome
+runs on the host and Docker Compose connects through
+`http://host.docker.internal:9222` on macOS. Celery uses a concurrency of one
+so scraping tasks do not compete for the same browser.
+
+## Production Chrome Provisioning
+
+Chrome is host infrastructure, not a process owned by Celery or by the
+executor container. Provision it once before the first SAVIS deployment.
+
+On an Ubuntu desktop server:
+
+1. Install Google Chrome stable and `socat`.
+2. Run the self-hosted GitHub Actions runner as the graphical desktop user.
+3. Check out the SAVIS repository.
+4. Install the included user services:
+
+```bash
+make install-chrome-cdp-ubuntu
+```
+
+`savis-chrome-cdp.service` keeps the visible Chrome process and its dedicated
+profile alive. `savis-chrome-cdp-proxy.service` relays host port `9223` to
+Chrome's loopback-only CDP port.
+
+The installation script copies the tracked templates from
+`deploy/systemd/` to `~/.config/systemd/user/`. They therefore remain installed
+when GitHub Actions cleans or replaces its checkout. The script only needs to
+be rerun when the unit templates change.
+
+Configure the production Compose environment with:
+
+```env
+BROWSER_CDP_URL=http://host.docker.internal:9223
+```
+
+The services start with the graphical user session and assume `DISPLAY=:0`.
+Adjust the copied unit if the Ubuntu desktop uses another display. The
+executor worker and these services must run under a setup where the runner can
+access the same user service manager.
+
+Verify the complete path before deploying the executor:
+
+```bash
+systemctl --user is-active savis-chrome-cdp.service
+systemctl --user is-active savis-chrome-cdp-proxy.service
+curl --fail http://127.0.0.1:9222/json/version
+curl --fail http://127.0.0.1:9223/json/version
+```
+
+Do not expose ports `9222` or `9223` to the public network. Restrict `9223`
+with the host firewall to Docker traffic.
+
+Normal SAVIS deployments should not reinstall or restart Chrome. A deployment
+job only checks the services and rebuilds the containers:
+
+```bash
+export XDG_RUNTIME_DIR="/run/user/$(id -u)"
+systemctl --user is-active savis-chrome-cdp.service
+systemctl --user is-active savis-chrome-cdp-proxy.service
+docker compose \
+  --env-file /etc/savis/savis.env \
+  up -d --build --remove-orphans
+```
+
+See the root [production deployment guide](../README.md#production-deployment)
+for the complete server and GitHub Actions procedure.
+
+## Browser Troubleshooting
+
+Check the host services first:
+
+```bash
+export XDG_RUNTIME_DIR="/run/user/$(id -u)"
+systemctl --user status savis-chrome-cdp.service
+systemctl --user status savis-chrome-cdp-proxy.service
+curl --fail http://127.0.0.1:9222/json/version
+curl --fail http://127.0.0.1:9223/json/version
+```
+
+Then verify the endpoint from the worker container:
+
+```bash
+docker compose \
+  --env-file /etc/savis/savis.env \
+  exec executor_worker \
+  python -c 'import httpx; print(httpx.get("http://host.docker.internal:9223/json/version", headers={"Host": "localhost:9223"}).json()["Browser"])'
+```
+
+Interpret common failures as follows:
+
+- `Cannot connect to external Chrome`: Chrome, the relay, the firewall, or
+  `BROWSER_CDP_URL` is unavailable;
+- HTTP `403` or `429`: Maxi explicitly refused the current browser/network
+  session;
+- expected selector timeout: Chrome loaded a challenge or unexpected page.
+
+Restarting SAVIS containers does not reset Chrome. To reset its session, stop
+the Chrome service, remove
+`~/.local/share/savis/maxi-cdp-profile`, and start the service again. This
+deletes all cookies and local storage and may not remove a network-level block.
 
 ## Tests and Quality
 

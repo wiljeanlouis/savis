@@ -28,6 +28,8 @@ source and tests.
 - Keep Java as the source of truth for SAVIS business state.
 - Keep provider acquisition outside request handlers because scraping is slow,
   unstable, and retryable.
+- Keep the browser session outside Celery so its profile, cookies, and local
+  storage survive task and container restarts.
 - Keep Catalog independent from BOM internals; Catalog references BOMs by UUID
   and uses a public BOM pricing API.
 - Keep Supabase as a public projection, not the product system of record.
@@ -71,6 +73,8 @@ flowchart LR
     ExecutorApi["Container<br/>Python FastAPI Executor API<br/>and RabbitMQ subscriber"]
     Worker["Container<br/>Celery Worker<br/>Provider scraping and refresh"]
     Beat["Container<br/>Celery Beat<br/>Periodic scheduler"]
+    ChromeRelay["Host service<br/>CDP relay :9223"]
+    Chrome["Host process<br/>Google Chrome<br/>Persistent SAVIS profile"]
     Rabbit[("Container<br/>RabbitMQ")]
     PgApi[("Container<br/>PostgreSQL schema savis_api")]
     PgExecutor[("Container<br/>PostgreSQL schema savis_executor")]
@@ -94,7 +98,9 @@ flowchart LR
 
   Worker -->|SQLAlchemy| PgExecutor
   Worker -->|Celery broker| Rabbit
-  Worker -->|scrape / refresh| Providers
+  Worker -->|Playwright over CDP| ChromeRelay
+  ChromeRelay -->|localhost :9222| Chrome
+  Chrome -->|browse / refresh| Providers
   Worker -->|publish results| Rabbit
 
   Beat -->|scheduled tasks| Rabbit
@@ -110,6 +116,8 @@ flowchart LR
 | `savis-executor` API | Executor HTTP API and lightweight RabbitMQ subscriber                                 | PostgreSQL schema `savis_executor` |
 | Celery worker        | Slow provider collection and offer refresh                                            | PostgreSQL schema `savis_executor` |
 | Celery Beat          | Due-offer refresh and stale-task cleanup scheduling                                   | Celery broker state                |
+| Google Chrome        | Host browser session with persistent Maxi cookies, storage, and browser identity       | Dedicated host profile directory  |
+| CDP relay            | Makes Chrome's loopback CDP endpoint reachable from the Docker worker on Ubuntu         | None                               |
 | RabbitMQ             | Offer request/result transport and Celery broker                                      | Broker queues                      |
 | Supabase             | Public catalog, customer order, and quote-request projection                          | Supabase PostgreSQL                |
 
@@ -194,7 +202,8 @@ flowchart TB
       Database["Component<br/>SQLAlchemy repositories"]
       Queue["Component<br/>CeleryQueue"]
       Publisher["Component<br/>RabbitMQ result publisher"]
-      Scrapers["Component<br/>Provider scrapers<br/>Maxi, future providers"]
+      Browser["Component<br/>BrowserManager<br/>External Chrome CDP"]
+      Scrapers["Component<br/>Provider scrapers<br/>Maxi list and details"]
     end
   end
 
@@ -215,15 +224,25 @@ flowchart TB
   Ports --> Queue
   Ports --> Publisher
   Ports --> Scrapers
+  Scrapers --> Browser
 ```
 
 ### Executor Component Rules
 
 - Core models and use cases are provider-neutral.
-- Provider-specific selectors, parsing, Playwright behavior, and HTML handling
-  live under scraper adapters.
+- `BrowserManager` connects to an already-running Chrome instance over CDP,
+  creates one page per operation, and disconnects without stopping Chrome.
+- Maxi keeps search-result extraction and product-detail extraction separate;
+  shared normalization and draft conversion remain provider-local.
+- Product details prefer the explicit package size and otherwise use the
+  comparison-price reference quantity such as `/ 1kg`; average-weight text is
+  not used as the package size.
 - HTTP routes and RabbitMQ callbacks only validate, translate, and enqueue.
-- Celery executes slow and retryable work.
+- Celery executes slow work with concurrency one because all scraping tasks
+  share the external browser session.
+- Transient failures use Celery backoff. Provider blocks, challenge pages, and
+  browser connection failures are non-retryable because an immediate retry
+  would only repeat the refusal.
 - Failed Celery tasks are reported to executor task persistence through
   `ReportingTask`.
 
@@ -497,11 +516,18 @@ sequenceDiagram
   Offers->>Provider: scrape or refresh
   alt success
     Worker->>TaskRepo: mark completed
+  else provider block or browser unavailable
+    Worker->>TaskRepo: mark failed without automatic retry
   else repeated failure
     Worker->>Worker: retry with backoff
     Worker->>TaskRepo: mark failed after max retries
   end
 ```
+
+Maxi responses with HTTP `403` or `429`, pages that never expose the expected
+content, and failures to connect to external Chrome raise
+`OfferProviderNonRetryableError` subclasses. Other unexpected failures retain
+the normal Celery retry policy.
 
 RabbitMQ subscriber callbacks use `basic_ack` only after enqueueing succeeds.
 Malformed or unprocessable messages currently use `basic_nack(requeue=false)`;
@@ -571,6 +597,13 @@ app/
     database/
     rabbitmq/
     scrapers/
+      browser_manager.py
+      maxi/
+        scraper.py
+        list_extractor.py
+        details_extractor.py
+        parsing.py
+        models.py
   container.py
 ```
 
@@ -594,6 +627,9 @@ src/
 - Keep domain/core models framework-independent.
 - Keep cross-module dependencies explicit through ports or public APIs.
 - Keep provider scraping isolated behind executor `OfferProvider` adapters.
+- Keep host browser lifecycle outside Celery and Docker container lifecycle.
+- Never allow more than one worker process to control the shared Chrome
+  profile.
 - Keep Java as owner of business state.
 - Keep Python as owner of acquisition execution and task state.
 - Keep Supabase as a projection, not the source of truth.
