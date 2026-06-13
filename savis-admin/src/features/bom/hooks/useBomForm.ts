@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import type { Bom, BomActivity, BomComponent } from "../types";
+import type { Bom, BomActivity, BomComponent, BomType } from "../types";
 import {
   saveDraft,
   loadDraft,
@@ -32,6 +32,7 @@ export const useBomForm = () => {
   const [form, setForm] = useState({
     id: initForm?.id ?? null,
     name: initForm?.name ?? "",
+    type: initForm?.type ?? "FOOD",
     description: initForm?.description ?? "",
     imageUrl: initForm?.imageUrl ?? "",
     instructions: initForm?.instructions ?? "",
@@ -57,7 +58,10 @@ export const useBomForm = () => {
     }
   }, [form, isDirty]);
 
-  const updateField = (field: string, value: string | number) => {
+  const updateField = (
+    field: "name" | "type" | "description" | "imageUrl" | "instructions",
+    value: string | BomType,
+  ) => {
     setForm((prev) => ({
       ...prev,
       [field]: value,

@@ -18,6 +18,7 @@ describe("BomDraftStorage", () => {
       const bom: Bom = {
         id: "test-id",
         name: "Test Bom",
+        type: "FOOD",
         description: "A test bom",
         imageUrl: "",
         instructions: "",
@@ -44,6 +45,7 @@ describe("BomDraftStorage", () => {
       const bom: Bom = {
         id: "test-id",
         name: "Test Bom",
+        type: "FOOD",
         description: "A test bom",
         imageUrl: "",
         instructions: "",
@@ -77,6 +79,7 @@ describe("BomDraftStorage", () => {
       const bom: Bom = {
         id: "test-id",
         name: "Test Bom",
+        type: "FOOD",
         description: "A test bom",
         imageUrl: "",
         instructions: "",
@@ -110,6 +113,7 @@ describe("BomDraftStorage", () => {
       const bom1: Bom = {
         id: "id-1",
         name: "Bom 1",
+        type: "FOOD",
         description: "First bom",
         imageUrl: "",
         instructions: "",
@@ -131,6 +135,7 @@ describe("BomDraftStorage", () => {
       const bom2: Bom = {
         id: "id-2",
         name: "Bom 2",
+        type: "MATERIAL",
         description: "Second bom",
         imageUrl: "",
         instructions: "",
@@ -176,6 +181,7 @@ describe("BomDraftStorage", () => {
       const bom: Bom = {
         id: null,
         name: "Test Bom",
+        type: "FOOD",
         description: "A test bom",
         imageUrl: "",
         instructions: "",
@@ -210,6 +216,7 @@ describe("BomDraftStorage", () => {
       const bom: Bom = {
         id: null,
         name: "Test Bom",
+        type: "FOOD",
         description: "A test bom",
         imageUrl: "",
         instructions: "",
@@ -243,6 +250,7 @@ describe("BomDraftStorage", () => {
       const bom: Bom = {
         id: null,
         name: "Test Bom",
+        type: "FOOD",
         description: "A test bom",
         imageUrl: "",
         instructions: "",

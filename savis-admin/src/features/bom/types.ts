@@ -49,6 +49,8 @@ export interface BomYield {
   unit: string;
 }
 
+export type BomType = "FOOD" | "MATERIAL";
+
 export interface BomPrice {
   amount: number;
   currency: string;
@@ -57,6 +59,7 @@ export interface BomPrice {
 export interface Bom {
   id: string | null;
   name: string;
+  type: BomType;
   description: string;
   imageUrl: string;
   instructions: string;

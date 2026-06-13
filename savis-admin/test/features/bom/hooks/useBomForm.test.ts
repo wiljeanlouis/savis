@@ -14,6 +14,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 const mockBom: Bom = {
   id: "1",
   name: "Test Bom",
+  type: "FOOD",
   description: "A delicious test bom",
   imageUrl: "http://example.com/image.jpg",
   instructions: "Mix ingredients and cook.",
@@ -71,6 +72,7 @@ describe("useBomForm", () => {
       const draftBom: Bom = {
         id: null,
         name: "Draft Bom",
+        type: "MATERIAL",
         description: "A draft bom",
         imageUrl: "",
         instructions: "",
@@ -101,6 +103,7 @@ describe("useBomForm", () => {
       expect(result.current.form).toEqual({
         id: null,
         name: "",
+        type: "FOOD",
         description: "",
         imageUrl: "",
         instructions: "",
@@ -115,6 +118,22 @@ describe("useBomForm", () => {
   });
 
   describe("draft handling", () => {
+    it("should update the BOM type", () => {
+      vi.mocked(useLoaderData).mockReturnValue(null);
+      vi.mocked(usePostBom).mockReturnValue(mockMutation);
+
+      const { result } = renderHook(() => useBomForm());
+
+      act(() => {
+        result.current.updateField("type", "MATERIAL");
+      });
+
+      expect(result.current.form.type).toBe("MATERIAL");
+      expect(saveDraft).toHaveBeenCalledWith(
+        expect.objectContaining({ type: "MATERIAL" }),
+      );
+    });
+
     it("should save draft when form is dirty and has no id", () => {
       // Mock useLoaderData to return null (new bom)
       vi.mocked(useLoaderData).mockReturnValue(null);
@@ -169,6 +188,7 @@ describe("useBomForm", () => {
       const initialBom: Bom = {
         id: "1",
         name: "Test Bom",
+        type: "FOOD",
         description: "",
         imageUrl: "",
         instructions: "",
@@ -204,6 +224,7 @@ describe("useBomForm", () => {
       const initialBom: Bom = {
         id: "1",
         name: "Test Bom",
+        type: "FOOD",
         description: "",
         imageUrl: "",
         instructions: "",

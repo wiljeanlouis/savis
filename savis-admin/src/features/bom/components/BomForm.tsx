@@ -3,7 +3,7 @@ import { useBomForm } from "../hooks/useBomForm";
 import { BomComponentInput } from "./BomComponentInput";
 import { ActivityInput } from "./ActivityInput";
 import { Button } from "@/shared/ui/button";
-import type { BomActivity, BomComponent } from "../types";
+import type { BomActivity, BomComponent, BomType } from "../types";
 import {
   FieldGroup,
   FieldSet,
@@ -83,18 +83,42 @@ export const BomForm = ({ showTitle = true }: BomFormProps) => {
             <div className="space-y-10 lg:col-span-2">
               <FieldSet>
                 <FieldGroup>
-                  <Field>
-                    <FieldLabel htmlFor="bom-form-name">Nom</FieldLabel>
-                    <Input
-                      id="bom-form-name"
-                      placeholder="Boeuf bourgignon, Arche de ballons, Sac d'emballage 10'', etc"
-                      value={form.name}
-                      onChange={(e) => {
-                        updateField("name", e.target.value);
-                      }}
-                      required
-                    />
-                  </Field>
+                  <FieldGroup className="grid grid-cols-1 gap-4 md:grid-cols-[minmax(0,2fr)_minmax(12rem,1fr)]">
+                    <Field>
+                      <FieldLabel htmlFor="bom-form-name">Nom</FieldLabel>
+                      <Input
+                        id="bom-form-name"
+                        placeholder="Boeuf bourgignon, Arche de ballons, Sac d'emballage 10'', etc"
+                        value={form.name}
+                        onChange={(e) => {
+                          updateField("name", e.target.value);
+                        }}
+                        required
+                      />
+                    </Field>
+
+                    <Field>
+                      <FieldLabel htmlFor="bom-form-type">
+                        Type de BOM
+                      </FieldLabel>
+                      <Select
+                        value={form.type}
+                        onValueChange={(value) => {
+                          updateField("type", value as BomType);
+                        }}
+                      >
+                        <SelectTrigger id="bom-form-type" className="w-full">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectGroup>
+                            <SelectItem value="FOOD">Aliment</SelectItem>
+                            <SelectItem value="MATERIAL">Matériel</SelectItem>
+                          </SelectGroup>
+                        </SelectContent>
+                      </Select>
+                    </Field>
+                  </FieldGroup>
                   <Field>
                     <FieldLabel htmlFor="bom-form-description">
                       Description
