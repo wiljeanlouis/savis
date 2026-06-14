@@ -47,7 +47,6 @@ def _policy(
     return (
         SqlAlchemyProviderAccessPolicy(
             session_factory=session_factory,
-            schema_creator=lambda: None,
             min_delay_seconds=5,
             max_delay_seconds=5,
             cooldown_seconds=cooldown_seconds,

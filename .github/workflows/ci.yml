@@ -1,0 +1,117 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_call:
+
+permissions:
+  contents: read
+
+jobs:
+  api:
+    name: API Java
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
+      - uses: actions/setup-java@c1e323688fd81a25caa38c78aa6df2d33d3e20d9
+        with:
+          distribution: temurin
+          java-version: "25"
+          cache: maven
+      - name: Test
+        working-directory: savis-api
+        run: ./mvnw --batch-mode test
+
+  executor:
+    name: Executor Python
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065
+        with:
+          python-version: "3.14"
+      - uses: astral-sh/setup-uv@d0d8abe699bfb85fec6de9f7adb5ae17292296ff
+        with:
+          enable-cache: true
+      - name: Install locked dependencies
+        working-directory: savis-executor
+        run: uv sync --frozen
+      - name: Lint
+        working-directory: savis-executor
+        run: uv run ruff check .
+      - name: Test
+        working-directory: savis-executor
+        run: uv run pytest
+      - name: Validate Alembic migration chain
+        working-directory: savis-executor
+        env:
+          DATABASE_URL: postgresql+psycopg://postgres:postgres@localhost:5432/postgres
+        run: uv run alembic upgrade head --sql >/dev/null
+
+  admin:
+    name: Admin frontend
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: "24"
+          cache: npm
+          cache-dependency-path: savis-admin/package-lock.json
+      - name: Install locked dependencies
+        working-directory: savis-admin
+        run: npm ci
+      - name: Lint
+        working-directory: savis-admin
+        run: npm run lint
+      - name: Test
+        working-directory: savis-admin
+        run: npm test -- --run
+      - name: Build
+        working-directory: savis-admin
+        run: npm run build
+
+  deployment:
+    name: Deployment definitions
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: "24"
+      - name: Validate production Compose
+        env:
+          DB_USER: ci
+          DB_PASSWORD: ci
+          DB_NAME: ci
+          RABBIT_MQ_USER: ci
+          RABBIT_MQ_PASSWORD: ci
+          SAVIS_API_IMAGE: ghcr.io/wiljeanlouis/savis-api@sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+          SAVIS_ADMIN_IMAGE: ghcr.io/wiljeanlouis/savis-admin@sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb
+          SAVIS_EXECUTOR_IMAGE: ghcr.io/wiljeanlouis/savis-executor@sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
+        run: docker compose -f compose.prod.yml config --quiet
+      - name: Start local Supabase
+        run: npx --yes supabase start
+      - name: Lint Supabase migrations
+        run: npx --yes supabase db lint --local --level warning
+      - name: Stop local Supabase
+        if: always()
+        run: npx --yes supabase stop --no-backup
+
+  result:
+    name: CI successful
+    if: always()
+    needs: [api, executor, admin, deployment]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Require every job to pass
+        env:
+          NEEDS_JSON: ${{ toJSON(needs) }}
+        run: |
+          if echo "${NEEDS_JSON}" | jq -e 'all(.[]; .result == "success")' >/dev/null; then
+            exit 0
+          fi
+          echo "${NEEDS_JSON}" | jq .
+          exit 1

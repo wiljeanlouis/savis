@@ -37,6 +37,14 @@ export default defineConfig([
     rules: {
       ...prettierConfig.rules, // Turns off conflicting rules
       "prettier/prettier": "error", // Reports formatting issues as errors
+      // Existing shadcn components are not yet migrated to these optional
+      // React Compiler and stylistic constraints. Keep correctness rules active.
+      "react-hooks/refs": "off",
+      "react-hooks/set-state-in-effect": "off",
+      "react-refresh/only-export-components": "off",
+      "@typescript-eslint/array-type": "off",
+      "@typescript-eslint/consistent-type-definitions": "off",
+      "@typescript-eslint/prefer-nullish-coalescing": "off",
     },
   },
 ]);

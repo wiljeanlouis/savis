@@ -28,10 +28,7 @@ def _repository() -> tuple[SqlAlchemySavisTaskRepository, sessionmaker[Session]]
     Base.metadata.create_all(bind=engine)
     session_factory = sessionmaker(bind=engine, expire_on_commit=False)
     return (
-        SqlAlchemySavisTaskRepository(
-            session_factory=session_factory,
-            schema_creator=lambda: None,
-        ),
+        SqlAlchemySavisTaskRepository(session_factory=session_factory),
         session_factory,
     )
 

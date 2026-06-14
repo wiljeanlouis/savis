@@ -1,27 +1,21 @@
-# Étape 1 : Environnement de compilation et développement
 FROM maven:3.9.14-eclipse-temurin-25-alpine AS development
 WORKDIR /app
-RUN apk update && apk upgrade --no-cache
 
-# Cache des dépendances Maven
 COPY pom.xml .
-RUN mvn dependency:go-offline -B
-
-# Copie du code source
 COPY src ./src
 
-# Par défaut en dev, on lance Spring Boot via Maven
 CMD ["mvn", "spring-boot:run", "-Dspring-boot.run.profiles=dev"]
 
-# Étape 2 : Build pour la production
 FROM development AS build
-RUN mvn clean package -DskipTests
+RUN --mount=type=cache,target=/root/.m2 \
+  mvn clean package -Dmaven.test.skip=true -B
 
-# Étape 3 : Image finale de production ultra-légère
 FROM eclipse-temurin:25-jre-alpine AS production
 WORKDIR /app
 COPY --from=build /app/target/*.jar /opt/app.jar
 EXPOSE 8080
 RUN addgroup -S spring && adduser -S spring -G spring
 USER spring:spring
+HEALTHCHECK --interval=30s --timeout=5s --start-period=30s --retries=3 \
+  CMD wget -qO- http://127.0.0.1:8080/actuator/health/readiness || exit 1
 ENTRYPOINT ["java", "-jar", "/opt/app.jar"]

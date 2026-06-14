@@ -35,10 +35,7 @@ def _repository() -> tuple[SqlAlchemyOfferRepository, sessionmaker[Session]]:
     Base.metadata.create_all(bind=engine)
     session_factory = sessionmaker(bind=engine, expire_on_commit=False)
     return (
-        SqlAlchemyOfferRepository(
-            session_factory=session_factory,
-            schema_creator=lambda: None,
-        ),
+        SqlAlchemyOfferRepository(session_factory=session_factory),
         session_factory,
     )
 

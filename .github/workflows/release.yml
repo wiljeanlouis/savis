@@ -1,0 +1,152 @@
+name: Release images
+
+on:
+  push:
+    tags:
+      - "v*.*.*"
+
+permissions:
+  contents: read
+
+jobs:
+  ci:
+    uses: ./.github/workflows/ci.yml
+
+  release:
+    name: Build immutable release
+    needs: ci
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      packages: write
+      id-token: write
+      attestations: write
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
+        with:
+          fetch-depth: 0
+
+      - name: Validate release tag and source branch
+        id: version
+        run: |
+          version="${GITHUB_REF_NAME}"
+          [[ "${version}" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]
+          git merge-base --is-ancestor "${GITHUB_SHA}" origin/main
+          echo "version=${version}" >>"${GITHUB_OUTPUT}"
+          echo "short_sha=${GITHUB_SHA::12}" >>"${GITHUB_OUTPUT}"
+
+      - uses: docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f
+      - uses: docker/login-action@c94ce9fb468520275223c153574b00df6fe4bcc9
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and publish API
+        id: api
+        uses: docker/build-push-action@10e90e3645eae34f1e60eeb005ba3a3d33f178e8
+        with:
+          context: savis-api
+          target: production
+          push: true
+          sbom: true
+          provenance: mode=max
+          cache-from: type=gha,scope=api
+          cache-to: type=gha,mode=max,scope=api
+          tags: |
+            ghcr.io/wiljeanlouis/savis-api:${{ steps.version.outputs.version }}
+            ghcr.io/wiljeanlouis/savis-api:sha-${{ steps.version.outputs.short_sha }}
+          labels: |
+            org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }}
+            org.opencontainers.image.version=${{ steps.version.outputs.version }}
+            org.opencontainers.image.revision=${{ github.sha }}
+
+      - name: Build and publish Admin
+        id: admin
+        uses: docker/build-push-action@10e90e3645eae34f1e60eeb005ba3a3d33f178e8
+        with:
+          context: savis-admin
+          target: production
+          push: true
+          sbom: true
+          provenance: mode=max
+          cache-from: type=gha,scope=admin
+          cache-to: type=gha,mode=max,scope=admin
+          tags: |
+            ghcr.io/wiljeanlouis/savis-admin:${{ steps.version.outputs.version }}
+            ghcr.io/wiljeanlouis/savis-admin:sha-${{ steps.version.outputs.short_sha }}
+          labels: |
+            org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }}
+            org.opencontainers.image.version=${{ steps.version.outputs.version }}
+            org.opencontainers.image.revision=${{ github.sha }}
+
+      - name: Build and publish Executor
+        id: executor
+        uses: docker/build-push-action@10e90e3645eae34f1e60eeb005ba3a3d33f178e8
+        with:
+          context: savis-executor
+          push: true
+          sbom: true
+          provenance: mode=max
+          cache-from: type=gha,scope=executor
+          cache-to: type=gha,mode=max,scope=executor
+          tags: |
+            ghcr.io/wiljeanlouis/savis-executor:${{ steps.version.outputs.version }}
+            ghcr.io/wiljeanlouis/savis-executor:sha-${{ steps.version.outputs.short_sha }}
+          labels: |
+            org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }}
+            org.opencontainers.image.version=${{ steps.version.outputs.version }}
+            org.opencontainers.image.revision=${{ github.sha }}
+
+      - name: Attest API image
+        uses: actions/attest-build-provenance@96b4a1ef7235a096b17240c259729fdd70c83d45
+        with:
+          subject-name: ghcr.io/wiljeanlouis/savis-api
+          subject-digest: ${{ steps.api.outputs.digest }}
+          push-to-registry: true
+
+      - name: Attest Admin image
+        uses: actions/attest-build-provenance@96b4a1ef7235a096b17240c259729fdd70c83d45
+        with:
+          subject-name: ghcr.io/wiljeanlouis/savis-admin
+          subject-digest: ${{ steps.admin.outputs.digest }}
+          push-to-registry: true
+
+      - name: Attest Executor image
+        uses: actions/attest-build-provenance@96b4a1ef7235a096b17240c259729fdd70c83d45
+        with:
+          subject-name: ghcr.io/wiljeanlouis/savis-executor
+          subject-digest: ${{ steps.executor.outputs.digest }}
+          push-to-registry: true
+
+      - name: Assemble release package
+        env:
+          VERSION: ${{ steps.version.outputs.version }}
+          API_DIGEST: ${{ steps.api.outputs.digest }}
+          ADMIN_DIGEST: ${{ steps.admin.outputs.digest }}
+          EXECUTOR_DIGEST: ${{ steps.executor.outputs.digest }}
+        run: |
+          package="savis-${VERSION}"
+          mkdir -p "${package}/deploy/scripts" "${package}/supabase"
+          cp compose.prod.yml "${package}/"
+          cp deploy/scripts/deploy-production.sh "${package}/deploy/scripts/"
+          cp -R supabase/migrations "${package}/supabase/"
+          cat >"${package}/release.env" <<EOF
+          SAVIS_VERSION=${VERSION}
+          SOURCE_REVISION=${GITHUB_SHA}
+          SAVIS_API_IMAGE=ghcr.io/wiljeanlouis/savis-api@${API_DIGEST}
+          SAVIS_ADMIN_IMAGE=ghcr.io/wiljeanlouis/savis-admin@${ADMIN_DIGEST}
+          SAVIS_EXECUTOR_IMAGE=ghcr.io/wiljeanlouis/savis-executor@${EXECUTOR_DIGEST}
+          EOF
+          chmod +x "${package}/deploy/scripts/deploy-production.sh"
+          tar -czf "${package}.tar.gz" "${package}"
+          sha256sum "${package}.tar.gz" >"${package}.tar.gz.sha256"
+
+      - name: Publish GitHub Release
+        uses: softprops/action-gh-release@3bb12739c298aeb8a4eeaf626c5b8d85266b0e65
+        with:
+          generate_release_notes: true
+          fail_on_unmatched_files: true
+          files: |
+            savis-${{ steps.version.outputs.version }}.tar.gz
+            savis-${{ steps.version.outputs.version }}.tar.gz.sha256

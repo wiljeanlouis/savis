@@ -672,58 +672,46 @@ SUPABASE_SERVICE_ROLE_KEY=
 Add any other application-specific production variables required by the API
 or admin frontend. Never commit this file.
 
-### GitHub Actions Deployment
+### GitHub Actions CI/CD
 
-`actions/checkout` makes the tracked scripts and service templates available
-inside the runner workspace. Chrome provisioning should not run on every
-deployment; the workflow only verifies the existing services and deploys the
-Compose stack.
+Pull requests and pushes to `main` run `.github/workflows/ci.yml` on
+GitHub-hosted runners. The production runner must never run pull-request code.
 
-Example job for a self-hosted runner:
+Create an immutable release by tagging a commit contained in `main`:
 
-```yaml
-name: Deploy production
-
-on:
-  workflow_dispatch:
-  push:
-    branches: [main]
-
-jobs:
-  deploy:
-    runs-on: [self-hosted, linux, x64]
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Verify Chrome CDP
-        run: |
-          export XDG_RUNTIME_DIR="/run/user/$(id -u)"
-          systemctl --user is-active savis-chrome-cdp.service
-          systemctl --user is-active savis-chrome-cdp-proxy.service
-          curl --fail http://127.0.0.1:9223/json/version >/dev/null
-
-      - name: Deploy SAVIS
-        run: |
-          docker compose \
-            --env-file /etc/savis/savis.env \
-            up -d --build --remove-orphans
-
-      - name: Show service status
-        run: docker compose --env-file /etc/savis/savis.env ps
+```bash
+git tag v1.0.0
+git push origin v1.0.0
 ```
 
-The runner user must have permission to use Docker and read the production
-environment file. `XDG_RUNTIME_DIR` lets a runner installed as a background
-service reach that user's `systemd` manager. If Chrome verification fails, the
-workflow stops before replacing the SAVIS containers.
+The release workflow tests the repository, publishes the API, Admin, and
+Executor images to GHCR, records their digests, creates provenance
+attestations, and attaches a checksummed deployment package to the GitHub
+Release.
+
+Deploy from the `Deploy production` workflow by entering an existing SemVer
+such as `v1.0.0`. The job runs only on a runner labelled
+`self-hosted,linux,x64,production` and uses the protected GitHub Environment
+named `production`.
+
+Configure that environment with at least one required reviewer. Protect
+`main` by requiring the `CI successful` check, one approving review, and
+disabling direct pushes.
+
+The runner user must have permission to use Docker, access its user-level
+Chrome services, and read `/etc/savis/savis.env`. Add `SUPABASE_DB_URL` to that
+file when `SUPABASE_ENABLED=true`; it is used only by the deployment migration
+step.
 
 After deployment, verify at minimum:
 
 ```bash
-docker compose --env-file /etc/savis/savis.env ps
-docker compose --env-file /etc/savis/savis.env logs --tail=100 executor_worker
-curl --fail http://127.0.0.1:8000/docs >/dev/null
-curl --fail http://127.0.0.1:8080/actuator/health
+docker compose \
+  --env-file /etc/savis/savis.env \
+  --env-file ~/.local/share/savis/deploy/current/release.env \
+  -f ~/.local/share/savis/deploy/current/compose.prod.yml \
+  ps
+curl --fail http://127.0.0.1:8088/health
 ```
 
 ## Commands

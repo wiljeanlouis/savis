@@ -10,7 +10,7 @@ from typing import TYPE_CHECKING
 from sqlalchemy import DateTime, Integer, String
 from sqlalchemy.orm import Mapped, Session, mapped_column, sessionmaker
 
-from app.adapters.database.session import Base, SessionLocal, create_database_schema
+from app.adapters.database.session import Base, SessionLocal
 from app.config import EnvParams
 from app.core.ports import ProviderAccessPolicy, ProviderCircuitOpenError
 
@@ -65,7 +65,6 @@ class SqlAlchemyProviderAccessPolicy(ProviderAccessPolicy):
     def __init__(  # noqa: PLR0913
         self,
         session_factory: sessionmaker[Session] = SessionLocal,
-        schema_creator: Callable[[], None] = create_database_schema,
         min_delay_seconds: float = EnvParams.PROVIDER_MIN_REQUEST_DELAY_SECONDS,
         max_delay_seconds: float = EnvParams.PROVIDER_MAX_REQUEST_DELAY_SECONDS,
         cooldown_seconds: Sequence[int] = EnvParams.PROVIDER_BLOCK_COOLDOWN_SECONDS,
@@ -86,7 +85,6 @@ class SqlAlchemyProviderAccessPolicy(ProviderAccessPolicy):
             raise ValueError(msg)
 
         self.session_factory = session_factory
-        self.schema_creator = schema_creator
         self.min_delay_seconds = min_delay_seconds
         self.max_delay_seconds = max_delay_seconds
         self.cooldown_seconds = tuple(cooldown_seconds)
@@ -97,7 +95,6 @@ class SqlAlchemyProviderAccessPolicy(ProviderAccessPolicy):
 
     def wait_for_request(self, provider_identifier: str) -> None:
         """Reserve and wait for the next provider request slot."""
-        self.schema_creator()
         now = self.clock()
 
         with self.session_factory() as session:
@@ -139,7 +136,6 @@ class SqlAlchemyProviderAccessPolicy(ProviderAccessPolicy):
 
     def record_success(self, provider_identifier: str) -> None:
         """Close the provider circuit after a successful request."""
-        self.schema_creator()
         now = self.clock()
         with self.session_factory() as session:
             state = self._locked_state(session, provider_identifier, now)
@@ -152,7 +148,6 @@ class SqlAlchemyProviderAccessPolicy(ProviderAccessPolicy):
 
     def record_block(self, provider_identifier: str) -> None:
         """Open the provider circuit using progressive cooldowns."""
-        self.schema_creator()
         now = self.clock()
         with self.session_factory() as session:
             state = self._locked_state(session, provider_identifier, now)

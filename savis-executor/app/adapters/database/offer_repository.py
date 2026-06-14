@@ -4,7 +4,6 @@ from __future__ import annotations
 
 from datetime import datetime  # noqa: TC003
 from decimal import Decimal
-from typing import TYPE_CHECKING
 from uuid import UUID
 
 from sqlalchemy import (
@@ -18,7 +17,7 @@ from sqlalchemy import (
 )
 from sqlalchemy.orm import Mapped, Session, mapped_column, sessionmaker
 
-from app.adapters.database.session import Base, SessionLocal, create_database_schema
+from app.adapters.database.session import Base, SessionLocal
 from app.core.models import (
     Offer,
     OfferSortField,
@@ -30,9 +29,6 @@ from app.core.models import (
     SortDirection,
 )
 from app.core.ports import OfferRepository
-
-if TYPE_CHECKING:
-    from collections.abc import Callable
 
 
 class OfferEntity(Base):
@@ -174,11 +170,9 @@ class SqlAlchemyOfferRepository(OfferRepository):
     def __init__(
         self,
         session_factory: sessionmaker[Session] = SessionLocal,
-        schema_creator: Callable[[], None] = create_database_schema,
     ) -> None:
         """Initialize the repository."""
         self.session_factory = session_factory
-        self.schema_creator = schema_creator
 
     def find_by_provider_and_external_id(
         self,
@@ -186,7 +180,6 @@ class SqlAlchemyOfferRepository(OfferRepository):
         external_id: str,
     ) -> Offer | None:
         """Find an offer by provider identity."""
-        self.schema_creator()
         statement = select(OfferEntity).where(
             OfferEntity.provider_identifier == provider,
             OfferEntity.external_id == external_id,
@@ -197,7 +190,6 @@ class SqlAlchemyOfferRepository(OfferRepository):
 
     def find_by_id(self, offer_id: UUID) -> Offer | None:
         """Find an offer by id."""
-        self.schema_creator()
         with self.session_factory() as session:
             entity = session.get(OfferEntity, str(offer_id))
             return None if entity is None else _to_model(entity)
@@ -213,7 +205,6 @@ class SqlAlchemyOfferRepository(OfferRepository):
         search_term: str | None = None,
     ) -> tuple[list[Offer], int]:
         """List paged offers and total count."""
-        self.schema_creator()
         sort_column = {
             OfferSortField.LABEL: OfferEntity.label,
             OfferSortField.BRAND: OfferEntity.brand,
@@ -259,7 +250,6 @@ class SqlAlchemyOfferRepository(OfferRepository):
         offer_type: OfferType | None = None,
     ) -> list[tuple[str, int]]:
         """Count offers grouped by search term."""
-        self.schema_creator()
         statement = (
             select(OfferEntity.search_term, func.count())
             .group_by(OfferEntity.search_term)
@@ -278,7 +268,6 @@ class SqlAlchemyOfferRepository(OfferRepository):
 
     def find_due_for_refresh(self, now: datetime) -> list[Offer]:
         """Find valid offers whose next refresh date is due."""
-        self.schema_creator()
         statement = (
             select(OfferEntity)
             .where(
@@ -296,7 +285,6 @@ class SqlAlchemyOfferRepository(OfferRepository):
         offer_type: OfferType,
     ) -> set[str]:
         """Return provider identifiers with offers for a search term and type."""
-        self.schema_creator()
         statement = (
             select(OfferEntity.provider_identifier)
             .where(
@@ -310,7 +298,6 @@ class SqlAlchemyOfferRepository(OfferRepository):
 
     def save(self, offer: Offer) -> Offer:
         """Save an offer."""
-        self.schema_creator()
         with self.session_factory() as session:
             session.merge(_to_entity(offer))
             session.commit()
@@ -318,7 +305,6 @@ class SqlAlchemyOfferRepository(OfferRepository):
 
     def delete(self, offer_id: UUID) -> bool:
         """Delete an offer."""
-        self.schema_creator()
         with self.session_factory() as session:
             entity = session.get(OfferEntity, str(offer_id))
             if entity is None:

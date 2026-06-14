@@ -1,0 +1,153 @@
+name: savis
+
+services:
+  postgres:
+    image: postgres:18-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${DB_USER:?DB_USER is required}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:?DB_PASSWORD is required}
+      POSTGRES_DB: ${DB_NAME:?DB_NAME is required}
+    volumes:
+      - pgdata:/var/lib/postgresql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    networks: [backend]
+
+  rabbitmq:
+    image: rabbitmq:3-management-alpine
+    restart: unless-stopped
+    environment:
+      RABBITMQ_DEFAULT_USER: ${RABBIT_MQ_USER:?RABBIT_MQ_USER is required}
+      RABBITMQ_DEFAULT_PASS: ${RABBIT_MQ_PASSWORD:?RABBIT_MQ_PASSWORD is required}
+    volumes:
+      - rabbitmq_data:/var/lib/rabbitmq
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    networks: [backend]
+
+  executor_migrate:
+    image: ${SAVIS_EXECUTOR_IMAGE:?SAVIS_EXECUTOR_IMAGE is required}
+    command: ["alembic", "upgrade", "head"]
+    restart: "no"
+    environment: &executor_environment
+      RABBIT_MQ_URL: amqp://${RABBIT_MQ_USER}:${RABBIT_MQ_PASSWORD}@rabbitmq:5672/%2f
+      DATABASE_URL: postgresql+psycopg://${DB_USER}:${DB_PASSWORD}@postgres:5432/${DB_NAME}
+      DATABASE_SCHEMA: savis_executor
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks: [backend]
+
+  backend_api:
+    image: ${SAVIS_API_IMAGE:?SAVIS_API_IMAGE is required}
+    restart: unless-stopped
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/${DB_NAME}
+      SPRING_DATASOURCE_USERNAME: ${DB_USER}
+      SPRING_DATASOURCE_PASSWORD: ${DB_PASSWORD}
+      SPRING_RABBITMQ_HOST: rabbitmq
+      SPRING_RABBITMQ_PORT: "5672"
+      SPRING_RABBITMQ_USERNAME: ${RABBIT_MQ_USER}
+      SPRING_RABBITMQ_PASSWORD: ${RABBIT_MQ_PASSWORD}
+      SUPABASE_ENABLED: ${SUPABASE_ENABLED:-false}
+      SUPABASE_URL: ${SUPABASE_URL:-}
+      SUPABASE_SERVICE_ROLE_KEY: ${SUPABASE_SERVICE_ROLE_KEY:-}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+    networks: [backend]
+
+  executor_api:
+    image: ${SAVIS_EXECUTOR_IMAGE:?SAVIS_EXECUTOR_IMAGE is required}
+    command: ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
+    init: true
+    restart: unless-stopped
+    environment: *executor_environment
+    depends_on:
+      executor_migrate:
+        condition: service_completed_successfully
+      rabbitmq:
+        condition: service_healthy
+    networks: [backend]
+
+  executor_worker:
+    image: ${SAVIS_EXECUTOR_IMAGE:?SAVIS_EXECUTOR_IMAGE is required}
+    command:
+      [
+        "celery",
+        "-A",
+        "app.adapters.celery.celery_app",
+        "worker",
+        "--loglevel=info",
+        "--concurrency=1",
+      ]
+    init: true
+    restart: unless-stopped
+    environment:
+      <<: *executor_environment
+      BROWSER_CDP_URL: ${BROWSER_CDP_URL:-http://host.docker.internal:9223}
+      PROVIDER_MIN_REQUEST_DELAY_SECONDS: ${PROVIDER_MIN_REQUEST_DELAY_SECONDS:-60}
+      PROVIDER_MAX_REQUEST_DELAY_SECONDS: ${PROVIDER_MAX_REQUEST_DELAY_SECONDS:-600}
+      PROVIDER_BLOCK_COOLDOWN_SECONDS: ${PROVIDER_BLOCK_COOLDOWN_SECONDS:-900,3600,21600,86400}
+      PROVIDER_PROBE_TIMEOUT_SECONDS: ${PROVIDER_PROBE_TIMEOUT_SECONDS:-1800}
+    extra_hosts:
+      - host.docker.internal:host-gateway
+    depends_on:
+      executor_migrate:
+        condition: service_completed_successfully
+      rabbitmq:
+        condition: service_healthy
+    networks: [backend]
+
+  executor_beat:
+    image: ${SAVIS_EXECUTOR_IMAGE:?SAVIS_EXECUTOR_IMAGE is required}
+    command:
+      [
+        "celery",
+        "-A",
+        "app.adapters.celery.celery_app",
+        "beat",
+        "--loglevel=info",
+        "--pidfile=/tmp/savis-celerybeat.pid",
+        "--schedule=/tmp/savis-celerybeat-schedule",
+      ]
+    init: true
+    restart: unless-stopped
+    environment: *executor_environment
+    depends_on:
+      executor_migrate:
+        condition: service_completed_successfully
+      rabbitmq:
+        condition: service_healthy
+    networks: [backend]
+
+  frontend_admin:
+    image: ${SAVIS_ADMIN_IMAGE:?SAVIS_ADMIN_IMAGE is required}
+    restart: unless-stopped
+    ports:
+      - "${SAVIS_HTTP_BIND:-127.0.0.1}:${SAVIS_HTTP_PORT:-8088}:8080"
+    depends_on:
+      backend_api:
+        condition: service_healthy
+      executor_api:
+        condition: service_healthy
+    networks:
+      - frontend
+      - backend
+
+networks:
+  frontend:
+  backend:
+
+volumes:
+  pgdata:
+  rabbitmq_data:
