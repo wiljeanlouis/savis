@@ -167,7 +167,7 @@ public record Product(
                     .peek(allocation -> requireActiveChoice(allocation.choiceCode()))
                     .mapToInt(ChoiceAllocation::quantity)
                     .sum();
-            if (allocatedQuantity != mode.quantity()) {
+            if (mode != null && allocatedQuantity != mode.quantity()) {
                 throw new IllegalArgumentException(
                         "La somme des choix doit être égale à " + mode.quantity());
             }
