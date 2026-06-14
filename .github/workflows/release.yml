@@ -19,8 +19,6 @@ jobs:
     permissions:
       contents: write
       packages: write
-      id-token: write
-      attestations: write
     steps:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
         with:
@@ -97,27 +95,6 @@ jobs:
             org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }}
             org.opencontainers.image.version=${{ steps.version.outputs.version }}
             org.opencontainers.image.revision=${{ github.sha }}
-
-      - name: Attest API image
-        uses: actions/attest-build-provenance@96b4a1ef7235a096b17240c259729fdd70c83d45
-        with:
-          subject-name: ghcr.io/wiljeanlouis/savis-api
-          subject-digest: ${{ steps.api.outputs.digest }}
-          push-to-registry: true
-
-      - name: Attest Admin image
-        uses: actions/attest-build-provenance@96b4a1ef7235a096b17240c259729fdd70c83d45
-        with:
-          subject-name: ghcr.io/wiljeanlouis/savis-admin
-          subject-digest: ${{ steps.admin.outputs.digest }}
-          push-to-registry: true
-
-      - name: Attest Executor image
-        uses: actions/attest-build-provenance@96b4a1ef7235a096b17240c259729fdd70c83d45
-        with:
-          subject-name: ghcr.io/wiljeanlouis/savis-executor
-          subject-digest: ${{ steps.executor.outputs.digest }}
-          push-to-registry: true
 
       - name: Assemble release package
         env:

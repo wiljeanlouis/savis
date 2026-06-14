@@ -685,9 +685,10 @@ git push origin v1.0.0
 ```
 
 The release workflow tests the repository, publishes the API, Admin, and
-Executor images to GHCR, records their digests, creates provenance
-attestations, and attaches a checksummed deployment package to the GitHub
-Release.
+Executor images to GHCR, records their digests, publishes BuildKit provenance
+and SBOM metadata, and attaches a checksummed deployment package to the GitHub
+Release. GitHub artifact attestations are disabled because private repositories
+require GitHub Enterprise Cloud for that feature.
 
 Deploy from the `Deploy production` workflow by entering an existing SemVer
 such as `v1.0.0`. The job runs only on a runner labelled

@@ -64,7 +64,6 @@ for variable in SAVIS_API_IMAGE SAVIS_ADMIN_IMAGE SAVIS_EXECUTOR_IMAGE; do
     exit 1
   fi
   docker buildx imagetools inspect "${image}" >/dev/null
-  gh attestation verify "oci://${image}" --repo wiljeanlouis/savis >/dev/null
 done
 
 available_kb="$(df -Pk "${deploy_root}" | awk 'NR == 2 {print $4}')"
