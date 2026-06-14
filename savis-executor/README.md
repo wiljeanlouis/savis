@@ -487,7 +487,8 @@ On an Ubuntu desktop server:
 1. Install Google Chrome stable and `socat`.
 2. Run the self-hosted GitHub Actions runner as the graphical desktop user.
 3. Check out the SAVIS repository.
-4. Install the included user services:
+4. From a terminal in that user's graphical desktop session, install the
+   included user services without `sudo`:
 
 ```bash
 make install-chrome-cdp-ubuntu

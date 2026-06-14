@@ -615,7 +615,8 @@ Install Docker, Google Chrome stable, and `socat` on the Ubuntu host. Register
 the GitHub Actions runner under the graphical Ubuntu user.
 
 After the repository has been checked out on the server, install the Chrome
-services once:
+services once from a terminal in the graphical desktop session. Run it as the
+desktop user, not with `sudo`:
 
 ```bash
 make install-chrome-cdp-ubuntu
