@@ -678,12 +678,25 @@ or admin frontend. Never commit this file.
 Pull requests and pushes to `main` run `.github/workflows/ci.yml` on
 GitHub-hosted runners. The production runner must never run pull-request code.
 
-Create an immutable release by tagging a commit contained in `main`:
+Release Please maintains a release pull request from Conventional Commit
+messages merged into `main`:
 
-```bash
-git tag v1.0.0
-git push origin v1.0.0
-```
+- `fix:` increments the patch version.
+- `feat:` increments the minor version.
+- `feat!:` or a `BREAKING CHANGE:` footer increments the major version.
+
+Merging the release pull request updates `CHANGELOG.md` and `version.txt`,
+creates the `vX.Y.Z` tag, and publishes the GitHub Release. That tag starts the
+existing image release workflow, so tags no longer need to be created
+manually.
+
+Create a fine-grained personal access token named `RELEASE_PLEASE_TOKEN` in the
+repository Actions secrets. Give it access to this repository with read/write
+permissions for Contents, Issues, and Pull requests. A separate token is
+required because tags created with the default `GITHUB_TOKEN` do not start
+other GitHub Actions workflows. In **Settings > Actions > General**, also
+enable **Allow GitHub Actions to create and approve pull requests** if it is
+disabled.
 
 The release workflow tests the repository, publishes the API, Admin, and
 Executor images to GHCR, records their digests, publishes BuildKit provenance
