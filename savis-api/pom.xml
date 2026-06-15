@@ -29,7 +29,7 @@
 	</scm>
 	<properties>
 		<java.version>25</java.version>
-		<spring-modulith.version>2.0.5</spring-modulith.version>
+		<spring-modulith.version>2.1.0</spring-modulith.version>
 		<springdoc-openapi-starter-webmvc-ui.version>3.0.2</springdoc-openapi-starter-webmvc-ui.version>
 		<mapstruct.version>1.6.3</mapstruct.version>
 		<wiremock.version>3.13.2</wiremock.version>
@@ -73,6 +73,10 @@
 			<artifactId>spring-modulith-starter-jpa</artifactId>
 		</dependency>
 		<dependency>
+			<groupId>org.springframework.modulith</groupId>
+			<artifactId>spring-modulith-events-amqp</artifactId>
+		</dependency>
+		<dependency>
 			<groupId>org.springframework.boot</groupId>
 			<artifactId>spring-boot-devtools</artifactId>
 			<scope>runtime</scope>
@@ -95,7 +99,7 @@
 		</dependency>
 		<dependency>
 			<groupId>org.springframework.modulith</groupId>
-			<artifactId>spring-modulith-observability</artifactId>
+			<artifactId>spring-modulith-starter-insight</artifactId>
 			<scope>runtime</scope>
 		</dependency>
 		<dependency>
@@ -176,7 +180,7 @@
 								<path>
 									<groupId>org.mapstruct</groupId>
 									<artifactId>mapstruct-processor</artifactId>
-									<version>1.6.3</version>
+									<version>${mapstruct.version}</version>
 								</path>
 							</annotationProcessorPaths>
 						</configuration>
@@ -197,7 +201,7 @@
 								<path>
 									<groupId>org.mapstruct</groupId>
 									<artifactId>mapstruct-processor</artifactId>
-									<version>1.6.3</version>
+									<version>${mapstruct.version}</version>
 								</path>
 							</annotationProcessorPaths>
 						</configuration>

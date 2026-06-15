@@ -5,6 +5,11 @@
     "description": "The queue to send request for offers."
   },
   {
+    "name": "savis.offer.request.exchange",
+    "type": "java.lang.String",
+    "description": "The exchange to publish offer request events to."
+  },
+  {
     "name": "savis.offer.result.queue",
     "type": "java.lang.String",
     "description": "The queue to receive scraped offer results."
