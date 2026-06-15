@@ -1,0 +1,15 @@
+# Default maintainer
+* @wiljeanlouis
+
+# CI and GitHub configuration
+/.github/ @wiljeanlouis
+
+# Applications
+/savis-api/ @wiljeanlouis
+/savis-admin/ @wiljeanlouis
+/savis-executor/ @wiljeanlouis
+
+# Deployment and Database
+/deploy/ @wiljeanlouis
+/supabase/ @wiljeanlouis
+/compose.prod.yml @wiljeanlouis
