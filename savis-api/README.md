@@ -10,6 +10,21 @@ The service exposes the business HTTP API used by
 [SAVIS Executor](../savis-executor/README.md), persists its state in
 PostgreSQL, and publishes a customer-facing catalog projection to Supabase.
 
+## Navigation
+
+- [Responsibilities](#responsibilities)
+- [Architecture](#architecture)
+- [Business Slices](#business-slices)
+- [HTTP API](#http-api)
+- [RabbitMQ Contracts](#rabbitmq-contracts)
+- [Persistence](#persistence)
+- [Configuration](#configuration)
+- [Technology](#technology)
+- [Local Development](#local-development)
+- [Docker](#docker)
+- [Tests](#tests)
+- [Current Boundaries](#current-boundaries)
+
 ## Responsibilities
 
 - Manage generic technical BOMs, components, activities, and yields.
@@ -330,6 +345,11 @@ prices in cents. It excludes:
 Optional choice and ingredient `bom_id` values remain in the projection.
 PostgreSQL remains the catalog system of record; Supabase is a read projection.
 
+Bulk publication reads only products whose `published` flag is currently true.
+It does not yet reconcile Supabase rows for products newly changed to
+unpublished. The single-product publication path supports unpublishing, but it
+is not currently exposed by the HTTP controller.
+
 ## HTTP API
 
 The service listens on port `8080` by default. OpenAPI documentation is
@@ -341,6 +361,13 @@ http://localhost:8080/swagger-ui.html
 
 Spring Problem Details is enabled. Catalog not-found errors return `404`;
 invalid catalog structures and disabled explicit publication return `400`.
+
+Actuator health endpoints:
+
+| Path | Purpose |
+| --- | --- |
+| `/actuator/health/liveness` | Confirms that the API process is alive. |
+| `/actuator/health/readiness` | Reports whether the API is ready for traffic. |
 
 ### BOM Endpoints
 
@@ -561,13 +588,20 @@ Persistence conventions:
 The application currently uses:
 
 ```properties
-spring.jpa.hibernate.ddl-auto=update
+spring.jpa.hibernate.ddl-auto=validate
 spring.jpa.properties.hibernate.default_schema=savis_api
-spring.jpa.properties.hibernate.hbm2ddl.create_namespaces=true
+spring.flyway.enabled=true
+spring.flyway.default-schema=savis_api
+spring.flyway.schemas=savis_api
+spring.flyway.create-schemas=true
 ```
 
-There is no Flyway or Liquibase migration framework for the Java-owned schema.
-Tests use H2 in PostgreSQL compatibility mode with `ddl-auto=create-drop`.
+Flyway owns schema evolution through versioned SQL files under
+`src/main/resources/db/migration`. Hibernate validates the mapped model against
+the migrated schema at startup and does not modify production tables.
+
+Tests use H2 in PostgreSQL compatibility mode with `ddl-auto=create-drop`;
+Flyway is disabled in the test profile.
 
 ## Configuration
 
@@ -596,7 +630,9 @@ Additional runtime settings:
 
 - Spring MVC Problem Details is enabled;
 - virtual threads are enabled;
-- Hibernate SQL logging is enabled;
+- Hibernate SQL logging is disabled;
+- Flyway applies API migrations before Hibernate validation;
+- Actuator exposes `health` and `info`, including liveness and readiness probes;
 - Actuator and Spring Modulith observability dependencies are present;
 - CORS on current business controllers allows `http://localhost:5173`;
 - authentication and authorization are not currently configured.
@@ -604,10 +640,11 @@ Additional runtime settings:
 ## Technology
 
 - Java 25
-- Spring Boot 4.0
-- Spring Modulith 2.0
+- Spring Boot 4.1
+- Spring Modulith 2.0.5
 - Spring MVC
 - Spring Data JPA and Hibernate
+- Flyway
 - Spring AMQP
 - PostgreSQL
 - H2 for tests
@@ -644,6 +681,9 @@ Build the executable JAR:
 
 The API starts at `http://localhost:8080`.
 
+Flyway runs automatically at startup. The configured PostgreSQL database must
+be reachable before launching the application.
+
 To run the complete SAVIS environment from the repository root:
 
 ```bash
@@ -656,7 +696,8 @@ The Dockerfile provides:
 
 - `development`: Maven with Java 25 and `spring-boot:run`;
 - `build`: executable JAR packaging without tests;
-- `production`: a non-root Java 25 runtime image exposing port `8080`.
+- `production`: a non-root Java 25 runtime image exposing port `8080`, with a
+  readiness health check at `/actuator/health/readiness`.
 
 ## Tests
 
@@ -689,5 +730,7 @@ Useful targeted checks:
 - SAVIS Executor owns scraping, acquisition task execution, and offer review.
 - Catalog references BOMs only by UUID and public pricing contract.
 - BOM references Supply through its public API instead of Supply persistence.
-- No database migration tool is currently configured.
+- Flyway owns the Java schema; Hibernate only validates it in production.
+- Bulk catalog publication does not yet reconcile newly unpublished Supabase
+  rows.
 - No authentication or authorization layer is currently present.
