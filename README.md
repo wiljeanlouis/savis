@@ -675,8 +675,9 @@ or admin frontend. Never commit this file.
 
 ### GitHub Actions CI/CD
 
-Pull requests and pushes to `main` run `.github/workflows/ci.yml` on
-GitHub-hosted runners. The production runner must never run pull-request code.
+Pull requests run `.github/workflows/ci.yml` on GitHub-hosted runners. The
+release workflow also invokes that CI before publishing images. The production
+runner must never run pull-request code.
 
 Release Please maintains a release pull request from Conventional Commit
 messages merged into `main`:
