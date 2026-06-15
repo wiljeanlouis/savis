@@ -1,5 +1,14 @@
 # Changelog
 
+## [1.2.1](https://github.com/wiljeanlouis/savis/compare/v1.2.0...v1.2.1) (2026-06-15)
+
+
+### Bug Fixes
+
+* add conditional checks for non-release pull requests in CI jobs ([c48cb3c](https://github.com/wiljeanlouis/savis/commit/c48cb3cca3f62c3b1071b189e1b3403c81e3d1e0))
+* add health checks for executor services and improve error logging ([#5](https://github.com/wiljeanlouis/savis/issues/5)) ([f4480fc](https://github.com/wiljeanlouis/savis/commit/f4480fc8b671974a6a3c27cc61b6b2e976b8ee1d))
+* update CI workflow triggers and clarify README instructions ([7e467c7](https://github.com/wiljeanlouis/savis/commit/7e467c7e4f633ac9504831dfa2e2d277490d50ea))
+
 ## [1.2.0](https://github.com/wiljeanlouis/savis/compare/v1.1.0...v1.2.0) (2026-06-15)
 
 
