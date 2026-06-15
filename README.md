@@ -690,13 +690,13 @@ creates the `vX.Y.Z` tag, and publishes the GitHub Release. That tag starts the
 existing image release workflow, so tags no longer need to be created
 manually.
 
-Create a fine-grained personal access token named `RELEASE_PLEASE_TOKEN` in the
-repository Actions secrets. Give it access to this repository with read/write
-permissions for Contents, Issues, and Pull requests. A separate token is
-required because tags created with the default `GITHUB_TOKEN` do not start
-other GitHub Actions workflows. In **Settings > Actions > General**, also
-enable **Allow GitHub Actions to create and approve pull requests** if it is
-disabled.
+Create a classic personal access token with the `repo` and `workflow` scopes,
+then store it in the repository Actions secrets as `RELEASE_PLEASE_TOKEN`. The
+`workflow` scope is required when Release Please creates a branch from a commit
+that contains GitHub Actions workflow files. A separate token is required
+because tags created with the default `GITHUB_TOKEN` do not start other GitHub
+Actions workflows. In **Settings > Actions > General**, also enable **Allow
+GitHub Actions to create and approve pull requests** if it is disabled.
 
 The release workflow tests the repository, publishes the API, Admin, and
 Executor images to GHCR, records their digests, publishes BuildKit provenance
