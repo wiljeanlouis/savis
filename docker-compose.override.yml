@@ -18,6 +18,9 @@ services:
       dockerfile: Dockerfile
       target: development # 🛠️ Bascule sur l'étape Node du Dockerfile
     command: npm run dev -- --host
+    environment:
+      VITE_API_URL: http://localhost:8080/api
+      VITE_EXECUTOR_API_URL: http://localhost:8000
     ports:
       - "5173:5173" # Ouvre le port de dev à la place du port 80
     volumes:

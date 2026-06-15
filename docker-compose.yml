@@ -68,9 +68,23 @@ services:
     ports:
       - "80:80"
     environment:
-      - VITE_API_URL=http://localhost:8080
+      - VITE_API_URL=http://localhost:8080/api
+      - VITE_EXECUTOR_API_URL=http://localhost:8000
     depends_on:
       - backend_api
+
+  executor_migrate:
+    build:
+      context: ./savis-executor
+      dockerfile: Dockerfile
+      target: api
+    command: ["alembic", "upgrade", "head"]
+    environment:
+      - DATABASE_URL=postgresql+psycopg://${DB_USER}:${DB_PASSWORD}@postgres:5432/${DB_NAME}
+      - DATABASE_SCHEMA=savis_executor
+    depends_on:
+      postgres:
+        condition: service_healthy
 
   executor_api:
     build:
@@ -86,9 +100,9 @@ services:
       - DATABASE_URL=postgresql+psycopg://${DB_USER}:${DB_PASSWORD}@postgres:5432/${DB_NAME}
       - DATABASE_SCHEMA=savis_executor
     depends_on:
+      executor_migrate:
+        condition: service_completed_successfully
       rabbitmq:
-        condition: service_healthy
-      postgres:
         condition: service_healthy
 
   executor_worker:
@@ -113,9 +127,9 @@ services:
     extra_hosts:
       - host.docker.internal:host-gateway
     depends_on:
+      executor_migrate:
+        condition: service_completed_successfully
       rabbitmq:
-        condition: service_healthy
-      postgres:
         condition: service_healthy
 
   executor_beat:
@@ -133,9 +147,9 @@ services:
       - DATABASE_URL=postgresql+psycopg://${DB_USER}:${DB_PASSWORD}@postgres:5432/${DB_NAME}
       - DATABASE_SCHEMA=savis_executor
     depends_on:
+      executor_migrate:
+        condition: service_completed_successfully
       rabbitmq:
-        condition: service_healthy
-      postgres:
         condition: service_healthy
 
 volumes:

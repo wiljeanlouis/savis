@@ -26,7 +26,7 @@ show_diagnostics() {
 
 trap show_diagnostics ERR
 
-for command in docker curl gh sha256sum; do
+for command in docker curl sha256sum; do
   command -v "${command}" >/dev/null 2>&1 || {
     echo "Missing required command: ${command}" >&2
     exit 1

@@ -49,6 +49,11 @@ jobs:
         env:
           DATABASE_URL: postgresql+psycopg://postgres:postgres@localhost:5432/postgres
         run: uv run alembic upgrade head --sql >/dev/null
+      - name: Smoke test container Python runtime
+        run: |
+          docker build --target api --tag savis-executor:ci savis-executor
+          docker run --rm savis-executor:ci python -c "import encodings"
+          docker run --rm savis-executor:ci alembic --version
 
   admin:
     name: Admin frontend

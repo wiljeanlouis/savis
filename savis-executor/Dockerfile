@@ -3,7 +3,9 @@ FROM python:3.14-slim AS python-base
 WORKDIR /app
 
 ENV PYTHONDONTWRITEBYTECODE=1 \
-    PYTHONUNBUFFERED=1
+    PYTHONUNBUFFERED=1 \
+    UV_PYTHON=/usr/local/bin/python3.14 \
+    UV_PYTHON_DOWNLOADS=never
 
 RUN pip install --no-cache-dir uv \
     && groupadd --system savis \

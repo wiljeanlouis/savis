@@ -4,6 +4,7 @@
 .vscode
 .DS_Store
 .venv
+.python-version
 __pycache__
 .pytest_cache
 .ruff_cache
