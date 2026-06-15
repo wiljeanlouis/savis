@@ -11,6 +11,7 @@ delivery. Setup instructions and feature details belong in the
 
 - [Scope](#scope)
 - [Architectural Drivers](#architectural-drivers)
+- [Architecture Used in SAVIS](#architecture-used-in-savis)
 - [System Context](#system-context)
 - [Container View](#container-view)
 - [Production Topology](#production-topology)
@@ -80,6 +81,41 @@ by source code and automated module tests.
 
    Production uses immutable image digests, ordered migrations, dependency
    health checks, and a checksummed release package.
+
+## Architecture Used in SAVIS
+
+SAVIS is built as a modular monolith plus a separate acquisition executor.
+The API keeps business modules in one deployable Spring Boot application, while
+the Executor isolates provider access, browser automation, and Celery work.
+
+The main architectural patterns used are:
+
+| Pattern | Where it appears | Purpose |
+| --- | --- | --- |
+| Modular monolith | SAVIS API modules: BOM, Supply, Catalog, Common | Keep business slices independently understandable while sharing one JVM, one deployment unit, and in-process module calls. |
+| Spring Modulith module verification | `SavisApiModularityTests` and named interfaces | Enforce allowed module dependencies and document the module graph. |
+| Hexagonal architecture / ports and adapters | API use cases depend on repository, pricing, publication, and messaging ports; Executor use cases depend on repository, queue, publisher, and provider ports | Keep domain/use-case code independent from HTTP, JPA, RabbitMQ, Supabase, provider HTML, and browser automation details. |
+| Domain-driven tactical patterns | Aggregates such as BOM and catalog Product; value objects such as Money, Quantity, Unit | Put business invariants and calculations close to the model that owns them. |
+| Repository pattern | JPA repositories in the API and SQLAlchemy repositories in the Executor | Hide persistence mechanics behind module-specific persistence adapters. |
+| Application service / use-case orchestration | `BomService`, `OfferService`, catalog services, Executor use cases | Coordinate validation, persistence, pricing, messaging, and external ports without pushing workflow into controllers. |
+| Adapter pattern | Web controllers, RabbitMQ listeners/publishers, Supabase adapter, provider adapters | Isolate protocol-specific and vendor-specific code at the edges. |
+| Facade / public module API | `BomPricingApi`, `SupplyApi` | Allow one module to consume another module's capability without depending on its entities or repositories. |
+| Event-driven integration | RabbitMQ offer request, result, and invalidation messages | Decouple the API from slower provider acquisition and allow asynchronous processing. |
+| Outbox pattern | Spring Modulith event publication table `event_publication` for API events externalized to RabbitMQ | Persist event publication state with the API transaction so outbound integration messages are traceable and retryable instead of being fire-and-forget `RabbitTemplate` sends. |
+| Declarative event externalization | `@Externalized` on `ComponentNeededEvent` and Modulith AMQP externalization | Declare which application events leave the module boundary and map domain events to RabbitMQ contracts in one place. |
+| Message contract mapping | `ComponentNeededEvent` maps to the RabbitMQ payload `{content,type}` | Preserve external wire compatibility while allowing the Java domain event to keep domain-oriented names. |
+| Durable broker topology | Durable RabbitMQ queues, direct exchange, and queue bindings | Keep broker routes stable across restarts and avoid coupling publishers directly to queue declaration details. |
+| Task queue / worker pattern | Celery tasks and RabbitMQ delivery in the Executor | Run slow browser/provider operations outside request and subscriber callbacks. |
+| Scheduled jobs | Celery Beat and Spring scheduled catalog publication | Run refresh, cleanup, and projection workflows on explicit schedules. |
+| Circuit breaker / provider protection | Executor provider access policy cooldowns | Reduce repeated requests when a provider blocks or becomes unhealthy. |
+| Retry with backoff and stale cleanup | Celery retry policy, hard task limits, and scheduled stale task cleanup | Recover from transient failures while making stuck work visible and terminal. |
+| Read model / projection | API Supply offer projection and Supabase published catalog projection | Store query-friendly views owned by the consumer boundary rather than sharing internal aggregates. |
+| Health check and readiness gates | API, Executor, RabbitMQ, PostgreSQL, Chrome relay, deployment script | Promote releases only after dependencies and application components are operational. |
+
+These patterns are intentionally not applied uniformly everywhere. The system
+uses the heavier event/outbox path where cross-process messaging must be
+transactionally traceable, and keeps direct in-process APIs for synchronous
+module calls such as catalog pricing.
 
 ## System Context
 
@@ -232,7 +268,7 @@ flowchart TB
       BomUse["Use cases<br/>BomService<br/>ActivityRateService"]
       BomDomain["Domain<br/>Bom, Component, Activity<br/>Yield, ActivityRate"]
       BomPorts["Ports and public API<br/>Repositories<br/>ComponentPricePort<br/>ComponentNeededEventPort<br/>BomPricingApi"]
-      BomAdapters["Adapters<br/>JPA<br/>RabbitMQ publisher<br/>Supply pricing"]
+      BomAdapters["Adapters<br/>JPA<br/>Modulith event publisher<br/>Supply pricing"]
     end
 
     subgraph Supply["Supply module"]
@@ -508,6 +544,7 @@ results.
 sequenceDiagram
   participant Admin as SAVIS Admin
   participant Bom as API BOM module
+  participant Outbox as Modulith event_publication
   participant Rabbit as RabbitMQ
   participant Executor as Executor subscriber
   participant PgExec as savis_executor
@@ -518,7 +555,8 @@ sequenceDiagram
   Admin->>Bom: Save BOM
   Bom->>Bom: Persist aggregate
   loop each component
-    Bom->>Rabbit: ComponentNeededEvent
+    Bom->>Outbox: Publish ComponentNeededEvent
+    Outbox->>Rabbit: Externalize ComponentNeededMessage
   end
   Rabbit->>Executor: savis.offer.requests
   Executor->>PgExec: Persist GET_OFFERS task
