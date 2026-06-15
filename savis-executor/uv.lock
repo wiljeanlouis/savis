@@ -962,7 +962,7 @@ requires-dist = [
     { name = "lxml", specifier = ">=6.1.1" },
     { name = "pika", specifier = ">=1.4.1" },
     { name = "playwright", specifier = "==1.60.0" },
-    { name = "psycopg", extras = ["binary"], specifier = ">=3.3.2" },
+    { name = "psycopg", extras = ["binary"], specifier = ">=3.3.4" },
     { name = "pydantic", specifier = ">=2.13.4" },
     { name = "sqlalchemy", specifier = ">=2.0.51" },
 ]
