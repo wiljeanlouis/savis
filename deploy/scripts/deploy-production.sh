@@ -22,6 +22,15 @@ show_diagnostics() {
   echo "Deployment failed. Current service state:" >&2
   compose ps >&2 || true
   compose logs --tail=150 backend_api executor_migrate executor_api executor_worker frontend_admin >&2 || true
+  for service in backend_api executor_api frontend_admin; do
+    container_id="$(compose ps -aq "${service}" 2>/dev/null || true)"
+    if [[ -n "${container_id}" ]]; then
+      echo "${service} health checks:" >&2
+      docker inspect \
+        --format '{{range .State.Health.Log}}{{println .End .ExitCode .Output}}{{end}}' \
+        "${container_id}" >&2 || true
+    fi
+  done
 }
 
 trap show_diagnostics ERR
@@ -111,9 +120,15 @@ compose up -d backend_api executor_api
 for service in backend_api executor_api; do
   for _ in {1..60}; do
     container_id="$(compose ps -q "${service}")"
-    health="$(docker inspect --format '{{if .State.Health}}{{.State.Health.Status}}{{else}}{{.State.Status}}{{end}}' "${container_id}")"
+    container_state="$(docker inspect --format '{{.State.Status}}' "${container_id}")"
+    health="$(docker inspect --format '{{if .State.Health}}{{.State.Health.Status}}{{else}}missing{{end}}' "${container_id}")"
     [[ "${health}" == "healthy" ]] && break
-    [[ "${health}" == "unhealthy" || "${health}" == "exited" ]] && exit 1
+    [[ "${container_state}" == "exited" || "${container_state}" == "dead" ]] && exit 1
+    if [[ "${health}" == "missing" ]]; then
+      echo "${service} has no Docker healthcheck" >&2
+      exit 1
+    fi
+    [[ "${health}" == "unhealthy" ]] && exit 1
     sleep 5
   done
   [[ "${health}" == "healthy" ]] || {
@@ -126,9 +141,15 @@ compose up -d executor_worker executor_beat frontend_admin --remove-orphans
 
 for _ in {1..60}; do
   container_id="$(compose ps -q frontend_admin)"
-  health="$(docker inspect --format '{{if .State.Health}}{{.State.Health.Status}}{{else}}{{.State.Status}}{{end}}' "${container_id}")"
+  container_state="$(docker inspect --format '{{.State.Status}}' "${container_id}")"
+  health="$(docker inspect --format '{{if .State.Health}}{{.State.Health.Status}}{{else}}missing{{end}}' "${container_id}")"
   [[ "${health}" == "healthy" ]] && break
-  [[ "${health}" == "unhealthy" || "${health}" == "exited" ]] && exit 1
+  [[ "${container_state}" == "exited" || "${container_state}" == "dead" ]] && exit 1
+  if [[ "${health}" == "missing" ]]; then
+    echo "frontend_admin has no Docker healthcheck" >&2
+    exit 1
+  fi
+  [[ "${health}" == "unhealthy" ]] && exit 1
   sleep 5
 done
 [[ "${health}" == "healthy" ]] || {
