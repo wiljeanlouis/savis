@@ -9,13 +9,13 @@ dependencies = [
     "celery>=5.6.3",
     "fastapi[standard]>=0.136.1",
     "httpx[http2]>=0.28.1",
-    "playwright==1.59.0",
-    "pydantic>=2.13.3",
-    "beautifulsoup4>=4.14.3",
-    "lxml>=6.1.0",
-    "pika>=1.4.0",
+    "playwright==1.60.0",
+    "pydantic>=2.13.4",
+    "beautifulsoup4>=4.15.0",
+    "lxml>=6.1.1",
+    "pika>=1.4.1",
     "psycopg[binary]>=3.3.2",
-    "sqlalchemy>=2.0.45",
+    "sqlalchemy>=2.0.51",
 ]
 
 [tool.fastapi]
@@ -23,8 +23,8 @@ entrypoint = "app.main:app"
 
 [dependency-groups]
 dev = [
-    "pytest>=9.0.2",
-    "ruff>=0.15.12",
+    "pytest>=9.1.0",
+    "ruff>=0.15.17",
 ]
 
 [tool.ruff.lint]
