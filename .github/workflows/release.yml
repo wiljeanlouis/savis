@@ -4,6 +4,13 @@ on:
   push:
     tags:
       - "v*.*.*"
+      - "savis-v*.*.*"
+  workflow_dispatch:
+    inputs:
+      release_tag:
+        description: Existing release tag to publish
+        required: true
+        type: string
 
 permissions:
   contents: read
@@ -23,15 +30,22 @@ jobs:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
         with:
           fetch-depth: 0
+          ref: ${{ inputs.release_tag || github.ref_name }}
 
       - name: Validate release tag and source branch
         id: version
+        env:
+          RELEASE_TAG: ${{ inputs.release_tag || github.ref_name }}
         run: |
-          version="${GITHUB_REF_NAME}"
+          release_tag="${RELEASE_TAG}"
+          version="${release_tag#savis-}"
+          source_sha="$(git rev-parse HEAD)"
           [[ "${version}" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]
-          git merge-base --is-ancestor "${GITHUB_SHA}" origin/main
+          git merge-base --is-ancestor "${source_sha}" origin/main
+          echo "release_tag=${release_tag}" >>"${GITHUB_OUTPUT}"
           echo "version=${version}" >>"${GITHUB_OUTPUT}"
-          echo "short_sha=${GITHUB_SHA::12}" >>"${GITHUB_OUTPUT}"
+          echo "source_sha=${source_sha}" >>"${GITHUB_OUTPUT}"
+          echo "short_sha=${source_sha::12}" >>"${GITHUB_OUTPUT}"
 
       - uses: docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f
       - uses: docker/login-action@c94ce9fb468520275223c153574b00df6fe4bcc9
@@ -57,7 +71,7 @@ jobs:
           labels: |
             org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }}
             org.opencontainers.image.version=${{ steps.version.outputs.version }}
-            org.opencontainers.image.revision=${{ github.sha }}
+            org.opencontainers.image.revision=${{ steps.version.outputs.source_sha }}
 
       - name: Build and publish Admin
         id: admin
@@ -76,7 +90,7 @@ jobs:
           labels: |
             org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }}
             org.opencontainers.image.version=${{ steps.version.outputs.version }}
-            org.opencontainers.image.revision=${{ github.sha }}
+            org.opencontainers.image.revision=${{ steps.version.outputs.source_sha }}
 
       - name: Build and publish Executor
         id: executor
@@ -94,11 +108,12 @@ jobs:
           labels: |
             org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }}
             org.opencontainers.image.version=${{ steps.version.outputs.version }}
-            org.opencontainers.image.revision=${{ github.sha }}
+            org.opencontainers.image.revision=${{ steps.version.outputs.source_sha }}
 
       - name: Assemble release package
         env:
           VERSION: ${{ steps.version.outputs.version }}
+          SOURCE_REVISION: ${{ steps.version.outputs.source_sha }}
           API_DIGEST: ${{ steps.api.outputs.digest }}
           ADMIN_DIGEST: ${{ steps.admin.outputs.digest }}
           EXECUTOR_DIGEST: ${{ steps.executor.outputs.digest }}
@@ -110,7 +125,7 @@ jobs:
           cp -R supabase/migrations "${package}/supabase/"
           cat >"${package}/release.env" <<EOF
           SAVIS_VERSION=${VERSION}
-          SOURCE_REVISION=${GITHUB_SHA}
+          SOURCE_REVISION=${SOURCE_REVISION}
           SAVIS_API_IMAGE=ghcr.io/wiljeanlouis/savis-api@${API_DIGEST}
           SAVIS_ADMIN_IMAGE=ghcr.io/wiljeanlouis/savis-admin@${ADMIN_DIGEST}
           SAVIS_EXECUTOR_IMAGE=ghcr.io/wiljeanlouis/savis-executor@${EXECUTOR_DIGEST}
@@ -122,6 +137,7 @@ jobs:
       - name: Publish GitHub Release
         uses: softprops/action-gh-release@3bb12739c298aeb8a4eeaf626c5b8d85266b0e65
         with:
+          tag_name: ${{ steps.version.outputs.release_tag }}
           generate_release_notes: true
           fail_on_unmatched_files: true
           files: |
