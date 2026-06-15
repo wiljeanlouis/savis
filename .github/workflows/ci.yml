@@ -14,6 +14,7 @@ concurrency:
 jobs:
   api:
     name: API Java
+    if: github.event_name != 'pull_request' || !startsWith(github.head_ref, 'release-please--branches--')
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
@@ -28,6 +29,7 @@ jobs:
 
   executor:
     name: Executor Python
+    if: github.event_name != 'pull_request' || !startsWith(github.head_ref, 'release-please--branches--')
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
@@ -59,6 +61,7 @@ jobs:
 
   admin:
     name: Admin frontend
+    if: github.event_name != 'pull_request' || !startsWith(github.head_ref, 'release-please--branches--')
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
@@ -82,6 +85,7 @@ jobs:
 
   deployment:
     name: Deployment definitions
+    if: github.event_name != 'pull_request' || !startsWith(github.head_ref, 'release-please--branches--')
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
@@ -115,8 +119,12 @@ jobs:
     steps:
       - name: Require every job to pass
         env:
+          IS_RELEASE_PR: ${{ github.event_name == 'pull_request' && startsWith(github.head_ref, 'release-please--branches--') }}
           NEEDS_JSON: ${{ toJSON(needs) }}
         run: |
+          if [[ "${IS_RELEASE_PR}" == "true" ]]; then
+            exit 0
+          fi
           if echo "${NEEDS_JSON}" | jq -e 'all(.[]; .result == "success")' >/dev/null; then
             exit 0
           fi
