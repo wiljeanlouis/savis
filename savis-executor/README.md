@@ -8,6 +8,24 @@ publishes validated changes to SAVIS API.
 The executor owns acquisition mechanics. It does not own BOMs, BOM components,
 catalog products, or product cost calculation.
 
+## Navigation
+
+- [Responsibilities](#responsibilities)
+- [Runtime Processes](#runtime-processes)
+- [Architecture](#architecture)
+- [Domain Model](#domain-model)
+- [Business Flows](#business-flows)
+- [HTTP API](#http-api)
+- [RabbitMQ Contracts](#rabbitmq-contracts)
+- [Provider Adapters](#provider-adapters)
+- [Failure and Retry Policy](#failure-and-retry-policy)
+- [Persistence](#persistence)
+- [Configuration](#configuration)
+- [Local Development](#local-development)
+- [Production Chrome Provisioning](#production-chrome-provisioning)
+- [Browser Troubleshooting](#browser-troubleshooting)
+- [Tests and Quality](#tests-and-quality)
+
 ## Responsibilities
 
 - Receive offer collection requests through RabbitMQ or HTTP.
@@ -22,7 +40,8 @@ catalog products, or product cost calculation.
 
 ## Runtime Processes
 
-The service is deployed as three processes that share PostgreSQL and RabbitMQ:
+The service is deployed as three long-running processes plus a one-shot
+migration process. They share PostgreSQL and RabbitMQ:
 
 ```text
 SAVIS API                           SAVIS Admin
@@ -61,7 +80,8 @@ Executor -> SAVIS API: offer results and invalidations through RabbitMQ
 
 | Process | Role |
 | --- | --- |
-| `executor_api` | Serves FastAPI, creates the database schema, and runs the RabbitMQ request subscriber. |
+| `executor_migrate` | Applies Alembic migrations before the long-running processes start. |
+| `executor_api` | Serves FastAPI, health endpoints, and the RabbitMQ request subscriber. |
 | `executor_worker` | Executes Celery collection and refresh tasks through an external Google Chrome CDP session. |
 | `executor_beat` | Schedules due-offer refreshes and stale-task cleanup. |
 
@@ -139,23 +159,28 @@ Provider results are reconciled by `(provider_identifier, external_id)`.
 
 ### Collect Offers
 
-1. SAVIS API publishes a component request to `savis.offer.requests`, or SAVIS
-   Admin creates a `GET_OFFER` task through HTTP for an exact provider URL.
+The preferred path is manual `GET_OFFER` retrieval when the operator knows an
+exact provider product URL:
+
+1. SAVIS Admin submits the provider, URL, search term, and offer type.
+2. The executor persists an `IN_PROGRESS` task before enqueueing Celery work.
+3. The worker invokes the selected provider's exact-URL strategy.
+4. The result is normalized and reconciled into executor persistence.
+5. The task becomes `COMPLETED`; terminal failures mark it `FAILED`.
+
+Automatic `GET_OFFERS` collection is the secondary coverage path:
+
+1. SAVIS API publishes a component request to `savis.offer.requests`.
 2. The executor checks whether every configured provider already has offers for
    the requested search term and type.
-3. If acquisition is required, it persists an `IN_PROGRESS` task before
-   enqueueing Celery work.
-4. The worker calls every configured provider adapter.
-5. Retrieved offers are normalized, reconciled, and persisted with status
-   `NEW`.
-6. The task becomes `COMPLETED`; exhausted retries mark it `FAILED`.
+3. When acquisition is required, the worker calls every configured provider
+   adapter and persists retrieved offers with status `NEW`.
 
 A failure from one provider does not discard successful results from another.
 Collection fails only when all configured providers fail.
 
-Manual `GET_OFFER` collection selects one provider adapter by name and invokes
-its URL retrieval strategy. It does not run the all-provider coverage check
-used by `GET_OFFERS`.
+Manual collection does not run the all-provider coverage check used by
+`GET_OFFERS`.
 
 ### Review and Publish an Offer
 
@@ -185,6 +210,13 @@ times and have a 30-minute execution limit.
 
 FastAPI exposes interactive OpenAPI documentation at
 `http://localhost:8000/docs`.
+
+Health endpoints:
+
+| Path | Purpose |
+| --- | --- |
+| `/health/live` | Confirms that the HTTP process is alive. |
+| `/health` | Checks PostgreSQL and RabbitMQ readiness. |
 
 ### Tasks
 
@@ -389,9 +421,18 @@ The executor owns three SQLAlchemy tables:
 - `provider_access_states`: request pacing, consecutive blocks, cooldown, and
   recovery-probe state for each provider.
 
-PostgreSQL uses the `savis_executor` schema by default. At FastAPI startup, the
-executor creates the schema when needed and calls `Base.metadata.create_all()`.
-The module does not currently use a migration framework.
+PostgreSQL uses the `savis_executor` schema by default. The API and worker
+assume that the schema is already migrated when they start.
+
+Alembic owns schema evolution through `alembic/versions`. The
+`executor_migrate` Compose service runs:
+
+```bash
+alembic upgrade head
+```
+
+Migrations are forward-only; production downgrades are intentionally
+unsupported.
 
 ## Configuration
 
@@ -423,10 +464,16 @@ Requirements:
 Install dependencies:
 
 ```bash
-uv sync
+uv sync --frozen
 ```
 
-Start each process in a separate terminal:
+Apply database migrations before starting the processes:
+
+```bash
+uv run alembic upgrade head
+```
+
+Start each long-running process in a separate terminal:
 
 ```bash
 uv run fastapi dev
@@ -472,10 +519,11 @@ To run the complete SAVIS environment from the repository root:
 docker compose up --build
 ```
 
-The Dockerfile provides dedicated `api`, `worker`, and `beat` targets. Chrome
-runs on the host and Docker Compose connects through
-`http://host.docker.internal:9222` on macOS. Celery uses a concurrency of one
-so scraping tasks do not compete for the same browser.
+The Dockerfile provides dedicated `api`, `worker`, and `beat` targets. Compose
+uses the API image for the one-shot Alembic migration service. Chrome runs on
+the host and local Docker connects through
+`http://host.docker.internal:9222`. Celery uses concurrency one so scraping
+tasks do not compete for the same browser.
 
 ## Production Chrome Provisioning
 
@@ -526,17 +574,9 @@ curl --fail http://127.0.0.1:9223/json/version
 Do not expose ports `9222` or `9223` to the public network. Restrict `9223`
 with the host firewall to Docker traffic.
 
-Normal SAVIS deployments should not reinstall or restart Chrome. A deployment
-job only checks the services and rebuilds the containers:
-
-```bash
-export XDG_RUNTIME_DIR="/run/user/$(id -u)"
-systemctl --user is-active savis-chrome-cdp.service
-systemctl --user is-active savis-chrome-cdp-proxy.service
-docker compose \
-  --env-file /etc/savis/savis.env \
-  up -d --build --remove-orphans
-```
+Normal SAVIS deployments should not reinstall or restart Chrome. The packaged
+deployment script verifies both user services before pulling immutable images,
+running migrations, and starting the containers.
 
 See the root [production deployment guide](../README.md#production-deployment)
 for the complete server and GitHub Actions procedure.
@@ -578,11 +618,13 @@ deletes all cookies and local storage and may not remove a network-level block.
 ## Tests and Quality
 
 The test suite covers core use cases, API routes, SQLAlchemy repositories,
-RabbitMQ adapters, Celery tasks, and Maxi extraction.
+RabbitMQ adapters, health endpoints, Celery tasks, provider access policy,
+browser management, and Maxi extraction.
 
 ```bash
 uv run pytest
 uv run ruff check .
+uv run alembic upgrade head --sql >/dev/null
 ```
 
 For a lightweight syntax check:

@@ -1,166 +1,270 @@
 # SAVIS Architecture
 
-This document describes SAVIS using the C4 model:
+This document describes the current architecture of SAVIS using C4-style
+system, container, component, and dynamic views.
 
-- **Level 1 - System Context**: who uses SAVIS and which external systems it
-  interacts with.
-- **Level 2 - Containers**: deployable applications and infrastructure.
-- **Level 3 - Components**: important modules inside each container.
-- **Dynamic views**: runtime flows that cross container boundaries.
+It focuses on ownership, dependencies, runtime behavior, persistence, and
+delivery. Setup instructions and feature details belong in the
+[root README](../README.md) and module documentation.
 
-SAVIS is the back-office system for SavouretPlus. It currently supports BOMs,
-provider offers, activity rates, sellable catalog products, product cost
-analysis, and asynchronous offer collection. Future slices include orders,
-inventory, purchasing, catering, decoration operations, and broader margin
-reporting.
+## Navigation
 
-## Diagram Conventions
+- [Scope](#scope)
+- [Architectural Drivers](#architectural-drivers)
+- [System Context](#system-context)
+- [Container View](#container-view)
+- [Production Topology](#production-topology)
+- [API Components](#api-components)
+- [Executor Components](#executor-components)
+- [Admin Components](#admin-components)
+- [Runtime Flows](#runtime-flows)
+- [Data Ownership](#data-ownership)
+- [Messaging](#messaging)
+- [Operational Characteristics](#operational-characteristics)
+- [Delivery Architecture](#delivery-architecture)
+- [Architectural Rules](#architectural-rules)
+- [Known Constraints](#known-constraints)
 
-Each diagram states its C4 abstraction level. Labels explicitly identify
-people, software systems, containers, or components. Mermaid `flowchart`
-syntax is used for portable rendering, while sequence diagrams provide
-supplementary dynamic views. Code-level diagrams (C4 Level 4) are intentionally
-omitted because the code is still evolving and those details are better kept in
-source and tests.
+## Scope
+
+SAVIS is the internal back-office system for SavouretPlus. It currently owns:
+
+- technical BOMs, components, activities, yields, and costs;
+- provider offer acquisition and review;
+- global activity rates;
+- sellable catalog products and configuration rules;
+- product cost and margin analysis;
+- publication of a limited customer-facing catalog projection.
+
+The public SavouretPlus application and Supabase commerce tables are outside
+the SAVIS system boundary. SAVIS publishes catalog data to Supabase but does
+not use Supabase as its business database.
+
+Orders, inventory, purchasing, catering operations, and decoration operations
+are not yet SAVIS business slices.
+
+### Diagram Conventions
+
+The diagrams use Mermaid for rendering in GitHub. C4 Level 4 code diagrams are
+intentionally omitted because package and class details are better represented
+by source code and automated module tests.
 
 ## Architectural Drivers
 
-- Keep Java as the source of truth for SAVIS business state.
-- Keep provider acquisition outside request handlers because scraping is slow,
-  unstable, and retryable.
-- Keep the browser session outside Celery so its profile, cookies, and local
-  storage survive task and container restarts.
-- Keep Catalog independent from BOM internals; Catalog references BOMs by UUID
-  and uses a public BOM pricing API.
-- Keep Supabase as a public projection, not the product system of record.
-- Organize code by vertical slices and enforce inward dependencies through
-  domain objects, use cases, ports, and adapters.
+1. **Clear ownership**
 
-## C4 Level 1 - System Context
+   Java owns business state. Python owns acquisition execution and provider
+   state. Supabase owns only the public projection and customer submissions.
+
+2. **Asynchronous provider access**
+
+   Scraping is slow, externally constrained, and failure-prone. HTTP handlers
+   and RabbitMQ callbacks persist and enqueue work instead of performing it.
+
+3. **Persistent browser identity**
+
+   Google Chrome runs outside Docker and Celery so its profile, cookies, local
+   storage, and browser identity survive task and container restarts.
+
+4. **Explicit module boundaries**
+
+   Business slices communicate through public APIs and ports. Catalog never
+   accesses BOM entities or repositories directly.
+
+5. **Independent schema evolution**
+
+   The API, Executor, and Supabase each own their migrations and persistence
+   lifecycle.
+
+6. **Operationally verifiable releases**
+
+   Production uses immutable image digests, ordered migrations, dependency
+   health checks, and a checksummed release package.
+
+## System Context
+
+### C4 Level 1
 
 ```mermaid
 flowchart LR
-  AdminUser["Person<br/>Internal SAVIS user"]
+  Operator["Person<br/>Internal SAVIS operator"]
   Customer["Person<br/>Customer"]
-  SAVIS["Software System<br/>SAVIS<br/>Back-office operations and pricing"]
-  Provider["External System<br/>Provider websites"]
-  Savouretplus["External System<br/>Savouretplus customer-facing app"]
+  SAVIS["Software System<br/>SAVIS<br/>Back-office management and pricing"]
+  Providers["External Systems<br/>Provider websites"]
+  Storefront["External System<br/>SavouretPlus storefront"]
   Supabase["External System<br/>Supabase public projection"]
 
-  AdminUser -->|manages BOMs, offers, tasks, rates, catalog| SAVIS
-  SAVIS -->|collects and refreshes offers| Provider
-  SAVIS -->|publishes catalog data| Supabase
-  Savouretplus -->|reads catalog; submits orders and quotes| Supabase
-  Customer -->|orders and quote requests| Savouretplus
+  Operator -->|manages BOMs, offers, rates, and catalog| SAVIS
+  SAVIS -->|collects and refreshes offers| Providers
+  SAVIS -->|publishes catalog products| Supabase
+  Storefront -->|reads catalog and submits requests| Supabase
+  Customer -->|shops and requests quotes| Storefront
 ```
 
-### Context Notes
+### System Boundaries
 
-- **SAVIS Admin** is internal. It is not the public storefront.
-- **SAVIS API** owns business concepts: BOM, Supply, Activity Rate, Catalog.
-- **SAVIS Executor** owns external provider acquisition and executor tasks.
-- **Supabase** exposes public commerce-facing data to Savouretplus.
-- Provider websites are volatile external dependencies and must not leak into
-  Java domain models.
+| System | Owns | Does not own |
+| --- | --- | --- |
+| SAVIS | Internal business state, provider acquisition, pricing, publication | Public storefront sessions and customer identity |
+| Provider websites | Product pages, prices, availability, anti-automation behavior | SAVIS offer review state |
+| Supabase | Public projection, customer orders, quote requests, RLS | BOMs, internal costs, provider tasks |
+| SavouretPlus | Customer-facing experience | SAVIS business rules |
 
-## C4 Level 2 - Container View
+Provider-specific HTML and navigation behavior must remain inside Executor
+adapters and must not leak into Java domain models.
+
+## Container View
+
+### C4 Level 2
 
 ```mermaid
 flowchart LR
   subgraph SAVIS["Software System: SAVIS"]
-    Admin["Container<br/>React/Vite SAVIS Admin"]
-    Api["Container<br/>Java 25 / Spring Boot SAVIS API"]
-    ExecutorApi["Container<br/>Python FastAPI Executor API<br/>and RabbitMQ subscriber"]
-    Worker["Container<br/>Celery Worker<br/>Provider scraping and refresh"]
-    Beat["Container<br/>Celery Beat<br/>Periodic scheduler"]
-    ChromeRelay["Host service<br/>CDP relay :9223"]
-    Chrome["Host process<br/>Google Chrome<br/>Persistent SAVIS profile"]
+    Admin["Container<br/>SAVIS Admin<br/>React and Nginx"]
+    Api["Container<br/>SAVIS API<br/>Spring Boot"]
+    ExecutorApi["Container<br/>Executor API<br/>FastAPI and Rabbit subscriber"]
+    Worker["Container<br/>Executor Worker<br/>Celery and Playwright"]
+    Beat["Container<br/>Executor Beat<br/>Periodic scheduler"]
+    Migrate["Container<br/>Executor Migrate<br/>One-shot Alembic process"]
     Rabbit[("Container<br/>RabbitMQ")]
-    PgApi[("Container<br/>PostgreSQL schema savis_api")]
-    PgExecutor[("Container<br/>PostgreSQL schema savis_executor")]
+    Postgres[("Container<br/>PostgreSQL")]
+    ChromeRelay["Host Service<br/>socat CDP relay :9223"]
+    Chrome["Host Process<br/>Google Chrome :9222<br/>Persistent profile"]
   end
 
-  Supabase[("External System<br/>Supabase public projection")]
-  Providers["External System<br/>Provider websites"]
-  Savouretplus["External System<br/>Savouretplus"]
+  Providers["External Systems<br/>Provider websites"]
+  Supabase[("External System<br/>Supabase")]
+  Storefront["External System<br/>SavouretPlus"]
 
   Admin -->|HTTP /api| Api
-  Admin -->|HTTP /offers, /tasks| ExecutorApi
+  Admin -->|HTTP /executor-api| ExecutorApi
 
-  Api -->|JPA| PgApi
-  Api -->|publish catalog| Supabase
-  Api -->|savis.offer.requests| Rabbit
-  Rabbit -->|savis.offer.results<br/>savis.offer.invalidations| Api
+  Api -->|JPA / schema savis_api| Postgres
+  ExecutorApi -->|SQLAlchemy / schema savis_executor| Postgres
+  Worker -->|SQLAlchemy / schema savis_executor| Postgres
+  Migrate -->|Alembic migrations| Postgres
 
-  ExecutorApi -->|SQLAlchemy| PgExecutor
-  ExecutorApi -->|enqueue Celery tasks| Rabbit
-  Rabbit -->|messages| ExecutorApi
+  Api -->|offer requests| Rabbit
+  Rabbit -->|offer results and invalidations| Api
+  ExecutorApi -->|Celery tasks| Rabbit
+  Rabbit -->|Celery tasks| Worker
+  Rabbit -->|offer requests| ExecutorApi
+  Beat -->|scheduled Celery tasks| Rabbit
+  Worker -->|offer results and invalidations| Rabbit
 
-  Worker -->|SQLAlchemy| PgExecutor
-  Worker -->|Celery broker| Rabbit
   Worker -->|Playwright over CDP| ChromeRelay
-  ChromeRelay -->|localhost :9222| Chrome
-  Chrome -->|browse / refresh| Providers
-  Worker -->|publish results| Rabbit
+  ChromeRelay -->|TCP relay| Chrome
+  Chrome -->|HTTPS navigation| Providers
 
-  Beat -->|scheduled tasks| Rabbit
-  Savouretplus -->|read public catalog| Supabase
+  Api -->|Supabase REST publication| Supabase
+  Storefront -->|public catalog and submissions| Supabase
 ```
 
 ### Container Responsibilities
 
-| Container            | Responsibility                                                                        | Persistence                        |
-| -------------------- | ------------------------------------------------------------------------------------- | ---------------------------------- |
-| `savis-admin`        | Internal UI for BOMs, offers, tasks, activity rates, categories, and catalog products | Browser state only                 |
-| `savis-api`          | Business workflows and source of truth for BOM, Supply, Catalog, Activity Rate        | PostgreSQL schema `savis_api`      |
-| `savis-executor` API | Executor HTTP API and lightweight RabbitMQ subscriber                                 | PostgreSQL schema `savis_executor` |
-| Celery worker        | Slow provider collection and offer refresh                                            | PostgreSQL schema `savis_executor` |
-| Celery Beat          | Due-offer refresh and stale-task cleanup scheduling                                   | Celery broker state                |
-| Google Chrome        | Host browser session with persistent Maxi cookies, storage, and browser identity       | Dedicated host profile directory  |
-| CDP relay            | Makes Chrome's loopback CDP endpoint reachable from the Docker worker on Ubuntu         | None                               |
-| RabbitMQ             | Offer request/result transport and Celery broker                                      | Broker queues                      |
-| Supabase             | Public catalog, customer order, and quote-request projection                          | Supabase PostgreSQL                |
+| Container or process | Responsibility | State |
+| --- | --- | --- |
+| `frontend_admin` | Serves the SPA and proxies API traffic | Browser state only |
+| `backend_api` | Runs BOM, Supply, Activity Rate, and Catalog workflows | `savis_api` schema |
+| `executor_api` | Exposes offers/tasks and subscribes to offer requests | `savis_executor` schema |
+| `executor_worker` | Executes slow provider collection and refresh | `savis_executor` schema |
+| `executor_beat` | Schedules due refreshes and stale-task cleanup | Celery schedule state |
+| `executor_migrate` | Applies forward-only Executor migrations | Alembic version table |
+| `postgres` | Hosts independently owned API and Executor schemas | Docker volume |
+| `rabbitmq` | Carries integration messages and Celery tasks | Durable broker data |
+| Google Chrome | Maintains the provider-facing browser identity | Host profile directory |
+| CDP relay | Makes loopback Chrome CDP reachable from Docker | None |
 
-## C4 Level 3 - SAVIS API Components
+## Production Topology
 
 ```mermaid
 flowchart TB
-  subgraph Api[SAVIS API]
-    subgraph Bom[BOM slice]
-      BomWeb["Component<br/>BomController<br/>ActivityRateController"]
-      BomUse["Component<br/>BomService<br/>ActivityRateService"]
-      BomDomain["Component<br/>Bom, BomComponent<br/>Activity, Yield"]
-      BomPorts["Component<br/>BomRepositoryPort<br/>ComponentPricePort<br/>ComponentNeededEventPort<br/>BomPricingApi"]
-      BomAdapters["Component<br/>JPA adapters<br/>RabbitMQ publisher<br/>Supply price adapter"]
+  User["Internal browser"]
+
+  subgraph Host["Ubuntu production host"]
+    Admin["frontend_admin<br/>Nginx :8080"]
+    Api["backend_api<br/>Spring Boot :8080"]
+    ExecutorApi["executor_api<br/>FastAPI :8000"]
+    Worker["executor_worker"]
+    Beat["executor_beat"]
+    Postgres[("postgres")]
+    Rabbit[("rabbitmq")]
+    Chrome["Google Chrome<br/>systemd user service :9222"]
+    Relay["socat relay<br/>systemd user service :9223"]
+  end
+
+  User -->|"SAVIS_HTTP_BIND:SAVIS_HTTP_PORT<br/>default 127.0.0.1:8088"| Admin
+  Admin -->|private Docker network| Api
+  Admin -->|private Docker network| ExecutorApi
+  Api --> Postgres
+  ExecutorApi --> Postgres
+  Worker --> Postgres
+  Api <--> Rabbit
+  ExecutorApi <--> Rabbit
+  Worker <--> Rabbit
+  Beat --> Rabbit
+  Worker -->|host.docker.internal:9223| Relay
+  Relay --> Chrome
+```
+
+Only the Admin port is published by `compose.prod.yml`. API, Executor,
+PostgreSQL, and RabbitMQ remain on the private backend network.
+
+The Admin Nginx container is the production entry point:
+
+- `/` serves the React single-page application;
+- `/api/*` proxies to `backend_api`;
+- `/executor-api/*` proxies to `executor_api`;
+- `/health` provides a container health endpoint.
+
+Chrome and its relay are user-level `systemd` services owned by the graphical
+desktop user. They deliberately outlive Docker deployments.
+
+## API Components
+
+### C4 Level 3
+
+```mermaid
+flowchart TB
+  subgraph Api["SAVIS API"]
+    subgraph Bom["BOM module"]
+      BomWeb["Web adapters<br/>BomController<br/>ActivityRateController"]
+      BomUse["Use cases<br/>BomService<br/>ActivityRateService"]
+      BomDomain["Domain<br/>Bom, Component, Activity<br/>Yield, ActivityRate"]
+      BomPorts["Ports and public API<br/>Repositories<br/>ComponentPricePort<br/>ComponentNeededEventPort<br/>BomPricingApi"]
+      BomAdapters["Adapters<br/>JPA<br/>RabbitMQ publisher<br/>Supply pricing"]
     end
 
-    subgraph Supply[Supply slice]
-      SupplyWeb["Component<br/>SupplyOfferController"]
-      SupplyUse["Component<br/>OfferService"]
-      SupplyDomain["Component<br/>Offer, Provider<br/>PackageSize"]
-      SupplyPorts["Component<br/>OfferRepository<br/>Offer result ports"]
-      SupplyAdapters["Component<br/>JPA adapters<br/>RabbitMQ listeners"]
+    subgraph Supply["Supply module"]
+      SupplyWeb["Web adapter<br/>SupplyOfferController"]
+      SupplyUse["Use case<br/>OfferService"]
+      SupplyDomain["Domain<br/>Offer, Provider"]
+      SupplyApi["Public API<br/>SupplyApi"]
+      SupplyAdapters["Adapters<br/>JPA<br/>RabbitMQ listeners"]
     end
 
-    subgraph Catalog[Catalog slice]
-      CatalogWeb["Component<br/>CatalogController<br/>ProductCategoryController"]
-      CatalogUse["Component<br/>ProductService<br/>ProductCostService<br/>ProductPricingService<br/>CatalogPublicationService"]
-      CatalogDomain["Component<br/>Product, ProductBom<br/>PurchaseMode, Choice<br/>Ingredient"]
-      CatalogPorts["Component<br/>ProductRepository<br/>ProductCategoryRepository<br/>BomPricingPort<br/>PublishedCatalogPort"]
-      CatalogAdapters["Component<br/>JPA adapters<br/>BomPricingAdapter<br/>Supabase adapter"]
+    subgraph Catalog["Catalog module"]
+      CatalogWeb["Web adapters<br/>CatalogController<br/>ProductCategoryController"]
+      CatalogUse["Use cases<br/>Product and category services<br/>Cost, pricing, publication"]
+      CatalogDomain["Domain<br/>Product aggregate<br/>ProductBom, modes<br/>choices, ingredients"]
+      CatalogPorts["Ports<br/>Repositories<br/>BomPricingPort<br/>PublishedCatalogPort"]
+      CatalogAdapters["Adapters<br/>JPA<br/>BOM public API<br/>Supabase"]
     end
 
-    Common["Component<br/>common<br/>Money, Quantity, Unit"]
+    Common["Shared value objects<br/>Money, Quantity, Unit"]
   end
 
   BomWeb --> BomUse --> BomDomain
   BomUse --> BomPorts --> BomAdapters
 
   SupplyWeb --> SupplyUse --> SupplyDomain
-  SupplyUse --> SupplyPorts --> SupplyAdapters
+  SupplyUse --> SupplyApi
+  SupplyUse --> SupplyAdapters
 
   CatalogWeb --> CatalogUse --> CatalogDomain
   CatalogUse --> CatalogPorts --> CatalogAdapters
+
+  BomAdapters -->|SupplyApi| SupplyUse
   CatalogAdapters -->|BomPricingApi| BomUse
 
   BomDomain --> Common
@@ -168,235 +272,156 @@ flowchart TB
   CatalogDomain --> Common
 ```
 
-### API Component Rules
+### Module Boundaries
 
-- Domain objects contain business rules and avoid framework dependencies.
-- Use cases coordinate validation, persistence, pricing, messaging, and
-  publication.
-- Ports express dependencies needed by use cases.
-- Adapters implement web, persistence, messaging, external integration, and
-  cross-module access.
-- Catalog does not depend on BOM persistence or entities. It uses
-  `BomPricingPort`, implemented by `BomPricingAdapter`, which calls the public
-  BOM `BomPricingApi`.
+- BOM consumes offer prices through `SupplyApi`.
+- Catalog consumes BOM cost and yield through `BomPricingApi`.
+- Catalog stores BOM UUID values, not JPA relationships to BOM entities.
+- `common` contains shared value objects, not workflow orchestration.
+- HTTP, JPA, RabbitMQ, and Supabase dependencies remain in adapters.
 
-## C4 Level 3 - SAVIS Executor Components
+`SavisApiModularityTests` uses Spring Modulith to verify module dependencies and
+generate module documentation snippets.
+
+### Pricing Boundary
+
+```text
+Catalog use case
+  -> BomPricingPort
+  -> BomPricingAdapter
+  -> BomPricingApi
+  -> BomService
+  -> ComponentPricePort
+  -> ComponentPriceAdapter
+  -> SupplyApi
+```
+
+This path keeps Catalog independent from BOM and Supply persistence while still
+allowing synchronous in-process pricing.
+
+## Executor Components
+
+### C4 Level 3
 
 ```mermaid
 flowchart TB
-  subgraph Executor[SAVIS Executor]
-    ApiRoutes["Component<br/>FastAPI routes<br/>/offers, /tasks"]
-    Subscriber["Component<br/>RabbitMQ subscriber"]
-    CeleryTasks["Component<br/>Celery tasks"]
-    BeatScheduler["Component<br/>Celery Beat schedules"]
-    Container["Component<br/>Container composition root"]
+  subgraph Executor["SAVIS Executor"]
+    Routes["FastAPI adapters<br/>offers, tasks, health"]
+    Subscriber["RabbitMQ subscriber<br/>savis.offer.requests"]
+    CeleryTasks["Celery task adapters"]
+    Beat["Celery Beat schedule"]
+    Container["Composition root<br/>Container and Celery wiring"]
 
-    subgraph Core[Core]
-      Models["Component<br/>Offer, Provider<br/>SavisTask, Price"]
-      OffersUseCase["Component<br/>OffersUseCase"]
-      TaskUseCase["Component<br/>SavisTaskUseCase"]
-      Ports["Component<br/>OfferProvider<br/>TaskQueue<br/>OfferRepository<br/>SavisTaskRepository<br/>OfferPublisher"]
+    subgraph Core["Core"]
+      Models["Models<br/>Offer, SavisTask<br/>Provider, Price"]
+      Offers["OffersUseCase"]
+      Tasks["SavisTaskUseCase"]
+      Ports["Ports<br/>repositories, queue<br/>publisher, providers"]
     end
 
-    subgraph Adapters[Adapters]
-      Database["Component<br/>SQLAlchemy repositories"]
-      Queue["Component<br/>CeleryQueue"]
-      Publisher["Component<br/>RabbitMQ result publisher"]
-      Browser["Component<br/>BrowserManager<br/>External Chrome CDP"]
-      Scrapers["Component<br/>Provider scrapers<br/>Maxi list and details"]
+    subgraph Adapters["Adapters"]
+      Database["SQLAlchemy repositories<br/>provider access policy"]
+      Queue["CeleryQueue"]
+      Publisher["RabbitMQ publisher"]
+      Providers["Provider adapters<br/>Maxi"]
+      Browser["BrowserManager<br/>external Chrome CDP"]
     end
   end
 
-  ApiRoutes --> Container
+  Routes --> Container
   Subscriber --> Container
   CeleryTasks --> Container
-  BeatScheduler --> CeleryTasks
-
-  Container --> OffersUseCase
-  Container --> TaskUseCase
-
-  OffersUseCase --> Models
-  OffersUseCase --> Ports
-  TaskUseCase --> Models
-  TaskUseCase --> Ports
-
+  Beat --> CeleryTasks
+  Container --> Offers
+  Container --> Tasks
+  Offers --> Models
+  Tasks --> Models
+  Offers --> Ports
+  Tasks --> Ports
   Ports --> Database
   Ports --> Queue
   Ports --> Publisher
-  Ports --> Scrapers
-  Scrapers --> Browser
+  Ports --> Providers
+  Providers --> Browser
 ```
 
-### Executor Component Rules
+### Execution Rules
 
 - Core models and use cases are provider-neutral.
-- `BrowserManager` connects to an already-running Chrome instance over CDP,
-  creates one page per operation, and disconnects without stopping Chrome.
-- Maxi keeps search-result extraction and product-detail extraction separate;
-  shared normalization and draft conversion remain provider-local.
-- Product details prefer the explicit package size and otherwise use the
-  comparison-price reference quantity such as `/ 1kg`; average-weight text is
-  not used as the package size.
-- HTTP routes and RabbitMQ callbacks only validate, translate, and enqueue.
-- Celery executes slow work with concurrency one because all scraping tasks
-  share the external browser session.
-- Transient failures use Celery backoff. Provider blocks, challenge pages, and
-  browser connection failures are non-retryable because an immediate retry
-  would only repeat the refusal.
-- A PostgreSQL-backed provider policy reserves navigation starts 1 to 10
-  minutes apart and opens a progressive circuit breaker after blocks.
-- Failed Celery tasks are reported to executor task persistence through
-  `ReportingTask`.
+- API routes and subscriber callbacks validate, persist, and enqueue.
+- The worker performs browser navigation.
+- One worker process with concurrency `1` controls the shared Chrome profile.
+- `BrowserManager` opens one page per operation and disconnects without
+  terminating Chrome.
+- Provider adapters own selectors, parsing, block detection, and normalized
+  offer conversion.
+- `ReportingTask` records final Celery failures in SAVIS task persistence.
 
-## C4 Level 3 - SAVIS Admin Components
+### Failure Classification
+
+| Failure | Celery behavior |
+| --- | --- |
+| Unexpected transient exception | Retry with backoff, maximum 3 retries |
+| Provider block or open circuit | Fail without immediate retry |
+| Chrome CDP unavailable | Fail without immediate retry |
+| 30-minute task limit reached | Worker terminates the task; stale cleanup provides recovery |
+
+Immediate retries are avoided when the provider or browser state cannot improve
+within the same task attempt.
+
+## Admin Components
+
+### C4 Level 3
 
 ```mermaid
 flowchart TB
-  subgraph Admin[SAVIS Admin]
-    Router["Component<br/>AppRouter"]
-    Layout["Component<br/>MainLayout<br/>AppSidebar<br/>Breadcrumbs"]
-    Shared["Component<br/>shared API clients<br/>shared UI components"]
+  subgraph Admin["SAVIS Admin"]
+    Router["AppRouter"]
+    Layout["MainLayout<br/>sidebar, header, breadcrumbs"]
+    ApiClients["Shared Axios clients<br/>api and executorApi"]
+    SharedUi["Shared UI<br/>shadcn and application components"]
 
-    subgraph Features[src/features]
-      Dashboard["Component<br/>dashboard"]
-      BomFeature["Component<br/>bom"]
-      BomComponent["Component<br/>bom-component"]
-      BomComponentTask["Component<br/>bom-component/task"]
-      ActivityRate["Component<br/>activity-rate"]
-      CatalogFeature["Component<br/>catalog"]
+    subgraph Features["Business features"]
+      Dashboard["dashboard"]
+      Bom["bom"]
+      Components["bom-component"]
+      Tasks["bom-component/task"]
+      Rates["activity-rate"]
+      Catalog["catalog"]
     end
   end
 
   Router --> Layout
   Router --> Dashboard
-  Router --> BomFeature
-  Router --> BomComponent
-  BomComponent --> BomComponentTask
-  Router --> ActivityRate
-  Router --> CatalogFeature
+  Router --> Bom
+  Router --> Components
+  Components --> Tasks
+  Router --> Rates
+  Router --> Catalog
 
-  BomFeature --> Shared
-  BomComponent --> Shared
-  BomComponentTask --> Shared
-  ActivityRate --> Shared
-  CatalogFeature --> Shared
+  Bom --> ApiClients
+  Components --> ApiClients
+  Tasks --> ApiClients
+  Rates --> ApiClients
+  Catalog --> ApiClients
+
+  Bom --> SharedUi
+  Components --> SharedUi
+  Rates --> SharedUi
+  Catalog --> SharedUi
 ```
 
-### Admin Routes
+| Client | Default production path | Target |
+| --- | --- | --- |
+| `api` | `/api` | SAVIS API |
+| `executorApi` | `/executor-api` | SAVIS Executor |
 
-| Route                   | Feature                  |
-| ----------------------- | ------------------------ |
-| `/dashboard`            | dashboard                |
-| `/boms`                 | BOM list                 |
-| `/boms/add`             | BOM creation             |
-| `/boms/:id`             | BOM editing              |
-| `/bom-components`       | reviewed provider offers |
-| `/bom-components/tasks` | executor task monitoring |
-| `/activity-rates`       | global hourly rates      |
-| `/catalog-products`     | product catalog          |
+The dashboard currently demonstrates the application shell with static data.
+It is not yet an operational read model.
 
-Executor tasks are colocated under `bom-component/task` because they are a
-technical detail of retrieving and refreshing BOM component offers.
+## Runtime Flows
 
-## Dynamic View - BOM Offer Collection
-
-```mermaid
-sequenceDiagram
-  participant Admin as SAVIS Admin
-  participant Api as SAVIS API
-  participant Rabbit as RabbitMQ
-  participant Executor as Executor API subscriber
-  participant Worker as Celery worker
-  participant Provider as Provider website
-  participant PgExec as savis_executor
-  participant Supply as Supply slice
-
-  Admin->>Api: Save BOM
-  Api->>Api: Persist BOM
-  Api->>Rabbit: Publish ComponentNeededEvent
-  Rabbit->>Executor: Consume offer request
-  Executor->>PgExec: Create GET_OFFERS task
-  Executor->>Rabbit: Enqueue Celery task
-  Rabbit->>Worker: Deliver get_offers_task
-  Worker->>Provider: Scrape provider offers
-  Worker->>PgExec: Reconcile offers and complete task
-  Worker->>Rabbit: Publish offer results
-  Rabbit->>Supply: Deliver results
-  Supply->>Supply: Upsert offers in savis_api
-```
-
-## Dynamic View - Manual Retrieval and Offer Review
-
-```mermaid
-sequenceDiagram
-  participant Admin as SAVIS Admin
-  participant Executor as Executor API
-  participant TaskUseCase as SavisTaskUseCase
-  participant Worker as Celery worker
-  participant OfferUseCase as OffersUseCase
-  participant PgExec as savis_executor
-  participant Rabbit as RabbitMQ
-  participant Supply as SAVIS API Supply slice
-
-  Admin->>Executor: POST /tasks GET_OFFER(provider, URL)
-  Executor->>TaskUseCase: enqueue_savis_task(payload)
-  TaskUseCase->>PgExec: Persist IN_PROGRESS task
-  TaskUseCase->>Rabbit: Enqueue get_offer_task
-  Rabbit->>Worker: Deliver task
-  Worker->>OfferUseCase: Retrieve URL with selected provider strategy
-  OfferUseCase->>PgExec: Persist NEW offers
-  Worker->>PgExec: Mark task COMPLETED
-  Admin->>Executor: GET /offers
-  Executor-->>Admin: Paged offers
-  Admin->>Executor: PATCH offer status
-  alt offer becomes VALID
-    Executor->>Rabbit: Publish offer result
-    Rabbit->>Supply: Upsert available offer
-  else valid offer becomes REJECTED or is deleted
-    Executor->>Rabbit: Publish offer invalidation
-    Rabbit->>Supply: Mark offer unavailable
-  end
-```
-
-Task creation may return a conflict when all configured providers already have
-offers for the requested search term and component type.
-
-## Dynamic View - Scheduled Offer Refresh
-
-```mermaid
-sequenceDiagram
-  participant Beat as Celery Beat
-  participant Rabbit as RabbitMQ
-  participant TaskUseCase as SavisTaskUseCase
-  participant PgExec as savis_executor
-  participant Worker as Celery worker
-  participant Offers as OffersUseCase
-  participant Provider as Provider website
-  participant Supply as SAVIS API Supply slice
-
-  Beat->>Rabbit: schedule_due_offer_refresh_tasks
-  Rabbit->>Worker: Deliver scheduler task
-  Worker->>TaskUseCase: enqueue_due_offer_refresh_tasks()
-  TaskUseCase->>Offers: Find VALID offers due for refresh
-  Offers->>PgExec: Query next_refresh_at
-  loop each due offer
-    TaskUseCase->>PgExec: Persist task
-    TaskUseCase->>Rabbit: Enqueue refresh_offer_task
-    Rabbit->>Worker: Deliver refresh task
-    Worker->>Provider: Refresh price and package
-    Worker->>PgExec: Persist refreshed offer and task status
-    alt valid offer changed
-      Worker->>Rabbit: Publish offer result
-      Rabbit->>Supply: Update available offer
-    end
-  end
-```
-
-The refresh frequency determines `next_refresh_at`. A successful refresh only
-publishes back to Java when the persisted valid offer's price or package size
-changed.
-
-## Dynamic View - Activity Rate Configuration
+### Activity Rate Configuration
 
 ```mermaid
 sequenceDiagram
@@ -404,244 +429,541 @@ sequenceDiagram
   participant Controller as ActivityRateController
   participant Service as ActivityRateService
   participant Repository as ActivityRateRepositoryPort
-  participant Bom as BOM pricing
+  participant Bom as BomService pricing
 
-  Admin->>Controller: Create or update hourly rate
-  Controller->>Service: Validate ActivityType and Money
-  Service->>Repository: Save one rate per ActivityType
-  Repository-->>Service: Persisted ActivityRate
-  Service-->>Controller: ActivityRate
-  Controller-->>Admin: Activity rate response
-  Bom->>Repository: Load rates during cost calculation
+  Admin->>Controller: GET /api/activity-rates
+  Controller->>Service: listActivityRates()
+  Service->>Repository: findAll()
+  Repository-->>Service: Configured rates
+  Service-->>Controller: Activity rates
+  Controller-->>Admin: HTTP response
+
+  alt create an unconfigured activity type
+    Admin->>Controller: POST activity type and hourly Money
+    Controller->>Service: createActivityRate()
+    Service->>Repository: Ensure type does not exist
+    Service->>Repository: Save ActivityRate
+  else update a configured activity type
+    Admin->>Controller: PUT /{activityType}
+    Controller->>Service: updateActivityRate()
+    Service->>Repository: Load existing rate
+    Service->>Repository: Save replacement Money
+  else delete a configured activity type
+    Admin->>Controller: DELETE /{activityType}
+    Controller->>Service: deleteActivityRate()
+    Service->>Repository: Verify and delete rate
+  end
+
+  Admin->>Bom: Request BOM price
+  Bom->>Repository: Load current rates by ActivityType
+  Bom->>Bom: minutes / 60 * hourly rate
+  Bom-->>Admin: Recalculated BOM cost
 ```
 
-Activities store their type and duration. They do not copy the hourly rate;
-changing a configured rate affects subsequent BOM cost calculations.
+Activities store only their type and duration. Rates are global and are read
+when a BOM is priced, so a configuration change affects subsequent
+calculations without modifying existing BOM activities. A missing rate
+currently contributes zero.
 
-## Dynamic View - Catalog Product Management
+### Manual Offer Retrieval
 
 ```mermaid
 sequenceDiagram
   participant Admin as SAVIS Admin
-  participant Catalog as CatalogController
-  participant Product as ProductService
-  participant Category as ProductCategoryRepository
-  participant BomPort as BomPricingPort
-  participant Repository as ProductRepository
+  participant Executor as Executor API
+  participant Tasks as SavisTaskUseCase
+  participant PgExec as savis_executor
+  participant Rabbit as RabbitMQ
+  participant Worker as Celery worker
+  participant Offers as OffersUseCase
+  participant Provider as Selected provider adapter
 
-  Admin->>Catalog: Create or update product
-  Catalog->>Product: Product aggregate
-  Product->>Category: Verify category UUID
-  loop each common ProductBom
-    Product->>BomPort: exists(bomId)
-    BomPort-->>Product: BOM existence
-  end
-  Product->>Repository: Reconcile and persist aggregate
-  Repository-->>Product: Persisted aggregate
-  Product-->>Catalog: Product UUID or updated product
-  Catalog-->>Admin: HTTP response
+  Admin->>Executor: POST /tasks<br/>GET_OFFER(provider, URL, search term, type)
+  Executor->>Tasks: enqueue_savis_task(payload)
+  Tasks->>PgExec: Persist IN_PROGRESS task
+  Tasks->>Rabbit: Enqueue get_offer_task
+  Rabbit->>Worker: Deliver task
+  Worker->>Tasks: execute_savis_task()
+  Tasks->>Offers: get_offer(URL, provider)
+  Offers->>Provider: Retrieve exact product URL
+  Provider-->>Offers: Normalized offer or no result
+  Offers->>PgExec: Create NEW or reconcile existing offer
+  Tasks->>PgExec: Mark task COMPLETED
+  Admin->>Executor: GET /tasks and GET /offers
+  Executor-->>Admin: Task status and retrieved offer
 ```
 
-Unknown common Product BOMs reject create/update. Choice and ingredient BOM
-references remain optional so an incomplete cost model does not block product
-management or sale.
+Manual retrieval targets one exact provider URL and does not run the
+all-provider coverage check used by automatic `GET_OFFERS` collection. Queueing
+failure marks the persisted task failed; execution failures follow the retry
+flow described below.
 
-## Dynamic View - Catalog Pricing
+Manual retrieval is the preferred acquisition path when the operator knows the
+exact provider product URL. It is more precise and avoids broad provider search
+results.
+
+### BOM Creation and Automatic Offer Collection
 
 ```mermaid
 sequenceDiagram
   participant Admin as SAVIS Admin
-  participant Catalog as Catalog use cases
-  participant BomPort as BomPricingPort
-  participant Bom as BOM public API
-  participant Supply as Supply pricing adapter
+  participant Bom as API BOM module
+  participant Rabbit as RabbitMQ
+  participant Executor as Executor subscriber
+  participant PgExec as savis_executor
+  participant Worker as Celery worker
+  participant Provider as Provider website
+  participant Supply as API Supply module
 
-  Admin->>Catalog: Request pricing analysis
-  Catalog->>Catalog: Validate selected configuration
-  loop productBoms, choice BOMs, extra BOMs
-    Catalog->>BomPort: getPricing(bomId)
-    BomPort->>Bom: getBomPricing(bomId)
-    Bom->>Supply: Resolve component prices
-    Supply-->>Bom: Component costs
-    Bom-->>BomPort: BOM total cost and yield
-    BomPort-->>Catalog: Unit cost inputs
+  Admin->>Bom: Save BOM
+  Bom->>Bom: Persist aggregate
+  loop each component
+    Bom->>Rabbit: ComponentNeededEvent
   end
-  Catalog->>Catalog: Calculate cost, margin, status, recommendation
-  Catalog-->>Admin: Pricing analysis
+  Rabbit->>Executor: savis.offer.requests
+  Executor->>PgExec: Persist GET_OFFERS task
+  Executor->>Rabbit: Enqueue Celery task
+  Rabbit->>Worker: Deliver task
+  Worker->>Provider: Search through Chrome CDP
+  Worker->>PgExec: Reconcile NEW offers
+  Worker->>PgExec: Mark task COMPLETED
+  Admin->>Executor: Review offer
+  Admin->>Executor: Mark offer VALID
+  Executor->>Rabbit: savis.offer.results
+  Rabbit->>Supply: Upsert available offer
 ```
 
-Pricing analysis never changes sale prices. It returns margin health and a
-recommended price for human review.
+Automatic collection is a secondary coverage mechanism for BOM components
+without a known product URL. It is skipped when all configured providers
+already have offers for the requested search term and type.
 
-## Dynamic View - Catalog Publication
+### Review, Invalidate, and Delete an Offer
 
 ```mermaid
 sequenceDiagram
-  participant Admin as SAVIS Admin or scheduler
-  participant Catalog as CatalogPublicationService
-  participant ProductRepo as ProductRepository
-  participant CategoryRepo as ProductCategoryRepository
-  participant Mapper as PublishedCatalogProductMapper
-  participant Supabase as PublishedCatalogPort / Supabase
-  participant Public as Savouretplus
+  participant Admin as SAVIS Admin
+  participant Executor as Executor API
+  participant PgExec as savis_executor
+  participant Rabbit as RabbitMQ
+  participant Supply as API Supply module
 
-  Admin->>Catalog: publishAll()
-  Catalog->>ProductRepo: findAllPublished()
-  loop each published product
-    Catalog->>CategoryRepo: find category
-    Catalog->>Mapper: map product to public projection
-    Mapper-->>Catalog: PublishedCatalogProduct
-    Catalog->>Supabase: upsert published_catalog_products
+  Admin->>Executor: PATCH offer status
+  Executor->>PgExec: Persist review state
+  alt transition to VALID
+    Executor->>Rabbit: Publish offer result
+    Rabbit->>Supply: Upsert available projection
+  else VALID to REJECTED
+    Executor->>Rabbit: Publish invalidation
+    Rabbit->>Supply: Mark projection unavailable
+  else delete VALID offer
+    Executor->>Rabbit: Publish invalidation
+    Executor->>PgExec: Delete offer
+    Rabbit->>Supply: Mark projection unavailable
   end
-  Public->>Supabase: read public catalog
 ```
 
-The public projection excludes common `productBoms`, internal costs,
-target-margin data, diagnostics, and recommended prices. Choice and ingredient
-`bom_id` values may be present because the customer configuration can require
-them.
+The Executor owns review history and refresh settings. The API stores only the
+available offer projection required by BOM pricing.
 
-## Dynamic View - Executor Retry and Scheduling
+### Scheduled Refresh and Provider Protection
 
 ```mermaid
 sequenceDiagram
   participant Beat as Celery Beat
   participant Rabbit as RabbitMQ
   participant Worker as Celery worker
-  participant TaskRepo as SavisTaskRepository
-  participant Offers as OffersUseCase
-  participant Provider as Provider website
+  participant Policy as Provider access policy
+  participant PgExec as savis_executor
+  participant Chrome as External Chrome
+  participant Supply as API Supply module
 
-  Beat->>Rabbit: schedule due refresh / cleanup
-  Rabbit->>Worker: deliver task
-  Worker->>Offers: execute provider work
-  Offers->>Provider: scrape or refresh
-  alt success
-    Worker->>TaskRepo: mark completed
-  else provider block or browser unavailable
-    Worker->>TaskRepo: mark failed without automatic retry
-  else repeated failure
-    Worker->>Worker: retry with backoff
-    Worker->>TaskRepo: mark failed after max retries
+  Beat->>Rabbit: schedule_due_offer_refresh_tasks (hourly)
+  Rabbit->>Worker: Scheduler task
+  Worker->>PgExec: Find VALID offers due
+  loop each due offer
+    Worker->>PgExec: Persist REFRESH_OFFER task
+    Worker->>Rabbit: Enqueue refresh task
+    Rabbit->>Worker: Deliver refresh task
+    Worker->>Policy: Reserve provider request slot
+    Policy->>PgExec: Lock/update provider access state
+    Worker->>Chrome: Refresh provider page
+    alt provider block
+      Worker->>Policy: Open progressive cooldown
+      Worker->>PgExec: Mark task FAILED
+    else changed valid offer
+      Worker->>PgExec: Save refreshed offer
+      Worker->>Rabbit: Publish offer result
+      Rabbit->>Supply: Update available projection
+    else unchanged offer
+      Worker->>PgExec: Save observation and complete task
+    end
   end
 ```
 
-Maxi responses with HTTP `403` or `429`, pages that never expose the expected
-content, and failures to connect to external Chrome raise
-`OfferProviderNonRetryableError` subclasses. Other unexpected failures retain
-the normal Celery retry policy.
+Navigation starts are spaced between 1 and 10 minutes by default. Consecutive
+blocks open the circuit for 15 minutes, 1 hour, 6 hours, then 24 hours. After a
+cooldown, one recovery probe is reserved.
 
-Before navigating, the worker reserves the provider's next request slot in
-PostgreSQL. A block opens the circuit for 15 minutes, then 1 hour, 6 hours, and
-24 hours for consecutive failures. When a cooldown expires, one recovery probe
-is reserved; success closes the circuit and resets its counter.
+Celery Beat also marks tasks still `IN_PROGRESS` after two hours as failed. The
+cleanup runs every 15 minutes.
 
-RabbitMQ subscriber callbacks use `basic_ack` only after enqueueing succeeds.
-Malformed or unprocessable messages currently use `basic_nack(requeue=false)`;
-a dead-letter queue is a future hardening step.
+### Executor Retry and Scheduling
 
-## Persistence Ownership
+```mermaid
+sequenceDiagram
+  participant Beat as Celery Beat
+  participant Rabbit as RabbitMQ
+  participant Worker as Celery worker
+  participant Task as ReportingTask
+  participant Tasks as SavisTaskUseCase
+  participant Offers as OffersUseCase
+  participant Provider as Provider or Chrome
+  participant PgExec as savis_executor
+
+  par hourly refresh scheduling
+    Beat->>Rabbit: schedule_due_offer_refresh_tasks
+  and stale cleanup every 15 minutes
+    Beat->>Rabbit: cleanup_stale_savis_tasks
+  end
+
+  Rabbit->>Worker: Deliver Celery task
+  Worker->>Tasks: Execute persisted SAVIS task
+  Tasks->>Offers: Collect or refresh offer
+  Offers->>Provider: Provider operation
+
+  alt success
+    Offers-->>Tasks: Result
+    Tasks->>PgExec: Mark COMPLETED
+  else provider block, open circuit, or Chrome unavailable
+    Provider-->>Worker: OfferProviderNonRetryableError
+    Worker->>Task: on_failure without automatic retry
+    Task->>PgExec: Mark FAILED
+  else unexpected transient failure
+    Provider-->>Worker: Exception
+    Worker->>Rabbit: Retry with backoff
+    alt a retry succeeds
+      Rabbit->>Worker: Redeliver task
+      Worker->>PgExec: Mark COMPLETED
+    else 3 retries exhausted
+      Worker->>Task: on_failure
+      Task->>PgExec: Mark FAILED
+    end
+  end
+
+  Rabbit->>Worker: Deliver scheduled stale cleanup
+  Worker->>Tasks: mark_stale_tasks_failed()
+  Tasks->>PgExec: Mark tasks older than 2 hours FAILED
+```
+
+Celery enforces a 30-minute hard task limit, worker prefetch `1`, concurrency
+`1`, and at most 10 tasks per child process. Retry policy and stale cleanup are
+complementary: retries handle transient execution failures, while cleanup
+recovers persisted tasks whose worker never reported a terminal state.
+
+### Catalog Product Management
+
+```mermaid
+sequenceDiagram
+  participant Admin as SAVIS Admin
+  participant Controller as CatalogController
+  participant Products as ProductService
+  participant Categories as ProductCategoryRepository
+  participant BomPort as BomPricingPort
+  participant Repository as ProductRepository
+
+  Admin->>Controller: Create or update product aggregate
+  Controller->>Products: Product with modes, BOMs, choices, ingredients
+  Products->>Products: Validate product structure and invariants
+  Products->>Categories: Verify category UUID
+  loop each common ProductBom
+    Products->>BomPort: exists(bomId)
+    BomPort-->>Products: BOM existence
+  end
+  alt category or common BOM is unknown
+    Products-->>Controller: Reject command
+    Controller-->>Admin: Problem Details response
+  else aggregate is valid
+    Products->>Repository: Reconcile child collections and persist
+    Repository-->>Products: Persisted product
+    Products-->>Controller: Product result
+    Controller-->>Admin: HTTP success
+  end
+```
+
+Common `ProductBom` references must resolve when a product is saved. Choice and
+ingredient BOM references remain optional; unresolved optional references make
+pricing analysis incomplete rather than blocking product management.
+
+### Catalog Pricing
+
+```mermaid
+sequenceDiagram
+  participant Admin as SAVIS Admin
+  participant Catalog as API Catalog module
+  participant Bom as BomPricingApi
+  participant Supply as SupplyApi
+
+  Admin->>Catalog: Request pricing analysis
+  loop common, choice, and ingredient BOM references
+    Catalog->>Bom: Get BOM cost and yield
+    Bom->>Supply: Resolve component offer prices
+    Supply-->>Bom: Selected or cheapest compatible offers
+    Bom-->>Catalog: Total cost and yield
+  end
+  Catalog-->>Admin: Cost, margin, health, recommendation
+```
+
+Pricing recommendations are advisory and never mutate sale prices. Missing or
+non-calculable BOM references produce an `INCOMPLETE` result.
+
+### Catalog Publication
+
+```mermaid
+sequenceDiagram
+  participant Trigger as SAVIS Admin or Spring scheduler
+  participant Controller as CatalogController
+  participant Publication as CatalogPublicationService
+  participant Products as ProductRepository
+  participant Categories as ProductCategoryRepository
+  participant Mapper as PublishedCatalogProductMapper
+  participant Port as PublishedCatalogPort
+  participant Supabase as Supabase
+  participant Storefront as SavouretPlus
+
+  alt explicit publication
+    Trigger->>Controller: POST /api/catalog/products/publish
+    Controller->>Publication: publishAll()
+  else scheduled hourly publication
+    Trigger->>Publication: scheduledPublication()
+  end
+
+  alt Supabase publication is disabled
+    Publication-->>Trigger: Skip schedule or reject explicit request
+  else publication is enabled
+    Publication->>Products: findAllPublished()
+    loop each published product
+      Publication->>Categories: Resolve category
+      Publication->>Mapper: Map internal aggregate
+      Mapper-->>Publication: PublishedCatalogProduct
+      Publication->>Port: publish(public projection)
+      Port->>Supabase: Upsert published_catalog_products
+    end
+    Publication-->>Trigger: Published product count
+  end
+
+  Storefront->>Supabase: Read published catalog
+```
+
+The public projection excludes common `productBoms`, internal costs,
+target-margin data, diagnostics, and recommended prices. Publishing one product
+that is no longer marked `published` removes its public projection. The current
+HTTP endpoint calls only bulk publication, which processes products still
+marked for publication and therefore does not reconcile newly unpublished
+records by itself.
+
+### Flow Review Checklist
+
+| Flow | Questions for the next iteration |
+| --- | --- |
+| Activity rates | Should rate changes be versioned or effective-dated for historical cost reproducibility? |
+| Manual offer retrieval | Should operators be able to cancel, retry, or resume a failed task from the Admin? |
+| Automatic offer collection | Should duplicate component events have an explicit idempotency key or acquisition window? |
+| Offer review | Should review transitions record the operator, reason, and audit timestamp? |
+| Scheduled refresh | Should per-provider schedules and concurrency limits be configurable independently? |
+| Retry and scheduling | Should failed integration messages use a dead-letter queue and an operator replay workflow? |
+| Product management | Should optional choice and ingredient BOMs be validated earlier with non-blocking diagnostics? |
+| Catalog pricing | Should stored pricing snapshots preserve the assumptions used for a recommendation? |
+| Catalog publication | Should bulk publication reconcile deletions and newly unpublished products in Supabase? |
+
+## Data Ownership
 
 ```mermaid
 flowchart LR
-  Api["Container<br/>SAVIS API"] --> PgApi[("Container<br/>PostgreSQL savis_api")]
-  Executor["Container<br/>SAVIS Executor"] --> PgExecutor[("Container<br/>PostgreSQL savis_executor")]
-  Api --> Supabase[("External System<br/>Supabase public schema")]
+  Api["SAVIS API"] --> ApiSchema[("savis_api")]
+  Executor["SAVIS Executor"] --> ExecutorSchema[("savis_executor")]
+  Api --> PublicSchema[("Supabase public schema")]
 
-  PgApi --> ApiTables["BOMs<br/>Supply offers<br/>Catalog products<br/>Activity rates"]
-  PgExecutor --> ExecutorTables["Executor tasks<br/>Tracked offers<br/>Provider access state"]
-  Supabase --> PublicTables["published_catalog_products<br/>customer_orders<br/>quote_requests"]
+  ApiSchema --> ApiData["BOMs and activities<br/>activity rates<br/>available offers<br/>catalog aggregates"]
+  ExecutorSchema --> ExecutorData["tasks<br/>reviewed offers<br/>provider access state"]
+  PublicSchema --> PublicData["published catalog<br/>customer orders<br/>quote requests"]
 ```
 
-- Java-owned schema changes currently use `spring.jpa.hibernate.ddl-auto=update`.
-- Java tests use H2 in PostgreSQL compatibility mode with `ddl-auto=create-drop`.
-- Executor schema is created by SQLAlchemy at runtime.
-- Supabase schema is managed by SQL migrations under `supabase/migrations`.
-- BOM references across Catalog remain UUID values, not JPA foreign keys to BOM
-  entities.
+| Owner | Migration mechanism | Runtime policy |
+| --- | --- | --- |
+| SAVIS API | Flyway under `savis-api/src/main/resources/db/migration` | Hibernate `ddl-auto=validate` |
+| SAVIS Executor | Alembic under `savis-executor/alembic/versions` | Explicit `executor_migrate` process |
+| Supabase | SQL under `supabase/migrations` | Applied by Supabase CLI |
 
-## Code Organization
+API tests use H2 in PostgreSQL compatibility mode with
+`ddl-auto=create-drop`; Flyway is disabled in that test profile.
 
-### Java API
+Executor downgrades are intentionally unsupported. Production migrations are
+forward-only.
 
-```text
-com.savouretplus.savis
-  bom/
-    api/
-    domain/
-    usecase/
-    port/
-    adapter/
-    config/
-  supply/
-    api/
-    domain/
-    usecase/
-    port/
-    adapter/
-    config/
-  catalog/
-    domain/
-    usecase/
-    port/
-    adapter/
-    config/
-  common/
+### Cross-Boundary Identifiers
+
+- Public UUIDs cross HTTP, messaging, and module boundaries.
+- Internal database identity columns remain private to their owning schema.
+- Catalog BOM references are UUID values without database foreign keys to BOM
+  tables.
+- Executor and API offer records form separate models connected by published
+  identifiers, not shared tables.
+
+## Messaging
+
+### Integration Queues
+
+| Queue | Producer | Consumer | Purpose |
+| --- | --- | --- | --- |
+| `savis.offer.requests` | API BOM module | Executor API subscriber | Request offer acquisition |
+| `savis.offer.results` | Executor | API Supply module | Publish valid or refreshed offers |
+| `savis.offer.invalidations` | Executor | API Supply module | Remove an offer from pricing availability |
+
+All three are durable classic queues. Executor result and invalidation messages
+use persistent delivery.
+
+The Executor subscriber:
+
+- uses manual acknowledgements;
+- sets prefetch to `1`;
+- acknowledges only after task enqueueing succeeds;
+- rejects failed messages with `requeue=false`;
+- reconnects after broker failures.
+
+The API Supply listeners also disable requeue for rejected messages.
+
+Celery uses the same RabbitMQ instance but its task queues are an internal
+Executor concern, not integration contracts.
+
+### Delivery Semantics
+
+Messaging is effectively at-least-once at system boundaries. Consumers must be
+idempotent:
+
+- API offers reconcile by public UUID and provider identity;
+- Executor offers reconcile by `(provider_identifier, external_id)`;
+- invalidation changes availability instead of relying on physical deletion.
+
+A dead-letter strategy for rejected integration messages is not yet
+implemented.
+
+## Operational Characteristics
+
+### Health Model
+
+| Component | Endpoint or check | Meaning |
+| --- | --- | --- |
+| API | `/actuator/health/readiness` | Spring readiness and required dependencies |
+| Executor | `/health` | PostgreSQL and RabbitMQ are reachable |
+| Executor | `/health/live` | HTTP process is alive |
+| Admin | `/health` | Nginx is serving |
+| PostgreSQL | `pg_isready` | Database accepts connections |
+| RabbitMQ | `rabbitmq-diagnostics ping` | Broker node responds |
+| Chrome | `/json/version` on ports `9222` and `9223` | Browser and Docker relay are reachable |
+
+Production deployment fails when API, Executor, or Admin does not expose a
+healthy Docker status. Failure diagnostics include container logs and recent
+health-check output.
+
+### Concurrency and Backpressure
+
+- Celery worker concurrency is `1`.
+- Worker prefetch is `1`.
+- Each child process handles at most 10 tasks.
+- Provider access state is persisted in PostgreSQL for coordination across
+  tasks and restarts.
+- Celery tasks have a 30-minute hard time limit.
+
+These settings favor provider safety and deterministic browser use over
+throughput.
+
+### Security Boundaries
+
+- Production publishes only the Admin port.
+- Database and broker credentials come from external environment files.
+- Supabase writes use the service-role key only inside the API.
+- Supabase RLS controls public catalog reads and customer submissions.
+- Chrome relay port `9223` must be blocked from the public network.
+- The Admin browser never writes directly to Supabase.
+
+## Delivery Architecture
+
+```mermaid
+flowchart LR
+  Commit["Conventional commits<br/>on main"]
+  RP["Release Please<br/>release pull request"]
+  Tag["SemVer tag<br/>vX.Y.Z"]
+  CI["Reusable CI<br/>Java, Python, Admin, deployment"]
+  Images["GHCR images<br/>immutable digests"]
+  Package["Release package<br/>Compose, migrations<br/>release.env, deploy script"]
+  Host["Ubuntu production host"]
+
+  Commit --> RP
+  RP -->|merge| Tag
+  Tag --> CI
+  CI --> Images
+  Images --> Package
+  Package --> Host
 ```
 
-### Executor
+The release workflow:
 
-```text
-app/
-  core/
-    models.py
-    ports.py
-    use_case_offers.py
-    use_case_savis_tasks.py
-  adapters/
-    api/
-    celery/
-    database/
-    rabbitmq/
-    scrapers/
-      browser_manager.py
-      maxi/
-        scraper.py
-        list_extractor.py
-        details_extractor.py
-        parsing.py
-        models.py
-  container.py
-```
+1. checks out the tagged commit and verifies it belongs to `main`;
+2. runs the reusable CI workflow;
+3. builds API, Admin, and Executor images;
+4. publishes version and source-SHA tags to GHCR;
+5. records immutable image digests, SBOMs, and BuildKit provenance;
+6. packages `compose.prod.yml`, the deployment script, Supabase migrations,
+   and `release.env`;
+7. attaches the archive and SHA-256 checksum to the GitHub Release.
 
-### Admin
+The production deployment script:
 
-```text
-src/
-  app/
-  features/
-    activity-rate/
-    bom/
-    bom-component/
-      task/
-    catalog/
-    dashboard/
-  shared/
-```
+1. validates the environment, release metadata, image digest format, and disk
+   space;
+2. verifies Chrome and the relay;
+3. backs up the existing PostgreSQL database;
+4. pulls immutable images;
+5. applies Supabase migrations when enabled;
+6. runs Alembic before starting Executor processes;
+7. starts API and Executor API and waits for readiness;
+8. starts worker, Beat, and Admin;
+9. waits for Admin health before updating the `current` symlink.
+
+Flyway runs as part of API startup before API readiness succeeds.
 
 ## Architectural Rules
 
-- Keep domain/core models framework-independent.
-- Keep cross-module dependencies explicit through ports or public APIs.
-- Keep provider scraping isolated behind executor `OfferProvider` adapters.
-- Keep host browser lifecycle outside Celery and Docker container lifecycle.
-- Never allow more than one worker process to control the shared Chrome
-  profile.
-- Keep Java as owner of business state.
-- Keep Python as owner of acquisition execution and task state.
-- Keep Supabase as a projection, not the source of truth.
-- Do not run provider collection synchronously in request handlers or RabbitMQ
-  callbacks.
-- Keep result consumers idempotent because messages may be retried or replayed.
-- Do not introduce Catalog-to-BOM JPA relationships.
-- Treat pricing recommendations as advisory; never auto-update sale prices.
+1. Keep domain and core models independent from frameworks.
+2. Keep cross-module Java dependencies behind named public APIs or ports.
+3. Keep provider code behind Executor `OfferProvider` adapters.
+4. Keep provider HTML, selectors, and parsing out of Java.
+5. Keep the host browser lifecycle outside Celery and Docker.
+6. Do not run more than one worker process against the shared Chrome profile.
+7. Do not perform provider collection inside HTTP handlers or RabbitMQ
+   callbacks.
+8. Keep Java as owner of business state and Python as owner of acquisition
+   state.
+9. Keep schemas independently migrated and never let one service modify
+   another service's tables.
+10. Keep Catalog-to-BOM references as UUIDs and avoid JPA relationships across
+    module boundaries.
+11. Design message consumers for duplicate delivery.
+12. Keep pricing recommendations advisory.
+13. Keep Supabase as a projection, not a source of internal truth.
+14. Require health checks before promoting a production release.
+
+## Known Constraints
+
+- Maxi is currently the only configured provider adapter.
+- The dashboard is static and is not an operational read model.
+- RabbitMQ integration messages do not yet have a dead-letter queue.
+- One shared browser profile limits scraping throughput.
+- Chrome requires an active graphical Ubuntu session with `DISPLAY=:0` unless
+  the installed user service is customized.
+- Production deployment is automated by the packaged script, but the
+  repository does not currently contain a dedicated deployment workflow.
+- Bulk catalog publication does not currently remove projections for products
+  that were changed from published to unpublished.
+- Customer orders and quote requests exist in Supabase but are not yet managed
+  by SAVIS business modules.

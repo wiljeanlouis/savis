@@ -12,6 +12,21 @@ The frontend does not own business rules or persistence:
 - [SAVIS Executor](../savis-executor/README.md) owns provider-offer
   acquisition, review state, refresh tasks, and task history.
 
+## Navigation
+
+- [Product Areas](#product-areas)
+- [Business Flows](#business-flows)
+- [Frontend Architecture](#frontend-architecture)
+- [Routing and Layout](#routing-and-layout)
+- [Data and UI State](#data-and-ui-state)
+- [Backend Integration](#backend-integration)
+- [Technology](#technology)
+- [Configuration](#configuration)
+- [Local Development](#local-development)
+- [Docker](#docker)
+- [Tests](#tests)
+- [Current Boundaries](#current-boundaries)
+
 ## Product Areas
 
 | Area              | Route                   | Backend         | Purpose                                                                                   |
@@ -179,6 +194,10 @@ POST /api/catalog/products/publish
 SAVIS API remains responsible for the customer-facing Supabase projection.
 SAVIS Admin never writes to Supabase directly.
 
+The current action triggers bulk publication of products still marked
+`published`; it does not yet reconcile Supabase rows for products newly changed
+to unpublished.
+
 ### Dashboard
 
 The dashboard currently uses static data from
@@ -271,8 +290,8 @@ Two Axios clients are defined in `src/shared/api/index.ts`:
 
 | Client        | Base URL                                                 | Used for                                                                         |
 | ------------- | -------------------------------------------------------- | -------------------------------------------------------------------------------- |
-| `api`         | `${VITE_API_URL}/api`                                    | BOMs, supply offers, activity rates, catalog products, pricing, and publication. |
-| `executorApi` | `VITE_EXECUTOR_API_URL`, default `http://localhost:8000` | Executor offers and tasks.                                                       |
+| `api`         | `VITE_API_URL`, default `/api`                           | BOMs, supply offers, activity rates, catalog products, pricing, and publication. |
+| `executorApi` | `VITE_EXECUTOR_API_URL`, default `/executor-api`         | Executor offers and tasks.                                                       |
 
 ### SAVIS API Endpoints
 
@@ -345,13 +364,13 @@ generated primitives live in `src/shared/ui`.
 Create a local `.env` file when running outside Docker:
 
 ```dotenv
-VITE_API_URL=http://localhost:8080
+VITE_API_URL=http://localhost:8080/api
 VITE_EXECUTOR_API_URL=http://localhost:8000
 ```
 
-`VITE_API_URL` is required because the Java API client does not define a
-fallback. `VITE_EXECUTOR_API_URL` is optional in local development and defaults
-to `http://localhost:8000`.
+Both variables are optional. Without them, the clients use `/api` and
+`/executor-api`, which are the Nginx proxy paths in the production image.
+Standalone Vite development should set the absolute URLs above.
 
 Vite environment variables are compiled into the static frontend bundle. For a
 production image, provide them during the image build rather than expecting a
@@ -361,7 +380,7 @@ static Nginx container to read changed values at runtime.
 
 Requirements:
 
-- Node.js 22, matching the Docker image;
+- Node.js 22 or newer; CI currently uses Node.js 24;
 - npm;
 - SAVIS API on `http://localhost:8080`;
 - SAVIS Executor API on `http://localhost:8000` for component acquisition
@@ -399,7 +418,14 @@ The Dockerfile contains:
 
 - `development`: Vite development server;
 - `build`: TypeScript and Vite production build;
-- `production`: static assets served by Nginx on port 80.
+- `production`: static assets served by unprivileged Nginx on port `8080`.
+
+The production Nginx configuration:
+
+- serves the SPA with history fallback;
+- proxies `/api/*` to SAVIS API;
+- proxies `/executor-api/*` to SAVIS Executor;
+- exposes `/health` for Docker readiness.
 
 Run the complete SAVIS environment from the repository root:
 
@@ -407,8 +433,9 @@ Run the complete SAVIS environment from the repository root:
 docker compose up --build
 ```
 
-The root Compose configuration exposes SAVIS Admin at
-`http://localhost`.
+The development override exposes Vite at `http://localhost:5173`. Production
+Compose exposes Nginx through the host bind and port configured by
+`SAVIS_HTTP_BIND` and `SAVIS_HTTP_PORT`.
 
 ## Tests
 
