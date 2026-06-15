@@ -1,5 +1,7 @@
 """Liveness and readiness endpoints."""
 
+import logging
+
 from fastapi import APIRouter, HTTPException, status
 from pika import BlockingConnection, URLParameters
 from sqlalchemy import text
@@ -8,6 +10,7 @@ from app.adapters.database.session import engine
 from app.config import EnvParams
 
 router = APIRouter(tags=["health"])
+logger = logging.getLogger(__name__)
 
 
 def check_database() -> None:
@@ -38,6 +41,7 @@ def readiness() -> dict[str, str]:
         check_database()
         check_rabbitmq()
     except Exception as exc:
+        logger.exception("Executor readiness check failed")
         raise HTTPException(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
             detail="A required dependency is unavailable",
