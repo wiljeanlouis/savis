@@ -6,8 +6,6 @@ SAVIS manages technical BOMs, provider offers, activity rates, product costs,
 the sellable catalog, and publication to the customer-facing Supabase
 projection.
 
-> Current release: **v1.2.0**
->
 > Detailed changes: [CHANGELOG.md](CHANGELOG.md)
 
 ## Navigation
