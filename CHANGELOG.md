@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.3.1](https://github.com/wiljeanlouis/savis/compare/v1.3.0...v1.3.1) (2026-06-16)
+
+
+### Bug Fixes
+
+* Update Dependabot configuration for multiple ecosystems ([#45](https://github.com/wiljeanlouis/savis/issues/45)) ([bfaa7ce](https://github.com/wiljeanlouis/savis/commit/bfaa7cef15940e10636513ea68bf948f3b952a06))
+
 ## [1.3.0](https://github.com/wiljeanlouis/savis/compare/v1.2.1...v1.3.0) (2026-06-16)
 
 
