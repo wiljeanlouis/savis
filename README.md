@@ -212,9 +212,8 @@ savis/
 |-- docs/                     # System architecture
 |-- deploy/scripts/           # Production deployment automation
 |-- scripts/                  # Chrome and local Supabase helpers
-|-- docker-compose.yml        # Local base stack
-|-- docker-compose.override.yml
-|-- compose.prod.yml          # Immutable production stack
+|-- docker-compose.yml        # Local development stack
+|-- docker-compose.prod.yml   # Immutable production stack
 |-- Makefile
 `-- CHANGELOG.md
 ```
@@ -464,7 +463,7 @@ docker compose \
   --project-name savis \
   --env-file /etc/savis/savis.env \
   --env-file ~/.local/share/savis/deploy/current/release.env \
-  -f ~/.local/share/savis/deploy/current/compose.prod.yml \
+  -f ~/.local/share/savis/deploy/current/docker-compose.prod.yml \
   ps
 ```
 

@@ -3,7 +3,7 @@ name: savis
 
 services:
   postgres:
-    image: postgres:18-alpine
+    image: postgres:18.3-alpine
     container_name: postgres
     ports:
       - "5434:5432"
@@ -20,7 +20,7 @@ services:
       retries: 5
 
   rabbitmq:
-    image: rabbitmq:4-management-alpine
+    image: rabbitmq:4.3.1-management-alpine
     container_name: rabbitmq
     ports:
       - "5672:5672"
@@ -38,10 +38,13 @@ services:
     build:
       context: ./savis-api
       dockerfile: Dockerfile
-      target: production
+      target: development
     container_name: savis_api
     ports:
       - "8080:8080"
+    volumes:
+      - ./savis-api:/app
+      - ~/.m2:/root/.m2
     environment:
       - SPRING_DATASOURCE_URL=jdbc:postgresql://postgres:5432/${DB_NAME}
       - SPRING_DATASOURCE_USERNAME=${DB_USER}
@@ -63,13 +66,17 @@ services:
     build:
       context: ./savis-admin
       dockerfile: Dockerfile
-      target: production
+      target: development
+    command: npm run dev -- --host
     container_name: savis_admin
     ports:
-      - "80:80"
+      - "5173:5173"
     environment:
-      - VITE_API_URL=http://localhost:8080/api
-      - VITE_EXECUTOR_API_URL=http://localhost:8000
+      VITE_API_URL: http://localhost:8080/api
+      VITE_EXECUTOR_API_URL: http://localhost:8000
+    volumes:
+      - ./savis-admin:/app
+      - /app/node_modules
     depends_on:
       - backend_api
 
@@ -91,10 +98,14 @@ services:
       context: ./savis-executor
       dockerfile: Dockerfile
       target: api
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
     init: true
     container_name: savis_executor_api
     ports:
       - "8000:8000"
+    volumes:
+      - ./savis-executor:/app
+      - /app/.venv
     environment:
       - RABBIT_MQ_URL=amqp://${RABBIT_MQ_USER}:${RABBIT_MQ_PASSWORD}@rabbitmq:5672/%2f
       - DATABASE_URL=postgresql+psycopg://${DB_USER}:${DB_PASSWORD}@postgres:5432/${DB_NAME}
