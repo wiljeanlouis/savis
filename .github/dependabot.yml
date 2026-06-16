@@ -12,24 +12,36 @@ multi-ecosystem-groups:
       day: "monday"
       time: "09:00"
       timezone: "America/Toronto"
+    commit-message:
+      prefix: "chore(deps)"
+    open-pull-requests-limit: 2
   savis-api:
     schedule:
       interval: "weekly"
       day: "tuesday"
       time: "09:00"
       timezone: "America/Toronto"
+    commit-message:
+      prefix: "chore(deps)"
+    open-pull-requests-limit: 2
   savis-executor:
     schedule:
       interval: "weekly"
       day: "wednesday"
       time: "09:00"
       timezone: "America/Toronto"
+    commit-message:
+      prefix: "chore(deps)"
+    open-pull-requests-limit: 2
   savis-infrastructure:
     schedule:
       interval: "monthly"
       day: "thursday"
       time: "09:00"
       timezone: "America/Toronto"
+    commit-message:
+      prefix: "chore(deps)"
+    open-pull-requests-limit: 2
 
 updates:
   - package-ecosystem: "npm"
@@ -37,54 +49,36 @@ updates:
     patterns:
       - "*"
     multi-ecosystem-group: "savis-admin"
-    commit-message:
-      prefix: "chore(deps)"
-    open-pull-requests-limit: 2
 
   - package-ecosystem: "docker"
     directory: "/savis-admin"
     patterns:
       - "*"
     multi-ecosystem-group: "savis-admin"
-    commit-message:
-      prefix: "chore(deps)"
-    open-pull-requests-limit: 2
 
   - package-ecosystem: "maven"
     directory: "/savis-api"
     patterns:
       - "*"
     multi-ecosystem-group: "savis-api"
-    commit-message:
-      prefix: "chore(deps)"
-    open-pull-requests-limit: 2
 
   - package-ecosystem: "docker"
     directory: "/savis-api"
     patterns:
       - "*"
     multi-ecosystem-group: "savis-api"
-    commit-message:
-      prefix: "chore(deps)"
-    open-pull-requests-limit: 2
 
   - package-ecosystem: "uv"
     directory: "/savis-executor"
     patterns:
       - "*"
     multi-ecosystem-group: "savis-executor"
-    commit-message:
-      prefix: "chore(deps)"
-    open-pull-requests-limit: 2
 
   - package-ecosystem: "docker"
     directory: "/savis-executor"
     patterns:
       - "*"
     multi-ecosystem-group: "savis-executor"
-    commit-message:
-      prefix: "chore(deps)"
-    open-pull-requests-limit: 2
 
   - package-ecosystem: "docker-compose"
     directory: "/"
@@ -92,9 +86,6 @@ updates:
       - "postgres"
       - "rabbitmq"
     multi-ecosystem-group: "savis-infrastructure"
-    commit-message:
-      prefix: "chore(deps)"
-    open-pull-requests-limit: 2
 
   - package-ecosystem: "docker-compose"
     directory: "/compose"
@@ -103,15 +94,9 @@ updates:
       - "rabbitmq"
       - "nginxinc/nginx-unprivileged"
     multi-ecosystem-group: "savis-infrastructure"
-    commit-message:
-      prefix: "chore(deps)"
-    open-pull-requests-limit: 2
 
   - package-ecosystem: "github-actions"
     directory: "/"
     patterns:
       - "*"
     multi-ecosystem-group: "savis-infrastructure"
-    commit-message:
-      prefix: "chore(deps)"
-    open-pull-requests-limit: 2
