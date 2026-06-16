@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.3.0](https://github.com/wiljeanlouis/savis/compare/v1.2.1...v1.3.0) (2026-06-16)
+
+
+### Features
+
+* add smoke test ([#44](https://github.com/wiljeanlouis/savis/issues/44)) ([7f1fe97](https://github.com/wiljeanlouis/savis/commit/7f1fe977da788059aa491e3bcbbb5518f96b99a7))
+* Enhance Dependabot config for multiple ecosystems ([#8](https://github.com/wiljeanlouis/savis/issues/8)) ([8d101fc](https://github.com/wiljeanlouis/savis/commit/8d101fcb05dbee1d1ced1e9d753d91506ee9ba2f))
+
 ## [1.2.1](https://github.com/wiljeanlouis/savis/compare/v1.2.0...v1.2.1) (2026-06-15)
 
 
