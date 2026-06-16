@@ -7,6 +7,8 @@ version: 2
 
 multi-ecosystem-groups:
   savis-admin:
+multi-ecosystem-groups:
+  savis-admin:
     schedule:
       interval: "weekly"
       day: "monday"
@@ -81,6 +83,17 @@ updates:
     multi-ecosystem-group: "savis-executor"
 
   - package-ecosystem: "docker-compose"
+    directory: "/compose"
+    patterns:
+      - "postgres"
+      - "rabbitmq"
+      - "nginxinc/nginx-unprivileged"
+    multi-ecosystem-group: "savis-infrastructure"
+    commit-message:
+      prefix: "chore(deps)"
+    open-pull-requests-limit: 2
+
+  - package-ecosystem: "github-actions"
     directory: "/"
     patterns:
       - "postgres"
