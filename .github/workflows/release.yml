@@ -135,7 +135,7 @@ jobs:
           sha256sum "${package}.tar.gz" >"${package}.tar.gz.sha256"
 
       - name: Publish GitHub Release
-        uses: softprops/action-gh-release@3bb12739c298aeb8a4eeaf626c5b8d85266b0e65
+        uses: softprops/action-gh-release@b4309332981a82ec1c5618f44dd2e27cc8bfbfda
         with:
           tag_name: ${{ steps.version.outputs.release_tag }}
           generate_release_notes: true
