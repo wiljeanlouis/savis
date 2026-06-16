@@ -1,9 +1,11 @@
-.PHONY: help chrome-cdp-start install-chrome-cdp-ubuntu run-local run-prod stop logs clean \
+.PHONY: help chrome-cdp-start install-chrome-cdp-ubuntu run-local run-prod stop logs clean smoke-executor-worker smoke-database smoke-admin \
 	supabase-start supabase-stop supabase-status supabase-reset \
 	configure-local-supabase
 
 SAVOURETPLUS_DIR ?= ../savouretplus
 SUPABASE_CLI := npx --yes supabase
+LOCAL_COMPOSE := docker compose -f docker-compose.yml
+PROD_COMPOSE := docker compose -f docker-compose.prod.yml
 
 # config
 help:
@@ -15,6 +17,9 @@ help:
 	@echo "  make stop                 - Stop SAVIS and Supabase containers"
 	@echo "  make logs                 - Show SAVIS logs live"
 	@echo "  make clean                - Stop containers and remove local data"
+	@echo "  make smoke-executor-worker - Smoke test RabbitMQ and the Celery worker"
+	@echo "  make smoke-database       - Smoke test PostgreSQL, Flyway, and Alembic"
+	@echo "  make smoke-admin          - Smoke test the Admin Nginx image"
 	@echo "  make supabase-status      - Show Supabase local URLs and keys"
 	@echo "  make supabase-reset       - Rebuild the Supabase database"
 
@@ -27,25 +32,34 @@ install-chrome-cdp-ubuntu:
 
 run-local: chrome-cdp-start supabase-start configure-local-supabase
 	@echo "Launch SAVIS in DEV mode..."
-	docker compose \
+	$(LOCAL_COMPOSE) \
 		--env-file .env.supabase.local \
 		up -d --build
 
 # PROD mode
 run-prod:
 	@echo "Launch SAVIS in PROD mode..."
-	docker compose --env-file .env up -d --build
+	$(PROD_COMPOSE) --env-file .env up -d --build
 
 stop:
-	docker compose down
+	$(LOCAL_COMPOSE) down
 	$(MAKE) supabase-stop
 
 logs:
-	docker compose logs -f
+	$(LOCAL_COMPOSE) logs -f
 
 clean:
-	docker compose down -v
+	$(LOCAL_COMPOSE) down -v
 	$(SUPABASE_CLI) stop --no-backup
+
+smoke-executor-worker:
+	./scripts/smoke-executor-worker.sh
+
+smoke-database:
+	./scripts/smoke-database.sh
+
+smoke-admin:
+	./scripts/smoke-admin.sh
 
 supabase-start:
 	@echo "Start Supabase local..."

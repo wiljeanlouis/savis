@@ -12,4 +12,4 @@
 # Deployment and Database
 /deploy/ @wiljeanlouis
 /supabase/ @wiljeanlouis
-/compose.prod.yml @wiljeanlouis
+/docker-compose.prod.yml @wiljeanlouis

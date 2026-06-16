@@ -1,0 +1,19 @@
+name: savis-admin-smoke
+
+services:
+  backend_api:
+    image: nginxinc/nginx-unprivileged:1.31-alpine
+
+  executor_api:
+    image: nginxinc/nginx-unprivileged:1.31-alpine
+
+  frontend_admin:
+    build:
+      context: ./savis-admin
+      dockerfile: Dockerfile
+      target: production
+    ports:
+      - "127.0.0.1::8080"
+    depends_on:
+      - backend_api
+      - executor_api

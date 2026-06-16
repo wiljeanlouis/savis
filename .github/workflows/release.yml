@@ -120,7 +120,7 @@ jobs:
         run: |
           package="savis-${VERSION}"
           mkdir -p "${package}/deploy/scripts" "${package}/supabase"
-          cp compose.prod.yml "${package}/"
+          cp docker-compose.prod.yml "${package}/"
           cp deploy/scripts/deploy-production.sh "${package}/deploy/scripts/"
           cp -R supabase/migrations "${package}/supabase/"
           cat >"${package}/release.env" <<EOF

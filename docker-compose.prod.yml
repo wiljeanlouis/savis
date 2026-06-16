@@ -2,7 +2,7 @@ name: savis
 
 services:
   postgres:
-    image: postgres:18-alpine
+    image: postgres:18.3-alpine
     restart: unless-stopped
     environment:
       POSTGRES_USER: ${DB_USER:?DB_USER is required}
@@ -18,7 +18,7 @@ services:
     networks: [backend]
 
   rabbitmq:
-    image: rabbitmq:4-management-alpine
+    image: rabbitmq:4.3.1-management-alpine
     restart: unless-stopped
     environment:
       RABBITMQ_DEFAULT_USER: ${RABBIT_MQ_USER:?RABBIT_MQ_USER is required}

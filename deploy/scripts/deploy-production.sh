@@ -5,7 +5,7 @@ set -Eeuo pipefail
 release_dir="${1:?Usage: deploy-production.sh RELEASE_DIRECTORY}"
 env_file="${SAVIS_ENV_FILE:-/etc/savis/savis.env}"
 deploy_root="${SAVIS_DEPLOY_ROOT:-${HOME}/.local/share/savis/deploy}"
-compose_file="${release_dir}/compose.prod.yml"
+compose_file="${release_dir}/docker-compose.prod.yml"
 release_manifest="${release_dir}/release.env"
 backup_dir="${deploy_root}/backups"
 
