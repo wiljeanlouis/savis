@@ -1,0 +1,71 @@
+name: savis-database-smoke
+
+services:
+  postgres:
+    image: postgres:18.3-alpine
+    environment:
+      POSTGRES_USER: savis
+      POSTGRES_PASSWORD: savis
+      POSTGRES_DB: savis
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
+      interval: 5s
+      timeout: 5s
+      retries: 30
+
+  rabbitmq:
+    image: rabbitmq:4.3.1-management-alpine
+    environment:
+      RABBITMQ_DEFAULT_USER: savis
+      RABBITMQ_DEFAULT_PASS: savis
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
+      interval: 5s
+      timeout: 5s
+      start_period: 30s
+      retries: 30
+
+  executor_migrate:
+    build:
+      context: ../savis-executor
+      dockerfile: Dockerfile
+      target: api
+    command: ["alembic", "upgrade", "head"]
+    environment:
+      DATABASE_URL: postgresql+psycopg://savis:savis@postgres:5432/savis
+      DATABASE_SCHEMA: savis_executor
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  backend_api:
+    build:
+      context: ../savis-api
+      dockerfile: Dockerfile
+      target: production
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/savis
+      SPRING_DATASOURCE_USERNAME: savis
+      SPRING_DATASOURCE_PASSWORD: savis
+      SPRING_RABBITMQ_HOST: rabbitmq
+      SPRING_RABBITMQ_PORT: "5672"
+      SPRING_RABBITMQ_USERNAME: savis
+      SPRING_RABBITMQ_PASSWORD: savis
+      SUPABASE_ENABLED: "false"
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "wget",
+          "-qO-",
+          "http://127.0.0.1:8080/actuator/health/readiness",
+        ]
+      interval: 10s
+      timeout: 5s
+      start_period: 20s
+      retries: 12
+    depends_on:
+      postgres:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy

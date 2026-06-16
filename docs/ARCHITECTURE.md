@@ -243,7 +243,7 @@ flowchart TB
   Relay --> Chrome
 ```
 
-Only the Admin port is published by `compose.prod.yml`. API, Executor,
+Only the Admin port is published by `docker-compose.prod.yml`. API, Executor,
 PostgreSQL, and RabbitMQ remain on the private backend network.
 
 The Admin Nginx container is the production entry point:
@@ -951,7 +951,7 @@ The release workflow:
 3. builds API, Admin, and Executor images;
 4. publishes version and source-SHA tags to GHCR;
 5. records immutable image digests, SBOMs, and BuildKit provenance;
-6. packages `compose.prod.yml`, the deployment script, Supabase migrations,
+6. packages `docker-compose.prod.yml`, the deployment script, Supabase migrations,
    and `release.env`;
 7. attaches the archive and SHA-256 checksum to the GitHub Release.
 

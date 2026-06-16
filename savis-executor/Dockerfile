@@ -35,4 +35,4 @@ CMD ["celery", "-A", "app.adapters.celery.celery_app", "beat", "--loglevel=info"
 
 FROM python-base AS worker
 
-CMD ["celery", "-A", "app.adapters.celery.celery_app", "worker", "--loglevel=info", "--concurrency=1"]
+CMD ["celery", "-A", "app.adapters.celery.celery_app", "worker", "--loglevel=info", "--concurrency=1", "--without-mingle", "--without-gossip"]
