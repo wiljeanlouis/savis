@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.4.0](https://github.com/wiljeanlouis/savis/compare/v1.3.1...v1.4.0) (2026-06-19)
+
+
+### Features
+
+* enhance documentation and add help features for SAVIS Admin ([#51](https://github.com/wiljeanlouis/savis/issues/51)) ([0db3380](https://github.com/wiljeanlouis/savis/commit/0db3380d886840b152d3d0234d1bfb24d6583dd4))
+
 ## [1.3.1](https://github.com/wiljeanlouis/savis/compare/v1.3.0...v1.3.1) (2026-06-16)
 
 
