@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.4.1](https://github.com/wiljeanlouis/savis/compare/v1.4.0...v1.4.1) (2026-06-19)
+
+
+### Bug Fixes
+
+* add options to executor_worker for improved Celery performance ([#53](https://github.com/wiljeanlouis/savis/issues/53)) ([33a4da4](https://github.com/wiljeanlouis/savis/commit/33a4da41590db91a18a749d3fcab55e47114ad86))
+
 ## [1.4.0](https://github.com/wiljeanlouis/savis/compare/v1.3.1...v1.4.0) (2026-06-19)
 
 
