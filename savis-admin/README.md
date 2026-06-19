@@ -185,6 +185,9 @@ displays cost, margin, status, completeness, and recommended price information.
 A recommended price is advisory and is never copied automatically into the
 sale price.
 
+For an operator-oriented guide to product creation flows and field usage, see
+[`src/content/catalog-product-flows.md`](src/content/catalog-product-flows.md).
+
 Products marked for publication are explicitly sent through:
 
 ```text
@@ -288,10 +291,10 @@ Dialog forms use component state. Only the new BOM draft is persisted in
 
 Two Axios clients are defined in `src/shared/api/index.ts`:
 
-| Client        | Base URL                                                 | Used for                                                                         |
-| ------------- | -------------------------------------------------------- | -------------------------------------------------------------------------------- |
-| `api`         | `VITE_API_URL`, default `/api`                           | BOMs, supply offers, activity rates, catalog products, pricing, and publication. |
-| `executorApi` | `VITE_EXECUTOR_API_URL`, default `/executor-api`         | Executor offers and tasks.                                                       |
+| Client        | Base URL                                         | Used for                                                                         |
+| ------------- | ------------------------------------------------ | -------------------------------------------------------------------------------- |
+| `api`         | `VITE_API_URL`, default `/api`                   | BOMs, supply offers, activity rates, catalog products, pricing, and publication. |
+| `executorApi` | `VITE_EXECUTOR_API_URL`, default `/executor-api` | Executor offers and tasks.                                                       |
 
 ### SAVIS API Endpoints
 

@@ -6,6 +6,9 @@ import java.util.UUID;
 import com.savouretplus.savis.common.Money;
 import com.savouretplus.savis.common.Quantity;
 
+/**
+ * Represents a supplier offer for a purchasable component.
+ */
 public record Offer(
         UUID publicId,
         String externalId,
@@ -20,6 +23,9 @@ public record Offer(
         LocalDateTime lastSeen,
         OfferStatus status) {
 
+    /**
+     * Returns a copy of this offer marked as unavailable.
+     */
     public Offer unavailable() {
         return new Offer(
                 publicId,

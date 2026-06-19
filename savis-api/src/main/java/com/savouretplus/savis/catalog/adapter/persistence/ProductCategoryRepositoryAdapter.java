@@ -11,11 +11,17 @@ import com.savouretplus.savis.catalog.port.ProductCategoryRepository;
 
 import lombok.AllArgsConstructor;
 
+/**
+ * Persists product categories through Spring Data JPA.
+ */
 @Repository
 @AllArgsConstructor
 public class ProductCategoryRepositoryAdapter implements ProductCategoryRepository {
     private final ProductCategoryJpaRepository repository;
 
+    /**
+     * Persists the provided aggregate.
+     */
     @Override
     public ProductCategory save(ProductCategory category) {
         ProductCategoryEntity entity = repository.findByPublicId(category.publicId())
@@ -25,19 +31,31 @@ public class ProductCategoryRepositoryAdapter implements ProductCategoryReposito
         entity.setName(category.name());
         entity.setActive(category.active());
         entity.setDisplayOrder(category.displayOrder());
+        /**
+         * Converts this DTO to its domain representation.
+         */
         return toDomain(repository.save(entity));
     }
 
+    /**
+     * Finds an aggregate by its public identifier.
+     */
     @Override
     public Optional<ProductCategory> findByPublicId(UUID publicId) {
         return repository.findByPublicId(publicId).map(this::toDomain);
     }
 
+    /**
+     * Returns all persisted aggregates.
+     */
     @Override
     public List<ProductCategory> findAll() {
         return repository.findAllByOrderByDisplayOrderAscNameAsc().stream().map(this::toDomain).toList();
     }
 
+    /**
+     * Deletes the provided aggregate.
+     */
     @Override
     public void delete(ProductCategory category) {
         repository.findByPublicId(category.publicId()).ifPresent(repository::delete);

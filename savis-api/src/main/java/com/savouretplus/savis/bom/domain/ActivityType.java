@@ -1,5 +1,8 @@
 package com.savouretplus.savis.bom.domain;
 
+/**
+ * Defines the supported production activity categories.
+ */
 public enum ActivityType {
     PREP,
     COOK,

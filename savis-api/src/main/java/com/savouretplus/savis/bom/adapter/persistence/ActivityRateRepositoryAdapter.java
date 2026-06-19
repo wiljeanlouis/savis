@@ -13,18 +13,27 @@ import com.savouretplus.savis.common.Money;
 
 import lombok.AllArgsConstructor;
 
+/**
+ * Persists activity rates through the Spring Data JPA repository.
+ */
 @Repository
 @AllArgsConstructor
 public class ActivityRateRepositoryAdapter implements ActivityRateRepositoryPort {
 
     private final ActivityRateJpaRepository jpaRepository;
 
+    /**
+     * Finds an activity rate by activity type.
+     */
     @Override
     public Optional<ActivityRate> findByActivityType(ActivityType activityType) {
         return jpaRepository.findByActivityType(activityType)
                 .map(this::toDomain);
     }
 
+    /**
+     * Persists the provided aggregate.
+     */
     @Override
     public ActivityRate save(ActivityRate activityRate) {
         ActivityRateEntity entity = jpaRepository.findByActivityType(activityRate.activityType())
@@ -37,11 +46,17 @@ public class ActivityRateRepositoryAdapter implements ActivityRateRepositoryPort
         return toDomain(jpaRepository.save(entity));
     }
 
+    /**
+     * Deletes an activity rate by activity type.
+     */
     @Override
     public void deleteByActivityType(ActivityType activityType) {
         jpaRepository.deleteByActivityType(activityType);
     }
 
+    /**
+     * Returns all persisted aggregates.
+     */
     @Override
     public List<ActivityRate> findAll() {
         return jpaRepository.findAll(Sort.by("activityType").ascending())

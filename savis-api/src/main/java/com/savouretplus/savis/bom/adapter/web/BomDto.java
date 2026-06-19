@@ -18,6 +18,9 @@ import com.savouretplus.savis.bom.domain.Yield;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 
+/**
+ * DTO used to exchange BOM data over the web API.
+ */
 public record BomDto(
         UUID id,
         @NotBlank String name,
@@ -30,11 +33,17 @@ public record BomDto(
         @JsonProperty("yield") YieldDto bomYield,
         Money price) {
 
+    /**
+     * Normalizes nullable BOM DTO collections.
+     */
     public BomDto {
         components = components != null ? components : List.of();
         activities = activities != null ? activities : List.of();
     }
 
+    /**
+     * Creates a DTO or API value from the provided domain object.
+     */
     public static BomDto from(Bom bom) {
         return new BomDto(
                 bom.getPublicId(),
@@ -53,6 +62,9 @@ public record BomDto(
                 null);
     }
 
+    /**
+     * Creates a DTO or API value from the provided domain object.
+     */
     public static BomDto from(Bom bom, Money price) {
         return new BomDto(
                 bom.getPublicId(),
@@ -71,6 +83,9 @@ public record BomDto(
                 price);
     }
 
+    /**
+     * Converts the value to bom.
+     */
     public Bom toBom() {
         List<BomComponent> bomComponents = components.stream()
                 .map(BomComponentDto::toDomain)
@@ -94,16 +109,25 @@ public record BomDto(
 
 }
 
+/**
+ * DTO value used to exchange BOM activity data.
+ */
 record ActivityDto(
         Long id,
         ActivityType type,
         @NotNull Integer minutes,
         Integer sequence) {
 
+    /**
+     * Converts this DTO into its domain representation.
+     */
     public Activity toDomain() {
         return new Activity(id, type, Minute.of(minutes), sequence);
     }
 
+    /**
+     * Creates a DTO or API value from the provided domain object.
+     */
     public static ActivityDto from(Activity activity) {
         return new ActivityDto(
                 activity.id(),
@@ -113,15 +137,24 @@ record ActivityDto(
     }
 }
 
+/**
+ * DTO value used to exchange BOM yield data.
+ */
 record YieldDto(
         @NotNull double quantity,
         @NotBlank String unit) {
 
+    /**
+     * Converts this DTO into its domain representation.
+     */
     public Yield toDomain() {
         Unit unitEnum = Unit.fromSymbole(unit);
         return new Yield(new Quantity(quantity, unitEnum), unitEnum);
     }
 
+    /**
+     * Creates a DTO or API value from the provided domain object.
+     */
     public static YieldDto from(Yield yield) {
         if (yield == null) {
             return null;
@@ -130,20 +163,32 @@ record YieldDto(
     }
 }
 
+/**
+ * DTO value used to exchange BOM component data.
+ */
 record BomComponentDto(
         @NotBlank String componentName,
         @NotNull double quantity,
         @NotBlank String unit,
         UUID selectedOfferId) {
 
+    /**
+     * Resolves the unit symbol to the domain enum.
+     */
     public Unit unitEnum() {
         return Unit.fromSymbole(unit);
     }
 
+    /**
+     * Converts this DTO into its domain representation.
+     */
     public BomComponent toDomain() {
         return new BomComponent(null, componentName, new Quantity(quantity, unitEnum()), selectedOfferId);
     }
 
+    /**
+     * Creates a DTO or API value from the provided domain object.
+     */
     public static BomComponentDto from(BomComponent componentRequirement) {
         return new BomComponentDto(
                 componentRequirement.componentName(),

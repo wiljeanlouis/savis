@@ -2,6 +2,9 @@ package com.savouretplus.savis.common;
 
 import java.math.BigDecimal;
 
+/**
+ * Defines the supported measurement units and their conversion factors to base units.
+ */
 public enum Unit {
     GRAM("g", "g", "1"),
     KILOGRAM("kg", "g", "1000"),
@@ -20,18 +23,30 @@ public enum Unit {
         this.baseUnitFactor = new BigDecimal(baseUnitFactor);
     }
 
+    /**
+     * Returns the display symbol used for this unit.
+     */
     public String getSymbole(){
         return this.symbole;
     }
 
+    /**
+     * Returns the canonical base unit for this unit.
+     */
     public String baseUnit() {
         return baseUnit;
     }
 
+    /**
+     * Returns the conversion factor from this unit to its base unit.
+     */
     public BigDecimal baseUnitFactor() {
         return baseUnitFactor;
     }
 
+    /**
+     * Resolves a unit from its display symbol.
+     */
     public static Unit fromSymbole(String symbole){
        if (symbole == null || symbole.isBlank()) {
             throw new IllegalArgumentException("Unit symbole cannot be blank");
@@ -46,6 +61,9 @@ public enum Unit {
        throw new IllegalArgumentException("Unsupported unit: " + symbole);
     }
 
+    /**
+     * Returns the unit display symbol.
+     */
     @Override
     public String toString() {
         return symbole;

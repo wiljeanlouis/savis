@@ -6,8 +6,14 @@ import com.savouretplus.savis.common.Money;
 
 import jakarta.validation.constraints.NotNull;
 
+/**
+ * DTO used to exchange activity rate data over the web API.
+ */
 public record ActivityRateDto(
         Long id,
+        /**
+         * Creates a DTO or API value from the provided domain object.
+         */
         @NotNull ActivityType activityType,
         @NotNull Money hourlyRate) {
 

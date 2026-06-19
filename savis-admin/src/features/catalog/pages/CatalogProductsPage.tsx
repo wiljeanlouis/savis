@@ -51,6 +51,7 @@ export function CatalogProductsPage() {
   const publishCatalog = usePublishCatalog();
   const analyze = useAnalyzeProductPricing();
   const analyzeWorstCase = useAnalyzeWorstCasePricing();
+
   const [analysis, setAnalysis] = useState<
     Record<string, ProductPricingAnalysis>
   >({});

@@ -6,9 +6,13 @@ import java.util.List;
 import java.util.Objects;
 import java.util.Set;
 import java.util.UUID;
+import java.util.Optional;
 
 import com.savouretplus.savis.common.Money;
 
+/**
+ * Represents a sellable catalog product and its pricing configuration.
+ */
 public record Product(
         UUID publicId,
         String code,
@@ -31,6 +35,9 @@ public record Product(
         ProductChoiceGroup choiceGroup,
         List<ProductIngredientOption> ingredientOptions) {
 
+    /**
+     * Validates a catalog product and normalizes optional collections and defaults.
+     */
     public Product {
         publicId = publicId != null ? publicId : UUID.randomUUID();
         requireText(code, "Le code du produit est requis");
@@ -64,6 +71,9 @@ public record Product(
         validateStructure(productType, choiceGroup, ingredientOptions);
     }
 
+    /**
+     * Calculates the sale price for a product configuration.
+     */
     public Money calculateSalePrice(ProductConfiguration configuration) {
         ProductConfiguration safeConfiguration = configuration != null ? configuration : ProductConfiguration.empty();
         Money price = isBlank(safeConfiguration.purchaseModeCode())
@@ -90,11 +100,17 @@ public record Product(
         return price;
     }
 
+    /**
+     * Returns an active purchase mode by code or fails when it is unavailable.
+     */
     public ProductPurchaseMode requireActiveMode(String code) {
         return selectedMode(code)
                 .orElseThrow(() -> new IllegalArgumentException("Mode d'achat actif introuvable: " + code));
     }
 
+    /**
+     * Returns an active choice option by code or fails when it is unavailable.
+     */
     public ProductChoiceOption requireActiveChoice(String code) {
         if (choiceGroup == null) {
             throw new IllegalArgumentException("Ce produit ne possède pas de groupe de choix");
@@ -102,6 +118,9 @@ public record Product(
         return choiceGroup.activeOption(code);
     }
 
+    /**
+     * Returns an active ingredient option by code or fails when it is unavailable.
+     */
     public ProductIngredientOption requireActiveIngredient(String code) {
         return ingredientOptions.stream()
                 .filter(ProductIngredientOption::active)
@@ -110,20 +129,32 @@ public record Product(
                 .orElseThrow(() -> new IllegalArgumentException("Ingrédient actif introuvable: " + code));
     }
 
+    /**
+     * Validates that a product configuration only references active options and quantities.
+     */
     public void validateConfiguration(ProductConfiguration configuration) {
         ProductConfiguration safeConfiguration = configuration != null ? configuration : ProductConfiguration.empty();
         validateChoices(safeConfiguration);
         validateIngredients(safeConfiguration);
     }
 
+    /**
+     * Returns a copy of this product with replacement purchase modes.
+     */
     public Product withPurchaseModes(List<ProductPurchaseMode> modes) {
         return copy(modes, choiceGroup, ingredientOptions);
     }
 
+    /**
+     * Returns a copy of this product with a replacement choice group.
+     */
     public Product withChoiceGroup(ProductChoiceGroup group) {
         return copy(purchaseModes, group, ingredientOptions);
     }
 
+    /**
+     * Returns a copy of this product with replacement ingredient options.
+     */
     public Product withIngredientOptions(List<ProductIngredientOption> ingredients) {
         return copy(purchaseModes, choiceGroup, ingredients);
     }
@@ -138,7 +169,7 @@ public record Product(
                 available, published, displayOrder, modes, group, ingredients);
     }
 
-    private java.util.Optional<ProductPurchaseMode> selectedMode(String code) {
+    private Optional<ProductPurchaseMode> selectedMode(String code) {
         if (code == null || code.isBlank()) {
             return java.util.Optional.empty();
         }

@@ -19,6 +19,9 @@ import com.savouretplus.savis.bom.port.BomRepositoryPort;
 
 import lombok.AllArgsConstructor;
 
+/**
+ * Persists BOM aggregates through Spring Data JPA entities.
+ */
 @Repository
 @AllArgsConstructor
 public class BomRepositoryAdapter implements BomRepositoryPort {
@@ -30,6 +33,9 @@ public class BomRepositoryAdapter implements BomRepositoryPort {
 
     private final BomJpaRepository jpaRepository;
 
+    /**
+     * Finds an aggregate by its public identifier.
+     */
     @Override
     public Optional<Bom> findByPublicId(UUID publicId) {
         try {
@@ -41,6 +47,9 @@ public class BomRepositoryAdapter implements BomRepositoryPort {
 
     }
 
+    /**
+     * Persists the provided aggregate.
+     */
     @Override
     public void save(Bom bom) {
         try {
@@ -51,6 +60,9 @@ public class BomRepositoryAdapter implements BomRepositoryPort {
         }
     }
 
+    /**
+     * Deletes the provided aggregate.
+     */
     @Override
     public void delete(Bom bom) {
         try {
@@ -61,6 +73,9 @@ public class BomRepositoryAdapter implements BomRepositoryPort {
         }
     }
 
+    /**
+     * Returns all persisted aggregates.
+     */
     @Override
     public List<Bom> findAll() {
         try {

@@ -10,12 +10,18 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
+/**
+ * Declares Spring beans used by the BOM module.
+ */
 @Configuration
 public class SpringBomConfig {
 
     private final String queueName;
     private final String exchangeName;
 
+    /**
+     * Creates BOM configuration from application properties.
+     */
     public SpringBomConfig(
             @Value("${savis.offer.request.queue}") String queueName,
             @Value("${savis.offer.request.exchange}") String exchangeName) {

@@ -4,6 +4,10 @@ import java.util.UUID;
 
 import com.savouretplus.savis.common.Money;
 
+/**
+ * Represents an optional ingredient that can adjust a product sale price.
+ * It is used for the exstras.
+ */
 public record ProductIngredientOption(
         UUID publicId,
         String code,
@@ -16,6 +20,9 @@ public record ProductIngredientOption(
         boolean active,
         int displayOrder) {
 
+    /**
+     * Validates an ingredient option and its quantity bounds.
+     */
     public ProductIngredientOption {
         publicId = publicId != null ? publicId : UUID.randomUUID();
         requireText(code, "Le code de l'ingrédient est requis");
@@ -32,11 +39,17 @@ public record ProductIngredientOption(
         }
     }
 
+    /**
+     * Calculates the selected quantity above the included ingredient quantity.
+     */
     public int extraQuantity(int selectedQuantity) {
         validateQuantity(selectedQuantity);
         return Math.max(0, selectedQuantity - defaultQuantity);
     }
 
+    /**
+     * Validates that a selected ingredient quantity is inside the configured limits.
+     */
     public void validateQuantity(int selectedQuantity) {
         if (selectedQuantity < minQuantity || selectedQuantity > maxQuantity) {
             throw new IllegalArgumentException(

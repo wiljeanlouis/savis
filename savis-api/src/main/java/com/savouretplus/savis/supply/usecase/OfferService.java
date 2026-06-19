@@ -19,6 +19,9 @@ import com.savouretplus.savis.supply.port.OfferRepository;
 
 import lombok.extern.slf4j.Slf4j;
 
+/**
+ * Coordinates offer ingestion, invalidation, searching, and pricing lookup.
+ */
 @Slf4j
 @Service
 @Transactional
@@ -26,21 +29,33 @@ public class OfferService implements SupplyApi {
 
     private final OfferRepository repository;
 
+    /**
+     * Creates the service with its offer repository dependency.
+     */
     public OfferService(OfferRepository repository) {
         this.repository = repository;
     }
 
+    /**
+     * Stores the received supplier offers.
+     */
     public void processOffers(List<Offer> offers) {
         log.info("Process offers {}", offers);
 
         offers.forEach(repository::save);
     }
 
+    /**
+     * Finds currently available supplier offers for a component name.
+     */
     public List<Offer> searchAvailableOffers(String componentName) {
         log.info("Search available offers for component {}", componentName);
         return repository.searchAvailableByComponentName(componentName);
     }
 
+    /**
+     * Marks an offer as unavailable when it exists.
+     */
     public void invalidateOffer(UUID offerUuid) {
         log.info("Invalidate offer {}", offerUuid);
         repository.findByPublicId(offerUuid)
@@ -48,12 +63,18 @@ public class OfferService implements SupplyApi {
                 .ifPresent(repository::save);
     }
 
+    /**
+     * Returns pricing information for a specific supplier offer.
+     */
     @Override
     public Optional<OfferPricing> getOfferPricing(UUID offerId) {
         return repository.findByPublicId(offerId)
                 .map(OfferPricing::from);
     }
 
+    /**
+     * Returns the cheapest compatible supplier offer for a component quantity.
+     */
     @Override
     public Optional<OfferPricing> getCheapestOfferPricing(String componentName, Quantity quantity) {
         return searchAvailableOffers(componentName).stream()
@@ -63,11 +84,17 @@ public class OfferService implements SupplyApi {
                 .map(OfferPricing::from);
     }
 
+    /**
+     * Returns the price of a specific supplier offer.
+     */
     @Override
     public Optional<Money> getPriceFor(String componentName, UUID offerId) {
         return getOfferPricing(offerId).map(OfferPricing::price);
     }
 
+    /**
+     * Returns the cheapest available price for a component.
+     */
     @Override
     public Money getCheapestPrice(String componentName) {
         return searchAvailableOffers(componentName).stream()
@@ -77,15 +104,24 @@ public class OfferService implements SupplyApi {
                 .orElse(Money.ZERO);
     }
 
+    /**
+     * Searches supplier offers for a component name.
+     */
     @Override
     public List<Offer> searchOffers(String componentName) {
         return searchAvailableOffers(componentName);
     }
 
+    /**
+     * Calculates an offer price normalized to one base unit.
+     */
     private BigDecimal baseUnitPrice(Offer offer) {
         return offer.price().amount().divide(offer.packageSize().baseValue(), 10, RoundingMode.HALF_UP);
     }
 
+    /**
+     * Checks that an offer has usable price and package-size data.
+     */
     private boolean hasPricedPackage(Offer offer) {
         return offer.price() != null
                 && offer.packageSize() != null

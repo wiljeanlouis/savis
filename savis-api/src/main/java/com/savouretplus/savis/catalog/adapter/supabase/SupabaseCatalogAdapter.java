@@ -11,6 +11,9 @@ import com.savouretplus.savis.catalog.port.PublishedCatalogProduct;
 
 import lombok.extern.slf4j.Slf4j;
 
+/**
+ * Publishes catalog product payloads to Supabase.
+ */
 @Slf4j
 @Component
 @ConditionalOnProperty(name = "savis.supabase.enabled", havingValue = "true")
@@ -20,6 +23,9 @@ public class SupabaseCatalogAdapter implements PublishedCatalogPort {
 
     private final RestClient client;
 
+    /**
+     * Creates the Supabase adapter with its HTTP client and endpoint settings.
+     */
     public SupabaseCatalogAdapter(
             @Value("${savis.supabase.url}") String supabaseUrl,
             @Value("${savis.supabase.service-role-key}") String serviceRoleKey) {
@@ -32,11 +38,17 @@ public class SupabaseCatalogAdapter implements PublishedCatalogPort {
                 .build();
     }
 
+    /**
+     * Reports whether the adapter is enabled.
+     */
     @Override
     public boolean isEnabled() {
         return true;
     }
 
+    /**
+     * Publishes catalog products or outbound events through the configured port.
+     */
     @Override
     public void publish(PublishedCatalogProduct product) {
         log.info("Publish to supabase {}", product);
@@ -48,6 +60,9 @@ public class SupabaseCatalogAdapter implements PublishedCatalogPort {
                 .toBodilessEntity();
     }
 
+    /**
+     * Removes a previously published catalog product.
+     */
     @Override
     public void unpublish(String productId) {
         client.delete()

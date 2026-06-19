@@ -11,6 +11,9 @@ import jakarta.persistence.Table;
 import lombok.Getter;
 import lombok.Setter;
 
+/**
+ * JPA entity storing a catalog product category.
+ */
 @Getter
 @Setter
 @Entity

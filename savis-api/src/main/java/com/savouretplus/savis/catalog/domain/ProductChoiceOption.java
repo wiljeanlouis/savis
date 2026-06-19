@@ -2,6 +2,14 @@ package com.savouretplus.savis.catalog.domain;
 
 import java.util.UUID;
 
+/**
+ * Represents a selectable option inside a product choice group.
+ *
+ * Ex:  thon -> BOM Pâté Thon
+ *      hareng saur -> BOM Pâté Hareng Saur
+ *      poulet -> BOM Pâté Poulet
+ *
+ */
 public record ProductChoiceOption(
         UUID publicId,
         String code,
@@ -10,6 +18,9 @@ public record ProductChoiceOption(
         boolean active,
         int displayOrder) {
 
+    /**
+     * Validates a selectable product choice option.
+     */
     public ProductChoiceOption {
         publicId = publicId != null ? publicId : UUID.randomUUID();
         requireText(code, "Le code de l'option est requis");

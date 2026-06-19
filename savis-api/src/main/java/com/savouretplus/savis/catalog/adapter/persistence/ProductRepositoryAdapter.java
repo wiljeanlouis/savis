@@ -22,33 +22,54 @@ import com.savouretplus.savis.common.Money;
 
 import lombok.AllArgsConstructor;
 
+/**
+ * Persists catalog products through Spring Data JPA.
+ */
 @Repository
 @AllArgsConstructor
 public class ProductRepositoryAdapter implements ProductRepository {
     private final ProductJpaRepository repository;
 
+    /**
+     * Persists the provided aggregate.
+     */
     @Override
     public Product save(Product product) {
         ProductEntity entity = repository.findByPublicId(product.publicId()).orElseGet(ProductEntity::new);
         update(entity, product);
+        /**
+         * Converts this DTO to its domain representation.
+         */
         return toDomain(repository.save(entity));
     }
 
+    /**
+     * Finds an aggregate by its public identifier.
+     */
     @Override
     public Optional<Product> findByPublicId(UUID publicId) {
         return repository.findByPublicId(publicId).map(this::toDomain);
     }
 
+    /**
+     * Returns all persisted aggregates.
+     */
     @Override
     public List<Product> findAll() {
         return repository.findAllByOrderByDisplayOrderAscNameAsc().stream().map(this::toDomain).toList();
     }
 
+    /**
+     * Returns all products currently marked as published.
+     */
     @Override
     public List<Product> findAllPublished() {
         return repository.findByPublishedTrueOrderByDisplayOrderAscNameAsc().stream().map(this::toDomain).toList();
     }
 
+    /**
+     * Deletes the provided aggregate.
+     */
     @Override
     public void delete(Product product) {
         repository.findByPublicId(product.publicId()).ifPresent(repository::delete);

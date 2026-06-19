@@ -17,9 +17,15 @@ import com.savouretplus.savis.catalog.domain.ProductPurchaseMode;
 import com.savouretplus.savis.catalog.port.PublishedCatalogProduct;
 import com.savouretplus.savis.common.Money;
 
+/**
+ * Maps catalog domain objects into publishable catalog product payloads.
+ */
 @Component
 public class PublishedCatalogProductMapper {
 
+    /**
+     * Maps the provided domain objects to their publication payload.
+     */
     public PublishedCatalogProduct map(Product product, ProductCategory category) {
         List<Map<String, Object>> modes = product.purchaseModes().stream()
                 .filter(ProductPurchaseMode::active)

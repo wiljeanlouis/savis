@@ -1,4 +1,6 @@
 import React, { Fragment } from "react";
+import { AppHelpDrawer } from "@/app/layout/components/AppHelpDrawer";
+import { ModeToggle } from "@/app/layout/components/ModeToggle";
 import { Breadcrumb, BreadcrumbList } from "@/shared/ui/breadcrumb";
 import { Separator } from "@/shared/ui/separator";
 import { SidebarTrigger } from "@/shared/ui/sidebar";
@@ -19,7 +21,7 @@ export const Header = () => {
           orientation="vertical"
           className="mx-2 data-[orientation=vertical]:h-6"
         />
-        <Breadcrumb>
+        <Breadcrumb className="min-w-0 flex-1">
           <BreadcrumbList>
             {matches
               .filter(
@@ -33,6 +35,10 @@ export const Header = () => {
               ))}
           </BreadcrumbList>
         </Breadcrumb>
+        <div className="ml-auto flex items-center gap-2">
+          <AppHelpDrawer />
+          <ModeToggle />
+        </div>
       </div>
     </header>
   );

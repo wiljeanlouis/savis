@@ -21,6 +21,9 @@ import jakarta.validation.Valid;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
+/**
+ * REST controller exposing BOM management and pricing endpoints.
+ */
 @Slf4j
 @RestController
 @RequestMapping({ "/api/boms" })
@@ -30,6 +33,9 @@ public class BomController {
 
     private final BomService bomService;
 
+    /**
+     * Creates or replaces a BOM using the supplied identifier.
+     */
     @PostMapping()
     public ResponseEntity<UUID> saveBom(@Valid @RequestBody BomDto request) {
         log.info("Received request to save bomDto: {}", request);
@@ -39,6 +45,9 @@ public class BomController {
         return ResponseEntity.ok(bomId);
     }
 
+    /**
+     * Returns a BOM by identifier.
+     */
     @GetMapping("/{bomId}")
     public ResponseEntity<BomDto> getBom(@PathVariable UUID bomId) {
         log.info("Received request to get bom: {}", bomId);
@@ -48,6 +57,9 @@ public class BomController {
         return ResponseEntity.ok(response);
     }
 
+    /**
+     * Returns the bom price.
+     */
     @GetMapping("/{bomId}/price")
     public ResponseEntity<Money> getBomPrice(@PathVariable UUID bomId) {
         log.info("Received request to get bom price: {}", bomId);
@@ -55,6 +67,9 @@ public class BomController {
         return ResponseEntity.ok(bomService.calculateTotalCost(bomId));
     }
 
+    /**
+     * Deletes a BOM by identifier.
+     */
     @DeleteMapping("/{bomId}")
     public ResponseEntity<Void> deleteBom(@PathVariable UUID bomId) {
         log.info("Received request to delete bom: {}", bomId);
@@ -63,6 +78,9 @@ public class BomController {
         return ResponseEntity.noContent().build();
     }
 
+    /**
+     * Lists all BOMs.
+     */
     @GetMapping()
     public ResponseEntity<Iterable<BomDto>> listBoms() {
         log.info("Received request to list boms");

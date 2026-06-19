@@ -13,6 +13,9 @@ import jakarta.transaction.Transactional;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
+/**
+ * Coordinates creation, updates, lookup, listing, and deletion of activity rates.
+ */
 @Slf4j
 @Service
 @Transactional
@@ -21,6 +24,9 @@ public class ActivityRateService {
 
     private final ActivityRateRepositoryPort repository;
 
+    /**
+     * Creates a new activity rate.
+     */
     public ActivityRate createActivityRate(ActivityType activityType, Money hourlyRate) {
         log.info("Create activity rate for {}", activityType);
 
@@ -32,6 +38,9 @@ public class ActivityRateService {
         return repository.save(new ActivityRate(null, activityType, hourlyRate));
     }
 
+    /**
+     * Updates an existing activity rate.
+     */
     public ActivityRate updateActivityRate(ActivityType activityType, Money hourlyRate) {
         log.info("Update activity rate for {}", activityType);
 
@@ -40,15 +49,24 @@ public class ActivityRateService {
         return repository.save(new ActivityRate(existingRate.id(), activityType, hourlyRate));
     }
 
+    /**
+     * Returns an activity rate by activity type.
+     */
     public ActivityRate getActivityRate(ActivityType activityType) {
         return repository.findByActivityType(activityType)
                 .orElseThrow(() -> new RuntimeException("Activity rate not found"));
     }
 
+    /**
+     * Lists all configured activity rates.
+     */
     public List<ActivityRate> listActivityRates() {
         return repository.findAll();
     }
 
+    /**
+     * Deletes an activity rate by activity type.
+     */
     public void deleteActivityRate(ActivityType activityType) {
         getActivityRate(activityType);
         repository.deleteByActivityType(activityType);

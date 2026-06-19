@@ -6,6 +6,9 @@ import lombok.Getter;
 import lombok.Setter;
 import lombok.ToString;
 
+/**
+ * Embeddable JPA value storing the yield quantity for a BOM.
+ */
 @Getter
 @Setter
 @ToString
