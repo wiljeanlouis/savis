@@ -101,6 +101,8 @@ services:
         "worker",
         "--loglevel=info",
         "--concurrency=1",
+        "--without-mingle",
+        "--without-gossip",
       ]
     init: true
     restart: unless-stopped
