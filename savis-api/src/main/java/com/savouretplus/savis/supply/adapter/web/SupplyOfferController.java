@@ -14,6 +14,9 @@ import com.savouretplus.savis.supply.usecase.OfferService;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
+/**
+ * REST controller exposing supplier offer search endpoints.
+ */
 @Slf4j
 @RestController
 @RequestMapping({ "/api/supply/offers" })
@@ -23,6 +26,9 @@ public class SupplyOfferController {
 
     private final OfferService offerService;
 
+    /**
+     * Searches supplier offers for a component name.
+     */
     @GetMapping
     public ResponseEntity<List<SupplyOfferDto>> searchOffers(
             @RequestParam String componentName) {

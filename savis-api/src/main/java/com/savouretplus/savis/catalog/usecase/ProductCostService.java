@@ -22,12 +22,18 @@ import com.savouretplus.savis.common.Money;
 
 import lombok.AllArgsConstructor;
 
+/**
+ * Calculates product costs from linked BOM pricing information.
+ */
 @Service
 @AllArgsConstructor
 public class ProductCostService {
 
     private final BomPricingPort bomPricingPort;
 
+    /**
+     * Calculates pricing information for the provided input.
+     */
     public ProductCost calculate(Product product, ProductConfiguration configuration) {
         ProductConfiguration safeConfiguration = configuration != null
                 ? configuration
@@ -48,6 +54,9 @@ public class ProductCostService {
         return accumulator.result();
     }
 
+    /**
+     * Calculates the worst-case pricing information for a product.
+     */
     public ProductCost calculateWorstCase(Product product, String purchaseModeCode) {
         ProductPurchaseMode mode = product.requireActiveMode(purchaseModeCode);
         if (product.productType() != ProductType.SINGLE_CHOICE_BUNDLE
@@ -148,12 +157,21 @@ public class ProductCostService {
         return accumulator.result();
     }
 
+    /**
+     * Represents a calculated product cost and whether every required BOM price was available.
+     */
     public record ProductCost(Money cost, boolean complete, List<UUID> missingBomIds) {
+        /**
+         * Normalizes missing BOM identifiers for a product cost result.
+         */
         public ProductCost {
             missingBomIds = List.copyOf(missingBomIds);
         }
     }
 
+    /**
+     * Provides cost accumulator behavior.
+     */
     private final class CostAccumulator {
         private Money total;
         private final List<UUID> missingBomIds = new ArrayList<>();

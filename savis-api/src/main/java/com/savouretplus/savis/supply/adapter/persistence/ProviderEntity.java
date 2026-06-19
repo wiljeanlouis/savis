@@ -6,6 +6,9 @@ import lombok.Getter;
 import lombok.Setter;
 import lombok.ToString;
 
+/**
+ * Embeddable JPA value storing supplier information for an offer.
+ */
 @Getter
 @Setter
 @ToString

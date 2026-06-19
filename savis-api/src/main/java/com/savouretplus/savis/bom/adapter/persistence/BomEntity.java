@@ -20,6 +20,9 @@ import lombok.Getter;
 import lombok.Setter;
 import lombok.ToString;
 
+/**
+ * JPA entity storing a bill of materials and its owned child rows.
+ */
 @Getter
 @Setter
 @ToString

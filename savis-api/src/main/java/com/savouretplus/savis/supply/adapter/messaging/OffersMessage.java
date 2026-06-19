@@ -12,6 +12,9 @@ import com.savouretplus.savis.supply.domain.Offer;
 import com.savouretplus.savis.supply.domain.OfferStatus;
 import com.savouretplus.savis.supply.domain.Provider;
 
+/**
+ * Inbound message carrying offer data received from the supply crawler.
+ */
 public record OffersMessage(
         String id,
         List<OfferMessage> offers) {
@@ -24,6 +27,9 @@ public record OffersMessage(
 
 }
 
+/**
+ * Inbound message fragment carrying supplier price data.
+ */
 record PriceMessage(
         String amount,
         String currency) {
@@ -33,6 +39,9 @@ record PriceMessage(
     }
 }
 
+/**
+ * Inbound message fragment carrying package quantity data.
+ */
 record PackageSizeMessage(
         String value,
         String unit) {
@@ -42,6 +51,9 @@ record PackageSizeMessage(
     }
 }
 
+/**
+ * Inbound message fragment carrying supplier identity data.
+ */
 record ProviderMessage(
         String name,
         String identifier,
@@ -53,6 +65,9 @@ record ProviderMessage(
     }
 }
 
+/**
+ * Inbound message fragment carrying one supplier offer.
+ */
 record OfferMessage(
         String id,
         @JsonProperty("external_id") String externalId,

@@ -6,6 +6,9 @@ import java.util.Map;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.savouretplus.savis.catalog.port.PublishedCatalogProduct;
 
+/**
+ * HTTP request payload sent to Supabase for a published catalog product.
+ */
 record SupabasePublishedCatalogProductRequest(
         String id,
         String slug,

@@ -2,6 +2,9 @@ package com.savouretplus.savis.catalog.domain;
 
 import java.util.UUID;
 
+/**
+ * Represents a catalog category used to organize products.
+ */
 public record ProductCategory(
         UUID publicId,
         String code,
@@ -9,6 +12,9 @@ public record ProductCategory(
         boolean active,
         int displayOrder) {
 
+    /**
+     * Validates a catalog category and applies default display metadata.
+     */
     public ProductCategory {
         publicId = publicId != null ? publicId : UUID.randomUUID();
         requireText(code, "Le code de catégorie est requis");

@@ -8,6 +8,9 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 import com.savouretplus.savis.catalog.usecase.ProductCategoryNotFoundException;
 import com.savouretplus.savis.catalog.usecase.ProductNotFoundException;
 
+/**
+ * Maps catalog exceptions to HTTP responses.
+ */
 @RestControllerAdvice(assignableTypes = { CatalogController.class, ProductCategoryController.class })
 public class CatalogExceptionHandler {
 

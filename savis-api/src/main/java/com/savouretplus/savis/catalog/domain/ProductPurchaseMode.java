@@ -4,6 +4,23 @@ import java.util.UUID;
 
 import com.savouretplus.savis.common.Money;
 
+/**
+ * Represents one available purchase mode for a catalog product.
+ *
+ * Ex:
+ *  unity
+ *  À l'unité
+ *  quantity = 1
+ *  price = 3
+ *  allocationType = SINGLE_CHOICE
+ *
+ *  douzen
+ *  Douzaine
+ *  quantity = 12
+ *  price = 30
+ *  allocationType = CHOICE_ALLOCATION
+ *
+ */
 public record ProductPurchaseMode(
         UUID publicId,
         String code,
@@ -14,6 +31,9 @@ public record ProductPurchaseMode(
         boolean active,
         int displayOrder) {
 
+    /**
+     * Validates a purchase mode and its price allocation settings.
+     */
     public ProductPurchaseMode {
         publicId = publicId != null ? publicId : UUID.randomUUID();
         requireText(code, "Le code du mode d'achat est requis");

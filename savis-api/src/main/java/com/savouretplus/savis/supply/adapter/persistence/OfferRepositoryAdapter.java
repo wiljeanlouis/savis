@@ -16,24 +16,36 @@ import com.savouretplus.savis.supply.port.OfferRepository;
 
 import lombok.AllArgsConstructor;
 
+/**
+ * Persists supplier offers through Spring Data JPA.
+ */
 @Repository
 @AllArgsConstructor
 public class OfferRepositoryAdapter implements OfferRepository {
 
     private final OfferJpaRepository jpaRepository;
 
+    /**
+     * Finds an aggregate by its public identifier.
+     */
     @Override
     public Optional<Offer> findByPublicId(UUID publicId) {
         return jpaRepository.findByPublicId(publicId)
                 .map(this::toDomain);
     }
 
+    /**
+     * Finds an offer by its provider-specific identity.
+     */
     @Override
     public Optional<Offer> findByExternalIdAndProviderIdentifier(String externalId, String providerIdentifier) {
         return jpaRepository.findByExternalIdAndProviderIdentifier(externalId, providerIdentifier)
                 .map(this::toDomain);
     }
 
+    /**
+     * Finds available offers matching a component name.
+     */
     @Override
     public List<Offer> searchAvailableByComponentName(String componentName) {
         return jpaRepository.findByStatusAndComponentNameContainingIgnoreCaseOrderByPriceAmountAsc(
@@ -44,6 +56,9 @@ public class OfferRepositoryAdapter implements OfferRepository {
                 .toList();
     }
 
+    /**
+     * Persists the provided aggregate.
+     */
     @Override
     public Offer save(Offer offer) {
         OfferEntity entity = jpaRepository.findByPublicId(offer.publicId())
@@ -53,6 +68,9 @@ public class OfferRepositoryAdapter implements OfferRepository {
                 .orElseGet(OfferEntity::new);
 
         updateEntity(entity, offer);
+        /**
+         * Converts this DTO to its domain representation.
+         */
         return toDomain(jpaRepository.save(entity));
     }
 

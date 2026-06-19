@@ -15,6 +15,9 @@ import com.savouretplus.savis.common.Money;
 
 import lombok.AllArgsConstructor;
 
+/**
+ * Analyzes product pricing, margin, and price health for selected configurations.
+ */
 @Service
 @AllArgsConstructor
 public class ProductPricingService {
@@ -23,6 +26,9 @@ public class ProductPricingService {
 
     private final ProductCostService costService;
 
+    /**
+     * Analyzes the price and margin for the requested product configuration.
+     */
     public ProductPricingAnalysis analyze(Product product, ProductConfiguration configuration) {
         Money salePrice = product.calculateSalePrice(configuration);
         return analyze(
@@ -33,6 +39,9 @@ public class ProductPricingService {
                 costService.calculate(product, configuration));
     }
 
+    /**
+     * Analyzes product pricing using the most expensive valid configuration.
+     */
     public ProductPricingAnalysis analyzeWorstCase(Product product, String purchaseModeCode) {
         var mode = product.requireActiveMode(purchaseModeCode);
         return analyze(

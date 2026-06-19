@@ -6,6 +6,9 @@ import org.springframework.modulith.events.EventExternalizationConfiguration;
 
 import com.savouretplus.savis.bom.domain.ComponentNeededEvent;
 
+/**
+ * Configures Spring Modulith externalization for component-needed events.
+ */
 @Configuration
 class ComponentNeededEventExternalizationConfiguration {
 
@@ -17,6 +20,9 @@ class ComponentNeededEventExternalizationConfiguration {
                 .build();
     }
 
+    /**
+     * Converts the domain event to the externalized message payload.
+     */
     private static ComponentNeededMessage toMessage(ComponentNeededEvent event) {
         return new ComponentNeededMessage(event.componentNameKey(), event.type().name());
     }

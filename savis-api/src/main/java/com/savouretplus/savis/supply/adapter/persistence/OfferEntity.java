@@ -18,6 +18,9 @@ import lombok.Getter;
 import lombok.Setter;
 import lombok.ToString;
 
+/**
+ * JPA entity storing a supplier offer.
+ */
 @Getter
 @Setter
 @ToString

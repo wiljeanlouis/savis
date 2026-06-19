@@ -13,6 +13,8 @@ import {
 } from "@/shared/ui/dialog";
 import {
   Field,
+  FieldContent,
+  FieldDescription,
   FieldGroup,
   FieldLabel,
   FieldLegend,
@@ -27,6 +29,8 @@ import {
   SelectValue,
 } from "@/shared/ui/select";
 import { Textarea } from "@/shared/ui/textarea";
+import { Add01Icon, Delete02Icon } from "@hugeicons/core-free-icons";
+import { HugeiconsIcon } from "@hugeicons/react";
 import {
   emptyCatalogProduct,
   emptyChoiceOption,
@@ -38,6 +42,10 @@ import {
   type ProductType,
 } from "../types";
 import { ProductCategoryCombobox } from "./ProductCategoryCombobox";
+import {
+  CatalogProductGuideButton,
+  CatalogProductGuidePanel,
+} from "./CatalogProductGuideDrawer";
 
 interface Props {
   product?: CatalogProduct;
@@ -62,6 +70,7 @@ export function CatalogProductDialog({
   const [open, setOpen] = useState(false);
   const [form, setForm] = useState<CatalogProduct>(initial);
   const [gallery, setGallery] = useState("");
+  const [guideOpen, setGuideOpen] = useState(false);
 
   const reset = () => {
     const next = initial();
@@ -103,428 +112,470 @@ export function CatalogProductDialog({
           {product ? "Modifier" : "Ajouter un produit"}
         </Button>
       </DialogTrigger>
-      <DialogContent className="max-h-[92vh] overflow-y-auto sm:max-w-6xl">
-        <DialogHeader>
-          <DialogTitle>
-            {product ? "Modifier le produit" : "Nouveau produit"}
-          </DialogTitle>
-          <DialogDescription>
-            Le prix est une décision commerciale. Les BOM servent à mesurer le
-            coût et la marge.
-          </DialogDescription>
+      <DialogContent
+        className={`max-h-[92vh] overflow-y-auto transition-[max-width] duration-200 sm:max-w-6xl ${
+          guideOpen ? "xl:max-w-[min(calc(100vw-2rem),88rem)]" : ""
+        }`}
+      >
+        <DialogHeader className="pr-16">
+          <div>
+            <DialogTitle>
+              {product ? "Modifier le produit" : "Nouveau produit"}
+            </DialogTitle>
+            <DialogDescription>
+              Le prix est une décision commerciale. Les BOM servent à mesurer le
+              coût et la marge.
+            </DialogDescription>
+          </div>
+          <div className="absolute top-2 right-10">
+            <CatalogProductGuideButton
+              open={guideOpen}
+              onOpenChange={setGuideOpen}
+            />
+          </div>
         </DialogHeader>
-        <form className="grid gap-6" onSubmit={save}>
-          <FieldSet>
-            <FieldLegend>Produit</FieldLegend>
-            <FieldGroup className="grid gap-4 md:grid-cols-3">
-              <TextField
-                label="Nom"
-                value={form.name}
-                onChange={(value) => update("name", value)}
-              />
-              <TextField
-                label="Code"
-                value={form.code}
-                onChange={(value) => update("code", value)}
-              />
-              <TextField
-                label="Slug"
-                value={form.slug}
-                onChange={(value) => update("slug", value)}
-              />
-              <Field>
-                <FieldLabel>Type</FieldLabel>
-                <Select
-                  value={form.productType}
-                  onValueChange={(value) =>
-                    update("productType", value as ProductType)
-                  }
-                >
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="STANDARD">Standard</SelectItem>
-                    <SelectItem value="SINGLE_CHOICE">Choix unique</SelectItem>
-                    <SelectItem value="SINGLE_CHOICE_BUNDLE">
-                      Formats composables
-                    </SelectItem>
-                    <SelectItem value="INGREDIENT_CUSTOMIZATION">
-                      Ingrédients personnalisables
-                    </SelectItem>
-                  </SelectContent>
-                </Select>
-              </Field>
-              <Field>
-                <FieldLabel>Catégorie</FieldLabel>
-                <ProductCategoryCombobox
-                  categories={categories}
-                  value={form.categoryId}
-                  onChange={(value) => update("categoryId", value)}
+        <div
+          className={
+            guideOpen
+              ? "grid gap-6 xl:grid-cols-[minmax(0,1fr)_380px]"
+              : "grid gap-6"
+          }
+        >
+          <form className="grid gap-6" onSubmit={save}>
+            <FieldSet>
+              <FieldLegend>Produit</FieldLegend>
+              <FieldGroup className="grid gap-4 md:grid-cols-3">
+                <TextField
+                  label="Nom"
+                  value={form.name}
+                  onChange={(value) => update("name", value)}
                 />
-              </Field>
-              <MoneyField
-                label="Prix de base"
-                value={form.basePrice.amount}
-                onChange={(amount) =>
-                  update("basePrice", { amount, currency: "CAD" })
-                }
-              />
-              <NumberField
-                label="Marge cible (%)"
-                value={form.targetMarginRate * 100}
-                onChange={(value) => update("targetMarginRate", value / 100)}
-              />
-              <TextField
-                label="Unité"
-                value={form.unitLabel}
-                onChange={(value) => update("unitLabel", value)}
-              />
-              <Field className="md:col-span-3">
-                <FieldLabel>Description</FieldLabel>
-                <Textarea
-                  value={form.description}
-                  onChange={(event) =>
-                    update("description", event.target.value)
-                  }
-                />
-              </Field>
-              <TextField
-                label="Image principale"
-                value={form.imageUrl}
-                onChange={(value) => update("imageUrl", value)}
-              />
-              <Field className="md:col-span-2">
-                <FieldLabel>Galerie, une URL par ligne</FieldLabel>
-                <Textarea
-                  value={gallery}
-                  onChange={(event) => setGallery(event.target.value)}
-                />
-              </Field>
-            </FieldGroup>
-          </FieldSet>
-
-          <CollectionSection
-            title="BOM communs"
-            onAdd={() =>
-              update("productBoms", [
-                ...form.productBoms,
-                emptyProductBom(
-                  form.productBoms.length,
-                  boms.find((bom) => bom.id)?.id ?? "",
-                ),
-              ])
-            }
-          >
-            {form.productBoms.map((productBom, index) => (
-              <div
-                className="grid gap-3 border-b pb-4 md:grid-cols-4"
-                key={productBom.id ?? index}
-              >
-                <BomField
-                  label="BOM"
-                  value={productBom.bomId}
-                  boms={boms}
-                  required
-                  onChange={(bomId) =>
-                    updateProductBom(index, { bomId: bomId ?? "" })
-                  }
-                />
-                <DecimalField
-                  label="Quantité"
-                  value={productBom.quantity}
-                  onChange={(quantity) => updateProductBom(index, { quantity })}
-                />
-                <NumberField
-                  label="Ordre"
-                  value={productBom.displayOrder}
-                  onChange={(displayOrder) =>
-                    updateProductBom(index, { displayOrder })
-                  }
-                />
-                <RemoveButton
-                  onClick={() =>
-                    update(
-                      "productBoms",
-                      form.productBoms.filter((_, item) => item !== index),
-                    )
-                  }
-                />
-              </div>
-            ))}
-          </CollectionSection>
-
-          <CollectionSection
-            title="Modes d'achat"
-            onAdd={() =>
-              update("purchaseModes", [
-                ...form.purchaseModes,
-                emptyPurchaseMode(),
-              ])
-            }
-          >
-            {form.purchaseModes.map((mode, index) => (
-              <div
-                className="grid gap-3 border-b pb-4 md:grid-cols-6"
-                key={mode.id ?? index}
-              >
                 <TextField
                   label="Code"
-                  value={mode.code}
-                  onChange={(value) => updateMode(index, { code: value })}
+                  value={form.code}
+                  onChange={(value) => update("code", value)}
                 />
                 <TextField
-                  label="Libellé"
-                  value={mode.label}
-                  onChange={(value) => updateMode(index, { label: value })}
-                />
-                <NumberField
-                  label="Quantité"
-                  value={mode.quantity}
-                  onChange={(value) => updateMode(index, { quantity: value })}
-                />
-                <MoneyField
-                  label="Prix"
-                  value={mode.price.amount}
-                  onChange={(amount) =>
-                    updateMode(index, { price: { amount, currency: "CAD" } })
-                  }
+                  label="Slug"
+                  value={form.slug}
+                  onChange={(value) => update("slug", value)}
                 />
                 <Field>
-                  <FieldLabel>Répartition</FieldLabel>
+                  <FieldLabel>Type</FieldLabel>
                   <Select
-                    value={mode.allocationType}
+                    value={form.productType}
                     onValueChange={(value) =>
-                      updateMode(index, {
-                        allocationType: value as typeof mode.allocationType,
-                      })
+                      update("productType", value as ProductType)
                     }
                   >
                     <SelectTrigger>
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="NONE">Aucune</SelectItem>
+                      <SelectItem value="STANDARD">Standard</SelectItem>
                       <SelectItem value="SINGLE_CHOICE">
                         Choix unique
                       </SelectItem>
-                      <SelectItem value="CHOICE_ALLOCATION">
-                        Composition
+                      <SelectItem value="SINGLE_CHOICE_BUNDLE">
+                        Formats composables
+                      </SelectItem>
+                      <SelectItem value="INGREDIENT_CUSTOMIZATION">
+                        Ingrédients personnalisables
                       </SelectItem>
                     </SelectContent>
                   </Select>
+                  <FieldDescription>
+                    Choisissez le flow métier du produit : simple, choix unique,
+                    bundle ou ingrédients personnalisables.
+                  </FieldDescription>
                 </Field>
-                <RemoveButton
-                  onClick={() =>
-                    update(
-                      "purchaseModes",
-                      form.purchaseModes.filter((_, item) => item !== index),
-                    )
+                <Field>
+                  <FieldLabel>Catégorie</FieldLabel>
+                  <ProductCategoryCombobox
+                    categories={categories}
+                    value={form.categoryId}
+                    onChange={(value) => update("categoryId", value)}
+                  />
+                </Field>
+                <MoneyField
+                  label="Prix de base"
+                  description="Prix de vente par défaut avant les modes d'achat ou extras."
+                  value={form.basePrice.amount}
+                  onChange={(amount) =>
+                    update("basePrice", { amount, currency: "CAD" })
                   }
                 />
-              </div>
-            ))}
-          </CollectionSection>
-
-          {showChoices && (
-            <CollectionSection
-              title="Saveurs et choix"
-              onAdd={() => {
-                const group = form.choiceGroup ?? {
-                  id: null,
-                  label: "Farce",
-                  required: true,
-                  options: [],
-                };
-                update("choiceGroup", {
-                  ...group,
-                  options: [...group.options, emptyChoiceOption()],
-                });
-              }}
-            >
-              <div className="grid gap-3 md:grid-cols-3">
+                <NumberField
+                  label="Marge cible (%)"
+                  description="Entrez 30 pour une marge cible de 30 %. Le backend stocke 0,30."
+                  value={form.targetMarginRate * 100}
+                  onChange={(value) => update("targetMarginRate", value / 100)}
+                />
                 <TextField
-                  label="Libellé du groupe"
-                  value={form.choiceGroup?.label ?? "Farce"}
-                  onChange={(label) =>
-                    update("choiceGroup", {
-                      id: form.choiceGroup?.id ?? null,
-                      label,
-                      required: form.choiceGroup?.required ?? true,
-                      options: form.choiceGroup?.options ?? [],
-                    })
-                  }
+                  label="Unité"
+                  value={form.unitLabel}
+                  onChange={(value) => update("unitLabel", value)}
                 />
-                <CheckField
-                  label="Choix obligatoire"
-                  checked={form.choiceGroup?.required ?? true}
-                  onChange={(required) =>
-                    update("choiceGroup", {
-                      id: form.choiceGroup?.id ?? null,
-                      label: form.choiceGroup?.label ?? "Farce",
-                      required,
-                      options: form.choiceGroup?.options ?? [],
-                    })
-                  }
-                />
-              </div>
-              {form.choiceGroup?.options.map((option, index) => (
-                <div
-                  className="grid gap-3 border-b pb-4 md:grid-cols-4"
-                  key={option.id ?? index}
-                >
-                  <TextField
-                    label="Code"
-                    value={option.code}
-                    onChange={(value) => updateChoice(index, { code: value })}
-                  />
-                  <TextField
-                    label="Nom"
-                    value={option.name}
-                    onChange={(value) => updateChoice(index, { name: value })}
-                  />
-                  <BomField
-                    label="BOM"
-                    value={option.bomId}
-                    boms={boms}
-                    onChange={(bomId) => updateChoice(index, { bomId })}
-                  />
-                  <RemoveButton
-                    onClick={() =>
-                      update("choiceGroup", {
-                        ...form.choiceGroup!,
-                        options: form.choiceGroup!.options.filter(
-                          (_, item) => item !== index,
-                        ),
-                      })
+                <Field className="md:col-span-3">
+                  <FieldLabel>Description</FieldLabel>
+                  <Textarea
+                    value={form.description}
+                    onChange={(event) =>
+                      update("description", event.target.value)
                     }
                   />
-                </div>
-              ))}
-            </CollectionSection>
-          )}
+                </Field>
+                <TextField
+                  label="Image principale"
+                  value={form.imageUrl}
+                  onChange={(value) => update("imageUrl", value)}
+                />
+                <Field className="md:col-span-2">
+                  <FieldLabel>Galerie, une URL par ligne</FieldLabel>
+                  <Textarea
+                    value={gallery}
+                    onChange={(event) => setGallery(event.target.value)}
+                  />
+                </Field>
+              </FieldGroup>
+            </FieldSet>
 
-          {showIngredients && (
             <CollectionSection
-              title="Ingrédients et extras"
+              title="BOM communs"
+              description="Composition toujours incluse dans le coût, peu importe le choix du client."
               onAdd={() =>
-                update("ingredientOptions", [
-                  ...form.ingredientOptions,
-                  emptyIngredientOption(),
+                update("productBoms", [
+                  ...form.productBoms,
+                  emptyProductBom(
+                    form.productBoms.length,
+                    boms.find((bom) => bom.id)?.id ?? "",
+                  ),
                 ])
               }
             >
-              {form.ingredientOptions.map((option, index) => (
+              {form.productBoms.map((productBom, index) => (
                 <div
-                  className="grid gap-3 border-b pb-4 md:grid-cols-8"
-                  key={option.id ?? index}
+                  className="grid gap-3 border-b pb-4 md:grid-cols-4"
+                  key={productBom.id ?? index}
                 >
-                  <TextField
-                    label="Code"
-                    value={option.code}
-                    onChange={(value) =>
-                      updateIngredient(index, { code: value })
-                    }
-                  />
-                  <TextField
-                    label="Nom"
-                    value={option.name}
-                    onChange={(value) =>
-                      updateIngredient(index, { name: value })
-                    }
-                  />
                   <BomField
-                    label="BOM extra"
-                    value={option.bomId}
+                    label="BOM"
+                    value={productBom.bomId}
                     boms={boms}
-                    onChange={(bomId) => updateIngredient(index, { bomId })}
+                    required
+                    onChange={(bomId) =>
+                      updateProductBom(index, { bomId: bomId ?? "" })
+                    }
                   />
-                  <NumberField
-                    label="Défaut"
-                    value={option.defaultQuantity}
-                    onChange={(value) =>
-                      updateIngredient(index, { defaultQuantity: value })
+                  <DecimalField
+                    label="Quantité"
+                    value={productBom.quantity}
+                    onChange={(quantity) =>
+                      updateProductBom(index, { quantity })
                     }
                   />
                   <NumberField
-                    label="Minimum"
-                    value={option.minQuantity}
-                    onChange={(value) =>
-                      updateIngredient(index, { minQuantity: value })
-                    }
-                  />
-                  <NumberField
-                    label="Maximum"
-                    value={option.maxQuantity}
-                    onChange={(value) =>
-                      updateIngredient(index, { maxQuantity: value })
-                    }
-                  />
-                  <MoneyField
-                    label="Prix extra"
-                    value={option.extraPrice.amount}
-                    onChange={(amount) =>
-                      updateIngredient(index, {
-                        extraPrice: { amount, currency: "CAD" },
-                      })
+                    label="Ordre"
+                    value={productBom.displayOrder}
+                    onChange={(displayOrder) =>
+                      updateProductBom(index, { displayOrder })
                     }
                   />
                   <RemoveButton
                     onClick={() =>
                       update(
-                        "ingredientOptions",
-                        form.ingredientOptions.filter(
-                          (_, item) => item !== index,
-                        ),
+                        "productBoms",
+                        form.productBoms.filter((_, item) => item !== index),
                       )
                     }
                   />
                 </div>
               ))}
             </CollectionSection>
-          )}
 
-          <FieldSet>
-            <FieldLegend>Disponibilité</FieldLegend>
-            <FieldGroup className="grid gap-4 md:grid-cols-4">
-              <TextField
-                label="Note"
-                value={form.availabilityNote}
-                onChange={(value) => update("availabilityNote", value)}
-              />
-              <NumberField
-                label="Ordre"
-                value={form.displayOrder}
-                onChange={(value) => update("displayOrder", value)}
-              />
-              <CheckField
-                label="Disponible"
-                checked={form.available}
-                onChange={(value) => update("available", value)}
-              />
-              <CheckField
-                label="Publier"
-                checked={form.published}
-                onChange={(value) => update("published", value)}
-              />
-            </FieldGroup>
-          </FieldSet>
-
-          <DialogFooter>
-            <Button
-              type="submit"
-              disabled={
-                saving ||
-                !form.categoryId ||
-                form.productBoms.some(
-                  (productBom) => !productBom.bomId || productBom.quantity <= 0,
-                )
+            <CollectionSection
+              title="Modes d'achat"
+              description="Formats vendus au client : unité, demi-douzaine, douzaine, etc."
+              onAdd={() =>
+                update("purchaseModes", [
+                  ...form.purchaseModes,
+                  emptyPurchaseMode(),
+                ])
               }
             >
-              {saving ? "Enregistrement..." : "Enregistrer"}
-            </Button>
-          </DialogFooter>
-        </form>
+              {form.purchaseModes.map((mode, index) => (
+                <div
+                  className="grid gap-3 border-b pb-4 md:grid-cols-6"
+                  key={mode.id ?? index}
+                >
+                  <TextField
+                    label="Code"
+                    value={mode.code}
+                    onChange={(value) => updateMode(index, { code: value })}
+                  />
+                  <TextField
+                    label="Libellé"
+                    value={mode.label}
+                    onChange={(value) => updateMode(index, { label: value })}
+                  />
+                  <NumberField
+                    label="Quantité"
+                    value={mode.quantity}
+                    onChange={(value) => updateMode(index, { quantity: value })}
+                  />
+                  <MoneyField
+                    label="Prix"
+                    value={mode.price.amount}
+                    onChange={(amount) =>
+                      updateMode(index, { price: { amount, currency: "CAD" } })
+                    }
+                  />
+                  <Field>
+                    <FieldLabel>Répartition</FieldLabel>
+                    <Select
+                      value={mode.allocationType}
+                      onValueChange={(value) =>
+                        updateMode(index, {
+                          allocationType: value as typeof mode.allocationType,
+                        })
+                      }
+                    >
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="NONE">Aucune</SelectItem>
+                        <SelectItem value="SINGLE_CHOICE">
+                          Choix unique
+                        </SelectItem>
+                        <SelectItem value="CHOICE_ALLOCATION">
+                          Composition
+                        </SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <FieldDescription>
+                      Composition exige que les quantités choisies totalisent la
+                      quantité du mode.
+                    </FieldDescription>
+                  </Field>
+                  <RemoveButton
+                    onClick={() =>
+                      update(
+                        "purchaseModes",
+                        form.purchaseModes.filter((_, item) => item !== index),
+                      )
+                    }
+                  />
+                </div>
+              ))}
+            </CollectionSection>
+
+            {showChoices && (
+              <CollectionSection
+                title="Saveurs et choix"
+                description="Options visibles pour les produits à choix unique ou bundles."
+                onAdd={() => {
+                  const group = form.choiceGroup ?? {
+                    id: null,
+                    label: "Farce",
+                    required: true,
+                    options: [],
+                  };
+                  update("choiceGroup", {
+                    ...group,
+                    options: [...group.options, emptyChoiceOption()],
+                  });
+                }}
+              >
+                <div className="grid gap-3 md:grid-cols-3">
+                  <TextField
+                    label="Libellé du groupe"
+                    value={form.choiceGroup?.label ?? "Farce"}
+                    onChange={(label) =>
+                      update("choiceGroup", {
+                        id: form.choiceGroup?.id ?? null,
+                        label,
+                        required: form.choiceGroup?.required ?? true,
+                        options: form.choiceGroup?.options ?? [],
+                      })
+                    }
+                  />
+                  <CheckField
+                    label="Choix obligatoire"
+                    checked={form.choiceGroup?.required ?? true}
+                    onChange={(required) =>
+                      update("choiceGroup", {
+                        id: form.choiceGroup?.id ?? null,
+                        label: form.choiceGroup?.label ?? "Farce",
+                        required,
+                        options: form.choiceGroup?.options ?? [],
+                      })
+                    }
+                  />
+                </div>
+                {form.choiceGroup?.options.map((option, index) => (
+                  <div
+                    className="grid gap-3 border-b pb-4 md:grid-cols-4"
+                    key={option.id ?? index}
+                  >
+                    <TextField
+                      label="Code"
+                      value={option.code}
+                      onChange={(value) => updateChoice(index, { code: value })}
+                    />
+                    <TextField
+                      label="Nom"
+                      value={option.name}
+                      onChange={(value) => updateChoice(index, { name: value })}
+                    />
+                    <BomField
+                      label="BOM"
+                      value={option.bomId}
+                      boms={boms}
+                      onChange={(bomId) => updateChoice(index, { bomId })}
+                    />
+                    <RemoveButton
+                      onClick={() =>
+                        update("choiceGroup", {
+                          ...form.choiceGroup!,
+                          options: form.choiceGroup!.options.filter(
+                            (_, item) => item !== index,
+                          ),
+                        })
+                      }
+                    />
+                  </div>
+                ))}
+              </CollectionSection>
+            )}
+
+            {showIngredients && (
+              <CollectionSection
+                title="Ingrédients et extras"
+                description="Extras personnalisables. Le prix extra s'ajoute au-dessus de la quantité par défaut."
+                onAdd={() =>
+                  update("ingredientOptions", [
+                    ...form.ingredientOptions,
+                    emptyIngredientOption(),
+                  ])
+                }
+              >
+                {form.ingredientOptions.map((option, index) => (
+                  <div
+                    className="grid gap-3 border-b pb-4 md:grid-cols-8"
+                    key={option.id ?? index}
+                  >
+                    <TextField
+                      label="Code"
+                      value={option.code}
+                      onChange={(value) =>
+                        updateIngredient(index, { code: value })
+                      }
+                    />
+                    <TextField
+                      label="Nom"
+                      value={option.name}
+                      onChange={(value) =>
+                        updateIngredient(index, { name: value })
+                      }
+                    />
+                    <BomField
+                      label="BOM extra"
+                      value={option.bomId}
+                      boms={boms}
+                      onChange={(bomId) => updateIngredient(index, { bomId })}
+                    />
+                    <NumberField
+                      label="Défaut"
+                      value={option.defaultQuantity}
+                      onChange={(value) =>
+                        updateIngredient(index, { defaultQuantity: value })
+                      }
+                    />
+                    <NumberField
+                      label="Minimum"
+                      value={option.minQuantity}
+                      onChange={(value) =>
+                        updateIngredient(index, { minQuantity: value })
+                      }
+                    />
+                    <NumberField
+                      label="Maximum"
+                      value={option.maxQuantity}
+                      onChange={(value) =>
+                        updateIngredient(index, { maxQuantity: value })
+                      }
+                    />
+                    <MoneyField
+                      label="Prix extra"
+                      value={option.extraPrice.amount}
+                      onChange={(amount) =>
+                        updateIngredient(index, {
+                          extraPrice: { amount, currency: "CAD" },
+                        })
+                      }
+                    />
+                    <RemoveButton
+                      onClick={() =>
+                        update(
+                          "ingredientOptions",
+                          form.ingredientOptions.filter(
+                            (_, item) => item !== index,
+                          ),
+                        )
+                      }
+                    />
+                  </div>
+                ))}
+              </CollectionSection>
+            )}
+
+            <FieldSet>
+              <FieldLegend>Disponibilité</FieldLegend>
+              <FieldGroup className="grid gap-4 md:grid-cols-4">
+                <TextField
+                  label="Note"
+                  value={form.availabilityNote}
+                  onChange={(value) => update("availabilityNote", value)}
+                />
+                <NumberField
+                  label="Ordre"
+                  value={form.displayOrder}
+                  onChange={(value) => update("displayOrder", value)}
+                />
+                <CheckField
+                  label="Disponible"
+                  description="Contrôle si le produit est achetable par le client."
+                  checked={form.available}
+                  onChange={(value) => update("available", value)}
+                />
+                <CheckField
+                  label="Publier"
+                  description="Inclut le produit lors de la prochaine publication catalogue."
+                  checked={form.published}
+                  onChange={(value) => update("published", value)}
+                />
+              </FieldGroup>
+            </FieldSet>
+
+            <DialogFooter>
+              <Button
+                type="submit"
+                disabled={
+                  saving ||
+                  !form.categoryId ||
+                  form.productBoms.some(
+                    (productBom) =>
+                      !productBom.bomId || productBom.quantity <= 0,
+                  )
+                }
+              >
+                {saving ? "Enregistrement..." : "Enregistrer"}
+              </Button>
+            </DialogFooter>
+          </form>
+          {guideOpen && <CatalogProductGuidePanel />}
+        </div>
       </DialogContent>
     </Dialog>
   );
@@ -579,19 +630,30 @@ export function CatalogProductDialog({
 
 function CollectionSection({
   title,
+  description,
   onAdd,
   children,
 }: {
   title: string;
+  description?: string;
   onAdd: () => void;
   children: React.ReactNode;
 }) {
   return (
     <FieldSet>
       <div className="flex items-center justify-between">
-        <FieldLegend>{title}</FieldLegend>
-        <Button type="button" variant="outline" onClick={onAdd}>
-          Ajouter
+        <div>
+          <FieldLegend>{title}</FieldLegend>
+          {description && <FieldDescription>{description}</FieldDescription>}
+        </div>
+        <Button
+          type="button"
+          variant="outline"
+          size="icon-sm"
+          aria-label={`Ajouter ${title}`}
+          onClick={onAdd}
+        >
+          <HugeiconsIcon icon={Add01Icon} strokeWidth={2} />
         </Button>
       </div>
       <FieldGroup>{children}</FieldGroup>
@@ -600,10 +662,12 @@ function CollectionSection({
 }
 function TextField({
   label,
+  description,
   value,
   onChange,
 }: {
   label: string;
+  description?: string;
   value: string;
   onChange: (value: string) => void;
 }) {
@@ -615,15 +679,18 @@ function TextField({
         value={value}
         onChange={(event) => onChange(event.target.value)}
       />
+      {description && <FieldDescription>{description}</FieldDescription>}
     </Field>
   );
 }
 function NumberField({
   label,
+  description,
   value,
   onChange,
 }: {
   label: string;
+  description?: string;
   value: number;
   onChange: (value: number) => void;
 }) {
@@ -636,15 +703,18 @@ function NumberField({
         value={value}
         onChange={(event) => onChange(number(event.target.value))}
       />
+      {description && <FieldDescription>{description}</FieldDescription>}
     </Field>
   );
 }
 function MoneyField({
   label,
+  description,
   value,
   onChange,
 }: {
   label: string;
+  description?: string;
   value: number;
   onChange: (value: number) => void;
 }) {
@@ -658,6 +728,7 @@ function MoneyField({
         value={value}
         onChange={(event) => onChange(number(event.target.value))}
       />
+      {description && <FieldDescription>{description}</FieldDescription>}
     </Field>
   );
 }
@@ -686,10 +757,12 @@ function DecimalField({
 }
 function CheckField({
   label,
+  description,
   checked,
   onChange,
 }: {
   label: string;
+  description?: string;
   checked: boolean;
   onChange: (value: boolean) => void;
 }) {
@@ -699,7 +772,14 @@ function CheckField({
         checked={checked}
         onCheckedChange={(value) => onChange(value === true)}
       />
-      <FieldLabel>{label}</FieldLabel>
+      {description ? (
+        <FieldContent>
+          <FieldLabel>{label}</FieldLabel>
+          <FieldDescription>{description}</FieldDescription>
+        </FieldContent>
+      ) : (
+        <FieldLabel>{label}</FieldLabel>
+      )}
     </Field>
   );
 }
@@ -742,9 +822,15 @@ function BomField({
 }
 function RemoveButton({ onClick }: { onClick: () => void }) {
   return (
-    <div className="flex items-end">
-      <Button type="button" variant="ghost" onClick={onClick}>
-        Retirer
+    <div className="flex items-start pt-7">
+      <Button
+        type="button"
+        variant="destructive"
+        size="icon-sm"
+        aria-label="Retirer"
+        onClick={onClick}
+      >
+        <HugeiconsIcon icon={Delete02Icon} strokeWidth={2} />
       </Button>
     </div>
   );

@@ -20,20 +20,35 @@ import com.savouretplus.savis.supply.api.SupplyApi;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
+/**
+ * Groups cheapest-offer lookups by component name and base unit.
+ */
 record CheapestOfferKey(String componentName, String baseUnit) {
 }
 
+/**
+ * Adapts supply offers into BOM component prices.
+ */
 @Slf4j
 @Component
 @AllArgsConstructor
 class ComponentPriceAdapter implements ComponentPricePort {
     private final SupplyApi supplyApi;
 
+    /**
+     * Returns the calculated price for one component price request.
+     */
     @Override
     public Money getPrice(ComponentPriceRequest request) {
+        /**
+         * Returns the prices.
+         */
         return getPrices(List.of(request)).getOrDefault(request, Money.ZERO);
     }
 
+    /**
+     * Returns calculated prices for multiple component price requests.
+     */
     @Override
     public Map<ComponentPriceRequest, Money> getPrices(List<ComponentPriceRequest> requests) {
         Map<ComponentPriceRequest, Money> prices = new LinkedHashMap<>();
@@ -51,6 +66,9 @@ class ComponentPriceAdapter implements ComponentPricePort {
         return prices;
     }
 
+    /**
+     * Finds the selected offer first, then falls back to the cheapest compatible offer.
+     */
     private Optional<OfferPricing> findOffer(
             ComponentPriceRequest request,
             Map<UUID, Optional<OfferPricing>> selectedOfferCache,
@@ -74,6 +92,9 @@ class ComponentPriceAdapter implements ComponentPricePort {
                 ignored -> supplyApi.getCheapestOfferPricing(request.componentName(), request.quantity()));
     }
 
+    /**
+     * Calculates a proportional component price from an offer package size.
+     */
     private Money calculatePrice(OfferPricing offerPricing, Quantity quantity) {
         log.info("Calculate price of {} of {}", quantity, offerPricing);
         if (offerPricing.price() == null || offerPricing.packageSize() == null) {

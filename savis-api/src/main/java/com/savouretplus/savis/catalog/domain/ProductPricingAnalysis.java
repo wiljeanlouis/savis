@@ -6,6 +6,9 @@ import java.util.UUID;
 
 import com.savouretplus.savis.common.Money;
 
+/**
+ * Represents the cost, price, and margin analysis for a catalog product.
+ */
 public record ProductPricingAnalysis(
         String analysisType,
         int analyzedQuantity,
@@ -19,6 +22,9 @@ public record ProductPricingAnalysis(
         boolean complete,
         List<UUID> missingBomIds) {
 
+    /**
+     * Validates and normalizes a product pricing analysis result.
+     */
     public ProductPricingAnalysis {
         if (analyzedQuantity <= 0) {
             throw new IllegalArgumentException("La quantité analysée doit être supérieure à zéro");

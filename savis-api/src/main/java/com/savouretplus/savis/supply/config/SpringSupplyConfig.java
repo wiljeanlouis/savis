@@ -9,11 +9,17 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
+/**
+ * Declares queue and listener beans used by the supply module.
+ */
 @Configuration
 public class SpringSupplyConfig {
     private final String resultQueueName;
     private final String invalidationQueueName;
 
+    /**
+     * Creates supply queue configuration from application properties.
+     */
     public SpringSupplyConfig(
             @Value("${savis.offer.result.queue}") String resultQueueName,
             @Value("${savis.offer.invalidation.queue}") String invalidationQueueName) {

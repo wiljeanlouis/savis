@@ -3,12 +3,18 @@ package com.savouretplus.savis.catalog.domain;
 import java.math.BigDecimal;
 import java.util.UUID;
 
+/**
+ * Links a catalog product to the BOM used to calculate its cost.
+ */
 public record ProductBom(
         UUID publicId,
         UUID bomId,
         BigDecimal quantity,
         int displayOrder) {
 
+    /**
+     * Validates a product-to-BOM link and its display order.
+     */
     public ProductBom {
         publicId = publicId != null ? publicId : UUID.randomUUID();
         if (bomId == null) {

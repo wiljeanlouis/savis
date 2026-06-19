@@ -24,6 +24,9 @@ import jakarta.transaction.Transactional;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
+/**
+ * Coordinates BOM lifecycle operations and cost calculations.
+ */
 @Slf4j
 @Service
 @Transactional
@@ -35,6 +38,9 @@ public class BomService implements BomPricingApi {
     private final ActivityRateRepositoryPort activityRateRepository;
     private final ComponentNeededEventPort componentNeededEventPublisher;
 
+    /**
+     * Creates or replaces a BOM using the supplied identifier.
+     */
     public UUID saveBom(UUID bomId, Bom bom) {
         log.info("Save bom {} with id : {}", bom, bomId);
 
@@ -44,31 +50,52 @@ public class BomService implements BomPricingApi {
         return bom.getPublicId();
     }
 
+    /**
+     * Returns a BOM by identifier.
+     */
     public Bom getBom(UUID bomId) {
         return repository.findByPublicId(bomId)
                 .orElseThrow(() -> new RuntimeException("Bom not found"));
     }
 
+    /**
+     * Deletes a BOM by identifier.
+     */
     public void deleteBom(UUID bomId) {
         Bom bom = getBom(bomId);
         repository.delete(bom);
     }
 
+    /**
+     * Lists all BOMs.
+     */
     public List<Bom> listBoms() {
         return repository.findAll();
     }
 
+    /**
+     * Calculates the total cost for a BOM.
+     */
     public Money calculateTotalCost(UUID bomId) {
         Bom bom = getBom(bomId);
+        /**
+         * Calculates the total cost for the supplied bill of materials or identifier.
+         */
         return calculateTotalCost(bom);
     }
 
+    /**
+     * Calculates the total cost for a BOM.
+     */
     public Money calculateTotalCost(Bom bom) {
         return bom.calculateTotal(
                 priceCalculator.getPrices(bom.componentPriceRequests()),
                 activityRatesByType());
     }
 
+    /**
+     * Calculates total costs for several BOMs in one pass.
+     */
     public Map<UUID, Money> calculateTotalCosts(List<Bom> boms) {
         List<ComponentPriceRequest> requests = boms.stream()
                 .flatMap(bom -> bom.componentPriceRequests().stream())
@@ -84,11 +111,17 @@ public class BomService implements BomPricingApi {
                         bom -> bom.calculateTotal(componentPrices, activityRates)));
     }
 
+    /**
+     * Checks whether a BOM exists.
+     */
     @Override
     public boolean existsBom(UUID bomId) {
         return bomId != null && repository.findByPublicId(bomId).isPresent();
     }
 
+    /**
+     * Returns the calculated pricing for a BOM.
+     */
     @Override
     public BomPricing getBomPricing(UUID bomId) {
         Bom bom = getBom(bomId);

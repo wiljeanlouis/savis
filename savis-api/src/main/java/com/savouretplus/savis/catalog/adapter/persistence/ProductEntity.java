@@ -26,6 +26,9 @@ import jakarta.persistence.Table;
 import lombok.Getter;
 import lombok.Setter;
 
+/**
+ * JPA entity storing a catalog product and its owned configuration rows.
+ */
 @Getter
 @Setter
 @Entity
@@ -88,6 +91,9 @@ public class ProductEntity {
     private List<ProductIngredientOptionEntity> ingredientOptions = new ArrayList<>();
 }
 
+/**
+ * JPA entity storing the BOM link for a catalog product.
+ */
 @Getter
 @Setter
 @Entity
@@ -106,6 +112,9 @@ class ProductBomEntity {
     private int displayOrder;
 }
 
+/**
+ * JPA entity storing one purchase mode for a catalog product.
+ */
 @Getter
 @Setter
 @Entity
@@ -135,6 +144,9 @@ class ProductPurchaseModeEntity {
     private int displayOrder;
 }
 
+/**
+ * JPA entity storing a choice group for a catalog product.
+ */
 @Getter
 @Setter
 @Entity
@@ -154,6 +166,9 @@ class ProductChoiceGroupEntity {
     private List<ProductChoiceOptionEntity> options = new ArrayList<>();
 }
 
+/**
+ * JPA entity storing one option within a product choice group.
+ */
 @Getter
 @Setter
 @Entity
@@ -175,6 +190,9 @@ class ProductChoiceOptionEntity {
     private int displayOrder;
 }
 
+/**
+ * JPA entity storing one configurable ingredient option for a catalog product.
+ */
 @Getter
 @Setter
 @Entity

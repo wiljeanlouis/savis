@@ -15,6 +15,9 @@ import com.savouretplus.savis.catalog.port.PublishedCatalogPort;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
+/**
+ * Publishes catalog products with their categories and pricing state.
+ */
 @Slf4j
 @Service
 @Transactional
@@ -25,6 +28,9 @@ public class CatalogPublicationService {
     private final PublishedCatalogPort publishedCatalogPort;
     private final PublishedCatalogProductMapper mapper;
 
+    /**
+     * Publishes catalog products or outbound events through the configured port.
+     */
     public void publish(UUID productId) {
         Product product = productRepository.findByPublicId(productId)
                 .orElseThrow(() -> new ProductNotFoundException(productId));
@@ -37,6 +43,9 @@ public class CatalogPublicationService {
         publishedCatalogPort.publish(mapper.map(product, category));
     }
 
+    /**
+     * Publishes all catalog products to the external catalog.
+     */
     public PublicationResult publishAll() {
         requirePublicationEnabled();
         List<Product> products = productRepository.findAllPublished();
@@ -45,6 +54,9 @@ public class CatalogPublicationService {
         return new PublicationResult(products.size());
     }
 
+    /**
+     * Runs the scheduled catalog publication job.
+     */
     @Scheduled(cron = "${savis.catalog.refresh-cron:0 0 * * * *}")
     public void scheduledPublication() {
         if (!publishedCatalogPort.isEnabled()) {
@@ -66,6 +78,9 @@ public class CatalogPublicationService {
         }
     }
 
+    /**
+     * Summarizes the result of a catalog publication run.
+     */
     public record PublicationResult(int publishedProductCount) {
     }
 }

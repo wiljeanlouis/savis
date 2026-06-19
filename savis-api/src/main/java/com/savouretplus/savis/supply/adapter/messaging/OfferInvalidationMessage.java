@@ -4,6 +4,9 @@ import java.util.UUID;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 
+/**
+ * Inbound message identifying a supplier offer that should be invalidated.
+ */
 public record OfferInvalidationMessage(
         String id,
         @JsonProperty("external_id") String externalId,

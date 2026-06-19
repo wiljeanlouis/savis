@@ -10,6 +10,9 @@ import lombok.Getter;
 import lombok.Setter;
 import lombok.ToString;
 
+/**
+ * JPA entity storing one material component attached to a BOM.
+ */
 @Getter
 @Setter
 @ToString

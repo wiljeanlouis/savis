@@ -4,7 +4,6 @@ import { NavMain } from "@/app/layout/components/NavMain";
 import {
   Sidebar,
   SidebarContent,
-  SidebarFooter,
   SidebarHeader,
   SidebarMenu,
   SidebarMenuButton,
@@ -22,7 +21,6 @@ import {
   GearsFreeIcons,
 } from "@hugeicons/core-free-icons";
 import { Link } from "react-router";
-import { ModeToggle } from "./components/ModeToggle";
 import { NavSection } from "./components/NavSection";
 
 export const activeClass =
@@ -122,10 +120,6 @@ export const AppSidebar = ({
         {/* <NavDocuments items={data.documents} />
         <NavSecondary items={data.navSecondary} className="mt-auto" /> */}
       </SidebarContent>
-      <SidebarFooter>
-        <ModeToggle />
-        {/* <NavUser user={data.user} /> */}
-      </SidebarFooter>
     </Sidebar>
   );
 };

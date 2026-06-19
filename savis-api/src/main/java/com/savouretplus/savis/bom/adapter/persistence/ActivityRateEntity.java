@@ -15,6 +15,9 @@ import lombok.Getter;
 import lombok.Setter;
 import lombok.ToString;
 
+/**
+ * JPA entity storing the hourly rate for an activity type.
+ */
 @Getter
 @Setter
 @ToString

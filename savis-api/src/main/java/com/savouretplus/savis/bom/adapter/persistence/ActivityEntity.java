@@ -14,6 +14,9 @@ import lombok.Getter;
 import lombok.Setter;
 import lombok.ToString;
 
+/**
+ * JPA entity storing a production activity attached to a BOM.
+ */
 @Getter
 @Setter
 @ToString

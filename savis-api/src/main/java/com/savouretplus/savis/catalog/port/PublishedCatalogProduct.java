@@ -3,6 +3,9 @@ package com.savouretplus.savis.catalog.port;
 import java.util.List;
 import java.util.Map;
 
+/**
+ * Represents a product payload ready to be published outside the catalog module.
+ */
 public record PublishedCatalogProduct(
         String id,
         String slug,

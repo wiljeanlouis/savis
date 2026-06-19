@@ -21,6 +21,9 @@ import jakarta.validation.Valid;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
+/**
+ * REST controller exposing activity rate management endpoints.
+ */
 @Slf4j
 @RestController
 @RequestMapping({ "/api/activity-rates" })
@@ -30,6 +33,9 @@ public class ActivityRateController {
 
     private final ActivityRateService activityRateService;
 
+    /**
+     * Creates a new activity rate.
+     */
     @PostMapping()
     public ResponseEntity<ActivityRateDto> createActivityRate(@Valid @RequestBody ActivityRateDto request) {
         log.info("Received request to create activity rate: {}", request);
@@ -41,6 +47,9 @@ public class ActivityRateController {
         return ResponseEntity.ok(ActivityRateDto.from(activityRate));
     }
 
+    /**
+     * Updates an existing activity rate.
+     */
     @PutMapping("/{activityType}")
     public ResponseEntity<ActivityRateDto> updateActivityRate(
             @PathVariable ActivityType activityType,
@@ -54,6 +63,9 @@ public class ActivityRateController {
         return ResponseEntity.ok(ActivityRateDto.from(activityRate));
     }
 
+    /**
+     * Returns an activity rate by activity type.
+     */
     @GetMapping("/{activityType}")
     public ResponseEntity<ActivityRateDto> getActivityRate(@PathVariable ActivityType activityType) {
         log.info("Received request to get activity rate: {}", activityType);
@@ -63,6 +75,9 @@ public class ActivityRateController {
         return ResponseEntity.ok(ActivityRateDto.from(activityRate));
     }
 
+    /**
+     * Lists all configured activity rates.
+     */
     @GetMapping()
     public ResponseEntity<List<ActivityRateDto>> listActivityRates() {
         log.info("Received request to list activity rates");
@@ -75,6 +90,9 @@ public class ActivityRateController {
         return ResponseEntity.ok(activityRates);
     }
 
+    /**
+     * Deletes an activity rate by activity type.
+     */
     @DeleteMapping("/{activityType}")
     public ResponseEntity<Void> deleteActivityRate(@PathVariable ActivityType activityType) {
         log.info("Received request to delete activity rate: {}", activityType);
