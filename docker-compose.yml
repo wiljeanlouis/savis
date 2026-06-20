@@ -72,8 +72,10 @@ services:
     ports:
       - "5173:5173"
     environment:
-      VITE_API_URL: http://localhost:8080/api
-      VITE_EXECUTOR_API_URL: http://localhost:8000
+      VITE_API_URL: /savis-api
+      VITE_EXECUTOR_API_URL: /executor-api
+      SAVIS_API_PROXY_TARGET: http://backend_api:8080
+      EXECUTOR_API_PROXY_TARGET: http://executor_api:8000
     volumes:
       - ./savis-admin:/app
       - /app/node_modules

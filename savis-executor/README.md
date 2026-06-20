@@ -220,7 +220,7 @@ Health endpoints:
 
 ### Tasks
 
-`POST /tasks` creates a task. It returns `409 Conflict` when all configured
+`POST /api/tasks` creates a task. It returns `409 Conflict` when all configured
 providers already have offers for a `GET_OFFERS` request.
 
 Collect food offers:
@@ -261,7 +261,7 @@ Refresh one offer:
 }
 ```
 
-`GET /tasks` supports:
+`GET /api/tasks` supports:
 
 - pagination: `page`, `size`;
 - filters: `status`, `type`;
@@ -272,7 +272,7 @@ Task sort fields are `type`, `status`, `created_at`, `updated_at`, and
 
 ### Offers
 
-`GET /offers` supports:
+`GET /api/offers` supports:
 
 - pagination: `page`, `size`;
 - filters: `status`, `type`, `search_term`;
@@ -285,9 +285,9 @@ Additional endpoints:
 
 | Method | Path | Purpose |
 | --- | --- | --- |
-| `GET` | `/offers/facets/search-terms` | Count offers by search term, optionally filtered by status and type. |
-| `PATCH` | `/offers/{offer_id}` | Change status and/or `refresh_frequency_hours`. |
-| `DELETE` | `/offers/{offer_id}` | Delete an offer and invalidate it first when currently valid. |
+| `GET` | `/api/offers/facets/search-terms` | Count offers by search term, optionally filtered by status and type. |
+| `PATCH` | `/api/offers/{offer_id}` | Change status and/or `refresh_frequency_hours`. |
+| `DELETE` | `/api/offers/{offer_id}` | Delete an offer and invalidate it first when currently valid. |
 
 ## RabbitMQ Contracts
 

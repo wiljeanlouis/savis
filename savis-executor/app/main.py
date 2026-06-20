@@ -16,6 +16,8 @@ from app.adapters.rabbitmq import subscriber
 if TYPE_CHECKING:
     from collections.abc import AsyncIterator
 
+API_PREFIX = "/api"
+
 
 @asynccontextmanager
 async def lifespan(_app: FastAPI) -> AsyncIterator[None]:
@@ -34,5 +36,5 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
-app.include_router(router)
+app.include_router(router, prefix=API_PREFIX)
 app.include_router(health_router)

@@ -293,52 +293,54 @@ Two Axios clients are defined in `src/shared/api/index.ts`:
 
 | Client        | Base URL                                         | Used for                                                                         |
 | ------------- | ------------------------------------------------ | -------------------------------------------------------------------------------- |
-| `api`         | `VITE_API_URL`, default `/api`                   | BOMs, supply offers, activity rates, catalog products, pricing, and publication. |
+| `api`         | `VITE_API_URL`, default `/savis-api`             | BOMs, supply offers, activity rates, catalog products, pricing, and publication. |
 | `executorApi` | `VITE_EXECUTOR_API_URL`, default `/executor-api` | Executor offers and tasks.                                                       |
 
-### SAVIS API Endpoints
+### SAVIS API Proxy
 
-The frontend currently calls:
+The frontend currently calls the `/savis-api` proxy. Direct SAVIS API endpoints
+are prefixed with `/api`:
 
 ```text
-GET    /api/boms
-GET    /api/boms/{id}
-GET    /api/boms/{id}/price
-POST   /api/boms
-DELETE /api/boms/{id}
+GET    /savis-api/boms
+GET    /savis-api/boms/{id}
+GET    /savis-api/boms/{id}/price
+POST   /savis-api/boms
+DELETE /savis-api/boms/{id}
 
-GET    /api/supply/offers
+GET    /savis-api/supply/offers
 
-GET    /api/activity-rates
-POST   /api/activity-rates
-PUT    /api/activity-rates/{activityType}
-DELETE /api/activity-rates/{activityType}
+GET    /savis-api/activity-rates
+POST   /savis-api/activity-rates
+PUT    /savis-api/activity-rates/{activityType}
+DELETE /savis-api/activity-rates/{activityType}
 
-GET    /api/catalog/products
-POST   /api/catalog/products
-PUT    /api/catalog/products/{id}
-DELETE /api/catalog/products/{id}
-POST   /api/catalog/products/{id}/pricing-analysis
-GET    /api/catalog/products/{id}/worst-case-pricing
-POST   /api/catalog/products/publish
+GET    /savis-api/catalog/products
+POST   /savis-api/catalog/products
+PUT    /savis-api/catalog/products/{id}
+DELETE /savis-api/catalog/products/{id}
+POST   /savis-api/catalog/products/{id}/pricing-analysis
+GET    /savis-api/catalog/products/{id}/worst-case-pricing
+POST   /savis-api/catalog/products/publish
 
-GET    /api/catalog/categories
-POST   /api/catalog/categories
-PUT    /api/catalog/categories/{id}
+GET    /savis-api/catalog/categories
+POST   /savis-api/catalog/categories
+PUT    /savis-api/catalog/categories/{id}
 ```
 
 ### Executor Endpoints
 
-The frontend currently calls:
+The frontend currently calls the `/executor-api` proxy. Direct SAVIS Executor
+endpoints are prefixed with `/api`:
 
 ```text
-GET    /offers
-GET    /offers/facets/search-terms
-PATCH  /offers/{id}
-DELETE /offers/{id}
+GET    /api/offers
+GET    /api/offers/facets/search-terms
+PATCH  /api/offers/{id}
+DELETE /api/offers/{id}
 
-GET    /tasks
-POST   /tasks
+GET    /api/tasks
+POST   /api/tasks
 ```
 
 ## Technology
@@ -368,10 +370,10 @@ Create a local `.env` file when running outside Docker:
 
 ```dotenv
 VITE_API_URL=http://localhost:8080/api
-VITE_EXECUTOR_API_URL=http://localhost:8000
+VITE_EXECUTOR_API_URL=http://localhost:8000/api
 ```
 
-Both variables are optional. Without them, the clients use `/api` and
+Both variables are optional. Without them, the clients use `/savis-api` and
 `/executor-api`, which are the Nginx proxy paths in the production image.
 Standalone Vite development should set the absolute URLs above.
 
@@ -426,7 +428,7 @@ The Dockerfile contains:
 The production Nginx configuration:
 
 - serves the SPA with history fallback;
-- proxies `/api/*` to SAVIS API;
+- proxies `/savis-api/*` to SAVIS API;
 - proxies `/executor-api/*` to SAVIS Executor;
 - exposes `/health` for Docker readiness.
 

@@ -55,11 +55,11 @@ def test_create_task_returns_created_task(
 
     monkeypatch.setattr(routes, "savis_task_use_case", FixedTaskUseCase())
     app = FastAPI()
-    app.include_router(routes.router)
+    app.include_router(routes.router, prefix="/api")
     client = TestClient(app)
 
     response = client.post(
-        "/tasks",
+        "/api/tasks",
         json={"type": "GET_OFFERS", "payload": {"search_term": "flour"}},
     )
 
@@ -92,11 +92,11 @@ def test_create_get_offer_task_maps_public_payload_to_core_contract(
 
     monkeypatch.setattr(routes, "savis_task_use_case", FixedTaskUseCase())
     app = FastAPI()
-    app.include_router(routes.router)
+    app.include_router(routes.router, prefix="/api")
     client = TestClient(app)
 
     response = client.post(
-        "/tasks",
+        "/api/tasks",
         json={
             "type": "GET_OFFER",
             "payload": {
@@ -136,11 +136,11 @@ def test_create_task_rejects_payload_missing_required_fields(
 
     monkeypatch.setattr(routes, "savis_task_use_case", FixedTaskUseCase())
     app = FastAPI()
-    app.include_router(routes.router)
+    app.include_router(routes.router, prefix="/api")
     client = TestClient(app)
 
     response = client.post(
-        "/tasks",
+        "/api/tasks",
         json={"type": "REFRESH_OFFER", "payload": {"offer_id": str(uuid7())}},
     )
 
@@ -182,11 +182,11 @@ def test_list_tasks_filters_by_status_and_type(
     savis_task_use_case = FixedListUseCase()
     monkeypatch.setattr(routes, "savis_task_use_case", savis_task_use_case)
     app = FastAPI()
-    app.include_router(routes.router)
+    app.include_router(routes.router, prefix="/api")
     client = TestClient(app)
 
     response = client.get(
-        "/tasks",
+        "/api/tasks",
         params={
             "status": "FAILED",
             "type": "GET_OFFERS",
@@ -271,9 +271,9 @@ def test_list_offers_returns_paged_response(
 
     monkeypatch.setattr(routes, "offers_use_case", FixedOffersUseCase())
     app = FastAPI()
-    app.include_router(routes.router)
+    app.include_router(routes.router, prefix="/api")
     response = TestClient(app).get(
-        "/offers",
+        "/api/offers",
         params={
             "status": "NEW",
             "page": PAGE_TWO,
@@ -307,9 +307,9 @@ def test_list_offer_search_term_facets_returns_counts(
 
     monkeypatch.setattr(routes, "offers_use_case", FixedOffersUseCase())
     app = FastAPI()
-    app.include_router(routes.router)
+    app.include_router(routes.router, prefix="/api")
     response = TestClient(app).get(
-        "/offers/facets/search-terms",
+        "/api/offers/facets/search-terms",
         params={"status": "NEW", "type": "FOOD"},
     )
 
@@ -365,10 +365,10 @@ def test_patch_offer_updates_one_offer(
 
     monkeypatch.setattr(routes, "offers_use_case", FixedOffersUseCase())
     app = FastAPI()
-    app.include_router(routes.router)
+    app.include_router(routes.router, prefix="/api")
 
     response = TestClient(app).patch(
-        f"/offers/{offer.id}",
+        f"/api/offers/{offer.id}",
         json={
             "status": "VALID",
             "refresh_frequency_hours": REFRESH_FREQUENCY_SIX_HOURS,
@@ -392,9 +392,9 @@ def test_delete_offer_returns_no_content(
 
     monkeypatch.setattr(routes, "offers_use_case", FixedOffersUseCase())
     app = FastAPI()
-    app.include_router(routes.router)
+    app.include_router(routes.router, prefix="/api")
 
-    response = TestClient(app).delete(f"/offers/{offer_id}")
+    response = TestClient(app).delete(f"/api/offers/{offer_id}")
 
     assert response.status_code == HTTP_NO_CONTENT
     assert response.content == b""
@@ -409,9 +409,9 @@ def test_delete_offer_returns_not_found(
 
     monkeypatch.setattr(routes, "offers_use_case", FixedOffersUseCase())
     app = FastAPI()
-    app.include_router(routes.router)
+    app.include_router(routes.router, prefix="/api")
 
-    response = TestClient(app).delete(f"/offers/{uuid7()}")
+    response = TestClient(app).delete(f"/api/offers/{uuid7()}")
 
     assert response.status_code == HTTP_NOT_FOUND
     assert response.json() == {"detail": "Offer not found"}
