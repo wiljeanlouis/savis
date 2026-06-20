@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.5.0](https://github.com/wiljeanlouis/savis/compare/v1.4.2...v1.5.0) (2026-06-20)
+
+
+### Features
+
+* implement idempotence for active refresh tasks and add related error handling ([#57](https://github.com/wiljeanlouis/savis/issues/57)) ([5e0020b](https://github.com/wiljeanlouis/savis/commit/5e0020b113ce28439b5fe5f38a1eddd7adb93559))
+
 ## [1.4.2](https://github.com/wiljeanlouis/savis/compare/v1.4.1...v1.4.2) (2026-06-20)
 
 
