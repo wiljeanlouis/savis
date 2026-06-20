@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.4.2](https://github.com/wiljeanlouis/savis/compare/v1.4.1...v1.4.2) (2026-06-20)
+
+
+### Bug Fixes
+
+* update API paths and proxy configurations for SAVIS ([#55](https://github.com/wiljeanlouis/savis/issues/55)) ([9fffacb](https://github.com/wiljeanlouis/savis/commit/9fffacbd0f2cb6c512c651fe9d9dac9f8666d44a))
+
 ## [1.4.1](https://github.com/wiljeanlouis/savis/compare/v1.4.0...v1.4.1) (2026-06-19)
 
 
