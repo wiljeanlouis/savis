@@ -67,7 +67,7 @@ The French-language administration UI provides:
 
 In production, Nginx serves the single-page application and proxies:
 
-- `/api/*` to SAVIS API;
+- `/savis-api/*` to SAVIS API;
 - `/executor-api/*` to SAVIS Executor.
 
 ### SAVIS API
@@ -299,11 +299,11 @@ SAVIS_CATALOG_REFRESH_CRON=0 0 * * * *
 
 ```env
 VITE_API_URL=http://localhost:8080/api
-VITE_EXECUTOR_API_URL=http://localhost:8000
+VITE_EXECUTOR_API_URL=http://localhost:8000/api
 ```
 
 Without build-time variables, the production Admin defaults to the Nginx
-proxies `/api` and `/executor-api`.
+proxies `/savis-api` and `/executor-api`.
 
 ### Standalone Executor
 
