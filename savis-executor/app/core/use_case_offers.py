@@ -26,7 +26,7 @@ if TYPE_CHECKING:
         OfferRepository,
     )
 
-DEFAULT_REFRESH_FREQUENCY_HOURS = 24
+DEFAULT_REFRESH_FREQUENCY_HOURS = 24 * 7  # a week
 logger = logging.getLogger(__name__)
 
 

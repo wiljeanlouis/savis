@@ -90,6 +90,14 @@ class FakeTaskRepository(SavisTaskRepository):
     def mark_failed(self, task_id: UUID, error: str) -> None:
         self.failed.append((task_id, error))
 
+    def has_active_refresh_offer_task(self, offer_id: UUID) -> bool:
+        return any(
+            task.type == SavisTaskType.REFRESH_OFFER
+            and task.status == SavisTaskStatus.IN_PROGRESS
+            and task.payload.get("offer_id") == str(offer_id)
+            for task in self.tasks
+        )
+
     def mark_stale_in_progress_as_failed(
         self,
         stale_before: datetime,  # noqa: ARG002
@@ -140,6 +148,26 @@ class FakeOffersUseCase:
         offer_type: OfferType,
     ) -> bool:
         return (search_term, offer_type) in self.covered_search_terms
+
+
+def _due_offer(offer_id: UUID | None = None) -> Offer:
+    return Offer(
+        id=offer_id or uuid7(),
+        external_id="external-id",
+        url="https://example.com/offer",
+        brand="Example",
+        label="Flour",
+        price=Price("4.99"),
+        package_size=None,
+        image_url="https://example.com/image.png",
+        provider=Provider(
+            ProviderName.MAXI,
+            "example",
+            "https://example.com",
+            "123 Street",
+        ),
+        status=OfferStatus.VALID,
+    )
 
 
 def _use_case(
@@ -294,23 +322,7 @@ def test_execute_savis_task_refresh_offer_delegates_and_completes_task() -> None
 def test_enqueue_due_offer_refresh_tasks_creates_tasks_for_due_offers() -> None:
     use_case, repository, queue, offers_use_case = _use_case()
     now = datetime(2026, 5, 27, 12, 0, tzinfo=UTC)
-    due_offer = Offer(
-        id=uuid7(),
-        external_id="external-id",
-        url="https://example.com/offer",
-        brand="Example",
-        label="Flour",
-        price=Price("4.99"),
-        package_size=None,
-        image_url="https://example.com/image.png",
-        provider=Provider(
-            ProviderName.MAXI,
-            "example",
-            "https://example.com",
-            "123 Street",
-        ),
-        status=OfferStatus.VALID,
-    )
+    due_offer = _due_offer()
     offers_use_case.due_offers = [due_offer]
 
     tasks = use_case.enqueue_due_offer_refresh_tasks(now=now)
@@ -324,6 +336,51 @@ def test_enqueue_due_offer_refresh_tasks_creates_tasks_for_due_offers() -> None:
         "url": due_offer.url,
     }
     assert queue.refreshes == [(str(tasks[0].id), str(due_offer.id), due_offer.url)]
+
+
+def test_enqueue_due_offer_refresh_tasks_skips_offer_with_active_refresh() -> None:
+    offer_id = uuid7()
+    active_refresh = SavisTask.create(
+        SavisTaskType.REFRESH_OFFER,
+        {"offer_id": str(offer_id), "url": "https://example.com/offer"},
+    )
+    repository = FakeTaskRepository([active_refresh])
+    use_case, _repository, queue, offers_use_case = _use_case(repository=repository)
+    now = datetime(2026, 5, 27, 12, 0, tzinfo=UTC)
+    offers_use_case.due_offers = [_due_offer(offer_id)]
+
+    tasks = use_case.enqueue_due_offer_refresh_tasks(now=now)
+
+    assert offers_use_case.due_refresh_checks == [now]
+    assert tasks == []
+    assert repository.tasks == [active_refresh]
+    assert queue.refreshes == []
+
+
+@pytest.mark.parametrize(
+    "terminal_status",
+    [SavisTaskStatus.COMPLETED, SavisTaskStatus.FAILED],
+)
+def test_enqueue_due_offer_refresh_tasks_ignores_terminal_refresh_tasks(
+    terminal_status: SavisTaskStatus,
+) -> None:
+    offer_id = uuid7()
+    terminal_refresh = SavisTask.create(
+        SavisTaskType.REFRESH_OFFER,
+        {"offer_id": str(offer_id), "url": "https://example.com/offer"},
+    )
+    terminal_refresh.status = terminal_status
+    repository = FakeTaskRepository([terminal_refresh])
+    use_case, _repository, queue, offers_use_case = _use_case(repository=repository)
+    offers_use_case.due_offers = [_due_offer(offer_id)]
+
+    tasks = use_case.enqueue_due_offer_refresh_tasks()
+
+    assert len(tasks) == 1
+    assert repository.tasks == [terminal_refresh, tasks[0]]
+    assert queue.refreshes == [
+        (str(tasks[0].id), str(offer_id), tasks[0].payload["url"]),
+    ]
 
 
 def test_list_filters_and_cleanup_delegate_to_repository() -> None:

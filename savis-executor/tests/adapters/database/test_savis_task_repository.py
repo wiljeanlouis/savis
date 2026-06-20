@@ -3,6 +3,7 @@
 # ruff: noqa: D103, S101
 
 from datetime import UTC, datetime, timedelta
+from uuid import uuid7
 
 from sqlalchemy import create_engine
 from sqlalchemy.orm import Session, sessionmaker
@@ -120,6 +121,34 @@ def test_mark_completed_and_failed_update_status() -> None:
     assert completed_entity.status == SavisTaskStatus.COMPLETED.value
     assert failed_entity.status == SavisTaskStatus.FAILED.value
     assert failed_entity.error_message == "boom"
+
+
+def test_has_active_refresh_offer_task_matches_offer_type_and_status() -> None:
+    repository, _session_factory = _repository()
+    offer_id = uuid7()
+    completed_offer_id = uuid7()
+    get_offer_id = uuid7()
+    active_refresh = SavisTask.create(
+        SavisTaskType.REFRESH_OFFER,
+        {"offer_id": str(offer_id), "url": "https://example.com"},
+    )
+    completed_refresh = SavisTask.create(
+        SavisTaskType.REFRESH_OFFER,
+        {"offer_id": str(completed_offer_id), "url": "https://example.com"},
+    )
+    completed_refresh.status = SavisTaskStatus.COMPLETED
+    get_offer = SavisTask.create(
+        SavisTaskType.GET_OFFER,
+        {"offer_id": str(get_offer_id), "url": "https://example.com"},
+    )
+    repository.save(active_refresh)
+    repository.save(completed_refresh)
+    repository.save(get_offer)
+
+    assert repository.has_active_refresh_offer_task(offer_id) is True
+    assert repository.has_active_refresh_offer_task(completed_offer_id) is False
+    assert repository.has_active_refresh_offer_task(get_offer_id) is False
+    assert repository.has_active_refresh_offer_task(uuid7()) is False
 
 
 def test_mark_stale_in_progress_as_failed() -> None:
