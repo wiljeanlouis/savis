@@ -30,7 +30,6 @@ public class SupabaseCatalogAdapter implements PublishedCatalogPort {
             @Value("${savis.supabase.url}") String supabaseUrl,
             @Value("${savis.supabase.service-role-key}") String serviceRoleKey) {
                 log.info("supabaseUrl {}", supabaseUrl);
-                log.info("serviceRoleKey {}", serviceRoleKey);
         this.client = RestClient.builder()
                 .baseUrl(supabaseUrl)
                 .defaultHeader("apikey", serviceRoleKey)
