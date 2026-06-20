@@ -32,6 +32,10 @@ class OfferProviderBlockedError(OfferProviderNonRetryableError):
     """Raised when an offer provider explicitly blocks collection."""
 
 
+class ActiveRefreshTaskAlreadyExistsError(RuntimeError):
+    """Raised when one active refresh task already exists for an offer."""
+
+
 class ProviderCircuitOpenError(OfferProviderNonRetryableError):
     """Raised when provider access is suspended after previous blocks."""
 
@@ -118,6 +122,10 @@ class SavisTaskRepository(ABC):
     @abstractmethod
     def mark_failed(self, task_id: UUID, error: str) -> None:
         """Mark a task as failed."""
+
+    @abstractmethod
+    def has_active_refresh_offer_task(self, offer_id: UUID) -> bool:
+        """Return whether an offer already has an active refresh task."""
 
     @abstractmethod
     def mark_stale_in_progress_as_failed(

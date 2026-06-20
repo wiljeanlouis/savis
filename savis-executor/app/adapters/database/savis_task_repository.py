@@ -6,6 +6,7 @@ from datetime import UTC, datetime
 from uuid import UUID
 
 from sqlalchemy import JSON, DateTime, String, Text, and_, func, select, update
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Mapped, Session, mapped_column, sessionmaker
 
 from app.adapters.database.session import Base, SessionLocal
@@ -16,7 +17,9 @@ from app.core.models import (
     SavisTaskType,
     SortDirection,
 )
-from app.core.ports import SavisTaskRepository
+from app.core.ports import ActiveRefreshTaskAlreadyExistsError, SavisTaskRepository
+
+ACTIVE_REFRESH_TASK_INDEX = "uq_savis_tasks_active_refresh_offer"
 
 
 class SavisTaskEntity(Base):
@@ -82,8 +85,15 @@ class SqlAlchemySavisTaskRepository(SavisTaskRepository):
     def save(self, task: SavisTask) -> SavisTask:
         """Save a task."""
         with self.session_factory() as session:
-            session.merge(_to_entity(task))
-            session.commit()
+            try:
+                session.merge(_to_entity(task))
+                session.commit()
+            except IntegrityError as exc:
+                session.rollback()
+                if ACTIVE_REFRESH_TASK_INDEX in str(exc.orig):
+                    msg = "Active refresh task already exists for offer"
+                    raise ActiveRefreshTaskAlreadyExistsError(msg) from exc
+                raise
             return task
 
     def list(  # noqa: PLR0913
@@ -150,6 +160,16 @@ class SqlAlchemySavisTaskRepository(SavisTaskRepository):
             entity.updated_at = datetime.now(UTC)
             entity.error_message = error
             session.commit()
+
+    def has_active_refresh_offer_task(self, offer_id: UUID) -> bool:
+        """Return whether an offer already has an in-progress refresh task."""
+        statement = select(SavisTaskEntity.id).where(
+            SavisTaskEntity.type == SavisTaskType.REFRESH_OFFER.value,
+            SavisTaskEntity.status == SavisTaskStatus.IN_PROGRESS.value,
+            SavisTaskEntity.payload["offer_id"].as_string() == str(offer_id),
+        )
+        with self.session_factory() as session:
+            return session.scalar(statement.limit(1)) is not None
 
     def mark_stale_in_progress_as_failed(
         self,
