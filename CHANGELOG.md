@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.6.0](https://github.com/wiljeanlouis/savis/compare/v1.5.0...v1.6.0) (2026-06-21)
+
+
+### Features
+
+* add db backup scripts ([#59](https://github.com/wiljeanlouis/savis/issues/59)) ([e341e4c](https://github.com/wiljeanlouis/savis/commit/e341e4c3c3633b0a7aaa7e1c5afa9140f2afe01c))
+
 ## [1.5.0](https://github.com/wiljeanlouis/savis/compare/v1.4.2...v1.5.0) (2026-06-20)
 
 
