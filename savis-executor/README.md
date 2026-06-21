@@ -536,10 +536,10 @@ On an Ubuntu desktop server:
 2. Run the self-hosted GitHub Actions runner as the graphical desktop user.
 3. Check out the SAVIS repository.
 4. From a terminal in that user's graphical desktop session, install the
-   included user services without `sudo`:
+   included user services from the repository root, without `sudo`:
 
 ```bash
-make install-chrome-cdp-ubuntu
+./deploy/scripts/install-chrome-cdp-ubuntu.sh
 ```
 
 `savis-chrome-cdp.service` keeps the visible Chrome process and its dedicated

@@ -1,4 +1,4 @@
-.PHONY: help chrome-cdp-start install-chrome-cdp-ubuntu run-local run-prod stop logs clean smoke-executor-worker smoke-database smoke-admin \
+.PHONY: help chrome-cdp-start run-local run-prod stop logs clean restore-latest-prod-db smoke-executor-worker smoke-database smoke-admin \
 	supabase-start supabase-stop supabase-status supabase-reset \
 	configure-local-supabase
 
@@ -13,10 +13,10 @@ help:
 	@echo "  make run-local            - Launch SAVIS and Supabase locally"
 	@echo "  make run-prod             - Launch prod environment (.env)"
 	@echo "  make chrome-cdp-start     - Start Chrome CDP on macOS"
-	@echo "  make install-chrome-cdp-ubuntu - Install Chrome CDP services on Ubuntu"
 	@echo "  make stop                 - Stop SAVIS and Supabase containers"
 	@echo "  make logs                 - Show SAVIS logs live"
 	@echo "  make clean                - Stop containers and remove local data"
+	@echo "  make restore-latest-prod-db - Restore local PostgreSQL from latest production backup"
 	@echo "  make smoke-executor-worker - Smoke test RabbitMQ and the Celery worker"
 	@echo "  make smoke-database       - Smoke test PostgreSQL, Flyway, and Alembic"
 	@echo "  make smoke-admin          - Smoke test the Admin Nginx image"
@@ -26,9 +26,6 @@ help:
 # DEV mode (Local)
 chrome-cdp-start:
 	./scripts/start-chrome-cdp-macos.sh
-
-install-chrome-cdp-ubuntu:
-	./scripts/install-chrome-cdp-ubuntu.sh
 
 run-local: chrome-cdp-start supabase-start configure-local-supabase
 	@echo "Launch SAVIS in DEV mode..."
@@ -52,14 +49,17 @@ clean:
 	$(LOCAL_COMPOSE) down -v
 	$(SUPABASE_CLI) stop --no-backup
 
+restore-latest-prod-db:
+	./scripts/restore-latest-prod-db.sh
+
 smoke-executor-worker:
-	./scripts/smoke-executor-worker.sh
+	./test/smoke/executor-worker.sh
 
 smoke-database:
-	./scripts/smoke-database.sh
+	./test/smoke/database.sh
 
 smoke-admin:
-	./scripts/smoke-admin.sh
+	./test/smoke/admin.sh
 
 supabase-start:
 	@echo "Start Supabase local..."

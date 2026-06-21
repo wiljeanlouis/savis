@@ -10,20 +10,41 @@ projection.
 
 ## Navigation
 
-- [Overview](#overview)
-- [Applications](#applications)
-- [Quick Start](#quick-start)
-- [Local URLs](#local-urls)
-- [Architecture](#architecture)
-- [Repository Structure](#repository-structure)
-- [Development](#development)
-- [Configuration](#configuration)
-- [Tests and Quality](#tests-and-quality)
-- [Docker and Health Checks](#docker-and-health-checks)
-- [Releases](#releases)
-- [Production Deployment](#production-deployment)
-- [Useful Commands](#useful-commands)
-- [Further Documentation](#further-documentation)
+- [SAVIS](#savis)
+  - [Navigation](#navigation)
+  - [Overview](#overview)
+  - [Applications](#applications)
+    - [SAVIS Admin](#savis-admin)
+    - [SAVIS API](#savis-api)
+    - [SAVIS Executor](#savis-executor)
+  - [Quick Start](#quick-start)
+    - [Prerequisites](#prerequisites)
+    - [1. Configure Local Credentials](#1-configure-local-credentials)
+    - [2. Start the Complete Stack](#2-start-the-complete-stack)
+    - [3. Follow the Logs](#3-follow-the-logs)
+    - [4. Restore the Latest Production Database Backup](#4-restore-the-latest-production-database-backup)
+  - [Local URLs](#local-urls)
+  - [Architecture](#architecture)
+  - [Repository Structure](#repository-structure)
+  - [Development](#development)
+    - [Admin](#admin)
+    - [API](#api)
+    - [Executor](#executor)
+  - [Configuration](#configuration)
+    - [Shared Compose Variables](#shared-compose-variables)
+    - [Supabase Publication](#supabase-publication)
+    - [Standalone Admin](#standalone-admin)
+    - [Standalone Executor](#standalone-executor)
+  - [Tests and Quality](#tests-and-quality)
+  - [Docker and Health Checks](#docker-and-health-checks)
+  - [Releases](#releases)
+  - [Production Deployment](#production-deployment)
+    - [Install Chrome CDP Services](#install-chrome-cdp-services)
+    - [Production Environment](#production-environment)
+    - [Production PostgreSQL Backups](#production-postgresql-backups)
+    - [Deploy a Release Package](#deploy-a-release-package)
+  - [Useful Commands](#useful-commands)
+  - [Further Documentation](#further-documentation)
 
 ## Overview
 
@@ -152,6 +173,27 @@ Stop everything with:
 make stop
 ```
 
+### 4. Restore the Latest Production Database Backup
+
+Production backups are created on the server by `systemd` and uploaded to
+Google Drive through `rclone`. To replace the local PostgreSQL database with
+the latest production backup:
+
+```bash
+make restore-latest-prod-db
+```
+
+The command expects `rclone` to be configured locally and this variable to be
+available in `.env.local` or `.env.supabase.local`:
+
+```env
+RCLONE_BACKUP_REMOTE=savis-gdrive:backups/postgres
+```
+
+The restore is destructive for the local development database. Downloaded
+backup files are stored under `.local/backups/postgres/`, which is ignored by
+Git.
+
 ## Local URLs
 
 | Service | Development URL | Notes |
@@ -209,7 +251,9 @@ savis/
 |-- supabase/                 # Public projection migrations
 |-- docs/                     # System architecture
 |-- deploy/scripts/           # Production deployment automation
-|-- scripts/                  # Chrome and local Supabase helpers
+|-- deploy/systemd/           # Production systemd unit templates
+|-- scripts/                  # Local development helpers
+|-- test/smoke/               # Container smoke tests and Compose fixtures
 |-- docker-compose.yml        # Local development stack
 |-- docker-compose.prod.yml   # Immutable production stack
 |-- Makefile
@@ -398,7 +442,7 @@ The supported target is an Ubuntu host with:
 From a graphical desktop terminal, as the deployment user:
 
 ```bash
-make install-chrome-cdp-ubuntu
+./deploy/scripts/install-chrome-cdp-ubuntu.sh
 ```
 
 Verify both user services and endpoints:
@@ -429,9 +473,43 @@ SUPABASE_SERVICE_ROLE_KEY=
 SUPABASE_DB_URL=
 SAVIS_HTTP_BIND=127.0.0.1
 SAVIS_HTTP_PORT=8088
+RCLONE_BACKUP_REMOTE=savis-gdrive:backups/postgres
 ```
 
 `SUPABASE_DB_URL` is required by deployment when publication is enabled.
+
+### Production PostgreSQL Backups
+
+Install and configure `rclone` for the deployment user on the Ubuntu host, then
+run the backup script from the current release:
+
+```bash
+~/.local/share/savis/deploy/current/deploy/scripts/backup-postgres-production.sh
+```
+
+The script creates a compressed PostgreSQL custom-format `.dump`, uploads it to
+`RCLONE_BACKUP_REMOTE`, verifies the remote file, keeps local backups for 7 days,
+and keeps remote backups for 90 days. These defaults can be overridden:
+
+```env
+SAVIS_POSTGRES_BACKUP_DIR=/home/savis/.local/share/savis/deploy/backups/postgres
+SAVIS_POSTGRES_BACKUP_LOCAL_RETENTION_DAYS=7
+SAVIS_POSTGRES_BACKUP_REMOTE_RETENTION_DAYS=90
+SAVIS_POSTGRES_BACKUP_MIN_FREE_KB=1048576
+```
+
+Install the provided systemd unit and timer:
+
+```bash
+sudo ./deploy/scripts/install-postgres-backup-systemd.sh
+```
+
+Check the timer and backup logs:
+
+```bash
+systemctl list-timers | grep savis
+journalctl -u savis-postgres-backup.service -n 100 --no-pager
+```
 
 ### Deploy a Release Package
 
@@ -453,6 +531,10 @@ The script:
 7. starts services in dependency order and waits for health checks;
 8. updates the `current` release symlink after success.
 
+Production operation commands for CDP, backups, RabbitMQ, logs, health checks,
+and deployment verification are collected in
+[deploy/PRODUCTION_COMMANDS.md](deploy/PRODUCTION_COMMANDS.md).
+
 Verify the deployment:
 
 ```bash
@@ -472,10 +554,13 @@ docker compose \
 | `make help` | List Make targets |
 | `make run-local` | Start SAVIS and local Supabase |
 | `make chrome-cdp-start` | Start Chrome CDP on macOS |
-| `make install-chrome-cdp-ubuntu` | Install production Chrome user services |
 | `make logs` | Follow Compose logs |
 | `make stop` | Stop SAVIS and Supabase |
 | `make clean` | Remove SAVIS volumes and local Supabase data |
+| `make restore-latest-prod-db` | Restore local PostgreSQL from the latest production backup |
+| `make smoke-executor-worker` | Smoke test RabbitMQ and the Celery worker |
+| `make smoke-database` | Smoke test PostgreSQL, Flyway, and Alembic |
+| `make smoke-admin` | Smoke test the Admin Nginx image |
 | `make supabase-status` | Show local Supabase URLs and keys |
 | `make supabase-reset` | Rebuild the local Supabase database |
 

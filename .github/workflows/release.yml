@@ -119,9 +119,9 @@ jobs:
           EXECUTOR_DIGEST: ${{ steps.executor.outputs.digest }}
         run: |
           package="savis-${VERSION}"
-          mkdir -p "${package}/deploy/scripts" "${package}/supabase"
+          mkdir -p "${package}/supabase"
           cp docker-compose.prod.yml "${package}/"
-          cp deploy/scripts/deploy-production.sh "${package}/deploy/scripts/"
+          cp -R deploy "${package}/"
           cp -R supabase/migrations "${package}/supabase/"
           cat >"${package}/release.env" <<EOF
           SAVIS_VERSION=${VERSION}
@@ -130,7 +130,7 @@ jobs:
           SAVIS_ADMIN_IMAGE=ghcr.io/wiljeanlouis/savis-admin@${ADMIN_DIGEST}
           SAVIS_EXECUTOR_IMAGE=ghcr.io/wiljeanlouis/savis-executor@${EXECUTOR_DIGEST}
           EOF
-          chmod +x "${package}/deploy/scripts/deploy-production.sh"
+          chmod +x "${package}"/deploy/scripts/*.sh
           tar -czf "${package}.tar.gz" "${package}"
           sha256sum "${package}.tar.gz" >"${package}.tar.gz.sha256"
 

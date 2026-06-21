@@ -1,0 +1,12 @@
+[Unit]
+Description=SAVIS PostgreSQL backup
+Wants=docker.service
+After=docker.service
+
+[Service]
+Type=oneshot
+User=savis
+Environment=HOME=/home/savis
+Environment=SAVIS_ENV_FILE=/etc/savis/savis.env
+Environment=SAVIS_DEPLOY_ROOT=/home/savis/.local/share/savis/deploy
+ExecStart=/home/savis/.local/share/savis/deploy/current/deploy/scripts/backup-postgres-production.sh

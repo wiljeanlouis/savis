@@ -38,8 +38,8 @@ if ! systemctl --user show-environment >/dev/null 2>&1; then
 fi
 
 script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-repo_dir="$(cd "${script_dir}/.." && pwd)"
-unit_source_dir="${repo_dir}/savis-executor/deploy/systemd"
+repo_dir="$(cd "${script_dir}/../.." && pwd)"
+unit_source_dir="${repo_dir}/deploy/systemd"
 unit_target_dir="${HOME}/.config/systemd/user"
 
 mkdir -p "${unit_target_dir}" "${HOME}/.local/share/savis/maxi-cdp-profile"

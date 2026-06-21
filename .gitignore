@@ -37,6 +37,7 @@ build/
 ### savis
 .env
 .env.*
+.local/
 
 ### savis-admin
 */node_modules
