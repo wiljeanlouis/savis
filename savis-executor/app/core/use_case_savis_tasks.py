@@ -17,6 +17,7 @@ from app.core.models import (
     SavisTaskType,
     SortDirection,
 )
+from app.core.ports import ActiveRefreshTaskAlreadyExistsError
 
 if TYPE_CHECKING:
     from collections.abc import Callable
@@ -85,7 +86,7 @@ class SavisTaskUseCase:
             ),
         )
 
-    def _enqueue_refresh_offer_task(self, payload: dict[str, str]) -> SavisTask:
+    def _enqueue_refresh_offer_task(self, payload: dict[str, str]) -> SavisTask | None:
         return self._save_and_push(
             SavisTaskType.REFRESH_OFFER,
             payload,
@@ -101,10 +102,17 @@ class SavisTaskUseCase:
         task_type: SavisTaskType,
         payload: dict[str, str],
         push: Callable[[str], None],
-    ) -> SavisTask:
-        task = self.task_repository.save(
-            SavisTask.create(task_type=task_type, payload=payload),
-        )
+    ) -> SavisTask | None:
+        task = SavisTask.create(task_type=task_type, payload=payload)
+        try:
+            task = self.task_repository.save(task)
+        except ActiveRefreshTaskAlreadyExistsError:
+            logger.info(
+                "[TASKS] Skipping duplicate active refresh task | offer_id=%s",
+                payload.get("offer_id"),
+            )
+            return None
+
         try:
             push(str(task.id))
         except Exception as exc:
@@ -129,12 +137,20 @@ class SavisTaskUseCase:
                 )
                 continue
 
-            tasks.append(
-                self.enqueue_savis_task(
-                    SavisTaskType.REFRESH_OFFER,
-                    {"offer_id": str(offer.id), "url": offer.url},
-                ),
+            if self.task_repository.has_active_refresh_offer_task(offer.id):
+                logger.info(
+                    "[TASKS] Skipping due offer with active refresh task | "
+                    "offer_id=%s",
+                    offer.id,
+                )
+                continue
+
+            task = self.enqueue_savis_task(
+                SavisTaskType.REFRESH_OFFER,
+                {"offer_id": str(offer.id), "url": offer.url},
             )
+            if task is not None:
+                tasks.append(task)
         return tasks
 
     def execute_savis_task(
