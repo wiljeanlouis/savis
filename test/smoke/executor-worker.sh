@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 set -Eeuo pipefail
 
-repo_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-compose_file="${repo_dir}/compose/smoke.executor.yml"
+repo_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
+compose_file="${repo_dir}/test/smoke/compose/executor.yml"
 project_name="${COMPOSE_PROJECT_NAME:-savis-smoke}"
 timeout_seconds="${SMOKE_TIMEOUT_SECONDS:-${SMOKE_WAIT_SECONDS:-90}}"
 

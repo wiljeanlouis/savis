@@ -59,9 +59,9 @@ jobs:
           docker run --rm savis-executor:ci python -c "import encodings"
           docker run --rm savis-executor:ci alembic --version
       - name: Smoke test RabbitMQ and Celery worker
-        run: ./scripts/smoke-executor-worker.sh
+        run: ./test/smoke/executor-worker.sh
       - name: Smoke test PostgreSQL migrations
-        run: ./scripts/smoke-database.sh
+        run: ./test/smoke/database.sh
 
   admin:
     name: Admin frontend
@@ -87,7 +87,7 @@ jobs:
         working-directory: savis-admin
         run: npm run build
       - name: Smoke test Admin Nginx image
-        run: ./scripts/smoke-admin.sh
+        run: ./test/smoke/admin.sh
 
   deployment:
     name: Deployment definitions

@@ -251,7 +251,9 @@ savis/
 |-- supabase/                 # Public projection migrations
 |-- docs/                     # System architecture
 |-- deploy/scripts/           # Production deployment automation
-|-- scripts/                  # Chrome and local Supabase helpers
+|-- deploy/systemd/           # Production systemd unit templates
+|-- scripts/                  # Local development helpers
+|-- test/smoke/               # Container smoke tests and Compose fixtures
 |-- docker-compose.yml        # Local development stack
 |-- docker-compose.prod.yml   # Immutable production stack
 |-- Makefile
@@ -440,7 +442,7 @@ The supported target is an Ubuntu host with:
 From a graphical desktop terminal, as the deployment user:
 
 ```bash
-make install-chrome-cdp-ubuntu
+./deploy/scripts/install-chrome-cdp-ubuntu.sh
 ```
 
 Verify both user services and endpoints:
@@ -496,32 +498,17 @@ SAVIS_POSTGRES_BACKUP_REMOTE_RETENTION_DAYS=90
 SAVIS_POSTGRES_BACKUP_MIN_FREE_KB=1048576
 ```
 
-Example systemd unit:
+Install the provided systemd unit and timer:
 
-```ini
-[Unit]
-Description=SAVIS PostgreSQL backup
-
-[Service]
-Type=oneshot
-User=savis
-Environment=SAVIS_ENV_FILE=/etc/savis/savis.env
-Environment=SAVIS_DEPLOY_ROOT=/home/savis/.local/share/savis/deploy
-ExecStart=/home/savis/.local/share/savis/deploy/current/deploy/scripts/backup-postgres-production.sh
+```bash
+sudo ./deploy/scripts/install-postgres-backup-systemd.sh
 ```
 
-Example timer:
+Check the timer and backup logs:
 
-```ini
-[Unit]
-Description=Run SAVIS PostgreSQL backup daily
-
-[Timer]
-OnCalendar=*-*-* 03:15:00
-Persistent=true
-
-[Install]
-WantedBy=timers.target
+```bash
+systemctl list-timers | grep savis
+journalctl -u savis-postgres-backup.service -n 100 --no-pager
 ```
 
 ### Deploy a Release Package
@@ -544,6 +531,10 @@ The script:
 7. starts services in dependency order and waits for health checks;
 8. updates the `current` release symlink after success.
 
+Production operation commands for CDP, backups, RabbitMQ, logs, health checks,
+and deployment verification are collected in
+[deploy/PRODUCTION_COMMANDS.md](deploy/PRODUCTION_COMMANDS.md).
+
 Verify the deployment:
 
 ```bash
@@ -563,11 +554,13 @@ docker compose \
 | `make help` | List Make targets |
 | `make run-local` | Start SAVIS and local Supabase |
 | `make chrome-cdp-start` | Start Chrome CDP on macOS |
-| `make install-chrome-cdp-ubuntu` | Install production Chrome user services |
 | `make logs` | Follow Compose logs |
 | `make stop` | Stop SAVIS and Supabase |
 | `make clean` | Remove SAVIS volumes and local Supabase data |
 | `make restore-latest-prod-db` | Restore local PostgreSQL from the latest production backup |
+| `make smoke-executor-worker` | Smoke test RabbitMQ and the Celery worker |
+| `make smoke-database` | Smoke test PostgreSQL, Flyway, and Alembic |
+| `make smoke-admin` | Smoke test the Admin Nginx image |
 | `make supabase-status` | Show local Supabase URLs and keys |
 | `make supabase-reset` | Rebuild the local Supabase database |
 

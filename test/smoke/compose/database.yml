@@ -27,7 +27,7 @@ services:
 
   executor_migrate:
     build:
-      context: ../savis-executor
+      context: ../../../savis-executor
       dockerfile: Dockerfile
       target: api
     command: ["alembic", "upgrade", "head"]
@@ -40,7 +40,7 @@ services:
 
   backend_api:
     build:
-      context: ../savis-api
+      context: ../../../savis-api
       dockerfile: Dockerfile
       target: production
     environment:

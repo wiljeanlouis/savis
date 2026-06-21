@@ -15,7 +15,7 @@ services:
 
   executor_worker:
     build:
-      context: ../savis-executor
+      context: ../../../savis-executor
       dockerfile: Dockerfile
       target: worker
     init: true
