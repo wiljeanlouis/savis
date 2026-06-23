@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.7.0](https://github.com/wiljeanlouis/savis/compare/v1.6.0...v1.7.0) (2026-06-23)
+
+
+### Features
+
+* clone bom and add draft for product ([#62](https://github.com/wiljeanlouis/savis/issues/62)) ([2b16432](https://github.com/wiljeanlouis/savis/commit/2b16432e82eb63581cc02bbc102ccd029e6ab2ac))
+
 ## [1.6.0](https://github.com/wiljeanlouis/savis/compare/v1.5.0...v1.6.0) (2026-06-21)
 
 
