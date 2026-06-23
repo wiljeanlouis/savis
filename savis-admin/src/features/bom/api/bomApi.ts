@@ -1,8 +1,9 @@
 import { api } from "../../../shared/api";
 import { type Bom, type BomPrice } from "../types";
 
-export const createBom = async (bom: Bom) => {
-  return await api.post("/boms", bom);
+export const createBom = async (bom: Bom): Promise<string> => {
+  const { data }: { data: string } = await api.post("/boms", bom);
+  return data;
 };
 
 export const getBom = async (id: string): Promise<Bom> => {

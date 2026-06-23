@@ -3,14 +3,10 @@ import { useNavigate } from "react-router";
 import { toast } from "sonner";
 import { useDeleteBom, useGetBoms, usePostBom } from "./useBomApi";
 
-const createCloneId = () => {
-  return globalThis.crypto.randomUUID();
-};
-
 const createBomClone = (bom: Bom): Bom => {
   return {
     ...bom,
-    id: createCloneId(),
+    id: null,
     name: `${bom.name} (copie)`,
     price: null,
     components: bom.components.map((component) => ({ ...component })),
@@ -36,9 +32,9 @@ export const useBomList = () => {
   const cloneBom = async (bom: Bom) => {
     try {
       const clonedBom = createBomClone(bom);
-      await cloneMutation.mutateAsync(clonedBom);
+      const clonedBomId = await cloneMutation.mutateAsync(clonedBom);
       toast.success("BOM cloné avec succès.");
-      await navigate(`/boms/${clonedBom.id}`);
+      await navigate(`/boms/${clonedBomId}`);
     } catch (error) {
       const errorResponse = error as {
         response?: { data?: { detail?: string } };
