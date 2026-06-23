@@ -15,7 +15,8 @@ const normalizeSearchValue = (value: string) =>
     .toLowerCase();
 
 export const BomList = () => {
-  const { boms, isLoading, isError, error, deleteBom } = useBomList();
+  const { boms, isLoading, isError, error, deleteBom, cloneBom, isCloning } =
+    useBomList();
   const [searchQuery, setSearchQuery] = useState("");
 
   const filteredBoms = useMemo(() => {
@@ -90,6 +91,10 @@ export const BomList = () => {
                 <BomCard
                   key={bom.id}
                   bom={bom}
+                  isCloning={isCloning}
+                  cloneBom={() => {
+                    void cloneBom(bom);
+                  }}
                   deleteBom={() => {
                     void (bom.id && deleteBom(bom.id));
                   }}

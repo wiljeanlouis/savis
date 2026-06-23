@@ -10,6 +10,15 @@ import type { Bom } from "../types";
 import { Link } from "react-router";
 import { DeleteAlert } from "@/shared/components/DeleteAlert";
 import { Badge } from "@/shared/ui/badge";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/shared/ui/dropdown-menu";
+import { MoreVerticalCircle01Icon } from "@hugeicons/core-free-icons";
+import { HugeiconsIcon } from "@hugeicons/react";
+import { useState } from "react";
 
 const formatPrice = (amount: number, currency: string) => {
   return new Intl.NumberFormat("fr-CA", {
@@ -24,10 +33,18 @@ const formatYield = (quantity: number, unit: string) => {
 
 interface BomCardProps {
   bom: Bom;
+  cloneBom: () => void;
   deleteBom: () => void;
+  isCloning?: boolean;
 }
 
-export const BomCard = ({ bom, deleteBom }: BomCardProps) => {
+export const BomCard = ({
+  bom,
+  cloneBom,
+  deleteBom,
+  isCloning = false,
+}: BomCardProps) => {
+  const [isDeleteOpen, setIsDeleteOpen] = useState(false);
   const { id, name, description, imageUrl, price, yield: bomYield } = bom;
 
   const link = id ? `/boms/${id}` : "";
@@ -57,13 +74,36 @@ export const BomCard = ({ bom, deleteBom }: BomCardProps) => {
       </CardHeader>
 
       <CardFooter className="flex justify-end gap-2">
-        <Button variant="outline">
-          <Link to={link} className="w-full">
-            Modifier
-          </Link>
+        <Button variant="outline" asChild>
+          <Link to={link}>Modifier</Link>
         </Button>
 
-        <DeleteAlert item={name} onDelete={deleteBom} />
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="outline" size="icon" disabled={isCloning}>
+              <HugeiconsIcon icon={MoreVerticalCircle01Icon} strokeWidth={2} />
+              <span className="sr-only">Actions</span>
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end">
+            <DropdownMenuItem disabled={isCloning} onSelect={cloneBom}>
+              Cloner
+            </DropdownMenuItem>
+            <DropdownMenuItem
+              variant="destructive"
+              onSelect={() => setIsDeleteOpen(true)}
+            >
+              Supprimer
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
+        <DeleteAlert
+          item={name}
+          onDelete={deleteBom}
+          open={isDeleteOpen}
+          onOpenChange={setIsDeleteOpen}
+          hideTrigger
+        />
       </CardFooter>
     </Card>
   );
