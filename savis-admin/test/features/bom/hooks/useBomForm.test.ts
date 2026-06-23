@@ -182,6 +182,18 @@ describe("useBomForm", () => {
         unit: "",
         selectedOfferId: null,
       });
+      expect(saveDraft).toHaveBeenCalledWith(
+        expect.objectContaining({
+          components: [
+            {
+              componentName: "",
+              quantity: 0,
+              unit: "",
+              selectedOfferId: null,
+            },
+          ],
+        }),
+      );
     });
 
     it("should update component in form", () => {
@@ -218,6 +230,44 @@ describe("useBomForm", () => {
         quantity: 1,
         unit: "cup",
       });
+      expect(saveDraft).not.toHaveBeenCalled();
+    });
+
+    it("should save draft when updating a component on a new BOM", () => {
+      const initialBom: Bom = {
+        id: null,
+        name: "Draft Bom",
+        type: "FOOD",
+        description: "",
+        imageUrl: "",
+        instructions: "",
+        components: [{ componentName: "Flour", quantity: 2, unit: "cups" }],
+        activities: [
+          { type: "PREP", minutes: 0, sequence: 1 },
+          { type: "COOK", minutes: 0, sequence: 2 },
+        ],
+        yield: { quantity: 1, unit: "PORTION" },
+      };
+
+      vi.mocked(useLoaderData).mockReturnValue(null);
+      vi.mocked(loadDraft).mockReturnValue(initialBom);
+      vi.mocked(usePostBom).mockReturnValue(mockMutation);
+
+      const { result } = renderHook(() => useBomForm());
+
+      act(() => {
+        result.current.updateComponent(0, {
+          componentName: "Sugar",
+          quantity: 1,
+          unit: "cup",
+        });
+      });
+
+      expect(saveDraft).toHaveBeenCalledWith(
+        expect.objectContaining({
+          components: [{ componentName: "Sugar", quantity: 1, unit: "cup" }],
+        }),
+      );
     });
 
     it("should remove component from form", () => {

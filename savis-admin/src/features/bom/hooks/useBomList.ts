@@ -1,12 +1,52 @@
 import type { Bom } from "../types";
-import { useDeleteBom, useGetBoms } from "./useBomApi";
+import { useNavigate } from "react-router";
+import { toast } from "sonner";
+import { useDeleteBom, useGetBoms, usePostBom } from "./useBomApi";
+
+const createCloneId = () => {
+  return globalThis.crypto.randomUUID();
+};
+
+const createBomClone = (bom: Bom): Bom => {
+  return {
+    ...bom,
+    id: createCloneId(),
+    name: `${bom.name} (copie)`,
+    price: null,
+    components: bom.components.map((component) => ({ ...component })),
+    activities: bom.activities.map((activity) => {
+      const activityClone = { ...activity };
+      delete activityClone.id;
+      return activityClone;
+    }),
+    yield: { ...bom.yield },
+  };
+};
 
 export const useBomList = () => {
   const useQuery = useGetBoms();
-  const useMutation = useDeleteBom();
+  const deleteMutation = useDeleteBom();
+  const cloneMutation = usePostBom();
+  const navigate = useNavigate();
 
   const deleteBom = async (id: string) => {
-    await useMutation.mutateAsync(id);
+    await deleteMutation.mutateAsync(id);
+  };
+
+  const cloneBom = async (bom: Bom) => {
+    try {
+      const clonedBom = createBomClone(bom);
+      await cloneMutation.mutateAsync(clonedBom);
+      toast.success("BOM cloné avec succès.");
+      await navigate(`/boms/${clonedBom.id}`);
+    } catch (error) {
+      const errorResponse = error as {
+        response?: { data?: { detail?: string } };
+      };
+      toast.error("Le clonage du BOM a échoué.", {
+        description: errorResponse.response?.data?.detail,
+      });
+    }
   };
 
   return {
@@ -15,5 +55,7 @@ export const useBomList = () => {
     isError: useQuery.isError,
     error: useQuery.error,
     deleteBom: deleteBom,
+    cloneBom,
+    isCloning: cloneMutation.isPending,
   };
 };

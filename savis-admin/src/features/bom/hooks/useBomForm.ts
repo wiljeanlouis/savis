@@ -88,6 +88,7 @@ export const useBomForm = () => {
         { componentName: "", quantity: 0, unit: "", selectedOfferId: null },
       ],
     }));
+    setIsDirty(true);
   };
 
   const updateComponent = (index: number, updated: BomComponent) => {
@@ -99,6 +100,7 @@ export const useBomForm = () => {
         ),
       ],
     }));
+    setIsDirty(true);
   };
 
   const removeComponent = (index: number) => {
@@ -108,6 +110,7 @@ export const useBomForm = () => {
         ...prev.components.filter((_: BomComponent, i: number) => i !== index),
       ],
     }));
+    setIsDirty(true);
   };
 
   const addActivity = () => {

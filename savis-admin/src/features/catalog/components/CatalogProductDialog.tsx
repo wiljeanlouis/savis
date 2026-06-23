@@ -1,7 +1,8 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import type { Bom } from "@/features/bom/types";
 import { Button } from "@/shared/ui/button";
 import { Checkbox } from "@/shared/ui/checkbox";
+import { DraftAlert } from "@/shared/components/DraftAlert";
 import {
   Dialog,
   DialogContent,
@@ -46,16 +47,28 @@ import {
   CatalogProductGuideButton,
   CatalogProductGuidePanel,
 } from "./CatalogProductGuideDrawer";
+import {
+  clearDraft,
+  hasDraft,
+  loadDraft,
+  saveDraft,
+} from "../model/catalogProductDraftStorage";
 
 interface Props {
   product?: CatalogProduct;
   categories: ProductCategory[];
   boms: Bom[];
   saving: boolean;
-  onSave: (product: CatalogProduct) => void;
+  onSave: (product: CatalogProduct) => void | Promise<void>;
 }
 
 const number = (value: string) => Number(value) || 0;
+const galleryToText = (gallery: string[]) => gallery.join("\n");
+const textToGallery = (value: string) =>
+  value
+    .split("\n")
+    .map((item) => item.trim())
+    .filter(Boolean);
 
 export function CatalogProductDialog({
   product,
@@ -64,33 +77,78 @@ export function CatalogProductDialog({
   saving,
   onSave,
 }: Props) {
+  const isEditing = Boolean(product);
   const initial = () =>
     product ??
+    loadDraft() ??
     emptyCatalogProduct(categories.find((item) => item.active)?.id ?? "");
   const [open, setOpen] = useState(false);
   const [form, setForm] = useState<CatalogProduct>(initial);
   const [gallery, setGallery] = useState("");
   const [guideOpen, setGuideOpen] = useState(false);
+  const [isDirty, setIsDirty] = useState(false);
+  const [isDraftAlertOpen, setIsDraftAlertOpen] = useState(false);
 
   const reset = () => {
     const next = initial();
     setForm(next);
-    setGallery(next.gallery.join("\n"));
+    setGallery(galleryToText(next.gallery));
+    setIsDirty(false);
   };
   const update = <K extends keyof CatalogProduct>(
     key: K,
     value: CatalogProduct[K],
-  ) => setForm((current) => ({ ...current, [key]: value }));
+  ) => {
+    setForm((current) => ({ ...current, [key]: value }));
+    setIsDirty(true);
+  };
 
-  const save = (event: React.SubmitEvent<HTMLFormElement>) => {
+  const updateGallery = (value: string) => {
+    setGallery(value);
+    setIsDirty(true);
+  };
+
+  useEffect(() => {
+    if (open && !isEditing && isDirty) {
+      saveDraft({ ...form, gallery: textToGallery(gallery) });
+    }
+  }, [form, gallery, isDirty, isEditing, open]);
+
+  const save = async (event: React.SubmitEvent<HTMLFormElement>) => {
     event.preventDefault();
-    onSave({
+    await onSave({
       ...form,
-      gallery: gallery
-        .split("\n")
-        .map((item) => item.trim())
-        .filter(Boolean),
+      gallery: textToGallery(gallery),
     });
+    if (!isEditing) {
+      clearDraft();
+    }
+    setOpen(false);
+  };
+
+  const requestOpenChange = (value: boolean) => {
+    if (value) {
+      reset();
+      setOpen(true);
+      return;
+    }
+
+    if (!isEditing && hasDraft()) {
+      setIsDraftAlertOpen(true);
+      return;
+    }
+
+    setOpen(false);
+  };
+
+  const closeAndDeleteDraft = () => {
+    clearDraft();
+    setIsDraftAlertOpen(false);
+    setOpen(false);
+  };
+
+  const closeAndKeepDraft = () => {
+    setIsDraftAlertOpen(false);
     setOpen(false);
   };
 
@@ -100,13 +158,7 @@ export function CatalogProductDialog({
   const showIngredients = form.productType === "INGREDIENT_CUSTOMIZATION";
 
   return (
-    <Dialog
-      open={open}
-      onOpenChange={(value) => {
-        if (value) reset();
-        setOpen(value);
-      }}
-    >
+    <Dialog open={open} onOpenChange={requestOpenChange}>
       <DialogTrigger asChild>
         <Button variant={product ? "outline" : "default"}>
           {product ? "Modifier" : "Ajouter un produit"}
@@ -234,7 +286,7 @@ export function CatalogProductDialog({
                   <FieldLabel>Galerie, une URL par ligne</FieldLabel>
                   <Textarea
                     value={gallery}
-                    onChange={(event) => setGallery(event.target.value)}
+                    onChange={(event) => updateGallery(event.target.value)}
                   />
                 </Field>
               </FieldGroup>
@@ -577,6 +629,12 @@ export function CatalogProductDialog({
           {guideOpen && <CatalogProductGuidePanel />}
         </div>
       </DialogContent>
+      <DraftAlert
+        isOpen={isDraftAlertOpen}
+        setIsOpen={setIsDraftAlertOpen}
+        onDelete={closeAndDeleteDraft}
+        onKeep={closeAndKeepDraft}
+      />
     </Dialog>
   );
 
