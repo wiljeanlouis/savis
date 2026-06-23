@@ -60,11 +60,15 @@ export function CatalogProductsPage() {
   const categories = categoriesQuery.data ?? [];
   const boms = bomsQuery.data ?? [];
 
-  const save = (product: CatalogProduct) =>
-    saveProduct.mutate(product, {
-      onSuccess: () => toast.success("Produit sauvegardé."),
-      onError: () => toast.error("Impossible de sauvegarder le produit."),
-    });
+  const save = async (product: CatalogProduct) => {
+    try {
+      await saveProduct.mutateAsync(product);
+      toast.success("Produit sauvegardé.");
+    } catch {
+      toast.error("Impossible de sauvegarder le produit.");
+      throw new Error("Unable to save catalog product");
+    }
+  };
 
   const runAnalysis = (product: CatalogProduct) => {
     if (!product.id) return;
