@@ -82,8 +82,13 @@ if (( available_kb < 5 * 1024 * 1024 )); then
 fi
 
 export XDG_RUNTIME_DIR="${XDG_RUNTIME_DIR:-/run/user/$(id -u)}"
-systemctl --user is-active --quiet savis-chrome-cdp.service
-systemctl --user is-active --quiet savis-chrome-cdp-proxy.service
+for service in savis-chrome-cdp.service savis-chrome-cdp-proxy.service; do
+  if ! systemctl --user is-active --quiet "${service}"; then
+    echo "${service} is not active." >&2
+    systemctl --user status "${service}" --no-pager >&2 || true
+    exit 1
+  fi
+done
 curl --fail --silent --show-error http://127.0.0.1:9223/json/version >/dev/null
 
 mkdir -p "${backup_dir}"
