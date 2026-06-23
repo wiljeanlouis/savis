@@ -54,9 +54,6 @@ describe("useBomList", () => {
   beforeEach(() => {
     vi.clearAllMocks();
 
-    vi.spyOn(globalThis.crypto, "randomUUID").mockReturnValue(
-      "00000000-0000-4000-8000-000000000001",
-    );
     vi.mocked(useGetBoms).mockReturnValue({
       data: [bom],
       isPending: false,
@@ -68,8 +65,10 @@ describe("useBomList", () => {
     } as never);
   });
 
-  it("clones a BOM with a fresh id and opens the new copy", async () => {
-    const mutateAsync = vi.fn().mockResolvedValue(undefined);
+  it("clones a BOM without a client-generated id and opens the new copy", async () => {
+    const mutateAsync = vi
+      .fn()
+      .mockResolvedValue("00000000-0000-4000-8000-000000000001");
     const navigate = vi.fn();
     vi.mocked(usePostBom).mockReturnValue({
       mutateAsync,
@@ -85,7 +84,7 @@ describe("useBomList", () => {
 
     expect(mutateAsync).toHaveBeenCalledWith({
       ...bom,
-      id: "00000000-0000-4000-8000-000000000001",
+      id: null,
       name: "Boeuf bourguignon (copie)",
       price: null,
       components: [{ ...bom.components[0] }],
