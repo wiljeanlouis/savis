@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.7.1](https://github.com/wiljeanlouis/savis/compare/v1.7.0...v1.7.1) (2026-06-23)
+
+
+### Bug Fixes
+
+* update clone bom to use id created from backenf ([#64](https://github.com/wiljeanlouis/savis/issues/64)) ([9c09ebf](https://github.com/wiljeanlouis/savis/commit/9c09ebf9d07bf018cbad855c2e4ff24a3012bd49))
+
 ## [1.7.0](https://github.com/wiljeanlouis/savis/compare/v1.6.0...v1.7.0) (2026-06-23)
 
 
