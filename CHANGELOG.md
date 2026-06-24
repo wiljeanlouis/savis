@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.7.2](https://github.com/wiljeanlouis/savis/compare/v1.7.1...v1.7.2) (2026-06-24)
+
+
+### Bug Fixes
+
+* change type of Bom Component Input from text to number ([#67](https://github.com/wiljeanlouis/savis/issues/67)) ([a184891](https://github.com/wiljeanlouis/savis/commit/a184891a147e66644553345446f1cc38b0315413))
+
 ## [1.7.1](https://github.com/wiljeanlouis/savis/compare/v1.7.0...v1.7.1) (2026-06-23)
 
 
