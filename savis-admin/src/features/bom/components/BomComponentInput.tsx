@@ -88,6 +88,9 @@ export const BomComponentInput = ({ value, onChange, onRemove }: Props) => {
           <Field>
             <Input
               placeholder="Quantity"
+              type="number"
+              step="any"
+              min="0"
               value={value.quantity}
               required
               onChange={(e) =>
