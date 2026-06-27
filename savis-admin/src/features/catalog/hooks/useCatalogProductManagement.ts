@@ -8,8 +8,9 @@ import {
   useCatalogProducts,
   useDeleteCatalogProduct,
   useProductCategories,
-  usePublishCatalog,
+  usePublishProduct,
   useSaveCatalogProduct,
+  useUnpublishProduct,
 } from "./useCatalogApi";
 import type { CatalogProduct, ProductPricingAnalysis } from "../types";
 
@@ -19,7 +20,8 @@ export function useCatalogProductManagement() {
   const bomsQuery = useGetBoms();
   const saveProduct = useSaveCatalogProduct();
   const deleteProductMutation = useDeleteCatalogProduct();
-  const publishCatalog = usePublishCatalog();
+  const publishProductMutation = usePublishProduct();
+  const unpublishProductMutation = useUnpublishProduct();
   const analyze = useAnalyzeProductPricing();
   const analyzeWorstCase = useAnalyzeWorstCasePricing();
 
@@ -44,14 +46,24 @@ export function useCatalogProductManagement() {
     deleteProductMutation.mutate(productId);
   };
 
-  const publish = () => {
-    publishCatalog.mutate(undefined, {
-      onSuccess: ({ publishedProductCount }) =>
-        publishedProductCount === 0
-          ? toast.info("Aucun produit marqué « Publier » à envoyer.")
-          : toast.success(
-              `${publishedProductCount} produit${publishedProductCount > 1 ? "s" : ""} publié${publishedProductCount > 1 ? "s" : ""} vers Supabase.`,
-            ),
+  const publishProduct = (product: CatalogProduct) => {
+    if (!product.id) {
+      return;
+    }
+
+    publishProductMutation.mutate(product.id, {
+      onSuccess: () => toast.success("Produit publié vers SavouretPlus."),
+      onError: (error) => toast.error(publicationErrorMessage(error)),
+    });
+  };
+
+  const unpublishProduct = (product: CatalogProduct) => {
+    if (!product.id) {
+      return;
+    }
+
+    unpublishProductMutation.mutate(product.id, {
+      onSuccess: () => toast.success("Produit retiré de SavouretPlus."),
       onError: (error) => toast.error(publicationErrorMessage(error)),
     });
   };
@@ -68,8 +80,7 @@ export function useCatalogProductManagement() {
       : {
           productId: product.id,
           configuration: {
-            purchaseModeCode:
-              product.purchaseModes.find((mode) => mode.active)?.code ?? null,
+            purchaseModeCode: defaultPurchaseMode(product)?.code ?? null,
             choiceCode:
               product.choiceGroup?.options.find((option) => option.active)
                 ?.code ?? null,
@@ -100,12 +111,25 @@ export function useCatalogProductManagement() {
       categoriesQuery.isPending ||
       bomsQuery.isPending,
     isSaving: saveProduct.isPending,
-    isPublishing: publishCatalog.isPending,
+    isPublishing:
+      publishProductMutation.isPending || unpublishProductMutation.isPending,
     saveProduct: saveProductForm,
     deleteProduct,
-    publish,
+    publishProduct,
+    unpublishProduct,
     runAnalysis,
   };
+}
+
+function defaultPurchaseMode(product: CatalogProduct) {
+  return [...product.purchaseModes]
+    .filter((mode) => mode.active)
+    .sort(
+      (left, right) =>
+        left.displayOrder - right.displayOrder ||
+        left.label.localeCompare(right.label) ||
+        left.code.localeCompare(right.code),
+    )[0];
 }
 
 function publicationErrorMessage(error: unknown) {

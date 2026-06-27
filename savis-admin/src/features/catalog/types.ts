@@ -76,9 +76,7 @@ export interface CatalogProduct {
   productType: ProductType;
   categoryId: string;
   productBoms: ProductBom[];
-  basePrice: Money;
   targetMarginRate: number;
-  unitLabel: string;
   imageUrl: string;
   gallery: string[];
   availabilityNote: string;
@@ -122,16 +120,14 @@ export const emptyCatalogProduct = (categoryId = ""): CatalogProduct => ({
   productType: "STANDARD",
   categoryId,
   productBoms: [],
-  basePrice: cad(),
   targetMarginRate: 0.3,
-  unitLabel: "unité",
   imageUrl: "",
   gallery: [],
   availabilityNote: "Disponible sur commande",
   available: true,
   published: false,
   displayOrder: 0,
-  purchaseModes: [],
+  purchaseModes: [emptyPurchaseMode()],
   choiceGroup: null,
   ingredientOptions: [],
 });

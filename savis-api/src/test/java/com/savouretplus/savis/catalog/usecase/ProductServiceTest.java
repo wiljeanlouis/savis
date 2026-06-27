@@ -16,7 +16,9 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import com.savouretplus.savis.catalog.domain.Product;
 import com.savouretplus.savis.catalog.domain.ProductBom;
 import com.savouretplus.savis.catalog.domain.ProductCategory;
+import com.savouretplus.savis.catalog.domain.ProductPurchaseMode;
 import com.savouretplus.savis.catalog.domain.ProductType;
+import com.savouretplus.savis.catalog.domain.AllocationType;
 import com.savouretplus.savis.catalog.port.BomPricingPort;
 import com.savouretplus.savis.catalog.port.ProductCategoryRepository;
 import com.savouretplus.savis.catalog.port.ProductRepository;
@@ -35,9 +37,11 @@ class ProductServiceTest {
         Product product = new Product(
                 null, "pate", "pate", "Pâté", "", ProductType.STANDARD,
                 categoryId, List.of(new ProductBom(null, bomId, BigDecimal.ONE, 0)),
-                Money.of(5), new BigDecimal("0.30"), "unité",
+                new BigDecimal("0.30"),
                 "/pate.jpg", List.of(), "Disponible", true, true, 0,
-                List.of(), null, List.of());
+                List.of(new ProductPurchaseMode(
+                        null, "unit", "À l'unité", 1, Money.of(5), AllocationType.NONE, true, 0)),
+                null, List.of());
         when(categories.findByPublicId(categoryId))
                 .thenReturn(Optional.of(new ProductCategory(categoryId, "food", "Food", true, 0)));
         when(bomPricing.exists(bomId)).thenReturn(false);

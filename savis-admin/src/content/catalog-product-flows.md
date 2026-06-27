@@ -36,25 +36,23 @@ Exemple : un pâté simple vendu à l'unité.
 
 #### Champs à remplir
 
-| Champ dans l'interface | Quoi mettre                                                   |
-| ---------------------- | ------------------------------------------------------------- |
-| Code                   | Code interne stable, par exemple `pate-simple`.               |
-| Slug                   | Identifiant URL public, par exemple `pate-simple`.            |
-| Nom                    | Nom lisible par le client.                                    |
-| Description            | Description courte du produit.                                |
-| Type                   | Standard.                                                     |
-| Catégorie              | Catégorie active du catalogue.                                |
-| BOM communs            | BOMs communs du produit, avec quantité et ordre d'affichage.  |
-| Prix de base           | Prix de vente de base en CAD.                                 |
-| Marge cible (%)        | Marge cible affichée en pourcentage : `30` signifie 30 %.     |
-| Unité                  | Libellé d'unité, par exemple `unité`, `boîte`, `portion`.     |
-| Image principale       | URL de l'image principale.                                    |
-| Disponible             | Produit achetable ou non.                                     |
-| Publier                | Produit à envoyer au catalogue public lors de la publication. |
+| Champ dans l'interface | Quoi mettre                                                  |
+| ---------------------- | ------------------------------------------------------------ |
+| Code                   | Code interne stable, par exemple `pate-simple`.              |
+| Slug                   | Identifiant URL public, par exemple `pate-simple`.           |
+| Nom                    | Nom lisible par le client.                                   |
+| Description            | Description courte du produit.                               |
+| Type                   | Standard.                                                    |
+| Catégorie              | Catégorie active du catalogue.                               |
+| BOM communs            | BOMs communs du produit, avec quantité et ordre d'affichage. |
+| Modes d'achat          | Formats de vente avec quantité et prix en CAD.               |
+| Marge cible (%)        | Marge cible affichée en pourcentage : `30` signifie 30 %.    |
+| Image principale       | URL de l'image principale.                                   |
+| Disponible             | Produit achetable ou non.                                    |
 
 #### Règles à respecter
 
-- Catégorie, Prix de base, Marge cible (%) et Image principale sont requis.
+- Catégorie, au moins un mode d'achat actif, Marge cible (%) et Image principale sont requis.
 - Marge cible (%) doit être supérieure ou égale à 0 % et strictement inférieure à 100 %.
 - BOM communs représente la composition commune du produit.
 - Saveurs et choix et Ingrédients et extras ne sont pas utiles pour un produit Standard.
@@ -72,7 +70,7 @@ Pour analyser un produit standard, aucune sélection client n'est nécessaire :
 
 - Mettre une marge comme `30` au lieu de `0.30`.
 - Oublier le BOM principal : le produit sera vendable, mais l'analyse de coût risque d'être incomplète.
-- Cocher Publier en pensant que la publication est immédiate : il faut ensuite lancer la publication catalogue.
+- Oublier de publier depuis la carte du produit après avoir sauvegardé un produit prêt pour la vitrine.
 
 ### Flow 2 : produit Choix unique
 
@@ -229,19 +227,18 @@ Le prix recommandé est indicatif. Il n'est jamais copié automatiquement dans l
 
 ### Publication catalogue
 
-La publication envoie les produits marqués comme publiés vers la projection publique lue par la vitrine.
+La publication par produit synchronise immédiatement la projection publique lue par la vitrine.
 
-| Champ dans l'interface | Rôle                                                                  |
-| ---------------------- | --------------------------------------------------------------------- |
-| Disponible             | Indique si le produit est disponible pour le client.                  |
-| Publier                | Indique si le produit doit être inclus dans la publication catalogue. |
+| Champ dans l'interface | Rôle                                                                |
+| ---------------------- | ------------------------------------------------------------------- |
+| Disponible             | Indique si le produit est disponible pour le client.                |
+| Publier / Retirer      | Ajoute ou retire le produit de la projection publique SavouretPlus. |
 
 Points importants :
 
-- Sauvegarder un produit ne publie pas automatiquement le catalogue.
+- Sauvegarder un produit ne publie pas automatiquement le produit.
 - La projection publique inclut les informations client, les modes d'achat actifs, les choix actifs, les ingrédients actifs, les images et les prix.
 - La projection publique exclut les coûts internes, les marges cibles, les diagnostics et les prix recommandés.
-- L'action actuelle publie les produits encore marqués Publier ; elle ne réconcilie pas automatiquement les produits qui viennent d'être décochés.
 
 ### Glossaire des champs
 
@@ -254,14 +251,12 @@ Points importants :
 | Type                    | Type de flow produit : Standard, Choix unique, Formats composables ou Ingrédients personnalisables.  |
 | Catégorie               | Catégorie du catalogue.                                                                              |
 | BOM communs             | BOMs communs au produit, toujours inclus dans le coût.                                               |
-| Prix de base            | Prix de vente par défaut.                                                                            |
+| Modes d'achat           | Formats de vente avec quantité, prix et règle de répartition.                                        |
 | Marge cible (%)         | Marge cible affichée en pourcentage. Entrez `30` pour 30 %.                                          |
-| Unité                   | Libellé de l'unité vendue.                                                                           |
 | Image principale        | Image principale publique.                                                                           |
 | Galerie                 | Images supplémentaires.                                                                              |
 | Note                    | Texte de disponibilité affiché au client.                                                            |
 | Disponible              | Disponibilité commerciale.                                                                           |
-| Publier                 | Inclusion dans la prochaine publication catalogue.                                                   |
 | Ordre                   | Ordre d'affichage. Plus petit signifie plus haut dans la liste.                                      |
 | Modes d'achat           | Formats de vente avec prix et quantité.                                                              |
 | Répartition             | Règle de choix pour un mode d'achat : aucune, choix unique ou composition.                           |

@@ -1,11 +1,15 @@
-import { HugeiconsIcon } from "@hugeicons/react";
 import { Image } from "@hugeicons/core-free-icons";
+import { HugeiconsIcon } from "@hugeicons/react";
 
 interface PictureFrameProps {
   imageUrl: string;
+  alt?: string;
 }
 
-export const PictureFrame = ({ imageUrl }: PictureFrameProps) => {
+export const PictureFrame = ({
+  imageUrl,
+  alt = "image",
+}: PictureFrameProps) => {
   const imageBorder =
     "bg-muted rounded-lg p-2 h-50 border-dashed border-1 border-primary/40";
   const placeHolder = (
@@ -17,9 +21,9 @@ export const PictureFrame = ({ imageUrl }: PictureFrameProps) => {
     <img
       className={"aspect-video object-cover " + imageBorder}
       src={imageUrl}
-      alt="bom image"
+      alt={alt}
     />
   );
 
-  return <div>{imageUrl ? image : placeHolder} </div>;
+  return <div>{imageUrl ? image : placeHolder}</div>;
 };

@@ -20,11 +20,6 @@
     "description": "The queue to receive invalidated offers."
   },
   {
-    "name": "savis.catalog.refresh-cron",
-    "type": "java.lang.String",
-    "description": "Cron expression used to refresh published catalog product projections."
-  },
-  {
     "name": "savis.supabase.enabled",
     "type": "java.lang.String",
     "description": "A description for 'savis.supabase.enabled'"

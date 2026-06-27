@@ -52,14 +52,8 @@ public class ProductEntity {
     private ProductType productType;
     @Column(nullable = false)
     private UUID categoryPublicId;
-    @Column(nullable = false, precision = 14, scale = 2)
-    private BigDecimal basePriceAmount;
-    @Column(nullable = false, length = 3)
-    private String basePriceCurrency;
     @Column(nullable = false, precision = 7, scale = 6)
     private BigDecimal targetMarginRate;
-    @Column(nullable = false)
-    private String unitLabel;
     @Column(nullable = false, columnDefinition = "text")
     private String imageUrl;
     @JdbcTypeCode(SqlTypes.JSON)

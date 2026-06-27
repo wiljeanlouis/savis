@@ -1,5 +1,4 @@
 import { NoData } from "@/shared/components/NoData";
-import { Button } from "@/shared/ui/button";
 import { Spinner } from "@/shared/ui/spinner";
 import { CatalogProductDialog } from "../components/CatalogProductDialog";
 import { CatalogProductCard } from "../components/CatalogProductCard";
@@ -16,17 +15,10 @@ export function CatalogProductsPage() {
     isPublishing,
     saveProduct,
     deleteProduct,
-    publish,
+    publishProduct,
+    unpublishProduct,
     runAnalysis,
   } = useCatalogProductManagement();
-
-  if (isLoading) {
-    return (
-      <div className="flex min-h-64 items-center justify-center">
-        <Spinner />
-      </div>
-    );
-  }
 
   return (
     <div className="space-y-6">
@@ -38,9 +30,6 @@ export function CatalogProductsPage() {
           </p>
         </div>
         <div className="flex gap-2">
-          <Button variant="outline" disabled={isPublishing} onClick={publish}>
-            Publier
-          </Button>
           <CatalogProductDialog
             categories={categories}
             boms={boms}
@@ -50,7 +39,11 @@ export function CatalogProductsPage() {
         </div>
       </div>
 
-      {products.length === 0 ? (
+      {isLoading ? (
+        <div className="flex min-h-64 items-center justify-center">
+          <Spinner />
+        </div>
+      ) : products.length === 0 ? (
         <NoData />
       ) : (
         <div className="grid gap-4 xl:grid-cols-2">
@@ -62,7 +55,10 @@ export function CatalogProductsPage() {
               categories={categories}
               boms={boms}
               saving={isSaving}
+              publishing={isPublishing}
               onAnalyze={() => runAnalysis(product)}
+              onPublish={() => publishProduct(product)}
+              onUnpublish={() => unpublishProduct(product)}
               onSave={saveProduct}
               onDelete={() => deleteProduct(product.id)}
             />

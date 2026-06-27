@@ -5,8 +5,9 @@ import {
   useCatalogProducts,
   useDeleteCatalogProduct,
   useProductCategories,
-  usePublishCatalog,
+  usePublishProduct,
   useSaveCatalogProduct,
+  useUnpublishProduct,
 } from "@/features/catalog/hooks/useCatalogApi";
 import { useCatalogProductManagement } from "@/features/catalog/hooks/useCatalogProductManagement";
 import {
@@ -29,8 +30,9 @@ vi.mock("@/features/catalog/hooks/useCatalogApi", () => ({
   useCatalogProducts: vi.fn(),
   useDeleteCatalogProduct: vi.fn(),
   useProductCategories: vi.fn(),
-  usePublishCatalog: vi.fn(),
+  usePublishProduct: vi.fn(),
   useSaveCatalogProduct: vi.fn(),
+  useUnpublishProduct: vi.fn(),
 }));
 
 vi.mock("sonner", () => ({
@@ -103,6 +105,7 @@ const setupApiMocks = () => {
   const saveMutateAsync = vi.fn().mockResolvedValue("product-1");
   const deleteMutate = vi.fn();
   const publishMutate = vi.fn();
+  const unpublishMutate = vi.fn();
   const analyzeMutate = vi.fn();
   const analyzeWorstCaseMutate = vi.fn();
 
@@ -125,8 +128,12 @@ const setupApiMocks = () => {
   vi.mocked(useDeleteCatalogProduct).mockReturnValue({
     mutate: deleteMutate,
   } as never);
-  vi.mocked(usePublishCatalog).mockReturnValue({
+  vi.mocked(usePublishProduct).mockReturnValue({
     mutate: publishMutate,
+    isPending: false,
+  } as never);
+  vi.mocked(useUnpublishProduct).mockReturnValue({
+    mutate: unpublishMutate,
     isPending: false,
   } as never);
   vi.mocked(useAnalyzeProductPricing).mockReturnValue({
@@ -141,6 +148,7 @@ const setupApiMocks = () => {
     analyzeWorstCaseMutate,
     deleteMutate,
     publishMutate,
+    unpublishMutate,
     saveMutateAsync,
   };
 };
@@ -202,27 +210,53 @@ describe("useCatalogProductManagement", () => {
     expect(deleteMutate).toHaveBeenCalledWith("product-1");
   });
 
-  it("publishes the catalog and delegates success handling to the mutation callbacks", () => {
-    const { publishMutate } = setupApiMocks();
+  it("publishes a product and delegates success handling to the mutation callbacks", () => {
+    const { publishMutate, unpublishMutate } = setupApiMocks();
     const { result } = renderHook(() => useCatalogProductManagement());
 
     act(() => {
-      result.current.publish();
+      result.current.publishProduct({ ...product, published: true });
     });
 
     expect(publishMutate).toHaveBeenCalledWith(
-      undefined,
+      "product-1",
+      expect.objectContaining({
+        onError: expect.any(Function),
+        onSuccess: expect.any(Function),
+      }),
+    );
+    expect(unpublishMutate).not.toHaveBeenCalled();
+
+    const callbacks = publishMutate.mock.calls[0][1];
+    callbacks.onSuccess();
+
+    expect(toast.success).toHaveBeenCalledWith(
+      "Produit publié vers SavouretPlus.",
+    );
+  });
+
+  it("unpublishes a published product", () => {
+    const { publishMutate, unpublishMutate } = setupApiMocks();
+    const { result } = renderHook(() => useCatalogProductManagement());
+
+    act(() => {
+      result.current.unpublishProduct({ ...product, published: true });
+    });
+
+    expect(publishMutate).not.toHaveBeenCalled();
+    expect(unpublishMutate).toHaveBeenCalledWith(
+      "product-1",
       expect.objectContaining({
         onError: expect.any(Function),
         onSuccess: expect.any(Function),
       }),
     );
 
-    const callbacks = publishMutate.mock.calls[0][1];
-    callbacks.onSuccess({ publishedProductCount: 2 });
+    const callbacks = unpublishMutate.mock.calls[0][1];
+    callbacks.onSuccess();
 
     expect(toast.success).toHaveBeenCalledWith(
-      "2 produits publiés vers Supabase.",
+      "Produit retiré de SavouretPlus.",
     );
   });
 

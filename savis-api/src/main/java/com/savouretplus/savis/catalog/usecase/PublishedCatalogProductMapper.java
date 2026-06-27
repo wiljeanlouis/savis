@@ -32,13 +32,6 @@ public class PublishedCatalogProductMapper {
                 .sorted(Comparator.comparingInt(ProductPurchaseMode::displayOrder))
                 .map(this::mode)
                 .toList();
-        Integer dozenPrice = product.purchaseModes().stream()
-                .filter(ProductPurchaseMode::active)
-                .filter(mode -> "dozen".equals(mode.code()))
-                .map(ProductPurchaseMode::price)
-                .map(this::cents)
-                .findFirst()
-                .orElse(null);
         Map<String, Object> choiceGroup = product.choiceGroup() == null ? null : Map.of(
                 "label", product.choiceGroup().label(),
                 "required", product.choiceGroup().required(),
@@ -57,8 +50,7 @@ public class PublishedCatalogProductMapper {
                 product.publicId().toString(),
                 product.slug(), product.name(), category.code(), product.description(),
                 product.productType().name().toLowerCase(Locale.ROOT),
-                modes, choiceGroup, ingredients, product.unitLabel(), cents(product.basePrice()),
-                dozenPrice, product.imageUrl(), product.gallery(), product.availabilityNote(),
+                modes, choiceGroup, ingredients, product.imageUrl(), product.gallery(), product.availabilityNote(),
                 product.available(), product.displayOrder());
     }
 
