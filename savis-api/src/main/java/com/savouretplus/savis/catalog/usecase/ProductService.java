@@ -9,7 +9,6 @@ import org.springframework.transaction.annotation.Transactional;
 import com.savouretplus.savis.catalog.domain.Product;
 import com.savouretplus.savis.catalog.domain.ProductBom;
 import com.savouretplus.savis.catalog.port.BomPricingPort;
-import com.savouretplus.savis.catalog.port.ProductCategoryRepository;
 import com.savouretplus.savis.catalog.port.ProductRepository;
 
 import lombok.AllArgsConstructor;
@@ -22,14 +21,12 @@ import lombok.AllArgsConstructor;
 @AllArgsConstructor
 public class ProductService {
     private final ProductRepository repository;
-    private final ProductCategoryRepository categoryRepository;
     private final BomPricingPort bomPricingPort;
 
     /**
      * Creates a new resource from the request payload.
      */
     public UUID create(Product product) {
-        validateCategory(product);
         validateProductBoms(product);
         return repository.save(product).publicId();
     }
@@ -59,7 +56,6 @@ public class ProductService {
         if (!productId.equals(product.publicId())) {
             throw new IllegalArgumentException("L'identifiant du produit ne peut pas être modifié");
         }
-        validateCategory(product);
         validateProductBoms(product);
         repository.save(product);
         return get(productId);
@@ -70,11 +66,6 @@ public class ProductService {
      */
     public void delete(UUID productId) {
         repository.delete(get(productId));
-    }
-
-    private void validateCategory(Product product) {
-        categoryRepository.findByPublicId(product.categoryId())
-                .orElseThrow(() -> new ProductCategoryNotFoundException(product.categoryId()));
     }
 
     private void validateProductBoms(Product product) {

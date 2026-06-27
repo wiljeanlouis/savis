@@ -7,7 +7,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.savouretplus.savis.catalog.domain.Product;
-import com.savouretplus.savis.catalog.port.ProductCategoryRepository;
 import com.savouretplus.savis.catalog.port.ProductRepository;
 import com.savouretplus.savis.catalog.port.PublishedCatalogPort;
 
@@ -21,7 +20,6 @@ import lombok.AllArgsConstructor;
 @AllArgsConstructor
 public class CatalogPublicationService {
     private final ProductRepository productRepository;
-    private final ProductCategoryRepository categoryRepository;
     private final PublishedCatalogPort publishedCatalogPort;
     private final PublishedCatalogProductMapper mapper;
 
@@ -35,9 +33,7 @@ public class CatalogPublicationService {
     }
 
     private void publishProjection(Product product) {
-        var category = categoryRepository.findByPublicId(product.categoryId())
-                .orElseThrow(() -> new ProductCategoryNotFoundException(product.categoryId()));
-        publishedCatalogPort.publish(mapper.map(product, category));
+        publishedCatalogPort.publish(mapper.map(product));
     }
 
     /**

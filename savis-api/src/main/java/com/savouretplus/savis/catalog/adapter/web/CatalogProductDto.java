@@ -7,6 +7,7 @@ import java.util.UUID;
 import com.savouretplus.savis.catalog.domain.AllocationType;
 import com.savouretplus.savis.catalog.domain.Product;
 import com.savouretplus.savis.catalog.domain.ProductBom;
+import com.savouretplus.savis.catalog.domain.ProductCategory;
 import com.savouretplus.savis.catalog.domain.ProductChoiceGroup;
 import com.savouretplus.savis.catalog.domain.ProductChoiceOption;
 import com.savouretplus.savis.catalog.domain.ProductIngredientOption;
@@ -29,7 +30,7 @@ public record CatalogProductDto(
         @NotBlank String name,
         String description,
         @NotNull ProductType productType,
-        @NotNull UUID categoryId,
+        @NotNull ProductCategory category,
         List<@Valid ProductBomDto> productBoms,
         @NotNull BigDecimal targetMarginRate,
         @NotBlank String imageUrl,
@@ -53,7 +54,7 @@ public record CatalogProductDto(
      * Converts this DTO into its domain representation.
      */
     public Product toDomain(UUID productId) {
-        return new Product(productId, code, slug, name, description, productType, categoryId,
+        return new Product(productId, code, slug, name, description, productType, category,
                 safe(productBoms).stream().map(ProductBomDto::toDomain).toList(),
                 targetMarginRate, imageUrl, gallery, availabilityNote,
                 available, published, displayOrder,
@@ -68,7 +69,7 @@ public record CatalogProductDto(
     public static CatalogProductDto from(Product product) {
         return new CatalogProductDto(
                 product.publicId(), product.code(), product.slug(), product.name(), product.description(),
-                product.productType(), product.categoryId(),
+                product.productType(), product.category(),
                 product.productBoms().stream().map(ProductBomDto::from).toList(),
                 product.targetMarginRate(), product.imageUrl(), product.gallery(),
                 product.availabilityNote(), product.available(), product.published(), product.displayOrder(),

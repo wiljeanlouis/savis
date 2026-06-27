@@ -39,11 +39,11 @@ import {
   emptyIngredientOption,
   emptyProductBom,
   emptyPurchaseMode,
+  productCategories,
   type CatalogProduct,
   type ProductCategory,
   type ProductType,
 } from "../types";
-import { ProductCategoryCombobox } from "./ProductCategoryCombobox";
 import {
   CatalogProductGuideButton,
   CatalogProductGuidePanel,
@@ -58,7 +58,6 @@ import { BomCombobox } from "./BomCombobox";
 
 interface Props {
   product?: CatalogProduct;
-  categories: ProductCategory[];
   boms: Bom[];
   saving: boolean;
   onSave: (product: CatalogProduct) => void | Promise<void>;
@@ -77,7 +76,6 @@ const textToGallery = (value: string) =>
 
 export function CatalogProductDialog({
   product,
-  categories,
   boms,
   saving,
   onSave,
@@ -86,10 +84,7 @@ export function CatalogProductDialog({
   hideTrigger = false,
 }: Props) {
   const isEditing = Boolean(product);
-  const initial = () =>
-    product ??
-    loadDraft() ??
-    emptyCatalogProduct(categories.find((item) => item.active)?.id ?? "");
+  const initial = () => product ?? loadDraft() ?? emptyCatalogProduct();
   const [internalOpen, setInternalOpen] = useState(false);
   const [form, setForm] = useState<CatalogProduct>(initial);
   const [gallery, setGallery] = useState("");
@@ -272,11 +267,23 @@ export function CatalogProductDialog({
               <FieldGroup className="grid gap-4 md:grid-cols-3">
                 <Field>
                   <FieldLabel>Catégorie</FieldLabel>
-                  <ProductCategoryCombobox
-                    categories={categories}
-                    value={form.categoryId}
-                    onChange={(value) => update("categoryId", value)}
-                  />
+                  <Select
+                    value={form.category}
+                    onValueChange={(value) =>
+                      update("category", value as ProductCategory)
+                    }
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {productCategories.map((category) => (
+                        <SelectItem key={category.value} value={category.value}>
+                          {category.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </Field>
                 <Field>
                   <FieldLabel>Type</FieldLabel>
@@ -636,7 +643,6 @@ export function CatalogProductDialog({
                 type="submit"
                 disabled={
                   saving ||
-                  !form.categoryId ||
                   form.productBoms.some(
                     (productBom) =>
                       !productBom.bomId || productBom.quantity <= 0,

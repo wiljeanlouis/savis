@@ -4,22 +4,16 @@ import {
   analyzeWorstCasePricing,
   deleteCatalogProduct,
   getCatalogProducts,
-  getProductCategories,
   publishCatalog,
   publishProduct,
   saveCatalogProduct,
-  saveProductCategory,
   unpublishProduct,
 } from "../api/catalogApi";
 
 const PRODUCTS = ["catalog-products"];
-const CATEGORIES = ["catalog-categories"];
 
 export const useCatalogProducts = () =>
   useQuery({ queryKey: PRODUCTS, queryFn: getCatalogProducts });
-
-export const useProductCategories = () =>
-  useQuery({ queryKey: CATEGORIES, queryFn: getProductCategories });
 
 export const useSaveCatalogProduct = () => {
   const client = useQueryClient();
@@ -37,16 +31,6 @@ export const useDeleteCatalogProduct = () => {
     mutationFn: deleteCatalogProduct,
     onSuccess: async () => {
       await client.invalidateQueries({ queryKey: PRODUCTS });
-    },
-  });
-};
-
-export const useSaveProductCategory = () => {
-  const client = useQueryClient();
-  return useMutation({
-    mutationFn: saveProductCategory,
-    onSuccess: async () => {
-      await client.invalidateQueries({ queryKey: CATEGORIES });
     },
   });
 };

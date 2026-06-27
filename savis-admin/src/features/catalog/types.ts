@@ -6,18 +6,16 @@ export type ProductType =
 
 export type AllocationType = "NONE" | "SINGLE_CHOICE" | "CHOICE_ALLOCATION";
 export type PriceHealthStatus = "GOOD" | "REVIEW" | "LOSS" | "INCOMPLETE";
+export type ProductCategory = "TASTING" | "DECORATION";
+
+export const productCategories: { value: ProductCategory; label: string }[] = [
+  { value: "TASTING", label: "Dégustation" },
+  { value: "DECORATION", label: "Décoration" },
+];
 
 export interface Money {
   amount: number;
   currency: string;
-}
-
-export interface ProductCategory {
-  id: string | null;
-  code: string;
-  name: string;
-  active: boolean;
-  displayOrder: number;
 }
 
 export interface ProductPurchaseMode {
@@ -74,7 +72,7 @@ export interface CatalogProduct {
   name: string;
   description: string;
   productType: ProductType;
-  categoryId: string;
+  category: ProductCategory;
   productBoms: ProductBom[];
   targetMarginRate: number;
   imageUrl: string;
@@ -111,14 +109,16 @@ export interface ProductPricingAnalysis {
 
 const cad = (amount = 0): Money => ({ amount, currency: "CAD" });
 
-export const emptyCatalogProduct = (categoryId = ""): CatalogProduct => ({
+export const emptyCatalogProduct = (
+  category: ProductCategory = "TASTING",
+): CatalogProduct => ({
   id: null,
   code: "",
   slug: "",
   name: "",
   description: "",
   productType: "STANDARD",
-  categoryId,
+  category,
   productBoms: [],
   targetMarginRate: 0.3,
   imageUrl: "",

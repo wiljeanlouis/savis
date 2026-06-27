@@ -7,7 +7,6 @@ import { useCatalogProductManagement } from "../hooks/useCatalogProductManagemen
 export function CatalogProductsPage() {
   const {
     products,
-    categories,
     boms,
     analysis,
     isLoading,
@@ -31,7 +30,6 @@ export function CatalogProductsPage() {
         </div>
         <div className="flex gap-2">
           <CatalogProductDialog
-            categories={categories}
             boms={boms}
             saving={isSaving}
             onSave={saveProduct}
@@ -52,7 +50,6 @@ export function CatalogProductsPage() {
               key={product.id}
               product={product}
               result={product.id ? analysis[product.id] : undefined}
-              categories={categories}
               boms={boms}
               saving={isSaving}
               publishing={isPublishing}

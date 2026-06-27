@@ -473,15 +473,6 @@ Pricing configuration payload:
 }
 ```
 
-### Category Endpoints
-
-| Method   | Path                                   | Purpose                  |
-| -------- | -------------------------------------- | ------------------------ |
-| `GET`    | `/api/catalog/categories`              | List product categories. |
-| `POST`   | `/api/catalog/categories`              | Create a category.       |
-| `PUT`    | `/api/catalog/categories/{categoryId}` | Update a category.       |
-| `DELETE` | `/api/catalog/categories/{categoryId}` | Delete a category.       |
-
 ## RabbitMQ Contracts
 
 The application declares durable classic queues and uses Jackson JSON message

@@ -1,4 +1,4 @@
-import type { CatalogProduct } from "../types";
+import type { CatalogProduct, ProductCategory } from "../types";
 
 const KEY = "catalog-product-draft";
 
@@ -8,7 +8,16 @@ const saveDraft = (data: CatalogProduct) => {
 
 const loadDraft = (): CatalogProduct | null => {
   const raw = localStorage.getItem(KEY);
-  return raw ? (JSON.parse(raw) as CatalogProduct) : null;
+  if (!raw) {
+    return null;
+  }
+  const draft = JSON.parse(raw) as CatalogProduct & {
+    categoryId?: string;
+  };
+  return {
+    ...draft,
+    category: normalizeCategory(draft.category ?? draft.categoryId),
+  };
 };
 
 const clearDraft = () => {
@@ -20,3 +29,7 @@ const hasDraft = () => {
 };
 
 export { saveDraft, loadDraft, clearDraft, hasDraft };
+
+function normalizeCategory(value: string | undefined): ProductCategory {
+  return value === "DECORATION" ? "DECORATION" : "TASTING";
+}

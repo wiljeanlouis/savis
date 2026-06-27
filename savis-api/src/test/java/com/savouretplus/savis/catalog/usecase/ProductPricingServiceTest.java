@@ -238,7 +238,7 @@ class ProductPricingServiceTest {
                 ? List.of(new ProductPurchaseMode(
                         null, "unit", "À l'unité", 1, price, AllocationType.NONE, true, 0))
                 : modes;
-        return new Product(null, "code", "slug", "Produit", "", type, UUID.randomUUID(), productBoms,
+        return new Product(null, "code", "slug", "Produit", "", type, ProductCategory.TASTING, productBoms,
                 margin, "/image.jpg", List.of(), "Disponible", true, true,
                 0, safeModes, group, ingredients);
     }

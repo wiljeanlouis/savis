@@ -14,7 +14,7 @@ describe("catalogProductDraftStorage", () => {
 
   it("saves and loads the product draft", () => {
     const product = {
-      ...emptyCatalogProduct("category-id"),
+      ...emptyCatalogProduct("TASTING"),
       name: "Mini bouchées",
       gallery: ["https://example.com/image.jpg"],
     };
@@ -26,7 +26,7 @@ describe("catalogProductDraftStorage", () => {
   });
 
   it("clears the product draft", () => {
-    saveDraft(emptyCatalogProduct("category-id"));
+    saveDraft(emptyCatalogProduct("TASTING"));
 
     clearDraft();
 

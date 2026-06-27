@@ -4,7 +4,6 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import java.math.BigDecimal;
 import java.util.List;
-import java.util.UUID;
 
 import org.junit.jupiter.api.Test;
 
@@ -23,7 +22,7 @@ class ProductTest {
 
     private Product product(List<ProductPurchaseMode> purchaseModes) {
         return new Product(
-                null, "pate", "pate", "Pâté", "", ProductType.STANDARD, UUID.randomUUID(),
+                null, "pate", "pate", "Pâté", "", ProductType.STANDARD, ProductCategory.TASTING,
                 List.of(), new BigDecimal("0.30"), "/pate.jpg", List.of(), "Disponible",
                 true, false, 0, purchaseModes, null, List.of());
     }

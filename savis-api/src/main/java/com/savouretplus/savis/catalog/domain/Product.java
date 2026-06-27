@@ -21,7 +21,7 @@ public record Product(
         String name,
         String description,
         ProductType productType,
-        UUID categoryId,
+        ProductCategory category,
         List<ProductBom> productBoms,
         BigDecimal targetMarginRate,
         String imageUrl,
@@ -44,7 +44,7 @@ public record Product(
         requireText(name, "Le nom du produit est requis");
         description = description != null ? description : "";
         productType = productType != null ? productType : ProductType.STANDARD;
-        if (categoryId == null) {
+        if (category == null) {
             throw new IllegalArgumentException("La catégorie du produit est requise");
         }
         if (targetMarginRate == null
@@ -171,7 +171,7 @@ public record Product(
      */
     public Product withPublished(boolean value) {
         return new Product(
-                publicId, code, slug, name, description, productType, categoryId, productBoms,
+                publicId, code, slug, name, description, productType, category, productBoms,
                 targetMarginRate, imageUrl, gallery, availabilityNote,
                 available, value, displayOrder, purchaseModes, choiceGroup, ingredientOptions);
     }
@@ -181,7 +181,7 @@ public record Product(
             ProductChoiceGroup group,
             List<ProductIngredientOption> ingredients) {
         return new Product(
-                publicId, code, slug, name, description, productType, categoryId, productBoms,
+                publicId, code, slug, name, description, productType, category, productBoms,
                 targetMarginRate, imageUrl, gallery, availabilityNote,
                 available, published, displayOrder, modes, group, ingredients);
     }

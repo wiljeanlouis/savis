@@ -170,9 +170,8 @@ Supported product types:
 - `SINGLE_CHOICE_BUNDLE`;
 - `INGREDIENT_CUSTOMIZATION`.
 
-Categories are selected through a searchable combobox. When the entered
-category does not exist, it can be created and selected directly from that
-field.
+Categories are selected from the fixed catalog values `TASTING` and
+`DECORATION`.
 
 The product form treats:
 
@@ -322,10 +321,6 @@ DELETE /savis-api/catalog/products/{id}
 POST   /savis-api/catalog/products/{id}/pricing-analysis
 GET    /savis-api/catalog/products/{id}/worst-case-pricing
 POST   /savis-api/catalog/products/publish
-
-GET    /savis-api/catalog/categories
-POST   /savis-api/catalog/categories
-PUT    /savis-api/catalog/categories/{id}
 ```
 
 ### Executor Endpoints
