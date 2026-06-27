@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.7.3](https://github.com/wiljeanlouis/savis/compare/v1.7.2...v1.7.3) (2026-06-27)
+
+
+### Bug Fixes
+
+* Refactor product publication process and remove legacy price fields ([#69](https://github.com/wiljeanlouis/savis/issues/69)) ([25f6f1b](https://github.com/wiljeanlouis/savis/commit/25f6f1b07e893e730a663812cd519a268b2c7b3a))
+
 ## [1.7.2](https://github.com/wiljeanlouis/savis/compare/v1.7.1...v1.7.2) (2026-06-24)
 
 
