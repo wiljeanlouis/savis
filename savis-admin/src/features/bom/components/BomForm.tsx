@@ -13,7 +13,7 @@ import {
   FieldLabel,
 } from "@/shared/ui/field";
 import { Textarea } from "@/shared/ui/textarea";
-import { PictureFrame } from "./PictureFrame";
+import { PictureFrame } from "@/shared/components/PictureFrame";
 import { toast } from "sonner";
 import { DraftAlert } from "../../../shared/components/DraftAlert";
 import { Spinner } from "@/shared/ui/spinner";
@@ -79,9 +79,9 @@ export const BomForm = ({ showTitle = true }: BomFormProps) => {
 
       <form onSubmit={submitForm}>
         <FieldGroup>
-          <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
-            <div className="space-y-10 lg:col-span-2">
-              <FieldSet>
+          <div className="space-y-10">
+            <FieldSet>
+              <div className="grid gap-6 xl:grid-cols-[minmax(0,2fr)_minmax(18rem,1fr)]">
                 <FieldGroup>
                   <FieldGroup className="grid grid-cols-1 gap-4 md:grid-cols-[minmax(0,2fr)_minmax(12rem,1fr)]">
                     <Field>
@@ -209,88 +209,89 @@ export const BomForm = ({ showTitle = true }: BomFormProps) => {
                     </Field>
                   </FieldGroup>
                 </FieldGroup>
-              </FieldSet>
 
-              <FieldSet>
-                <FieldLegend>Composants BOM</FieldLegend>
-                <FieldDescription>
-                  La liste des composants BOM nécessaires à ce BOM.
-                </FieldDescription>
-                <FieldGroup>
-                  {form.components.map(
-                    (component: BomComponent, index: number) => (
-                      <BomComponentInput
-                        key={index}
-                        value={component}
-                        onChange={(val) => {
-                          updateComponent(index, val);
-                        }}
-                        onRemove={() => {
-                          removeComponent(index);
-                        }}
-                      />
-                    ),
-                  )}
-                  <Button
-                    type="button"
-                    variant="destructive"
-                    className="w-48"
-                    onClick={addComponent}
-                  >
-                    Ajouter un composant BOM
-                  </Button>
-                </FieldGroup>
-              </FieldSet>
+                <Field>
+                  <FieldLabel>Aperçu</FieldLabel>
+                  <PictureFrame imageUrl={form.imageUrl} alt={form.name} />
+                </Field>
+              </div>
+            </FieldSet>
 
-              <FieldSet>
-                <FieldLegend>Activités</FieldLegend>
-                <FieldDescription>
-                  Les étapes et le temps nécessaires à la production de la BOM.
-                </FieldDescription>
-                <FieldGroup>
-                  {form.activities.map(
-                    (activity: BomActivity, index: number) => (
-                      <ActivityInput
-                        key={index}
-                        value={activity}
-                        canRemove={index > 1}
-                        onChange={(val) => {
-                          updateActivity(index, val);
-                        }}
-                        onRemove={() => {
-                          removeActivity(index);
-                        }}
-                      />
-                    ),
-                  )}
-                  <Button
-                    type="button"
-                    variant="destructive"
-                    className="w-48"
-                    onClick={addActivity}
-                  >
-                    Ajouter autre activité
-                  </Button>
-                </FieldGroup>
-              </FieldSet>
-
-              <Field orientation="horizontal">
-                <Button type="submit" disabled={isLoading}>
-                  {isLoading ? <Spinner /> : "Sauvegarder"}
-                </Button>
+            <FieldSet>
+              <FieldLegend>Composants BOM</FieldLegend>
+              <FieldDescription>
+                La liste des composants BOM nécessaires à ce BOM.
+              </FieldDescription>
+              <FieldGroup>
+                {form.components.map(
+                  (component: BomComponent, index: number) => (
+                    <BomComponentInput
+                      key={index}
+                      value={component}
+                      onChange={(val) => {
+                        updateComponent(index, val);
+                      }}
+                      onRemove={() => {
+                        removeComponent(index);
+                      }}
+                    />
+                  ),
+                )}
                 <Button
-                  variant="outline"
                   type="button"
-                  onClick={() => {
-                    void cancel();
-                  }}
+                  variant="destructive"
+                  className="w-48"
+                  onClick={addComponent}
                 >
-                  Annuler
+                  Ajouter un composant BOM
                 </Button>
-              </Field>
-            </div>
+              </FieldGroup>
+            </FieldSet>
 
-            <PictureFrame imageUrl={form.imageUrl} />
+            <FieldSet>
+              <FieldLegend>Activités</FieldLegend>
+              <FieldDescription>
+                Les étapes et le temps nécessaires à la production de la BOM.
+              </FieldDescription>
+              <FieldGroup>
+                {form.activities.map((activity: BomActivity, index: number) => (
+                  <ActivityInput
+                    key={index}
+                    value={activity}
+                    canRemove={index > 1}
+                    onChange={(val) => {
+                      updateActivity(index, val);
+                    }}
+                    onRemove={() => {
+                      removeActivity(index);
+                    }}
+                  />
+                ))}
+                <Button
+                  type="button"
+                  variant="destructive"
+                  className="w-48"
+                  onClick={addActivity}
+                >
+                  Ajouter autre activité
+                </Button>
+              </FieldGroup>
+            </FieldSet>
+
+            <Field orientation="horizontal" className="justify-end">
+              <Button type="submit" disabled={isLoading}>
+                {isLoading ? <Spinner /> : "Sauvegarder"}
+              </Button>
+              <Button
+                variant="outline"
+                type="button"
+                onClick={() => {
+                  void cancel();
+                }}
+              >
+                Annuler
+              </Button>
+            </Field>
           </div>
         </FieldGroup>
       </form>

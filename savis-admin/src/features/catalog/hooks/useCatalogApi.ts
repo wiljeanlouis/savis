@@ -6,8 +6,10 @@ import {
   getCatalogProducts,
   getProductCategories,
   publishCatalog,
+  publishProduct,
   saveCatalogProduct,
   saveProductCategory,
+  unpublishProduct,
 } from "../api/catalogApi";
 
 const PRODUCTS = ["catalog-products"];
@@ -58,6 +60,27 @@ export const usePublishCatalog = () => {
     },
   });
 };
+
+export const usePublishProduct = () => {
+  const client = useQueryClient();
+  return useMutation({
+    mutationFn: publishProduct,
+    onSuccess: async () => {
+      await client.invalidateQueries({ queryKey: PRODUCTS });
+    },
+  });
+};
+
+export const useUnpublishProduct = () => {
+  const client = useQueryClient();
+  return useMutation({
+    mutationFn: unpublishProduct,
+    onSuccess: async () => {
+      await client.invalidateQueries({ queryKey: PRODUCTS });
+    },
+  });
+};
+
 export const useAnalyzeProductPricing = () =>
   useMutation({ mutationFn: analyzeProductPricing });
 export const useAnalyzeWorstCasePricing = () =>

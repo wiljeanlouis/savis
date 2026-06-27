@@ -106,11 +106,6 @@ public class ProductPricingService {
     }
 
     private int analyzedQuantity(Product product, ProductConfiguration configuration) {
-        if (configuration == null
-                || configuration.purchaseModeCode() == null
-                || configuration.purchaseModeCode().isBlank()) {
-            return 1;
-        }
-        return product.requireActiveMode(configuration.purchaseModeCode()).quantity();
+        return product.selectedMode(configuration).quantity();
     }
 }

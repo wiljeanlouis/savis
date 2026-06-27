@@ -83,10 +83,7 @@ public class ProductRepositoryAdapter implements ProductRepository {
         entity.setDescription(product.description());
         entity.setProductType(product.productType());
         entity.setCategoryPublicId(product.categoryId());
-        entity.setBasePriceAmount(product.basePrice().amount());
-        entity.setBasePriceCurrency(product.basePrice().currency());
         entity.setTargetMarginRate(product.targetMarginRate());
-        entity.setUnitLabel(product.unitLabel());
         entity.setImageUrl(product.imageUrl());
         entity.setGallery(new ArrayList<>(product.gallery()));
         entity.setAvailabilityNote(product.availabilityNote());
@@ -115,8 +112,7 @@ public class ProductRepositoryAdapter implements ProductRepository {
         return new Product(
                 entity.getPublicId(), entity.getCode(), entity.getSlug(), entity.getName(),
                 entity.getDescription(), entity.getProductType(), entity.getCategoryPublicId(),
-                productBoms, new Money(entity.getBasePriceAmount(), entity.getBasePriceCurrency()),
-                entity.getTargetMarginRate(), entity.getUnitLabel(), entity.getImageUrl(),
+                productBoms, entity.getTargetMarginRate(), entity.getImageUrl(),
                 entity.getGallery(), entity.getAvailabilityNote(), entity.isAvailable(), entity.isPublished(),
                 entity.getDisplayOrder(), modes,
                 entity.getChoiceGroup() != null ? toDomain(entity.getChoiceGroup()) : null, ingredients);

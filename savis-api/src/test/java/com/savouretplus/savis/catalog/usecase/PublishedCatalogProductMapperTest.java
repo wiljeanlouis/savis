@@ -25,7 +25,7 @@ class PublishedCatalogProductMapperTest {
         Product product = new Product(
                 null, "pate-four", "pate-four", "Pâté au four", "",
                 ProductType.SINGLE_CHOICE_BUNDLE, UUID.randomUUID(), List.of(),
-                Money.of(3), new BigDecimal("0.35"), "unité", "/pate.jpg",
+                new BigDecimal("0.35"), "/pate.jpg",
                 List.of("/pate-2.jpg"), "Disponible", true, true, 1,
                 List.of(
                         new com.savouretplus.savis.catalog.domain.ProductPurchaseMode(
@@ -43,7 +43,6 @@ class PublishedCatalogProductMapperTest {
                 product, new ProductCategory(product.categoryId(), "degustation", "Dégustation", true, 0));
 
         assertEquals(1, result.purchaseModes().size());
-        assertEquals(3000, result.dozenPriceCents());
         assertEquals("choice_allocation", result.purchaseModes().getFirst().get("allocation_type"));
         assertEquals(bomId.toString(),
                 ((java.util.Map<?, ?>) ((List<?>) result.choiceGroup().get("options")).getFirst()).get("bom_id"));

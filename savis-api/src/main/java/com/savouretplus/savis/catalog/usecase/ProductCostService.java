@@ -40,7 +40,8 @@ public class ProductCostService {
                 : ProductConfiguration.empty();
         product.validateConfiguration(safeConfiguration);
 
-        CostAccumulator accumulator = new CostAccumulator(product.basePrice().currency());
+        String currency = product.selectedMode(safeConfiguration).price().currency();
+        CostAccumulator accumulator = new CostAccumulator(currency);
         addProductBoms(product, accumulator);
 
         switch (product.productType()) {
@@ -64,11 +65,11 @@ public class ProductCostService {
             throw new IllegalArgumentException("Le pire cas s'applique uniquement aux bundles composables");
         }
 
-        CostAccumulator accumulator = new CostAccumulator(product.basePrice().currency());
+        CostAccumulator accumulator = new CostAccumulator(mode.price().currency());
         addProductBoms(product, accumulator);
         List<ProductCost> optionCosts = product.choiceGroup().options().stream()
                 .filter(option -> option.active())
-                .map(option -> costForBom(option.bomId(), product.basePrice().currency()))
+                .map(option -> costForBom(option.bomId(), mode.price().currency()))
                 .toList();
 
         if (optionCosts.isEmpty()) {

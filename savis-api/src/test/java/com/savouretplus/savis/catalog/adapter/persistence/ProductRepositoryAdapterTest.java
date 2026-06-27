@@ -71,7 +71,7 @@ class ProductRepositoryAdapterTest {
         new ProductRepositoryAdapter(repository).save(new Product(
                 productId, "pate", "pate", "Pâté", "", ProductType.SINGLE_CHOICE,
                 categoryId, List.of(new ProductBom(productBomId, bomId, new BigDecimal("1.5"), 0)),
-                Money.of(5), new BigDecimal("0.30"), "unité",
+                new BigDecimal("0.30"),
                 "/pate.jpg", List.of(), "Disponible", true, false, 0,
                 List.of(new ProductPurchaseMode(
                         modeId, "unit", "À l'unité", 1, Money.of(5),
@@ -102,10 +102,7 @@ class ProductRepositoryAdapterTest {
         entity.setDescription("");
         entity.setProductType(ProductType.SINGLE_CHOICE);
         entity.setCategoryPublicId(categoryId);
-        entity.setBasePriceAmount(BigDecimal.valueOf(5));
-        entity.setBasePriceCurrency("CAD");
         entity.setTargetMarginRate(new BigDecimal("0.30"));
-        entity.setUnitLabel("unité");
         entity.setImageUrl("/pate.jpg");
         entity.setAvailabilityNote("Disponible");
         return entity;

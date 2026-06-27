@@ -321,11 +321,9 @@ never changes a product or purchase-mode sale price.
 `CatalogPublicationService.publishAll()` publishes products whose `published`
 flag is true. Publication can be triggered:
 
-- explicitly through the HTTP API;
-- periodically with `savis.catalog.refresh-cron`, hourly by default.
+- explicitly through the HTTP API.
 
-When Supabase is disabled, scheduled publication is skipped and explicit
-publication returns a bad-request error.
+When Supabase is disabled, publication returns a bad-request error.
 
 The Supabase adapter upserts rows into:
 
@@ -348,7 +346,7 @@ PostgreSQL remains the catalog system of record; Supabase is a read projection.
 Bulk publication reads only products whose `published` flag is currently true.
 It does not yet reconcile Supabase rows for products newly changed to
 unpublished. The single-product publication path supports unpublishing, but it
-is not currently exposed by the HTTP controller.
+is exposed by the HTTP controller.
 
 ## HTTP API
 
@@ -364,9 +362,9 @@ invalid catalog structures and disabled explicit publication return `400`.
 
 Actuator health endpoints:
 
-| Path | Purpose |
-| --- | --- |
-| `/actuator/health/liveness` | Confirms that the API process is alive. |
+| Path                         | Purpose                                       |
+| ---------------------------- | --------------------------------------------- |
+| `/actuator/health/liveness`  | Confirms that the API process is alive.       |
 | `/actuator/health/readiness` | Reports whether the API is ready for traffic. |
 
 ### BOM Endpoints
@@ -451,6 +449,8 @@ Only one rate can exist for each activity type.
 | `DELETE` | `/api/catalog/products/{productId}`                                         | Delete a product.                                      |
 | `POST`   | `/api/catalog/products/{productId}/pricing-analysis`                        | Analyze one selected configuration.                    |
 | `GET`    | `/api/catalog/products/{productId}/worst-case-pricing?purchaseModeCode=...` | Analyze a composable bundle's conservative worst case. |
+| `POST`   | `/api/catalog/products/{productId}/publish`                                 | Publish one product.                                   |
+| `POST`   | `/api/catalog/products/{productId}/unpublish`                               | Remove one product from the published catalog.         |
 | `POST`   | `/api/catalog/products/publish`                                             | Publish every product marked for publication.          |
 
 Pricing configuration payload:
@@ -617,7 +617,6 @@ Flyway is disabled in the test profile.
 | `SUPABASE_ENABLED`           | `false`                                       | Enable the Supabase catalog adapter. |
 | `SUPABASE_URL`               | empty                                         | Supabase project URL.                |
 | `SUPABASE_SERVICE_ROLE_KEY`  | empty                                         | Supabase service-role credential.    |
-| `SAVIS_CATALOG_REFRESH_CRON` | `0 0 * * * *`                                 | Published-catalog refresh schedule.  |
 
 Application properties can also override:
 

@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import type { Bom } from "@/features/bom/types";
+import { PictureFrame } from "@/shared/components/PictureFrame";
 import { Button } from "@/shared/ui/button";
 import { Checkbox } from "@/shared/ui/checkbox";
 import { DraftAlert } from "@/shared/components/DraftAlert";
@@ -60,6 +61,9 @@ interface Props {
   boms: Bom[];
   saving: boolean;
   onSave: (product: CatalogProduct) => void | Promise<void>;
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
+  hideTrigger?: boolean;
 }
 
 const number = (value: string) => Number(value) || 0;
@@ -76,18 +80,23 @@ export function CatalogProductDialog({
   boms,
   saving,
   onSave,
+  open,
+  onOpenChange,
+  hideTrigger = false,
 }: Props) {
   const isEditing = Boolean(product);
   const initial = () =>
     product ??
     loadDraft() ??
     emptyCatalogProduct(categories.find((item) => item.active)?.id ?? "");
-  const [open, setOpen] = useState(false);
+  const [internalOpen, setInternalOpen] = useState(false);
   const [form, setForm] = useState<CatalogProduct>(initial);
   const [gallery, setGallery] = useState("");
   const [guideOpen, setGuideOpen] = useState(false);
   const [isDirty, setIsDirty] = useState(false);
   const [isDraftAlertOpen, setIsDraftAlertOpen] = useState(false);
+  const isOpen = open ?? internalOpen;
+  const setOpen = onOpenChange ?? setInternalOpen;
 
   const reset = () => {
     const next = initial();
@@ -109,10 +118,10 @@ export function CatalogProductDialog({
   };
 
   useEffect(() => {
-    if (open && !isEditing && isDirty) {
+    if (isOpen && !isEditing && isDirty) {
       saveDraft({ ...form, gallery: textToGallery(gallery) });
     }
-  }, [form, gallery, isDirty, isEditing, open]);
+  }, [form, gallery, isDirty, isEditing, isOpen]);
 
   const save = async (event: React.SubmitEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -156,14 +165,24 @@ export function CatalogProductDialog({
     form.productType === "SINGLE_CHOICE" ||
     form.productType === "SINGLE_CHOICE_BUNDLE";
   const showIngredients = form.productType === "INGREDIENT_CUSTOMIZATION";
+  const hasActivePurchaseMode = form.purchaseModes.some((mode) => mode.active);
+  const hasInvalidPurchaseMode = form.purchaseModes.some(
+    (mode) =>
+      !mode.code.trim() ||
+      !mode.label.trim() ||
+      mode.quantity <= 0 ||
+      mode.price.amount < 0,
+  );
 
   return (
-    <Dialog open={open} onOpenChange={requestOpenChange}>
-      <DialogTrigger asChild>
-        <Button variant={product ? "outline" : "default"}>
-          {product ? "Modifier" : "Ajouter un produit"}
-        </Button>
-      </DialogTrigger>
+    <Dialog open={isOpen} onOpenChange={requestOpenChange}>
+      {!hideTrigger && (
+        <DialogTrigger asChild>
+          <Button variant={product ? "outline" : "default"}>
+            {product ? "Modifier" : "Ajouter un produit"}
+          </Button>
+        </DialogTrigger>
+      )}
       <DialogContent
         className={`max-h-[92vh] overflow-y-auto transition-[max-width] duration-200 sm:max-w-6xl ${
           guideOpen ? "xl:max-w-[min(calc(100vw-2rem),88rem)]" : ""
@@ -195,23 +214,69 @@ export function CatalogProductDialog({
         >
           <form className="grid gap-6" onSubmit={save}>
             <FieldSet>
-              <FieldLegend>Produit</FieldLegend>
+              <FieldLegend>Infos de base</FieldLegend>
+              <div className="grid gap-6 xl:grid-cols-[minmax(0,2fr)_minmax(18rem,1fr)]">
+                <FieldGroup className="grid gap-4 md:grid-cols-3">
+                  <TextField
+                    label="Nom"
+                    value={form.name}
+                    onChange={(value) => update("name", value)}
+                  />
+                  <TextField
+                    label="Code"
+                    value={form.code}
+                    onChange={(value) => update("code", value)}
+                  />
+                  <TextField
+                    label="Slug"
+                    value={form.slug}
+                    onChange={(value) => update("slug", value)}
+                  />
+                  <Field className="md:col-span-3">
+                    <FieldLabel>Description</FieldLabel>
+                    <Textarea
+                      value={form.description}
+                      onChange={(event) =>
+                        update("description", event.target.value)
+                      }
+                    />
+                  </Field>
+                  <Field className="md:col-span-3">
+                    <TextField
+                      label="Image principale"
+                      value={form.imageUrl}
+                      onChange={(value) => update("imageUrl", value)}
+                    />
+                  </Field>
+                </FieldGroup>
+
+                <Field>
+                  <FieldLabel>Aperçu</FieldLabel>
+                  <PictureFrame imageUrl={form.imageUrl} alt={form.name} />
+                </Field>
+              </div>
               <FieldGroup className="grid gap-4 md:grid-cols-3">
-                <TextField
-                  label="Nom"
-                  value={form.name}
-                  onChange={(value) => update("name", value)}
-                />
-                <TextField
-                  label="Code"
-                  value={form.code}
-                  onChange={(value) => update("code", value)}
-                />
-                <TextField
-                  label="Slug"
-                  value={form.slug}
-                  onChange={(value) => update("slug", value)}
-                />
+                <Field className="md:col-span-2">
+                  <FieldLabel>Galerie, une URL par ligne</FieldLabel>
+                  <Textarea
+                    rows={10}
+                    value={gallery}
+                    onChange={(event) => updateGallery(event.target.value)}
+                  />
+                </Field>
+              </FieldGroup>
+            </FieldSet>
+
+            <FieldSet>
+              <FieldGroup className="grid gap-4 md:grid-cols-3">
+                <Field>
+                  <FieldLabel>Catégorie</FieldLabel>
+                  <ProductCategoryCombobox
+                    categories={categories}
+                    value={form.categoryId}
+                    onChange={(value) => update("categoryId", value)}
+                  />
+                </Field>
                 <Field>
                   <FieldLabel>Type</FieldLabel>
                   <Select
@@ -241,55 +306,16 @@ export function CatalogProductDialog({
                     bundle ou ingrédients personnalisables.
                   </FieldDescription>
                 </Field>
-                <Field>
-                  <FieldLabel>Catégorie</FieldLabel>
-                  <ProductCategoryCombobox
-                    categories={categories}
-                    value={form.categoryId}
-                    onChange={(value) => update("categoryId", value)}
-                  />
-                </Field>
-                <MoneyField
-                  label="Prix de base"
-                  description="Prix de vente par défaut avant les modes d'achat ou extras."
-                  value={form.basePrice.amount}
-                  onChange={(amount) =>
-                    update("basePrice", { amount, currency: "CAD" })
-                  }
-                />
+
                 <NumberField
                   label="Marge cible (%)"
                   description="Entrez 30 pour une marge cible de 30 %. Le backend stocke 0,30."
                   value={form.targetMarginRate * 100}
                   onChange={(value) => update("targetMarginRate", value / 100)}
                 />
-                <TextField
-                  label="Unité"
-                  value={form.unitLabel}
-                  onChange={(value) => update("unitLabel", value)}
-                />
-                <Field className="md:col-span-3">
-                  <FieldLabel>Description</FieldLabel>
-                  <Textarea
-                    value={form.description}
-                    onChange={(event) =>
-                      update("description", event.target.value)
-                    }
-                  />
-                </Field>
-                <TextField
-                  label="Image principale"
-                  value={form.imageUrl}
-                  onChange={(value) => update("imageUrl", value)}
-                />
-                <Field className="md:col-span-2">
-                  <FieldLabel>Galerie, une URL par ligne</FieldLabel>
-                  <Textarea
-                    value={gallery}
-                    onChange={(event) => updateGallery(event.target.value)}
-                  />
-                </Field>
               </FieldGroup>
+
+              <FieldGroup className="grid gap-4 md:grid-cols-3"></FieldGroup>
             </FieldSet>
 
             <CollectionSection
@@ -584,7 +610,7 @@ export function CatalogProductDialog({
 
             <FieldSet>
               <FieldLegend>Disponibilité</FieldLegend>
-              <FieldGroup className="grid gap-4 md:grid-cols-4">
+              <FieldGroup className="grid gap-4 md:grid-cols-3">
                 <TextField
                   label="Note"
                   value={form.availabilityNote}
@@ -601,12 +627,6 @@ export function CatalogProductDialog({
                   checked={form.available}
                   onChange={(value) => update("available", value)}
                 />
-                <CheckField
-                  label="Publier"
-                  description="Inclut le produit lors de la prochaine publication catalogue."
-                  checked={form.published}
-                  onChange={(value) => update("published", value)}
-                />
               </FieldGroup>
             </FieldSet>
 
@@ -619,7 +639,9 @@ export function CatalogProductDialog({
                   form.productBoms.some(
                     (productBom) =>
                       !productBom.bomId || productBom.quantity <= 0,
-                  )
+                  ) ||
+                  !hasActivePurchaseMode ||
+                  hasInvalidPurchaseMode
                 }
               >
                 {saving ? "Enregistrement..." : "Enregistrer"}

@@ -234,8 +234,12 @@ class ProductPricingServiceTest {
     private Product product(ProductType type, List<ProductBom> productBoms, Money price, BigDecimal margin,
             List<ProductPurchaseMode> modes, ProductChoiceGroup group,
             List<ProductIngredientOption> ingredients) {
+        List<ProductPurchaseMode> safeModes = modes.isEmpty()
+                ? List.of(new ProductPurchaseMode(
+                        null, "unit", "À l'unité", 1, price, AllocationType.NONE, true, 0))
+                : modes;
         return new Product(null, "code", "slug", "Produit", "", type, UUID.randomUUID(), productBoms,
-                price, margin, "unité", "/image.jpg", List.of(), "Disponible", true, true,
-                0, modes, group, ingredients);
+                margin, "/image.jpg", List.of(), "Disponible", true, true,
+                0, safeModes, group, ingredients);
     }
 }

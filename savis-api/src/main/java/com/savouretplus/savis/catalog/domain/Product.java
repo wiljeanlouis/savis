@@ -1,6 +1,7 @@
 package com.savouretplus.savis.catalog.domain;
 
 import java.math.BigDecimal;
+import java.util.Comparator;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Objects;
@@ -22,9 +23,7 @@ public record Product(
         ProductType productType,
         UUID categoryId,
         List<ProductBom> productBoms,
-        Money basePrice,
         BigDecimal targetMarginRate,
-        String unitLabel,
         String imageUrl,
         List<String> gallery,
         String availabilityNote,
@@ -48,15 +47,11 @@ public record Product(
         if (categoryId == null) {
             throw new IllegalArgumentException("La catégorie du produit est requise");
         }
-        if (basePrice == null || basePrice.amount().signum() < 0) {
-            throw new IllegalArgumentException("Le prix de base est requis et ne peut pas être négatif");
-        }
         if (targetMarginRate == null
                 || targetMarginRate.compareTo(BigDecimal.ZERO) < 0
                 || targetMarginRate.compareTo(BigDecimal.ONE) >= 0) {
             throw new IllegalArgumentException("La marge cible doit être comprise entre 0 inclus et 1 exclu");
         }
-        unitLabel = isBlank(unitLabel) ? "unité" : unitLabel;
         requireText(imageUrl, "L'image principale du produit est requise");
         gallery = gallery != null ? List.copyOf(gallery) : List.of();
         availabilityNote = isBlank(availabilityNote) ? "Disponible sur commande" : availabilityNote;
@@ -66,6 +61,9 @@ public record Product(
         productBoms = productBoms != null ? List.copyOf(productBoms) : List.of();
         purchaseModes = purchaseModes != null ? List.copyOf(purchaseModes) : List.of();
         ingredientOptions = ingredientOptions != null ? List.copyOf(ingredientOptions) : List.of();
+        if (purchaseModes.stream().noneMatch(ProductPurchaseMode::active)) {
+            throw new IllegalArgumentException("Au moins un mode d'achat actif est requis");
+        }
         requireUniqueCodes(purchaseModes.stream().map(ProductPurchaseMode::code).toList(), "mode d'achat");
         requireUniqueCodes(ingredientOptions.stream().map(ProductIngredientOption::code).toList(), "ingrédient");
         validateStructure(productType, choiceGroup, ingredientOptions);
@@ -76,9 +74,7 @@ public record Product(
      */
     public Money calculateSalePrice(ProductConfiguration configuration) {
         ProductConfiguration safeConfiguration = configuration != null ? configuration : ProductConfiguration.empty();
-        Money price = isBlank(safeConfiguration.purchaseModeCode())
-                ? basePrice
-                : requireActiveMode(safeConfiguration.purchaseModeCode()).price();
+        Money price = selectedMode(safeConfiguration).price();
 
         validateChoices(safeConfiguration);
         validateIngredients(safeConfiguration);
@@ -104,8 +100,19 @@ public record Product(
      * Returns an active purchase mode by code or fails when it is unavailable.
      */
     public ProductPurchaseMode requireActiveMode(String code) {
-        return selectedMode(code)
+        return findActiveMode(code)
                 .orElseThrow(() -> new IllegalArgumentException("Mode d'achat actif introuvable: " + code));
+    }
+
+    /**
+     * Returns the active purchase mode selected by a configuration, or the default active mode.
+     */
+    public ProductPurchaseMode selectedMode(ProductConfiguration configuration) {
+        ProductConfiguration safeConfiguration = configuration != null ? configuration : ProductConfiguration.empty();
+        if (!isBlank(safeConfiguration.purchaseModeCode())) {
+            return requireActiveMode(safeConfiguration.purchaseModeCode());
+        }
+        return defaultActiveMode();
     }
 
     /**
@@ -159,17 +166,27 @@ public record Product(
         return copy(purchaseModes, choiceGroup, ingredients);
     }
 
+    /**
+     * Returns a copy of this product with a replacement publication flag.
+     */
+    public Product withPublished(boolean value) {
+        return new Product(
+                publicId, code, slug, name, description, productType, categoryId, productBoms,
+                targetMarginRate, imageUrl, gallery, availabilityNote,
+                available, value, displayOrder, purchaseModes, choiceGroup, ingredientOptions);
+    }
+
     private Product copy(
             List<ProductPurchaseMode> modes,
             ProductChoiceGroup group,
             List<ProductIngredientOption> ingredients) {
         return new Product(
                 publicId, code, slug, name, description, productType, categoryId, productBoms,
-                basePrice, targetMarginRate, unitLabel, imageUrl, gallery, availabilityNote,
+                targetMarginRate, imageUrl, gallery, availabilityNote,
                 available, published, displayOrder, modes, group, ingredients);
     }
 
-    private Optional<ProductPurchaseMode> selectedMode(String code) {
+    private Optional<ProductPurchaseMode> findActiveMode(String code) {
         if (code == null || code.isBlank()) {
             return java.util.Optional.empty();
         }
@@ -177,6 +194,15 @@ public record Product(
                 .filter(ProductPurchaseMode::active)
                 .filter(mode -> mode.code().equals(code))
                 .findFirst();
+    }
+
+    private ProductPurchaseMode defaultActiveMode() {
+        return purchaseModes.stream()
+                .filter(ProductPurchaseMode::active)
+                .min(Comparator.comparingInt(ProductPurchaseMode::displayOrder)
+                        .thenComparing(ProductPurchaseMode::label)
+                        .thenComparing(ProductPurchaseMode::code))
+                .orElseThrow(() -> new IllegalStateException("Au moins un mode d'achat actif est requis"));
     }
 
     private void validateChoices(ProductConfiguration configuration) {

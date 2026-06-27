@@ -1,4 +1,5 @@
 import type { Bom } from "@/features/bom/types";
+import { useState } from "react";
 import { DeleteAlert } from "@/shared/components/DeleteAlert";
 import { Badge } from "@/shared/ui/badge";
 import { Button } from "@/shared/ui/button";
@@ -11,7 +12,15 @@ import {
   CardHeader,
   CardTitle,
 } from "@/shared/ui/card";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/shared/ui/dropdown-menu";
 import { Separator } from "@/shared/ui/separator";
+import { HugeiconsIcon } from "@hugeicons/react";
+import { MoreVerticalCircle01Icon } from "@hugeicons/core-free-icons";
 import type {
   CatalogProduct,
   ProductCategory,
@@ -25,7 +34,10 @@ interface CatalogProductCardProps {
   categories: ProductCategory[];
   boms: Bom[];
   saving: boolean;
+  publishing: boolean;
   onAnalyze: () => void;
+  onPublish: () => void;
+  onUnpublish: () => void;
   onSave: (product: CatalogProduct) => void | Promise<void>;
   onDelete: () => void;
 }
@@ -36,11 +48,24 @@ export function CatalogProductCard({
   categories,
   boms,
   saving,
+  publishing,
   onAnalyze,
+  onPublish,
+  onUnpublish,
   onSave,
   onDelete,
 }: CatalogProductCardProps) {
+  const [isEditOpen, setIsEditOpen] = useState(false);
+  const [isDeleteOpen, setIsDeleteOpen] = useState(false);
   const category = categories.find((item) => item.id === product.categoryId);
+  const primaryMode = [...product.purchaseModes]
+    .filter((mode) => mode.active)
+    .sort(
+      (left, right) =>
+        left.displayOrder - right.displayOrder ||
+        left.label.localeCompare(right.label) ||
+        left.code.localeCompare(right.code),
+    )[0];
   const bomName = (bomId: string | null) =>
     bomId ? (boms.find((bom) => bom.id === bomId)?.name ?? bomId) : "Aucun BOM";
 
@@ -73,10 +98,10 @@ export function CatalogProductCard({
         </div>
         <CardAction>
           <p className="text-right text-lg font-semibold tabular-nums">
-            {money(product.basePrice.amount)}
+            {primaryMode ? money(primaryMode.price.amount) : "-"}
           </p>
           <p className="text-right text-xs text-muted-foreground">
-            {product.unitLabel}
+            {primaryMode?.label ?? "Aucun mode actif"}
           </p>
         </CardAction>
       </CardHeader>
@@ -85,7 +110,7 @@ export function CatalogProductCard({
         <section>
           <h3 className="mb-2 font-medium">Modes d’achat</h3>
           {product.purchaseModes.length === 0 ? (
-            <MutedValue value="Prix de base uniquement" />
+            <MutedValue value="Aucun mode d'achat" />
           ) : (
             <div className="space-y-2">
               {product.purchaseModes.map((mode) => (
@@ -187,14 +212,59 @@ export function CatalogProductCard({
         <Button type="button" variant="outline" onClick={onAnalyze}>
           Analyser
         </Button>
+        <Button
+          type="button"
+          variant="default"
+          disabled={publishing}
+          onClick={onPublish}
+        >
+          {product.published ? "Republier" : "Publier"}
+        </Button>
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="outline" size="icon" disabled={saving}>
+              <HugeiconsIcon icon={MoreVerticalCircle01Icon} strokeWidth={2} />
+              <span className="sr-only">Actions</span>
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end">
+            <DropdownMenuItem onSelect={() => setIsEditOpen(true)}>
+              Modifier
+            </DropdownMenuItem>
+            {product.published && (
+              <DropdownMenuItem
+                variant="destructive"
+                disabled={publishing}
+                onSelect={onUnpublish}
+              >
+                Retirer de SavouretPlus
+              </DropdownMenuItem>
+            )}
+            <DropdownMenuItem
+              variant="destructive"
+              onSelect={() => setIsDeleteOpen(true)}
+            >
+              Supprimer
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
         <CatalogProductDialog
           product={product}
           categories={categories}
           boms={boms}
           saving={saving}
           onSave={onSave}
+          open={isEditOpen}
+          onOpenChange={setIsEditOpen}
+          hideTrigger
         />
-        <DeleteAlert item={product.name} onDelete={onDelete} />
+        <DeleteAlert
+          item={product.name}
+          onDelete={onDelete}
+          open={isDeleteOpen}
+          onOpenChange={setIsDeleteOpen}
+          hideTrigger
+        />
       </CardFooter>
     </Card>
   );

@@ -70,3 +70,9 @@ export interface CatalogPublicationResult {
 
 export const publishCatalog = async (): Promise<CatalogPublicationResult> =>
   (await api.post<CatalogPublicationResult>("/catalog/products/publish")).data;
+
+export const publishProduct = (productId: string) =>
+  api.post(`/catalog/products/${productId}/publish`);
+
+export const unpublishProduct = (productId: string) =>
+  api.post(`/catalog/products/${productId}/unpublish`);
