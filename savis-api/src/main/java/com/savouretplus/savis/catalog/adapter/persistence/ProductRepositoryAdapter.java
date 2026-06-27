@@ -82,7 +82,7 @@ public class ProductRepositoryAdapter implements ProductRepository {
         entity.setName(product.name());
         entity.setDescription(product.description());
         entity.setProductType(product.productType());
-        entity.setCategoryPublicId(product.categoryId());
+        entity.setCategory(product.category());
         entity.setTargetMarginRate(product.targetMarginRate());
         entity.setImageUrl(product.imageUrl());
         entity.setGallery(new ArrayList<>(product.gallery()));
@@ -111,7 +111,7 @@ public class ProductRepositoryAdapter implements ProductRepository {
                 .toList();
         return new Product(
                 entity.getPublicId(), entity.getCode(), entity.getSlug(), entity.getName(),
-                entity.getDescription(), entity.getProductType(), entity.getCategoryPublicId(),
+                entity.getDescription(), entity.getProductType(), entity.getCategory(),
                 productBoms, entity.getTargetMarginRate(), entity.getImageUrl(),
                 entity.getGallery(), entity.getAvailabilityNote(), entity.isAvailable(), entity.isPublished(),
                 entity.getDisplayOrder(), modes,

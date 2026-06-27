@@ -21,17 +21,13 @@ import {
 import { Separator } from "@/shared/ui/separator";
 import { HugeiconsIcon } from "@hugeicons/react";
 import { MoreVerticalCircle01Icon } from "@hugeicons/core-free-icons";
-import type {
-  CatalogProduct,
-  ProductCategory,
-  ProductPricingAnalysis,
-} from "../types";
+import type { CatalogProduct, ProductPricingAnalysis } from "../types";
+import { productCategories } from "../types";
 import { CatalogProductDialog } from "./CatalogProductDialog";
 
 interface CatalogProductCardProps {
   product: CatalogProduct;
   result?: ProductPricingAnalysis;
-  categories: ProductCategory[];
   boms: Bom[];
   saving: boolean;
   publishing: boolean;
@@ -45,7 +41,6 @@ interface CatalogProductCardProps {
 export function CatalogProductCard({
   product,
   result,
-  categories,
   boms,
   saving,
   publishing,
@@ -57,7 +52,9 @@ export function CatalogProductCard({
 }: CatalogProductCardProps) {
   const [isEditOpen, setIsEditOpen] = useState(false);
   const [isDeleteOpen, setIsDeleteOpen] = useState(false);
-  const category = categories.find((item) => item.id === product.categoryId);
+  const category = productCategories.find(
+    (item) => item.value === product.category,
+  );
   const primaryMode = [...product.purchaseModes]
     .filter((mode) => mode.active)
     .sort(
@@ -85,7 +82,7 @@ export function CatalogProductCard({
             </Badge>
           </div>
           <CardDescription className="mt-1">
-            {product.code} · {category?.name ?? "Sans catégorie"}
+            {product.code} · {category?.label ?? "Sans catégorie"}
           </CardDescription>
           <div className="mt-2 flex flex-wrap gap-2">
             <Badge variant="outline">
@@ -250,7 +247,6 @@ export function CatalogProductCard({
         </DropdownMenu>
         <CatalogProductDialog
           product={product}
-          categories={categories}
           boms={boms}
           saving={saving}
           onSave={onSave}

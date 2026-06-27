@@ -4,7 +4,6 @@ import {
   useAnalyzeWorstCasePricing,
   useCatalogProducts,
   useDeleteCatalogProduct,
-  useProductCategories,
   usePublishProduct,
   useSaveCatalogProduct,
   useUnpublishProduct,
@@ -29,7 +28,6 @@ vi.mock("@/features/catalog/hooks/useCatalogApi", () => ({
   useAnalyzeWorstCasePricing: vi.fn(),
   useCatalogProducts: vi.fn(),
   useDeleteCatalogProduct: vi.fn(),
-  useProductCategories: vi.fn(),
   usePublishProduct: vi.fn(),
   useSaveCatalogProduct: vi.fn(),
   useUnpublishProduct: vi.fn(),
@@ -44,7 +42,7 @@ vi.mock("sonner", () => ({
 }));
 
 const product: CatalogProduct = {
-  ...emptyCatalogProduct("category-1"),
+  ...emptyCatalogProduct("TASTING"),
   id: "product-1",
   code: "BOX",
   name: "Boîte découverte",
@@ -113,10 +111,6 @@ const setupApiMocks = () => {
     data: [product],
     isPending: false,
   } as never);
-  vi.mocked(useProductCategories).mockReturnValue({
-    data: [{ id: "category-1", code: "BOX", name: "Boîtes", active: true }],
-    isPending: false,
-  } as never);
   vi.mocked(useGetBoms).mockReturnValue({
     data: [{ id: "bom-1", name: "BOM 1" }],
     isPending: false,
@@ -158,15 +152,12 @@ describe("useCatalogProductManagement", () => {
     vi.clearAllMocks();
   });
 
-  it("exposes loaded products, categories and BOMs", () => {
+  it("exposes loaded products and BOMs", () => {
     setupApiMocks();
 
     const { result } = renderHook(() => useCatalogProductManagement());
 
     expect(result.current.products).toEqual([product]);
-    expect(result.current.categories).toEqual([
-      { id: "category-1", code: "BOX", name: "Boîtes", active: true },
-    ]);
     expect(result.current.boms).toEqual([{ id: "bom-1", name: "BOM 1" }]);
     expect(result.current.isLoading).toBe(false);
   });

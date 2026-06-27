@@ -7,7 +7,6 @@ import {
   useAnalyzeWorstCasePricing,
   useCatalogProducts,
   useDeleteCatalogProduct,
-  useProductCategories,
   usePublishProduct,
   useSaveCatalogProduct,
   useUnpublishProduct,
@@ -16,7 +15,6 @@ import type { CatalogProduct, ProductPricingAnalysis } from "../types";
 
 export function useCatalogProductManagement() {
   const productsQuery = useCatalogProducts();
-  const categoriesQuery = useProductCategories();
   const bomsQuery = useGetBoms();
   const saveProduct = useSaveCatalogProduct();
   const deleteProductMutation = useDeleteCatalogProduct();
@@ -103,13 +101,9 @@ export function useCatalogProductManagement() {
 
   return {
     products: productsQuery.data ?? [],
-    categories: categoriesQuery.data ?? [],
     boms: bomsQuery.data ?? [],
     analysis,
-    isLoading:
-      productsQuery.isPending ||
-      categoriesQuery.isPending ||
-      bomsQuery.isPending,
+    isLoading: productsQuery.isPending || bomsQuery.isPending,
     isSaving: saveProduct.isPending,
     isPublishing:
       publishProductMutation.isPending || unpublishProductMutation.isPending,

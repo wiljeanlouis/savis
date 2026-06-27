@@ -18,6 +18,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import com.savouretplus.savis.catalog.domain.AllocationType;
 import com.savouretplus.savis.catalog.domain.Product;
 import com.savouretplus.savis.catalog.domain.ProductBom;
+import com.savouretplus.savis.catalog.domain.ProductCategory;
 import com.savouretplus.savis.catalog.domain.ProductChoiceGroup;
 import com.savouretplus.savis.catalog.domain.ProductChoiceOption;
 import com.savouretplus.savis.catalog.domain.ProductIngredientOption;
@@ -32,7 +33,6 @@ class ProductRepositoryAdapterTest {
     @Test
     void updatesExistingAggregateChildrenWithoutReinsertingTheirPublicIds() {
         UUID productId = UUID.randomUUID();
-        UUID categoryId = UUID.randomUUID();
         UUID groupId = UUID.randomUUID();
         UUID choiceId = UUID.randomUUID();
         UUID modeId = UUID.randomUUID();
@@ -40,7 +40,7 @@ class ProductRepositoryAdapterTest {
         UUID productBomId = UUID.randomUUID();
         UUID bomId = UUID.randomUUID();
 
-        ProductEntity entity = entity(productId, categoryId);
+        ProductEntity entity = entity(productId);
         ProductChoiceGroupEntity existingGroup = new ProductChoiceGroupEntity();
         existingGroup.setId(10L);
         existingGroup.setPublicId(groupId);
@@ -70,7 +70,7 @@ class ProductRepositoryAdapterTest {
 
         new ProductRepositoryAdapter(repository).save(new Product(
                 productId, "pate", "pate", "Pâté", "", ProductType.SINGLE_CHOICE,
-                categoryId, List.of(new ProductBom(productBomId, bomId, new BigDecimal("1.5"), 0)),
+                ProductCategory.TASTING, List.of(new ProductBom(productBomId, bomId, new BigDecimal("1.5"), 0)),
                 new BigDecimal("0.30"),
                 "/pate.jpg", List.of(), "Disponible", true, false, 0,
                 List.of(new ProductPurchaseMode(
@@ -92,7 +92,7 @@ class ProductRepositoryAdapterTest {
         assertEquals(new BigDecimal("1.5"), entity.getProductBoms().getFirst().getQuantity());
     }
 
-    private ProductEntity entity(UUID productId, UUID categoryId) {
+    private ProductEntity entity(UUID productId) {
         ProductEntity entity = new ProductEntity();
         entity.setId(1L);
         entity.setPublicId(productId);
@@ -101,7 +101,7 @@ class ProductRepositoryAdapterTest {
         entity.setName("Pâté");
         entity.setDescription("");
         entity.setProductType(ProductType.SINGLE_CHOICE);
-        entity.setCategoryPublicId(categoryId);
+        entity.setCategory(ProductCategory.TASTING);
         entity.setTargetMarginRate(new BigDecimal("0.30"));
         entity.setImageUrl("/pate.jpg");
         entity.setAvailabilityNote("Disponible");

@@ -280,8 +280,8 @@ flowchart TB
     end
 
     subgraph Catalog["Catalog module"]
-      CatalogWeb["Web adapters<br/>CatalogController<br/>ProductCategoryController"]
-      CatalogUse["Use cases<br/>Product and category services<br/>Cost, pricing, publication"]
+      CatalogWeb["Web adapters<br/>CatalogController"]
+      CatalogUse["Use cases<br/>Product services<br/>Cost, pricing, publication"]
       CatalogDomain["Domain<br/>Product aggregate<br/>ProductBom, modes<br/>choices, ingredients"]
       CatalogPorts["Ports<br/>Repositories<br/>BomPricingPort<br/>PublishedCatalogPort"]
       CatalogAdapters["Adapters<br/>JPA<br/>BOM public API<br/>Supabase"]
@@ -705,19 +705,17 @@ sequenceDiagram
   participant Admin as SAVIS Admin
   participant Controller as CatalogController
   participant Products as ProductService
-  participant Categories as ProductCategoryRepository
   participant BomPort as BomPricingPort
   participant Repository as ProductRepository
 
   Admin->>Controller: Create or update product aggregate
   Controller->>Products: Product with modes, BOMs, choices, ingredients
   Products->>Products: Validate product structure and invariants
-  Products->>Categories: Verify category UUID
   loop each common ProductBom
     Products->>BomPort: exists(bomId)
     BomPort-->>Products: BOM existence
   end
-  alt category or common BOM is unknown
+  alt common BOM is unknown
     Products-->>Controller: Reject command
     Controller-->>Admin: Problem Details response
   else aggregate is valid
@@ -762,7 +760,6 @@ sequenceDiagram
   participant Controller as CatalogController
   participant Publication as CatalogPublicationService
   participant Products as ProductRepository
-  participant Categories as ProductCategoryRepository
   participant Mapper as PublishedCatalogProductMapper
   participant Port as PublishedCatalogPort
   participant Supabase as Supabase
@@ -784,7 +781,6 @@ sequenceDiagram
   else publication is enabled
     Publication->>Products: findAllPublished()
     loop each published product
-      Publication->>Categories: Resolve category
       Publication->>Mapper: Map internal aggregate
       Mapper-->>Publication: PublishedCatalogProduct
       Publication->>Port: publish(public projection)
