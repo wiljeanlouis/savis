@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.7.4](https://github.com/wiljeanlouis/savis/compare/v1.7.3...v1.7.4) (2026-06-27)
+
+
+### Bug Fixes
+
+* refactor product ui and product category ([#71](https://github.com/wiljeanlouis/savis/issues/71)) ([e98339e](https://github.com/wiljeanlouis/savis/commit/e98339e8aeb92b7b02be8f07ef977637ffa3d1e3))
+
 ## [1.7.3](https://github.com/wiljeanlouis/savis/compare/v1.7.2...v1.7.3) (2026-06-27)
 
 
