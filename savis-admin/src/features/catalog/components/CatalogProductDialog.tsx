@@ -54,6 +54,7 @@ import {
   loadDraft,
   saveDraft,
 } from "../model/catalogProductDraftStorage";
+import { BomCombobox } from "./BomCombobox";
 
 interface Props {
   product?: CatalogProduct;
@@ -879,24 +880,12 @@ function BomField({
   return (
     <Field>
       <FieldLabel>{label}</FieldLabel>
-      <Select
-        value={value ?? (required ? undefined : "none")}
-        onValueChange={(next) => onChange(next === "none" ? null : next)}
-      >
-        <SelectTrigger>
-          <SelectValue placeholder="Sélectionner un BOM" />
-        </SelectTrigger>
-        <SelectContent>
-          {!required && <SelectItem value="none">Aucun BOM</SelectItem>}
-          {boms
-            .filter((bom) => bom.id)
-            .map((bom) => (
-              <SelectItem key={bom.id} value={bom.id!}>
-                {bom.name}
-              </SelectItem>
-            ))}
-        </SelectContent>
-      </Select>
+      <BomCombobox
+        boms={boms}
+        value={value}
+        required={required}
+        onChange={onChange}
+      />
     </Field>
   );
 }
