@@ -1,3 +1,5 @@
+import { createUuid } from "@/shared/lib/utils";
+
 export type ProductType =
   | "STANDARD"
   | "SINGLE_CHOICE"
@@ -178,14 +180,14 @@ export const emptyCatalogProduct = (
 });
 
 export const emptyProductBom = (displayOrder = 0, bomId = ""): ProductBom => ({
-  id: crypto.randomUUID(),
+  id: createUuid(),
   bomId,
   quantity: 1,
   displayOrder,
 });
 
 export const emptyPurchaseMode = (): ProductPurchaseMode => ({
-  id: crypto.randomUUID(),
+  id: createUuid(),
   code: "",
   label: "",
   quantity: 1,
@@ -196,7 +198,7 @@ export const emptyPurchaseMode = (): ProductPurchaseMode => ({
 });
 
 export const emptyChoiceOption = (): ProductChoiceOption => ({
-  id: crypto.randomUUID(),
+  id: createUuid(),
   code: "",
   name: "",
   bomId: null,
@@ -205,7 +207,7 @@ export const emptyChoiceOption = (): ProductChoiceOption => ({
 });
 
 export const emptyIngredientOption = (): ProductIngredientOption => ({
-  id: crypto.randomUUID(),
+  id: createUuid(),
   code: "",
   name: "",
   bomId: null,
