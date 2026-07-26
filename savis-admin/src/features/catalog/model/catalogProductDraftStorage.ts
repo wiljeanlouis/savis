@@ -1,5 +1,4 @@
 import type { CatalogProduct, ProductCategory } from "../types";
-import type { CatalogProduct, ProductCategory } from "../types";
 
 const KEY = "catalog-product-draft";
 
@@ -31,10 +30,6 @@ const hasDraft = () => {
 };
 
 export { saveDraft, loadDraft, clearDraft, hasDraft };
-
-function normalizeCategory(value: string | undefined): ProductCategory {
-  return value === "DECORATION" ? "DECORATION" : "TASTING";
-}
 
 function normalizeCategory(value: string | undefined): ProductCategory {
   return value === "DECORATION" ? "DECORATION" : "TASTING";

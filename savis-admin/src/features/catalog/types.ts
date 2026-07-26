@@ -156,9 +156,6 @@ const cad = (amount = 0): Money => ({ amount, currency: "CAD" });
 export const emptyCatalogProduct = (
   category: ProductCategory = "TASTING",
 ): CatalogProduct => ({
-export const emptyCatalogProduct = (
-  category: ProductCategory = "TASTING",
-): CatalogProduct => ({
   id: null,
   code: "",
   slug: "",
@@ -181,14 +178,14 @@ export const emptyCatalogProduct = (
 });
 
 export const emptyProductBom = (displayOrder = 0, bomId = ""): ProductBom => ({
-  id: null,
+  id: crypto.randomUUID(),
   bomId,
   quantity: 1,
   displayOrder,
 });
 
 export const emptyPurchaseMode = (): ProductPurchaseMode => ({
-  id: null,
+  id: crypto.randomUUID(),
   code: "",
   label: "",
   quantity: 1,
@@ -199,7 +196,7 @@ export const emptyPurchaseMode = (): ProductPurchaseMode => ({
 });
 
 export const emptyChoiceOption = (): ProductChoiceOption => ({
-  id: null,
+  id: crypto.randomUUID(),
   code: "",
   name: "",
   bomId: null,
@@ -208,7 +205,7 @@ export const emptyChoiceOption = (): ProductChoiceOption => ({
 });
 
 export const emptyIngredientOption = (): ProductIngredientOption => ({
-  id: null,
+  id: crypto.randomUUID(),
   code: "",
   name: "",
   bomId: null,
