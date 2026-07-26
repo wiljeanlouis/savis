@@ -26,6 +26,7 @@ import {
   SelectValue,
 } from "@/shared/ui/select";
 import { useState } from "react";
+import { createUuid } from "@/shared/lib/utils";
 
 interface BomFormProps {
   showTitle?: boolean;
@@ -54,19 +55,19 @@ export const BomForm = ({ showTitle = true }: BomFormProps) => {
     error,
   } = useBomForm();
   const [componentKeys, setComponentKeys] = useState(() =>
-    form.components.map(() => crypto.randomUUID()),
+    form.components.map(() => createUuid()),
   );
   const [activityKeys, setActivityKeys] = useState(() =>
-    form.activities.map(() => crypto.randomUUID()),
+    form.activities.map(() => createUuid()),
   );
 
   const handleAddComponent = () => {
-    setComponentKeys((current) => [...current, crypto.randomUUID()]);
+    setComponentKeys((current) => [...current, createUuid()]);
     addComponent();
   };
 
   const handleAddActivity = () => {
-    setActivityKeys((current) => [...current, crypto.randomUUID()]);
+    setActivityKeys((current) => [...current, createUuid()]);
     addActivity();
   };
 
