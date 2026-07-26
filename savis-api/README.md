@@ -316,6 +316,26 @@ cost / (1 - target margin)
 It is rounded upward to the next CAD 0.25. The recommendation is advisory and
 never changes a product or purchase-mode sale price.
 
+#### Product Categories and Subcategories
+
+Every catalog product has a `ProductCategory` and may have one
+`ProductSubcategory`. A subcategory declares its parent category in the domain,
+and SAVIS rejects an incompatible association.
+
+The initial public mappings are:
+
+| API value | Public code | Parent category |
+| --- | --- | --- |
+| `BALLOON_ARCH` | `balloon-arch` | `DECORATION` |
+| `CENTERPIECE` | `centerpiece` | `DECORATION` |
+| `BIRTHDAY` | `birthday` | `DECORATION` |
+| `WEDDING` | `wedding` | `DECORATION` |
+
+The PostgreSQL and Supabase columns are nullable text columns without a
+hardcoded value constraint. Adding a subcategory therefore requires updating
+the domain/admin/storefront contracts, but does not require a Flyway or
+Supabase schema migration.
+
 #### Catalog Publication
 
 `CatalogPublicationService.publishAll()` publishes products whose `published`
@@ -331,9 +351,9 @@ The Supabase adapter upserts rows into:
 published_catalog_products
 ```
 
-The public projection includes customer-facing product content, active
-purchase modes, active choices, active ingredients, availability, images, and
-prices in cents. It excludes:
+The public projection includes customer-facing product content, category,
+optional subcategory public code, active purchase modes, active choices,
+active ingredients, availability, images, and prices in cents. It excludes:
 
 - common `productBoms`;
 - internal costs and missing-BOM diagnostics;

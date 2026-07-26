@@ -8,10 +8,12 @@ import com.savouretplus.savis.catalog.domain.AllocationType;
 import com.savouretplus.savis.catalog.domain.Product;
 import com.savouretplus.savis.catalog.domain.ProductBom;
 import com.savouretplus.savis.catalog.domain.ProductCategory;
+import com.savouretplus.savis.catalog.domain.ProductCategory;
 import com.savouretplus.savis.catalog.domain.ProductChoiceGroup;
 import com.savouretplus.savis.catalog.domain.ProductChoiceOption;
 import com.savouretplus.savis.catalog.domain.ProductIngredientOption;
 import com.savouretplus.savis.catalog.domain.ProductPurchaseMode;
+import com.savouretplus.savis.catalog.domain.ProductSubcategory;
 import com.savouretplus.savis.catalog.domain.ProductType;
 import com.savouretplus.savis.common.Money;
 
@@ -31,6 +33,7 @@ public record CatalogProductDto(
         String description,
         @NotNull ProductType productType,
         @NotNull ProductCategory category,
+        ProductSubcategory subcategory,
         List<@Valid ProductBomDto> productBoms,
         @NotNull BigDecimal targetMarginRate,
         @NotBlank String imageUrl,
@@ -54,7 +57,7 @@ public record CatalogProductDto(
      * Converts this DTO into its domain representation.
      */
     public Product toDomain(UUID productId) {
-        return new Product(productId, code, slug, name, description, productType, category,
+        return new Product(productId, code, slug, name, description, productType, category, subcategory,
                 safe(productBoms).stream().map(ProductBomDto::toDomain).toList(),
                 targetMarginRate, imageUrl, gallery, availabilityNote,
                 available, published, displayOrder,
@@ -69,7 +72,7 @@ public record CatalogProductDto(
     public static CatalogProductDto from(Product product) {
         return new CatalogProductDto(
                 product.publicId(), product.code(), product.slug(), product.name(), product.description(),
-                product.productType(), product.category(),
+                product.productType(), product.category(), product.subcategory(),
                 product.productBoms().stream().map(ProductBomDto::from).toList(),
                 product.targetMarginRate(), product.imageUrl(), product.gallery(),
                 product.availabilityNote(), product.available(), product.published(), product.displayOrder(),

@@ -25,6 +25,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/shared/ui/select";
+import { useState } from "react";
 
 interface BomFormProps {
   showTitle?: boolean;
@@ -52,6 +53,22 @@ export const BomForm = ({ showTitle = true }: BomFormProps) => {
     isError,
     error,
   } = useBomForm();
+  const [componentKeys, setComponentKeys] = useState(() =>
+    form.components.map(() => crypto.randomUUID()),
+  );
+  const [activityKeys, setActivityKeys] = useState(() =>
+    form.activities.map(() => crypto.randomUUID()),
+  );
+
+  const handleAddComponent = () => {
+    setComponentKeys((current) => [...current, crypto.randomUUID()]);
+    addComponent();
+  };
+
+  const handleAddActivity = () => {
+    setActivityKeys((current) => [...current, crypto.randomUUID()]);
+    addActivity();
+  };
 
   const formTitle = form.id ? "Modifier le BOM" : "Ajouter un nouveau BOM";
 
@@ -226,12 +243,15 @@ export const BomForm = ({ showTitle = true }: BomFormProps) => {
                 {form.components.map(
                   (component: BomComponent, index: number) => (
                     <BomComponentInput
-                      key={index}
+                      key={componentKeys[index]}
                       value={component}
                       onChange={(val) => {
                         updateComponent(index, val);
                       }}
                       onRemove={() => {
+                        setComponentKeys((current) =>
+                          current.filter((_, item) => item !== index),
+                        );
                         removeComponent(index);
                       }}
                     />
@@ -241,7 +261,7 @@ export const BomForm = ({ showTitle = true }: BomFormProps) => {
                   type="button"
                   variant="destructive"
                   className="w-48"
-                  onClick={addComponent}
+                  onClick={handleAddComponent}
                 >
                   Ajouter un composant BOM
                 </Button>
@@ -256,13 +276,16 @@ export const BomForm = ({ showTitle = true }: BomFormProps) => {
               <FieldGroup>
                 {form.activities.map((activity: BomActivity, index: number) => (
                   <ActivityInput
-                    key={index}
+                    key={activity.id ?? activityKeys[index]}
                     value={activity}
                     canRemove={index > 1}
                     onChange={(val) => {
                       updateActivity(index, val);
                     }}
                     onRemove={() => {
+                      setActivityKeys((current) =>
+                        current.filter((_, item) => item !== index),
+                      );
                       removeActivity(index);
                     }}
                   />
@@ -271,7 +294,7 @@ export const BomForm = ({ showTitle = true }: BomFormProps) => {
                   type="button"
                   variant="destructive"
                   className="w-48"
-                  onClick={addActivity}
+                  onClick={handleAddActivity}
                 >
                   Ajouter autre activité
                 </Button>
