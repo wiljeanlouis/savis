@@ -28,8 +28,8 @@ export const Header = () => {
                 (match) =>
                   match.handle && (match.handle as RouteHandle).breadcrumb,
               )
-              .map((match, index) => (
-                <Fragment key={index}>
+              .map((match) => (
+                <Fragment key={match.id}>
                   {(match.handle as RouteHandle).breadcrumb!()}
                 </Fragment>
               ))}

@@ -54,11 +54,15 @@ export function DataTable<TData, TValue>({
   onSortingChange,
   emptyMessage = "Aucun résultat.",
 }: DataTableProps<TData, TValue>) {
+  "use no memo";
+
   const pagination: PaginationState = {
     pageIndex: page - 1,
     pageSize,
   };
 
+  // TanStack Table intentionally exposes callbacks that React Compiler cannot memoize.
+  // eslint-disable-next-line react-hooks/incompatible-library
   const table = useReactTable({
     data,
     columns,

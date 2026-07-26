@@ -10,6 +10,7 @@ import org.hibernate.type.SqlTypes;
 
 import com.savouretplus.savis.catalog.domain.AllocationType;
 import com.savouretplus.savis.catalog.domain.ProductCategory;
+import com.savouretplus.savis.catalog.domain.ProductSubcategory;
 import com.savouretplus.savis.catalog.domain.ProductType;
 
 import jakarta.persistence.CascadeType;
@@ -54,6 +55,8 @@ public class ProductEntity {
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     private ProductCategory category;
+    @Enumerated(EnumType.STRING)
+    private ProductSubcategory subcategory;
     @Column(nullable = false, precision = 7, scale = 6)
     private BigDecimal targetMarginRate;
     @Column(nullable = false, columnDefinition = "text")

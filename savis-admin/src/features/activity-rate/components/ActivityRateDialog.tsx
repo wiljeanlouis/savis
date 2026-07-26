@@ -20,7 +20,7 @@ import {
 } from "@/shared/ui/select";
 import { HugeiconsIcon } from "@hugeicons/react";
 import { Add01Icon, Edit02Icon } from "@hugeicons/core-free-icons";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import type { ActivityRate, ActivityRateValues, ActivityType } from "../types";
 import { activityTypeLabel, activityTypes } from "../types";
 
@@ -55,25 +55,23 @@ export const ActivityRateDialog = ({
     (type) => !configuredTypes.has(type.value),
   )?.value;
 
-  useEffect(() => {
-    if (!open) {
-      return;
+  const handleOpenChange = (nextOpen: boolean) => {
+    if (nextOpen) {
+      setValues(
+        activityRate
+          ? {
+              activityType: activityRate.activityType,
+              hourlyRateAmount: Number(activityRate.hourlyRate.amount),
+              currency: activityRate.hourlyRate.currency,
+            }
+          : {
+              ...defaultValues,
+              activityType: firstAvailableType ?? defaultValues.activityType,
+            },
+      );
     }
-
-    // eslint-disable-next-line react-hooks/set-state-in-effect, react-x/set-state-in-effect
-    setValues(
-      activityRate
-        ? {
-            activityType: activityRate.activityType,
-            hourlyRateAmount: Number(activityRate.hourlyRate.amount),
-            currency: activityRate.hourlyRate.currency,
-          }
-        : {
-            ...defaultValues,
-            activityType: firstAvailableType ?? defaultValues.activityType,
-          },
-    );
-  }, [activityRate, firstAvailableType, open]);
+    setOpen(nextOpen);
+  };
 
   const canSave =
     values.activityType &&
@@ -87,7 +85,7 @@ export const ActivityRateDialog = ({
   };
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
+    <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogTrigger asChild>
         {isEditing ? (
           <Button variant="outline" size="icon">

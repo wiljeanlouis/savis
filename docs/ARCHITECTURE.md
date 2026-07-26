@@ -730,6 +730,13 @@ Common `ProductBom` references must resolve when a product is saved. Choice and
 ingredient BOM references remain optional; unresolved optional references make
 pricing analysis incomplete rather than blocking product management.
 
+Each product has a required `ProductCategory` and an optional
+`ProductSubcategory`. Each subcategory carries its parent category in the domain,
+so incompatible assignments are rejected before persistence. The database
+stores the enum name in a nullable text column without enumerating allowed
+values in a SQL constraint; extending the code list does not require a schema
+migration.
+
 ### Catalog Pricing
 
 ```mermaid
@@ -792,12 +799,14 @@ sequenceDiagram
   Storefront->>Supabase: Read published catalog
 ```
 
-The public projection excludes common `productBoms`, internal costs,
-target-margin data, diagnostics, and recommended prices. Publishing one product
-that is no longer marked `published` removes its public projection. The current
-HTTP endpoint calls only bulk publication, which processes products still
-marked for publication and therefore does not reconcile newly unpublished
-records by itself.
+The public projection includes the product category and the optional
+subcategory public code (`balloon-arch`, `centerpiece`, `birthday`, or
+`wedding`). It excludes common `productBoms`, internal costs, target-margin
+data, diagnostics, and recommended prices. Publishing one product that is no
+longer marked `published` removes its public projection. The current HTTP
+endpoint calls only bulk publication, which processes products still marked
+for publication and therefore does not reconcile newly unpublished records by
+itself.
 
 ### Flow Review Checklist
 

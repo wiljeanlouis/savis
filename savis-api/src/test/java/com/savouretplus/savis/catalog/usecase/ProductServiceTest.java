@@ -32,7 +32,8 @@ class ProductServiceTest {
         UUID bomId = UUID.randomUUID();
         Product product = new Product(
                 null, "pate", "pate", "Pâté", "", ProductType.STANDARD,
-                ProductCategory.TASTING, List.of(new ProductBom(null, bomId, BigDecimal.ONE, 0)),
+                ProductCategory.TASTING, null,
+                List.of(new ProductBom(null, bomId, BigDecimal.ONE, 0)),
                 new BigDecimal("0.30"),
                 "/pate.jpg", List.of(), "Disponible", true, true, 0,
                 List.of(new ProductPurchaseMode(
