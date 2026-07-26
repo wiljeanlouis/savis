@@ -22,6 +22,7 @@ public record Product(
         String description,
         ProductType productType,
         ProductCategory category,
+        ProductSubcategory subcategory,
         List<ProductBom> productBoms,
         BigDecimal targetMarginRate,
         String imageUrl,
@@ -46,6 +47,10 @@ public record Product(
         productType = productType != null ? productType : ProductType.STANDARD;
         if (category == null) {
             throw new IllegalArgumentException("La catégorie du produit est requise");
+        }
+        if (subcategory != null && subcategory.category() != category) {
+            throw new IllegalArgumentException(
+                    "La sous-catégorie du produit doit appartenir à sa catégorie");
         }
         if (targetMarginRate == null
                 || targetMarginRate.compareTo(BigDecimal.ZERO) < 0
@@ -171,7 +176,7 @@ public record Product(
      */
     public Product withPublished(boolean value) {
         return new Product(
-                publicId, code, slug, name, description, productType, category, productBoms,
+                publicId, code, slug, name, description, productType, category, subcategory, productBoms,
                 targetMarginRate, imageUrl, gallery, availabilityNote,
                 available, value, displayOrder, purchaseModes, choiceGroup, ingredientOptions);
     }
@@ -181,7 +186,7 @@ public record Product(
             ProductChoiceGroup group,
             List<ProductIngredientOption> ingredients) {
         return new Product(
-                publicId, code, slug, name, description, productType, category, productBoms,
+                publicId, code, slug, name, description, productType, category, subcategory, productBoms,
                 targetMarginRate, imageUrl, gallery, availabilityNote,
                 available, published, displayOrder, modes, group, ingredients);
     }

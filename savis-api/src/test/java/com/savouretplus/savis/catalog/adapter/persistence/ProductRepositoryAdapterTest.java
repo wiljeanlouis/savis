@@ -24,6 +24,7 @@ import com.savouretplus.savis.catalog.domain.ProductChoiceOption;
 import com.savouretplus.savis.catalog.domain.ProductIngredientOption;
 import com.savouretplus.savis.catalog.domain.ProductPurchaseMode;
 import com.savouretplus.savis.catalog.domain.ProductType;
+import com.savouretplus.savis.catalog.domain.ProductSubcategory;
 import com.savouretplus.savis.common.Money;
 
 @ExtendWith(MockitoExtension.class)
@@ -70,7 +71,8 @@ class ProductRepositoryAdapterTest {
 
         new ProductRepositoryAdapter(repository).save(new Product(
                 productId, "pate", "pate", "Pâté", "", ProductType.SINGLE_CHOICE,
-                ProductCategory.TASTING, List.of(new ProductBom(productBomId, bomId, new BigDecimal("1.5"), 0)),
+                ProductCategory.DECORATION, ProductSubcategory.CENTERPIECE,
+                List.of(new ProductBom(productBomId, bomId, new BigDecimal("1.5"), 0)),
                 new BigDecimal("0.30"),
                 "/pate.jpg", List.of(), "Disponible", true, false, 0,
                 List.of(new ProductPurchaseMode(
@@ -90,6 +92,7 @@ class ProductRepositoryAdapterTest {
         assertEquals(10L, entity.getChoiceGroup().getId());
         assertEquals("Nouvelle farce", entity.getChoiceGroup().getLabel());
         assertEquals(new BigDecimal("1.5"), entity.getProductBoms().getFirst().getQuantity());
+        assertEquals(ProductSubcategory.CENTERPIECE, entity.getSubcategory());
     }
 
     private ProductEntity entity(UUID productId) {

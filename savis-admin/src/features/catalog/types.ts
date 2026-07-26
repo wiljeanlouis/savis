@@ -7,11 +7,54 @@ export type ProductType =
 export type AllocationType = "NONE" | "SINGLE_CHOICE" | "CHOICE_ALLOCATION";
 export type PriceHealthStatus = "GOOD" | "REVIEW" | "LOSS" | "INCOMPLETE";
 export type ProductCategory = "TASTING" | "DECORATION";
+export type ProductSubcategory =
+  | "BALLOON_ARCH"
+  | "CENTERPIECE"
+  | "BIRTHDAY"
+  | "WEDDING";
 
 export const productCategories: { value: ProductCategory; label: string }[] = [
   { value: "TASTING", label: "Dégustation" },
   { value: "DECORATION", label: "Décoration" },
 ];
+
+export const productSubcategories: {
+  value: ProductSubcategory;
+  label: string;
+  category: ProductCategory;
+}[] = [
+  {
+    value: "BALLOON_ARCH",
+    label: "Arche de ballon",
+    category: "DECORATION",
+  },
+  {
+    value: "CENTERPIECE",
+    label: "Centre de table",
+    category: "DECORATION",
+  },
+  {
+    value: "BIRTHDAY",
+    label: "Anniversaire",
+    category: "DECORATION",
+  },
+  { value: "WEDDING", label: "Mariage", category: "DECORATION" },
+];
+
+export const subcategoriesForCategory = (category: ProductCategory) =>
+  productSubcategories.filter(
+    (subcategory) => subcategory.category === category,
+  );
+
+export const normalizeSubcategoryForCategory = (
+  subcategory: ProductSubcategory | null,
+  category: ProductCategory,
+): ProductSubcategory | null =>
+  productSubcategories.some(
+    (option) => option.value === subcategory && option.category === category,
+  )
+    ? subcategory
+    : null;
 
 export interface Money {
   amount: number;
@@ -73,6 +116,7 @@ export interface CatalogProduct {
   description: string;
   productType: ProductType;
   category: ProductCategory;
+  subcategory: ProductSubcategory | null;
   productBoms: ProductBom[];
   targetMarginRate: number;
   imageUrl: string;
@@ -119,6 +163,7 @@ export const emptyCatalogProduct = (
   description: "",
   productType: "STANDARD",
   category,
+  subcategory: null,
   productBoms: [],
   targetMarginRate: 0.3,
   imageUrl: "",

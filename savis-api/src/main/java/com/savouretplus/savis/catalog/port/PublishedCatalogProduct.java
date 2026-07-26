@@ -11,6 +11,7 @@ public record PublishedCatalogProduct(
         String slug,
         String name,
         String category,
+        String subcategory,
         String description,
         String productType,
         List<Map<String, Object>> purchaseModes,

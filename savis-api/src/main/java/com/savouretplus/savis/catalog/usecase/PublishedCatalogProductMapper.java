@@ -47,7 +47,9 @@ public class PublishedCatalogProductMapper {
 
         return new PublishedCatalogProduct(
                 product.publicId().toString(),
-                product.slug(), product.name(), product.category().code(), product.description(),
+                product.slug(), product.name(), product.category().code(),
+                product.subcategory() != null ? product.subcategory().code() : null,
+                product.description(),
                 product.productType().name().toLowerCase(Locale.ROOT),
                 modes, choiceGroup, ingredients, product.imageUrl(), product.gallery(), product.availabilityNote(),
                 product.available(), product.displayOrder());

@@ -101,7 +101,7 @@ class CatalogPublicationServiceTest {
     private Product product(boolean published) {
         return new Product(
                 UUID.randomUUID(), "pate", "pate", "Pâté", "", ProductType.STANDARD,
-                ProductCategory.TASTING, List.of(), new BigDecimal("0.30"),
+                ProductCategory.TASTING, null, List.of(), new BigDecimal("0.30"),
                 "/pate.jpg", List.of(), "Disponible", true, published, 0,
                 List.of(new ProductPurchaseMode(
                         null, "unit", "À l'unité", 1, Money.of(5), AllocationType.NONE, true, 0)),

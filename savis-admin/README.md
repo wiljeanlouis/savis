@@ -155,7 +155,7 @@ Supported activity types:
 The catalog page manages products sold to customers. Product data includes:
 
 - identity, slug, description, images, availability, and display order;
-- category;
+- category and optional subcategory;
 - product type;
 - base sale price and target margin;
 - common `ProductBom` references with decimal quantities and display order;
@@ -172,6 +172,18 @@ Supported product types:
 
 Categories are selected from the fixed catalog values `TASTING` and
 `DECORATION`.
+
+The optional subcategory selector is filtered by the selected category.
+Decoration currently exposes:
+
+- `BALLOON_ARCH` — Arche de ballon;
+- `CENTERPIECE` — Centre de table;
+- `BIRTHDAY` — Anniversaire;
+- `WEDDING` — Mariage.
+
+Changing the category clears a subcategory that no longer belongs to it.
+`TASTING` currently has no configured subcategories, so the selector only
+offers “Aucune sous-catégorie”.
 
 The product form treats:
 
