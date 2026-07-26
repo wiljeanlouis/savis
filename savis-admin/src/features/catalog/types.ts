@@ -156,6 +156,9 @@ const cad = (amount = 0): Money => ({ amount, currency: "CAD" });
 export const emptyCatalogProduct = (
   category: ProductCategory = "TASTING",
 ): CatalogProduct => ({
+export const emptyCatalogProduct = (
+  category: ProductCategory = "TASTING",
+): CatalogProduct => ({
   id: null,
   code: "",
   slug: "",

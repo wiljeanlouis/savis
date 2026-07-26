@@ -42,6 +42,7 @@ class PublishedCatalogProductMapperTest {
                 List.of());
 
         PublishedCatalogProduct result = new PublishedCatalogProductMapper().map(product);
+        PublishedCatalogProduct result = new PublishedCatalogProductMapper().map(product);
 
         assertEquals(1, result.purchaseModes().size());
         assertEquals("decoration", result.category());

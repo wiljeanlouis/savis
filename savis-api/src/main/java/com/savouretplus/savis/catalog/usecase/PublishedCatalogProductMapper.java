@@ -26,6 +26,7 @@ public class PublishedCatalogProductMapper {
      * Maps the provided domain objects to their publication payload.
      */
     public PublishedCatalogProduct map(Product product) {
+    public PublishedCatalogProduct map(Product product) {
         List<Map<String, Object>> modes = product.purchaseModes().stream()
                 .filter(ProductPurchaseMode::active)
                 .sorted(Comparator.comparingInt(ProductPurchaseMode::displayOrder))

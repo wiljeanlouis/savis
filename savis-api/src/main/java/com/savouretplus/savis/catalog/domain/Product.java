@@ -46,6 +46,7 @@ public record Product(
         description = description != null ? description : "";
         productType = productType != null ? productType : ProductType.STANDARD;
         if (category == null) {
+        if (category == null) {
             throw new IllegalArgumentException("La catégorie du produit est requise");
         }
         if (subcategory != null && subcategory.category() != category) {

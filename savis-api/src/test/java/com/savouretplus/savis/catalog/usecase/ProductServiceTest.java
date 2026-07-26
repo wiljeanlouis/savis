@@ -43,5 +43,6 @@ class ProductServiceTest {
 
         assertThrows(IllegalArgumentException.class,
                 () -> new ProductService(products, bomPricing).create(product));
+                () -> new ProductService(products, bomPricing).create(product));
     }
 }

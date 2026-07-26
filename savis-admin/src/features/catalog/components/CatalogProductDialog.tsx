@@ -58,6 +58,7 @@ import {
   saveDraft,
 } from "../model/catalogProductDraftStorage";
 import { BomCombobox } from "./BomCombobox";
+import { BomCombobox } from "./BomCombobox";
 
 interface Props {
   product?: CatalogProduct;
@@ -87,6 +88,7 @@ export function CatalogProductDialog({
   hideTrigger = false,
 }: Props) {
   const isEditing = Boolean(product);
+  const initial = () => product ?? loadDraft() ?? emptyCatalogProduct();
   const initial = () => product ?? loadDraft() ?? emptyCatalogProduct();
   const [internalOpen, setInternalOpen] = useState(false);
   const [form, setForm] = useState<CatalogProduct>(initial);
@@ -935,6 +937,12 @@ function BomField({
   return (
     <Field>
       <FieldLabel>{label}</FieldLabel>
+      <BomCombobox
+        boms={boms}
+        value={value}
+        required={required}
+        onChange={onChange}
+      />
       <BomCombobox
         boms={boms}
         value={value}

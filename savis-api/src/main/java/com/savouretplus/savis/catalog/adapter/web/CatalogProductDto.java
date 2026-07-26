@@ -8,6 +8,7 @@ import com.savouretplus.savis.catalog.domain.AllocationType;
 import com.savouretplus.savis.catalog.domain.Product;
 import com.savouretplus.savis.catalog.domain.ProductBom;
 import com.savouretplus.savis.catalog.domain.ProductCategory;
+import com.savouretplus.savis.catalog.domain.ProductCategory;
 import com.savouretplus.savis.catalog.domain.ProductChoiceGroup;
 import com.savouretplus.savis.catalog.domain.ProductChoiceOption;
 import com.savouretplus.savis.catalog.domain.ProductIngredientOption;

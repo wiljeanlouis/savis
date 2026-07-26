@@ -37,6 +37,7 @@ class CatalogPublicationServiceTest {
     void setUp() {
         service = new CatalogPublicationService(
                 products, publishedCatalog, new PublishedCatalogProductMapper());
+                products, publishedCatalog, new PublishedCatalogProductMapper());
     }
 
     @Test
