@@ -19,7 +19,6 @@ import com.savouretplus.savis.catalog.domain.AllocationType;
 import com.savouretplus.savis.catalog.domain.Product;
 import com.savouretplus.savis.catalog.domain.ProductBom;
 import com.savouretplus.savis.catalog.domain.ProductCategory;
-import com.savouretplus.savis.catalog.domain.ProductCategory;
 import com.savouretplus.savis.catalog.domain.ProductChoiceGroup;
 import com.savouretplus.savis.catalog.domain.ProductChoiceOption;
 import com.savouretplus.savis.catalog.domain.ProductIngredientOption;
@@ -42,7 +41,6 @@ class ProductRepositoryAdapterTest {
         UUID productBomId = UUID.randomUUID();
         UUID bomId = UUID.randomUUID();
 
-        ProductEntity entity = entity(productId);
         ProductEntity entity = entity(productId);
         ProductChoiceGroupEntity existingGroup = new ProductChoiceGroupEntity();
         existingGroup.setId(10L);
@@ -98,7 +96,6 @@ class ProductRepositoryAdapterTest {
     }
 
     private ProductEntity entity(UUID productId) {
-    private ProductEntity entity(UUID productId) {
         ProductEntity entity = new ProductEntity();
         entity.setId(1L);
         entity.setPublicId(productId);
@@ -107,7 +104,6 @@ class ProductRepositoryAdapterTest {
         entity.setName("Pâté");
         entity.setDescription("");
         entity.setProductType(ProductType.SINGLE_CHOICE);
-        entity.setCategory(ProductCategory.TASTING);
         entity.setCategory(ProductCategory.TASTING);
         entity.setTargetMarginRate(new BigDecimal("0.30"));
         entity.setImageUrl("/pate.jpg");
