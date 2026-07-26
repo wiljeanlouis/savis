@@ -53,7 +53,6 @@ public class ProductEntity {
     @Column(nullable = false)
     private ProductType productType;
     @Enumerated(EnumType.STRING)
-    @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     private ProductCategory category;
     @Enumerated(EnumType.STRING)
