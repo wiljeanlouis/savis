@@ -39,9 +39,12 @@ import {
   emptyIngredientOption,
   emptyProductBom,
   emptyPurchaseMode,
+  normalizeSubcategoryForCategory,
   productCategories,
+  subcategoriesForCategory,
   type CatalogProduct,
   type ProductCategory,
+  type ProductSubcategory,
   type ProductType,
 } from "../types";
 import {
@@ -112,6 +115,20 @@ export function CatalogProductDialog({
     setGallery(value);
     setIsDirty(true);
   };
+
+  const updateCategory = (category: ProductCategory) => {
+    setForm((current) => ({
+      ...current,
+      category,
+      subcategory: normalizeSubcategoryForCategory(
+        current.subcategory,
+        category,
+      ),
+    }));
+    setIsDirty(true);
+  };
+
+  const availableSubcategories = subcategoriesForCategory(form.category);
 
   useEffect(() => {
     if (isOpen && !isEditing && isDirty) {
@@ -270,7 +287,7 @@ export function CatalogProductDialog({
                   <Select
                     value={form.category}
                     onValueChange={(value) =>
-                      update("category", value as ProductCategory)
+                      updateCategory(value as ProductCategory)
                     }
                   >
                     <SelectTrigger>
@@ -284,6 +301,38 @@ export function CatalogProductDialog({
                       ))}
                     </SelectContent>
                   </Select>
+                </Field>
+                <Field>
+                  <FieldLabel>Sous-catégorie</FieldLabel>
+                  <Select
+                    value={form.subcategory ?? "NONE"}
+                    onValueChange={(value) =>
+                      update(
+                        "subcategory",
+                        value === "NONE" ? null : (value as ProductSubcategory),
+                      )
+                    }
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="NONE">
+                        Aucune sous-catégorie
+                      </SelectItem>
+                      {availableSubcategories.map((subcategory) => (
+                        <SelectItem
+                          key={subcategory.value}
+                          value={subcategory.value}
+                        >
+                          {subcategory.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <FieldDescription>
+                    Les options dépendent de la catégorie du produit.
+                  </FieldDescription>
                 </Field>
                 <Field>
                   <FieldLabel>Type</FieldLabel>
@@ -342,7 +391,7 @@ export function CatalogProductDialog({
               {form.productBoms.map((productBom, index) => (
                 <div
                   className="grid gap-3 border-b pb-4 md:grid-cols-4"
-                  key={productBom.id ?? index}
+                  key={productBom.id}
                 >
                   <BomField
                     label="BOM"
@@ -392,7 +441,7 @@ export function CatalogProductDialog({
               {form.purchaseModes.map((mode, index) => (
                 <div
                   className="grid gap-3 border-b pb-4 md:grid-cols-6"
-                  key={mode.id ?? index}
+                  key={mode.id}
                 >
                   <TextField
                     label="Code"
@@ -502,7 +551,7 @@ export function CatalogProductDialog({
                 {form.choiceGroup?.options.map((option, index) => (
                   <div
                     className="grid gap-3 border-b pb-4 md:grid-cols-4"
-                    key={option.id ?? index}
+                    key={option.id}
                   >
                     <TextField
                       label="Code"
@@ -549,7 +598,7 @@ export function CatalogProductDialog({
                 {form.ingredientOptions.map((option, index) => (
                   <div
                     className="grid gap-3 border-b pb-4 md:grid-cols-8"
-                    key={option.id ?? index}
+                    key={option.id}
                   >
                     <TextField
                       label="Code"
@@ -886,6 +935,12 @@ function BomField({
   return (
     <Field>
       <FieldLabel>{label}</FieldLabel>
+      <BomCombobox
+        boms={boms}
+        value={value}
+        required={required}
+        onChange={onChange}
+      />
       <BomCombobox
         boms={boms}
         value={value}

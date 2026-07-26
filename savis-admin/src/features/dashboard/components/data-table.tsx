@@ -346,6 +346,8 @@ export function DataTable({
 }: {
   data: z.infer<typeof schema>[];
 }) {
+  "use no memo";
+
   const [data, setData] = React.useState(() => initialData);
   const [rowSelection, setRowSelection] = React.useState({});
   const [columnVisibility, setColumnVisibility] =
@@ -370,6 +372,8 @@ export function DataTable({
     [data],
   );
 
+  // TanStack Table intentionally exposes callbacks that React Compiler cannot memoize.
+  // eslint-disable-next-line react-hooks/incompatible-library
   const table = useReactTable({
     data,
     columns,

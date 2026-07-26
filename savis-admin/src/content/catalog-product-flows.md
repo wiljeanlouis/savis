@@ -8,6 +8,7 @@ Le principe général est simple :
 - les BOM décrivent comment le produit est fabriqué et combien il coûte à fabriquer ;
 - les Taux horaires définissent le taux horaire des activités des BOMs;
 - la Catégorie d'un produit organise le catalogue ;
+- la Sous-catégorie classe plus précisément un produit à l'intérieur de sa catégorie ;
 - le Prix de vente et la Marge cible servent à vérifier la rentabilité ;
 - la Publication envoie les produits visibles vers la projection publique.
 
@@ -18,11 +19,40 @@ Préparez ces éléments avant d'ouvrir le formulaire produit :
 - Les taux horaires des activités. C'est la première étape, car les activités des BOMs utilisent ces taux pour calculer correctement le coût de fabrication.
 - Les composants (offres fournisseurs) qui serviront à construire les BOMs. Ces offres sont nécessaires pour calculer le coût des BOMs. Ces composants peuvent être: farine, sucre ou beurre pour une recette de gâteau ; ballons, ruban ou structure pour une arche de ballons.
 - Un ou plusieurs BOMs avec composants, activités et rendement. Un BOM peut représenter une recette, une composition, un assemblage ou toute structure nécessaire pour fabriquer le produit.
-- Savoir dans quelle catégorie ranger le produit. Si elle n'existe pas encore, elle peut être créée depuis le formulaire produit.
+- Savoir dans quelle catégorie ranger le produit et, si nécessaire, dans quelle sous-catégorie.
 - Une idée claire du prix de vente, de la marge cible et du format vendu.
 - Les images publiques du produit : image principale obligatoire, galerie optionnelle.
 
 Un produit peut être sauvegardé même si certains coûts sont incomplets, mais l'analyse affichera `INCOMPLETE` tant que tous les BOMs nécessaires ne peuvent pas être calculés.
+
+## Catégories et sous-catégories
+
+La Catégorie est obligatoire. La Sous-catégorie est optionnelle et sert à regrouper les produits dans une section plus précise de la vitrine publique.
+
+Catégories disponibles :
+
+- `TASTING` — Dégustation ;
+- `DECORATION` — Décoration.
+
+Sous-catégories actuellement disponibles pour Décoration :
+
+| Valeur SAVIS    | Libellé dans le formulaire | Code envoyé à la vitrine |
+| --------------- | -------------------------- | ------------------------ |
+| `BALLOON_ARCH`  | Arche de ballon            | `balloon-arch`           |
+| `CENTERPIECE`   | Centre de table            | `centerpiece`             |
+| `BIRTHDAY`      | Anniversaire               | `birthday`                |
+| `WEDDING`       | Mariage                    | `wedding`                 |
+
+Le dropdown Sous-catégorie affiche uniquement les valeurs compatibles avec la Catégorie sélectionnée :
+
+- choisir « Aucune sous-catégorie » laisse le produit non classé ;
+- changer la Catégorie efface automatiquement une Sous-catégorie devenue incompatible ;
+- Dégustation ne possède pas encore de sous-catégorie et propose uniquement « Aucune sous-catégorie » ;
+- SAVIS refuse une Sous-catégorie qui n'appartient pas à la Catégorie du produit.
+
+Un produit Décoration sans sous-catégorie reconnue reste visible dans la section « Autres décorations » de SavouretPlus.
+
+Les colonnes PostgreSQL et Supabase acceptent du texte nullable sans liste de valeurs imposée par la base de données. Ajouter une sous-catégorie nécessite de mettre à jour les contrats du domaine SAVIS, de l'admin et de SavouretPlus, mais ne nécessite pas de migration Flyway ou Supabase.
 
 ## Flows de création produit
 
@@ -44,6 +74,7 @@ Exemple : un pâté simple vendu à l'unité.
 | Description            | Description courte du produit.                               |
 | Type                   | Standard.                                                    |
 | Catégorie              | Catégorie active du catalogue.                               |
+| Sous-catégorie         | Classement optionnel compatible avec la Catégorie.           |
 | BOM communs            | BOMs communs du produit, avec quantité et ordre d'affichage. |
 | Modes d'achat          | Formats de vente avec quantité et prix en CAD.               |
 | Marge cible (%)        | Marge cible affichée en pourcentage : `30` signifie 30 %.    |
@@ -52,7 +83,7 @@ Exemple : un pâté simple vendu à l'unité.
 
 #### Règles à respecter
 
-- Catégorie, au moins un mode d'achat actif, Marge cible (%) et Image principale sont requis.
+- Catégorie, au moins un mode d'achat actif, Marge cible (%) et Image principale sont requis. La Sous-catégorie reste optionnelle.
 - Marge cible (%) doit être supérieure ou égale à 0 % et strictement inférieure à 100 %.
 - BOM communs représente la composition commune du produit.
 - Saveurs et choix et Ingrédients et extras ne sont pas utiles pour un produit Standard.
@@ -237,7 +268,7 @@ La publication par produit synchronise immédiatement la projection publique lue
 Points importants :
 
 - Sauvegarder un produit ne publie pas automatiquement le produit.
-- La projection publique inclut les informations client, les modes d'achat actifs, les choix actifs, les ingrédients actifs, les images et les prix.
+- La projection publique inclut les informations client, la Catégorie, le code public optionnel de Sous-catégorie, les modes d'achat actifs, les choix actifs, les ingrédients actifs, les images et les prix.
 - La projection publique exclut les coûts internes, les marges cibles, les diagnostics et les prix recommandés.
 
 ### Glossaire des champs
@@ -250,6 +281,7 @@ Points importants :
 | Description             | Description client ou admin du produit.                                                              |
 | Type                    | Type de flow produit : Standard, Choix unique, Formats composables ou Ingrédients personnalisables.  |
 | Catégorie               | Catégorie du catalogue.                                                                              |
+| Sous-catégorie          | Classement public optionnel, filtré selon la Catégorie sélectionnée.                                 |
 | BOM communs             | BOMs communs au produit, toujours inclus dans le coût.                                               |
 | Modes d'achat           | Formats de vente avec quantité, prix et règle de répartition.                                        |
 | Marge cible (%)         | Marge cible affichée en pourcentage. Entrez `30` pour 30 %.                                          |
