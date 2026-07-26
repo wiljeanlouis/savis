@@ -11,7 +11,7 @@ const flows = [
     example: "Pâté simple vendu à l'unité.",
     when: "Le client ne choisit pas de variante au moment de l'achat.",
     fields: [
-      "Le `Prix de base` est le prix de vente par défaut.",
+      "Les `Modes d'achat` portent les formats, quantités et prix.",
       "Les `BOM communs` contiennent la composition de base.",
     ],
     warning:
@@ -69,7 +69,7 @@ const statuses = [
 ] as const;
 
 const publication =
-  "`Disponible` indique si le produit est achetable. `Publier` indique s'il doit être envoyé au catalogue public lors de l'action de publication.";
+  "`Disponible` indique si le produit est achetable. La publication vers SavouretPlus se fait directement depuis la carte du produit.";
 
 export function CatalogProductGuideButton({
   open,

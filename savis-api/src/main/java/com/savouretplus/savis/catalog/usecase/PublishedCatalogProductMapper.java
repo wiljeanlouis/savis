@@ -10,7 +10,6 @@ import java.util.Map;
 import org.springframework.stereotype.Component;
 
 import com.savouretplus.savis.catalog.domain.Product;
-import com.savouretplus.savis.catalog.domain.ProductCategory;
 import com.savouretplus.savis.catalog.domain.ProductChoiceOption;
 import com.savouretplus.savis.catalog.domain.ProductIngredientOption;
 import com.savouretplus.savis.catalog.domain.ProductPurchaseMode;
@@ -26,19 +25,12 @@ public class PublishedCatalogProductMapper {
     /**
      * Maps the provided domain objects to their publication payload.
      */
-    public PublishedCatalogProduct map(Product product, ProductCategory category) {
+    public PublishedCatalogProduct map(Product product) {
         List<Map<String, Object>> modes = product.purchaseModes().stream()
                 .filter(ProductPurchaseMode::active)
                 .sorted(Comparator.comparingInt(ProductPurchaseMode::displayOrder))
                 .map(this::mode)
                 .toList();
-        Integer dozenPrice = product.purchaseModes().stream()
-                .filter(ProductPurchaseMode::active)
-                .filter(mode -> "dozen".equals(mode.code()))
-                .map(ProductPurchaseMode::price)
-                .map(this::cents)
-                .findFirst()
-                .orElse(null);
         Map<String, Object> choiceGroup = product.choiceGroup() == null ? null : Map.of(
                 "label", product.choiceGroup().label(),
                 "required", product.choiceGroup().required(),
@@ -55,10 +47,11 @@ public class PublishedCatalogProductMapper {
 
         return new PublishedCatalogProduct(
                 product.publicId().toString(),
-                product.slug(), product.name(), category.code(), product.description(),
+                product.slug(), product.name(), product.category().code(),
+                product.subcategory() != null ? product.subcategory().code() : null,
+                product.description(),
                 product.productType().name().toLowerCase(Locale.ROOT),
-                modes, choiceGroup, ingredients, product.unitLabel(), cents(product.basePrice()),
-                dozenPrice, product.imageUrl(), product.gallery(), product.availabilityNote(),
+                modes, choiceGroup, ingredients, product.imageUrl(), product.gallery(), product.availabilityNote(),
                 product.available(), product.displayOrder());
     }
 

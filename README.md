@@ -51,12 +51,12 @@ projection.
 SAVIS is composed of three deployable applications and a public data
 projection:
 
-| Component | Technology | Responsibility | Documentation |
-| --- | --- | --- | --- |
-| **SAVIS Admin** | React 19, TypeScript 6, Vite 8 | Internal management interface | [README](savis-admin/README.md) |
-| **SAVIS API** | Java 25, Spring Boot 4.1 | Business rules and system of record | [README](savis-api/README.md) |
-| **SAVIS Executor** | Python 3.14, FastAPI, Celery | Provider acquisition and background work | [README](savis-executor/README.md) |
-| **Supabase** | PostgreSQL, RLS | Public catalog and commerce projection | [Migrations](supabase/migrations) |
+| Component          | Technology                     | Responsibility                           | Documentation                      |
+| ------------------ | ------------------------------ | ---------------------------------------- | ---------------------------------- |
+| **SAVIS Admin**    | React 19, TypeScript 6, Vite 8 | Internal management interface            | [README](savis-admin/README.md)    |
+| **SAVIS API**      | Java 25, Spring Boot 4.1       | Business rules and system of record      | [README](savis-api/README.md)      |
+| **SAVIS Executor** | Python 3.14, FastAPI, Celery   | Provider acquisition and background work | [README](savis-executor/README.md) |
+| **Supabase**       | PostgreSQL, RLS                | Public catalog and commerce projection   | [Migrations](supabase/migrations)  |
 
 Main capabilities:
 
@@ -68,7 +68,7 @@ Main capabilities:
 - product categories, purchase modes, customer choices, and customizable
   ingredients;
 - product cost, margin, worst-case, and recommended-price analysis;
-- explicit and scheduled catalog publication to Supabase;
+- explicit catalog publication to Supabase;
 - immutable Docker releases with SBOM and provenance metadata.
 
 Supabase is not the SAVIS business backend. PostgreSQL schemas owned by the API
@@ -196,15 +196,15 @@ Git.
 
 ## Local URLs
 
-| Service | Development URL | Notes |
-| --- | --- | --- |
-| SAVIS Admin | <http://localhost:5173> | Vite development server |
-| SAVIS API | <http://localhost:8080> | Spring Boot |
-| API documentation | <http://localhost:8080/swagger-ui.html> | OpenAPI UI |
-| Executor API | <http://localhost:8000> | FastAPI |
-| Executor documentation | <http://localhost:8000/docs> | OpenAPI UI |
-| RabbitMQ management | <http://localhost:15672> | Uses `.env.local` credentials |
-| PostgreSQL | `localhost:5434` | Shared server, separate schemas |
+| Service                | Development URL                         | Notes                           |
+| ---------------------- | --------------------------------------- | ------------------------------- |
+| SAVIS Admin            | <http://localhost:5173>                 | Vite development server         |
+| SAVIS API              | <http://localhost:8080>                 | Spring Boot                     |
+| API documentation      | <http://localhost:8080/swagger-ui.html> | OpenAPI UI                      |
+| Executor API           | <http://localhost:8000>                 | FastAPI                         |
+| Executor documentation | <http://localhost:8000/docs>            | OpenAPI UI                      |
+| RabbitMQ management    | <http://localhost:15672>                | Uses `.env.local` credentials   |
+| PostgreSQL             | `localhost:5434`                        | Shared server, separate schemas |
 
 The local production-style Admin image is served at <http://localhost> when
 the development override is not active.
@@ -333,7 +333,6 @@ RABBIT_MQ_PASSWORD=
 SUPABASE_ENABLED=false
 SUPABASE_URL=
 SUPABASE_SERVICE_ROLE_KEY=
-SAVIS_CATALOG_REFRESH_CRON=0 0 * * * *
 ```
 
 `make run-local` generates the local Supabase values in
@@ -366,12 +365,12 @@ PROVIDER_PROBE_TIMEOUT_SECONDS=1800
 
 Pull requests run `.github/workflows/ci.yml` on GitHub-hosted runners:
 
-| Job | Checks |
-| --- | --- |
-| API Java | Maven tests |
-| Executor Python | Locked install, Ruff, pytest, Alembic chain, container smoke tests |
-| Admin frontend | Locked install, ESLint, Vitest, production build |
-| Deployment definitions | Production Compose validation and Supabase migration lint |
+| Job                    | Checks                                                             |
+| ---------------------- | ------------------------------------------------------------------ |
+| API Java               | Maven tests                                                        |
+| Executor Python        | Locked install, Ruff, pytest, Alembic chain, container smoke tests |
+| Admin frontend         | Locked install, ESLint, Vitest, production build                   |
+| Deployment definitions | Production Compose validation and Supabase migration lint          |
 
 Release Please pull requests skip duplicate component jobs because their source
 commits have already passed CI. The release workflow invokes CI again before
@@ -381,16 +380,16 @@ publishing images.
 
 The runtime stack contains:
 
-| Service | Purpose |
-| --- | --- |
-| `postgres` | Shared PostgreSQL server |
-| `rabbitmq` | Event transport and Celery broker |
-| `backend_api` | Spring Boot API |
-| `executor_migrate` | One-shot Alembic migration |
-| `executor_api` | FastAPI and RabbitMQ subscriber |
-| `executor_worker` | Celery provider worker |
-| `executor_beat` | Scheduled refresh and cleanup |
-| `frontend_admin` | Nginx-hosted React application |
+| Service            | Purpose                           |
+| ------------------ | --------------------------------- |
+| `postgres`         | Shared PostgreSQL server          |
+| `rabbitmq`         | Event transport and Celery broker |
+| `backend_api`      | Spring Boot API                   |
+| `executor_migrate` | One-shot Alembic migration        |
+| `executor_api`     | FastAPI and RabbitMQ subscriber   |
+| `executor_worker`  | Celery provider worker            |
+| `executor_beat`    | Scheduled refresh and cleanup     |
+| `frontend_admin`   | Nginx-hosted React application    |
 
 Production readiness checks:
 
@@ -410,11 +409,11 @@ check output.
 Release Please manages the version, changelog, release pull request, and
 SemVer tag from Conventional Commits:
 
-| Commit | Version impact |
-| --- | --- |
-| `fix:` | Patch |
-| `feat:` | Minor |
-| `feat!:` or `BREAKING CHANGE:` | Major |
+| Commit                         | Version impact |
+| ------------------------------ | -------------- |
+| `fix:`                         | Patch          |
+| `feat:`                        | Minor          |
+| `feat!:` or `BREAKING CHANGE:` | Major          |
 
 When the release pull request is merged:
 
@@ -549,20 +548,20 @@ docker compose \
 
 ## Useful Commands
 
-| Command | Purpose |
-| --- | --- |
-| `make help` | List Make targets |
-| `make run-local` | Start SAVIS and local Supabase |
-| `make chrome-cdp-start` | Start Chrome CDP on macOS |
-| `make logs` | Follow Compose logs |
-| `make stop` | Stop SAVIS and Supabase |
-| `make clean` | Remove SAVIS volumes and local Supabase data |
+| Command                       | Purpose                                                    |
+| ----------------------------- | ---------------------------------------------------------- |
+| `make help`                   | List Make targets                                          |
+| `make run-local`              | Start SAVIS and local Supabase                             |
+| `make chrome-cdp-start`       | Start Chrome CDP on macOS                                  |
+| `make logs`                   | Follow Compose logs                                        |
+| `make stop`                   | Stop SAVIS and Supabase                                    |
+| `make clean`                  | Remove SAVIS volumes and local Supabase data               |
 | `make restore-latest-prod-db` | Restore local PostgreSQL from the latest production backup |
-| `make smoke-executor-worker` | Smoke test RabbitMQ and the Celery worker |
-| `make smoke-database` | Smoke test PostgreSQL, Flyway, and Alembic |
-| `make smoke-admin` | Smoke test the Admin Nginx image |
-| `make supabase-status` | Show local Supabase URLs and keys |
-| `make supabase-reset` | Rebuild the local Supabase database |
+| `make smoke-executor-worker`  | Smoke test RabbitMQ and the Celery worker                  |
+| `make smoke-database`         | Smoke test PostgreSQL, Flyway, and Alembic                 |
+| `make smoke-admin`            | Smoke test the Admin Nginx image                           |
+| `make supabase-status`        | Show local Supabase URLs and keys                          |
+| `make supabase-reset`         | Rebuild the local Supabase database                        |
 
 ## Further Documentation
 

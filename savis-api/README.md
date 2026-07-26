@@ -316,16 +316,34 @@ cost / (1 - target margin)
 It is rounded upward to the next CAD 0.25. The recommendation is advisory and
 never changes a product or purchase-mode sale price.
 
+#### Product Categories and Subcategories
+
+Every catalog product has a `ProductCategory` and may have one
+`ProductSubcategory`. A subcategory declares its parent category in the domain,
+and SAVIS rejects an incompatible association.
+
+The initial public mappings are:
+
+| API value | Public code | Parent category |
+| --- | --- | --- |
+| `BALLOON_ARCH` | `balloon-arch` | `DECORATION` |
+| `CENTERPIECE` | `centerpiece` | `DECORATION` |
+| `BIRTHDAY` | `birthday` | `DECORATION` |
+| `WEDDING` | `wedding` | `DECORATION` |
+
+The PostgreSQL and Supabase columns are nullable text columns without a
+hardcoded value constraint. Adding a subcategory therefore requires updating
+the domain/admin/storefront contracts, but does not require a Flyway or
+Supabase schema migration.
+
 #### Catalog Publication
 
 `CatalogPublicationService.publishAll()` publishes products whose `published`
 flag is true. Publication can be triggered:
 
-- explicitly through the HTTP API;
-- periodically with `savis.catalog.refresh-cron`, hourly by default.
+- explicitly through the HTTP API.
 
-When Supabase is disabled, scheduled publication is skipped and explicit
-publication returns a bad-request error.
+When Supabase is disabled, publication returns a bad-request error.
 
 The Supabase adapter upserts rows into:
 
@@ -333,9 +351,9 @@ The Supabase adapter upserts rows into:
 published_catalog_products
 ```
 
-The public projection includes customer-facing product content, active
-purchase modes, active choices, active ingredients, availability, images, and
-prices in cents. It excludes:
+The public projection includes customer-facing product content, category,
+optional subcategory public code, active purchase modes, active choices,
+active ingredients, availability, images, and prices in cents. It excludes:
 
 - common `productBoms`;
 - internal costs and missing-BOM diagnostics;
@@ -348,7 +366,7 @@ PostgreSQL remains the catalog system of record; Supabase is a read projection.
 Bulk publication reads only products whose `published` flag is currently true.
 It does not yet reconcile Supabase rows for products newly changed to
 unpublished. The single-product publication path supports unpublishing, but it
-is not currently exposed by the HTTP controller.
+is exposed by the HTTP controller.
 
 ## HTTP API
 
@@ -364,9 +382,9 @@ invalid catalog structures and disabled explicit publication return `400`.
 
 Actuator health endpoints:
 
-| Path | Purpose |
-| --- | --- |
-| `/actuator/health/liveness` | Confirms that the API process is alive. |
+| Path                         | Purpose                                       |
+| ---------------------------- | --------------------------------------------- |
+| `/actuator/health/liveness`  | Confirms that the API process is alive.       |
 | `/actuator/health/readiness` | Reports whether the API is ready for traffic. |
 
 ### BOM Endpoints
@@ -451,6 +469,8 @@ Only one rate can exist for each activity type.
 | `DELETE` | `/api/catalog/products/{productId}`                                         | Delete a product.                                      |
 | `POST`   | `/api/catalog/products/{productId}/pricing-analysis`                        | Analyze one selected configuration.                    |
 | `GET`    | `/api/catalog/products/{productId}/worst-case-pricing?purchaseModeCode=...` | Analyze a composable bundle's conservative worst case. |
+| `POST`   | `/api/catalog/products/{productId}/publish`                                 | Publish one product.                                   |
+| `POST`   | `/api/catalog/products/{productId}/unpublish`                               | Remove one product from the published catalog.         |
 | `POST`   | `/api/catalog/products/publish`                                             | Publish every product marked for publication.          |
 
 Pricing configuration payload:
@@ -472,15 +492,6 @@ Pricing configuration payload:
   "ingredients": []
 }
 ```
-
-### Category Endpoints
-
-| Method   | Path                                   | Purpose                  |
-| -------- | -------------------------------------- | ------------------------ |
-| `GET`    | `/api/catalog/categories`              | List product categories. |
-| `POST`   | `/api/catalog/categories`              | Create a category.       |
-| `PUT`    | `/api/catalog/categories/{categoryId}` | Update a category.       |
-| `DELETE` | `/api/catalog/categories/{categoryId}` | Delete a category.       |
 
 ## RabbitMQ Contracts
 
@@ -617,7 +628,6 @@ Flyway is disabled in the test profile.
 | `SUPABASE_ENABLED`           | `false`                                       | Enable the Supabase catalog adapter. |
 | `SUPABASE_URL`               | empty                                         | Supabase project URL.                |
 | `SUPABASE_SERVICE_ROLE_KEY`  | empty                                         | Supabase service-role credential.    |
-| `SAVIS_CATALOG_REFRESH_CRON` | `0 0 * * * *`                                 | Published-catalog refresh schedule.  |
 
 Application properties can also override:
 

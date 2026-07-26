@@ -7,9 +7,6 @@ insert into public.published_catalog_products (
   purchase_modes,
   choice_group,
   ingredient_options,
-  unit_label,
-  price_cents,
-  dozen_price_cents,
   image_url,
   gallery,
   availability_note,
@@ -37,9 +34,6 @@ values
     ]
   }'::jsonb,
   '[]'::jsonb,
-  'unité',
-  300,
-  3000,
   './images/pate-au-four-1-530x480.png',
   '[
     "./images/pate-au-four-1-530x480.png",
@@ -55,7 +49,9 @@ values
   'Pâté kòde',
   'Une pâte frite soigneusement dans l''huile, servie avec une sauce piquante haïtienne pour une expérience authentique.',
   'ingredient_customization',
-  '[]'::jsonb,
+  '[
+    {"id":"unit","label":"À l''unité","quantity":1,"price_cents":800,"allocation_type":"none"}
+  ]'::jsonb,
   null,
   '[
     {"id":"poulet-creole","name":"Poulet Créole","default_quantity":1,"min_quantity":0,"max_quantity":3,"extra_price_cents":200},
@@ -63,9 +59,6 @@ values
     {"id":"hareng-saur","name":"Hareng saur","default_quantity":1,"min_quantity":0,"max_quantity":3,"extra_price_cents":200},
     {"id":"saucisse","name":"Saucisse","default_quantity":1,"min_quantity":0,"max_quantity":3,"extra_price_cents":150}
   ]'::jsonb,
-  'unité',
-  800,
-  null,
   './images/pate-kode-1-530x480.png',
   '[
     "./images/pate-kode-1-530x480.png",
@@ -81,7 +74,5 @@ on conflict (id) do update set
   purchase_modes = excluded.purchase_modes,
   choice_group = excluded.choice_group,
   ingredient_options = excluded.ingredient_options,
-  price_cents = excluded.price_cents,
-  dozen_price_cents = excluded.dozen_price_cents,
   gallery = excluded.gallery,
   display_order = excluded.display_order;

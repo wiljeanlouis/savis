@@ -14,6 +14,7 @@ import com.savouretplus.savis.catalog.domain.ProductCategory;
 import com.savouretplus.savis.catalog.domain.ProductChoiceGroup;
 import com.savouretplus.savis.catalog.domain.ProductChoiceOption;
 import com.savouretplus.savis.catalog.domain.ProductType;
+import com.savouretplus.savis.catalog.domain.ProductSubcategory;
 import com.savouretplus.savis.catalog.port.PublishedCatalogProduct;
 import com.savouretplus.savis.common.Money;
 
@@ -24,8 +25,9 @@ class PublishedCatalogProductMapperTest {
         UUID bomId = UUID.randomUUID();
         Product product = new Product(
                 null, "pate-four", "pate-four", "Pâté au four", "",
-                ProductType.SINGLE_CHOICE_BUNDLE, UUID.randomUUID(), List.of(),
-                Money.of(3), new BigDecimal("0.35"), "unité", "/pate.jpg",
+                ProductType.SINGLE_CHOICE_BUNDLE, ProductCategory.DECORATION,
+                ProductSubcategory.BALLOON_ARCH, List.of(),
+                new BigDecimal("0.35"), "/pate.jpg",
                 List.of("/pate-2.jpg"), "Disponible", true, true, 1,
                 List.of(
                         new com.savouretplus.savis.catalog.domain.ProductPurchaseMode(
@@ -39,11 +41,11 @@ class PublishedCatalogProductMapperTest {
                         new ProductChoiceOption(null, "hidden", "Caché", null, false, 1))),
                 List.of());
 
-        PublishedCatalogProduct result = new PublishedCatalogProductMapper().map(
-                product, new ProductCategory(product.categoryId(), "degustation", "Dégustation", true, 0));
+        PublishedCatalogProduct result = new PublishedCatalogProductMapper().map(product);
 
         assertEquals(1, result.purchaseModes().size());
-        assertEquals(3000, result.dozenPriceCents());
+        assertEquals("decoration", result.category());
+        assertEquals("balloon-arch", result.subcategory());
         assertEquals("choice_allocation", result.purchaseModes().getFirst().get("allocation_type"));
         assertEquals(bomId.toString(),
                 ((java.util.Map<?, ?>) ((List<?>) result.choiceGroup().get("options")).getFirst()).get("bom_id"));

@@ -109,4 +109,22 @@ public class CatalogController {
     public CatalogPublicationService.PublicationResult publish() {
         return publication.publishAll();
     }
+
+    /**
+     * Publishes one product to the external catalog.
+     */
+    @PostMapping("/{productId}/publish")
+    public ResponseEntity<Void> publish(@PathVariable UUID productId) {
+        publication.publish(productId);
+        return ResponseEntity.noContent().build();
+    }
+
+    /**
+     * Removes one product from the external catalog.
+     */
+    @PostMapping("/{productId}/unpublish")
+    public ResponseEntity<Void> unpublish(@PathVariable UUID productId) {
+        publication.unpublish(productId);
+        return ResponseEntity.noContent().build();
+    }
 }

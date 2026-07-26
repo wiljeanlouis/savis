@@ -18,8 +18,9 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 import com.savouretplus.savis.catalog.domain.Product;
 import com.savouretplus.savis.catalog.domain.ProductCategory;
+import com.savouretplus.savis.catalog.domain.ProductPurchaseMode;
 import com.savouretplus.savis.catalog.domain.ProductType;
-import com.savouretplus.savis.catalog.port.ProductCategoryRepository;
+import com.savouretplus.savis.catalog.domain.AllocationType;
 import com.savouretplus.savis.catalog.port.ProductRepository;
 import com.savouretplus.savis.catalog.port.PublishedCatalogPort;
 import com.savouretplus.savis.catalog.port.PublishedCatalogProduct;
@@ -28,7 +29,6 @@ import com.savouretplus.savis.common.Money;
 @ExtendWith(MockitoExtension.class)
 class CatalogPublicationServiceTest {
     @Mock ProductRepository products;
-    @Mock ProductCategoryRepository categories;
     @Mock PublishedCatalogPort publishedCatalog;
 
     CatalogPublicationService service;
@@ -36,7 +36,7 @@ class CatalogPublicationServiceTest {
     @BeforeEach
     void setUp() {
         service = new CatalogPublicationService(
-                products, categories, publishedCatalog, new PublishedCatalogProductMapper());
+                products, publishedCatalog, new PublishedCatalogProductMapper());
     }
 
     @Test
@@ -50,13 +50,9 @@ class CatalogPublicationServiceTest {
 
     @Test
     void returnsTheNumberOfProductsActuallyPublished() {
-        Product product = product();
-        ProductCategory category = new ProductCategory(
-                product.categoryId(), "degustation", "Dégustation", true, 0);
+        Product product = product(true);
         when(publishedCatalog.isEnabled()).thenReturn(true);
         when(products.findAllPublished()).thenReturn(List.of(product));
-        when(products.findByPublicId(product.publicId())).thenReturn(Optional.of(product));
-        when(categories.findByPublicId(product.categoryId())).thenReturn(Optional.of(category));
 
         var result = service.publishAll();
 
@@ -64,11 +60,51 @@ class CatalogPublicationServiceTest {
         verify(publishedCatalog).publish(org.mockito.ArgumentMatchers.any(PublishedCatalogProduct.class));
     }
 
-    private Product product() {
+    @Test
+    void publishesOneProductAndMarksItAsPublished() {
+        Product product = product(false);
+        Product publishedProduct = product.withPublished(true);
+        when(publishedCatalog.isEnabled()).thenReturn(true);
+        when(products.findByPublicId(product.publicId())).thenReturn(Optional.of(product));
+        when(products.save(publishedProduct)).thenReturn(publishedProduct);
+
+        service.publish(product.publicId());
+
+        verify(products).save(publishedProduct);
+        verify(publishedCatalog).publish(org.mockito.ArgumentMatchers.any(PublishedCatalogProduct.class));
+    }
+
+    @Test
+    void unpublishesOneProductAndMarksItAsUnpublished() {
+        Product product = product(true);
+        Product unpublishedProduct = product.withPublished(false);
+        when(publishedCatalog.isEnabled()).thenReturn(true);
+        when(products.findByPublicId(product.publicId())).thenReturn(Optional.of(product));
+        when(products.save(unpublishedProduct)).thenReturn(unpublishedProduct);
+
+        service.unpublish(product.publicId());
+
+        verify(products).save(unpublishedProduct);
+        verify(publishedCatalog).unpublish(product.publicId().toString());
+    }
+
+    @Test
+    void refusesSingleProductPublicationWhenSupabaseIsDisabled() {
+        when(publishedCatalog.isEnabled()).thenReturn(false);
+
+        IllegalStateException error = assertThrows(
+                IllegalStateException.class, () -> service.publish(UUID.randomUUID()));
+
+        assertEquals(true, error.getMessage().contains("SUPABASE_ENABLED=true"));
+    }
+
+    private Product product(boolean published) {
         return new Product(
                 UUID.randomUUID(), "pate", "pate", "Pâté", "", ProductType.STANDARD,
-                UUID.randomUUID(), List.of(), Money.of(5), new BigDecimal("0.30"), "unité",
-                "/pate.jpg", List.of(), "Disponible", true, true, 0,
-                List.of(), null, List.of());
+                ProductCategory.TASTING, null, List.of(), new BigDecimal("0.30"),
+                "/pate.jpg", List.of(), "Disponible", true, published, 0,
+                List.of(new ProductPurchaseMode(
+                        null, "unit", "À l'unité", 1, Money.of(5), AllocationType.NONE, true, 0)),
+                null, List.of());
     }
 }

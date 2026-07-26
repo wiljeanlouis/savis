@@ -5,16 +5,15 @@ import org.springframework.http.ProblemDetail;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
-import com.savouretplus.savis.catalog.usecase.ProductCategoryNotFoundException;
 import com.savouretplus.savis.catalog.usecase.ProductNotFoundException;
 
 /**
  * Maps catalog exceptions to HTTP responses.
  */
-@RestControllerAdvice(assignableTypes = { CatalogController.class, ProductCategoryController.class })
+@RestControllerAdvice(assignableTypes = CatalogController.class)
 public class CatalogExceptionHandler {
 
-    @ExceptionHandler({ ProductNotFoundException.class, ProductCategoryNotFoundException.class })
+    @ExceptionHandler(ProductNotFoundException.class)
     ProblemDetail handleNotFound(RuntimeException exception) {
         ProblemDetail problem = ProblemDetail.forStatus(HttpStatus.NOT_FOUND);
         problem.setTitle("Produit introuvable");

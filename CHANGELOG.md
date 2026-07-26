@@ -1,5 +1,26 @@
 # Changelog
 
+## [1.7.4](https://github.com/wiljeanlouis/savis/compare/v1.7.3...v1.7.4) (2026-06-27)
+
+
+### Bug Fixes
+
+* refactor product ui and product category ([#71](https://github.com/wiljeanlouis/savis/issues/71)) ([e98339e](https://github.com/wiljeanlouis/savis/commit/e98339e8aeb92b7b02be8f07ef977637ffa3d1e3))
+
+## [1.7.3](https://github.com/wiljeanlouis/savis/compare/v1.7.2...v1.7.3) (2026-06-27)
+
+
+### Bug Fixes
+
+* Refactor product publication process and remove legacy price fields ([#69](https://github.com/wiljeanlouis/savis/issues/69)) ([25f6f1b](https://github.com/wiljeanlouis/savis/commit/25f6f1b07e893e730a663812cd519a268b2c7b3a))
+
+## [1.7.2](https://github.com/wiljeanlouis/savis/compare/v1.7.1...v1.7.2) (2026-06-24)
+
+
+### Bug Fixes
+
+* change type of Bom Component Input from text to number ([#67](https://github.com/wiljeanlouis/savis/issues/67)) ([a184891](https://github.com/wiljeanlouis/savis/commit/a184891a147e66644553345446f1cc38b0315413))
+
 ## [1.7.1](https://github.com/wiljeanlouis/savis/compare/v1.7.0...v1.7.1) (2026-06-23)
 
 

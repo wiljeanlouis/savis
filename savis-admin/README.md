@@ -14,18 +14,32 @@ The frontend does not own business rules or persistence:
 
 ## Navigation
 
-- [Product Areas](#product-areas)
-- [Business Flows](#business-flows)
-- [Frontend Architecture](#frontend-architecture)
-- [Routing and Layout](#routing-and-layout)
-- [Data and UI State](#data-and-ui-state)
-- [Backend Integration](#backend-integration)
-- [Technology](#technology)
-- [Configuration](#configuration)
-- [Local Development](#local-development)
-- [Docker](#docker)
-- [Tests](#tests)
-- [Current Boundaries](#current-boundaries)
+- [SAVIS Admin](#savis-admin)
+  - [Navigation](#navigation)
+  - [Product Areas](#product-areas)
+  - [Business Flows](#business-flows)
+    - [Manage Technical BOMs](#manage-technical-boms)
+    - [Select Offers for BOM Components](#select-offers-for-bom-components)
+    - [Acquire and Review BOM Components](#acquire-and-review-bom-components)
+    - [Inspect Acquisition Tasks](#inspect-acquisition-tasks)
+    - [Configure Activity Rates](#configure-activity-rates)
+    - [Manage Catalog Products](#manage-catalog-products)
+    - [Dashboard](#dashboard)
+  - [Frontend Architecture](#frontend-architecture)
+  - [Routing and Layout](#routing-and-layout)
+  - [Data and UI State](#data-and-ui-state)
+    - [Server State](#server-state)
+    - [URL State](#url-state)
+    - [Local State](#local-state)
+  - [Backend Integration](#backend-integration)
+    - [SAVIS API Proxy](#savis-api-proxy)
+    - [Executor Endpoints](#executor-endpoints)
+  - [Technology](#technology)
+  - [Configuration](#configuration)
+  - [Local Development](#local-development)
+  - [Docker](#docker)
+  - [Tests](#tests)
+  - [Current Boundaries](#current-boundaries)
 
 ## Product Areas
 
@@ -155,7 +169,7 @@ Supported activity types:
 The catalog page manages products sold to customers. Product data includes:
 
 - identity, slug, description, images, availability, and display order;
-- category;
+- category and optional subcategory;
 - product type;
 - base sale price and target margin;
 - common `ProductBom` references with decimal quantities and display order;
@@ -170,9 +184,20 @@ Supported product types:
 - `SINGLE_CHOICE_BUNDLE`;
 - `INGREDIENT_CUSTOMIZATION`.
 
-Categories are selected through a searchable combobox. When the entered
-category does not exist, it can be created and selected directly from that
-field.
+Categories are selected from the fixed catalog values `TASTING` and
+`DECORATION`.
+
+The optional subcategory selector is filtered by the selected category.
+Decoration currently exposes:
+
+- `BALLOON_ARCH` — Arche de ballon;
+- `CENTERPIECE` — Centre de table;
+- `BIRTHDAY` — Anniversaire;
+- `WEDDING` — Mariage.
+
+Changing the category clears a subcategory that no longer belongs to it.
+`TASTING` currently has no configured subcategories, so the selector only
+offers “Aucune sous-catégorie”.
 
 The product form treats:
 
@@ -322,10 +347,6 @@ DELETE /savis-api/catalog/products/{id}
 POST   /savis-api/catalog/products/{id}/pricing-analysis
 GET    /savis-api/catalog/products/{id}/worst-case-pricing
 POST   /savis-api/catalog/products/publish
-
-GET    /savis-api/catalog/categories
-POST   /savis-api/catalog/categories
-PUT    /savis-api/catalog/categories/{id}
 ```
 
 ### Executor Endpoints

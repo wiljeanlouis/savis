@@ -6,18 +6,59 @@ export type ProductType =
 
 export type AllocationType = "NONE" | "SINGLE_CHOICE" | "CHOICE_ALLOCATION";
 export type PriceHealthStatus = "GOOD" | "REVIEW" | "LOSS" | "INCOMPLETE";
+export type ProductCategory = "TASTING" | "DECORATION";
+export type ProductSubcategory =
+  | "BALLOON_ARCH"
+  | "CENTERPIECE"
+  | "BIRTHDAY"
+  | "WEDDING";
+
+export const productCategories: { value: ProductCategory; label: string }[] = [
+  { value: "TASTING", label: "Dégustation" },
+  { value: "DECORATION", label: "Décoration" },
+];
+
+export const productSubcategories: {
+  value: ProductSubcategory;
+  label: string;
+  category: ProductCategory;
+}[] = [
+  {
+    value: "BALLOON_ARCH",
+    label: "Arche de ballon",
+    category: "DECORATION",
+  },
+  {
+    value: "CENTERPIECE",
+    label: "Centre de table",
+    category: "DECORATION",
+  },
+  {
+    value: "BIRTHDAY",
+    label: "Anniversaire",
+    category: "DECORATION",
+  },
+  { value: "WEDDING", label: "Mariage", category: "DECORATION" },
+];
+
+export const subcategoriesForCategory = (category: ProductCategory) =>
+  productSubcategories.filter(
+    (subcategory) => subcategory.category === category,
+  );
+
+export const normalizeSubcategoryForCategory = (
+  subcategory: ProductSubcategory | null,
+  category: ProductCategory,
+): ProductSubcategory | null =>
+  productSubcategories.some(
+    (option) => option.value === subcategory && option.category === category,
+  )
+    ? subcategory
+    : null;
 
 export interface Money {
   amount: number;
   currency: string;
-}
-
-export interface ProductCategory {
-  id: string | null;
-  code: string;
-  name: string;
-  active: boolean;
-  displayOrder: number;
 }
 
 export interface ProductPurchaseMode {
@@ -74,11 +115,10 @@ export interface CatalogProduct {
   name: string;
   description: string;
   productType: ProductType;
-  categoryId: string;
+  category: ProductCategory;
+  subcategory: ProductSubcategory | null;
   productBoms: ProductBom[];
-  basePrice: Money;
   targetMarginRate: number;
-  unitLabel: string;
   imageUrl: string;
   gallery: string[];
   availabilityNote: string;
@@ -113,38 +153,39 @@ export interface ProductPricingAnalysis {
 
 const cad = (amount = 0): Money => ({ amount, currency: "CAD" });
 
-export const emptyCatalogProduct = (categoryId = ""): CatalogProduct => ({
+export const emptyCatalogProduct = (
+  category: ProductCategory = "TASTING",
+): CatalogProduct => ({
   id: null,
   code: "",
   slug: "",
   name: "",
   description: "",
   productType: "STANDARD",
-  categoryId,
+  category,
+  subcategory: null,
   productBoms: [],
-  basePrice: cad(),
   targetMarginRate: 0.3,
-  unitLabel: "unité",
   imageUrl: "",
   gallery: [],
   availabilityNote: "Disponible sur commande",
   available: true,
   published: false,
   displayOrder: 0,
-  purchaseModes: [],
+  purchaseModes: [emptyPurchaseMode()],
   choiceGroup: null,
   ingredientOptions: [],
 });
 
 export const emptyProductBom = (displayOrder = 0, bomId = ""): ProductBom => ({
-  id: null,
+  id: crypto.randomUUID(),
   bomId,
   quantity: 1,
   displayOrder,
 });
 
 export const emptyPurchaseMode = (): ProductPurchaseMode => ({
-  id: null,
+  id: crypto.randomUUID(),
   code: "",
   label: "",
   quantity: 1,
@@ -155,7 +196,7 @@ export const emptyPurchaseMode = (): ProductPurchaseMode => ({
 });
 
 export const emptyChoiceOption = (): ProductChoiceOption => ({
-  id: null,
+  id: crypto.randomUUID(),
   code: "",
   name: "",
   bomId: null,
@@ -164,7 +205,7 @@ export const emptyChoiceOption = (): ProductChoiceOption => ({
 });
 
 export const emptyIngredientOption = (): ProductIngredientOption => ({
-  id: null,
+  id: crypto.randomUUID(),
   code: "",
   name: "",
   bomId: null,
