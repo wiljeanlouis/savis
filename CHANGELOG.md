@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.8.0](https://github.com/wiljeanlouis/savis/compare/v1.7.4...v1.8.0) (2026-07-26)
+
+
+### Features
+
+* add subcategory in catalog ([#77](https://github.com/wiljeanlouis/savis/issues/77)) ([caacbb6](https://github.com/wiljeanlouis/savis/commit/caacbb6006a44d7a5e3afdcb4bc8a8b058642eda))
+
 ## [1.7.4](https://github.com/wiljeanlouis/savis/compare/v1.7.3...v1.7.4) (2026-06-27)
 
 
