@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.8.1](https://github.com/wiljeanlouis/savis/compare/v1.8.0...v1.8.1) (2026-07-26)
+
+
+### Bug Fixes
+
+* implement createUuid function and replace crypto.randomUUID usage ([#81](https://github.com/wiljeanlouis/savis/issues/81)) ([516fc75](https://github.com/wiljeanlouis/savis/commit/516fc750ac8bfbeb47d58fe4152f09385db48986))
+
 ## [1.8.0](https://github.com/wiljeanlouis/savis/compare/v1.7.4...v1.8.0) (2026-07-26)
 
 
