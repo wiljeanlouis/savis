@@ -1,4 +1,4 @@
-FROM maven:3.9.16-eclipse-temurin-25-alpine AS development
+FROM maven:3-eclipse-temurin-26-alpine AS development
 WORKDIR /app
 RUN apk upgrade --no-cache
 
@@ -11,7 +11,7 @@ FROM development AS build
 RUN --mount=type=cache,target=/root/.m2 \
   mvn clean package -Dmaven.test.skip=true -B
 
-FROM eclipse-temurin:25-jre-alpine-3.23 AS production
+FROM eclipse-temurin:26-jre-alpine-3.23 AS production
 WORKDIR /app
 COPY --from=build /app/target/*.jar /opt/app.jar
 EXPOSE 8080
