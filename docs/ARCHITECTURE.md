@@ -35,14 +35,16 @@ SAVIS is the internal back-office system for SavouretPlus. It currently owns:
 - global activity rates;
 - sellable catalog products and configuration rules;
 - product cost and margin analysis;
-- publication of a limited customer-facing catalog projection.
+- publication of a limited customer-facing catalog projection;
+- normalized local orders entered by administrators or imported manually from
+  the Supabase web inbox.
 
 The public SavouretPlus application and Supabase commerce tables are outside
 the SAVIS system boundary. SAVIS publishes catalog data to Supabase but does
 not use Supabase as its business database.
 
-Orders, inventory, purchasing, catering operations, and decoration operations
-are not yet SAVIS business slices.
+Inventory, purchasing, catering operations, and decoration operations are not
+yet SAVIS business slices.
 
 ### Diagram Conventions
 
@@ -192,7 +194,7 @@ flowchart LR
   ChromeRelay -->|TCP relay| Chrome
   Chrome -->|HTTPS navigation| Providers
 
-  Api -->|Supabase REST publication| Supabase
+  Api -->|Supabase REST publication and manual order inbox reads| Supabase
   Storefront -->|public catalog and submissions| Supabase
 ```
 
@@ -283,8 +285,16 @@ flowchart TB
       CatalogWeb["Web adapters<br/>CatalogController"]
       CatalogUse["Use cases<br/>Product services<br/>Cost, pricing, publication"]
       CatalogDomain["Domain<br/>Product aggregate<br/>ProductBom, modes<br/>choices, ingredients"]
-      CatalogPorts["Ports<br/>Repositories<br/>BomPricingPort<br/>PublishedCatalogPort"]
+      CatalogPorts["Ports and public API<br/>Repositories<br/>BomPricingPort<br/>PublishedCatalogPort<br/>CatalogOrderingApi"]
       CatalogAdapters["Adapters<br/>JPA<br/>BOM public API<br/>Supabase"]
+    end
+
+    subgraph Orders["Order module"]
+      OrderWeb["Web adapter<br/>OrderController"]
+      OrderUse["Use cases<br/>OrderService<br/>ImportOrdersUseCase"]
+      OrderDomain["Domain<br/>Order aggregate and snapshots"]
+      OrderPorts["Ports<br/>OrderRepository<br/>OrderInbox<br/>OrderCatalog"]
+      OrderAdapters["Adapters<br/>JPA<br/>Supabase PostgREST<br/>Catalog public API"]
     end
 
     Common["Shared value objects<br/>Money, Quantity, Unit"]
@@ -300,8 +310,12 @@ flowchart TB
   CatalogWeb --> CatalogUse --> CatalogDomain
   CatalogUse --> CatalogPorts --> CatalogAdapters
 
+  OrderWeb --> OrderUse --> OrderDomain
+  OrderUse --> OrderPorts --> OrderAdapters
+
   BomAdapters -->|SupplyApi| SupplyUse
   CatalogAdapters -->|BomPricingApi| BomUse
+  OrderAdapters -->|CatalogOrderingApi| CatalogUse
 
   BomDomain --> Common
   SupplyDomain --> Common
@@ -312,6 +326,8 @@ flowchart TB
 
 - BOM consumes offer prices through `SupplyApi`.
 - Catalog consumes BOM cost and yield through `BomPricingApi`.
+- Order consumes validated product snapshots through `CatalogOrderingApi` when
+  an administrator creates an order.
 - Catalog stores BOM UUID values, not JPA relationships to BOM entities.
 - `common` contains shared value objects, not workflow orchestration.
 - HTTP, JPA, RabbitMQ, and Supabase dependencies remain in adapters.
@@ -424,6 +440,7 @@ flowchart TB
       Tasks["bom-component/task"]
       Rates["activity-rate"]
       Catalog["catalog"]
+      Orders["orders"]
     end
   end
 
@@ -434,17 +451,20 @@ flowchart TB
   Components --> Tasks
   Router --> Rates
   Router --> Catalog
+  Router --> Orders
 
   Bom --> ApiClients
   Components --> ApiClients
   Tasks --> ApiClients
   Rates --> ApiClients
   Catalog --> ApiClients
+  Orders --> ApiClients
 
   Bom --> SharedUi
   Components --> SharedUi
   Rates --> SharedUi
   Catalog --> SharedUi
+  Orders --> SharedUi
 ```
 
 | Client        | Default production path | Target         |
@@ -808,6 +828,76 @@ endpoint calls only bulk publication, which processes products still marked
 for publication and therefore does not reconcile newly unpublished records by
 itself.
 
+### Manual Supabase Order Import
+
+```mermaid
+sequenceDiagram
+  participant Customer as Customer
+  participant Storefront as SavouretPlus
+  participant Supabase as customer_orders inbox
+  participant Notify as Supabase Edge Function
+  participant Admin as SAVIS Admin
+  participant Orders as API Order module
+  participant PgApi as savis_api
+
+  Customer->>Storefront: Submit order
+  Storefront->>Supabase: INSERT raw order (pending)
+  Supabase->>Notify: Database webhook on INSERT
+  Notify-->>Admin: Administrative email notification
+  Admin->>Orders: POST /api/orders/import
+  Orders->>Supabase: GET pending orders with service-role key
+  loop each pending order
+    Orders->>PgApi: Check (source, external_order_id)
+    alt not imported
+      Orders->>Orders: Normalize item and configuration snapshots
+      Orders->>PgApi: Persist Order aggregate
+    end
+    alt local order exists
+      Orders->>Supabase: PATCH synced, synced_at, clear sync_error
+    else mapping or persistence failed
+      Orders->>Supabase: PATCH failed and sync_error
+    end
+  end
+  Orders-->>Admin: Import counts and failures
+```
+
+Supabase is the raw public inbox, while `savis_api.orders` is the normalized
+business model. The import is manual only: SAVIS has no webhook endpoint,
+scheduler, polling loop, or Celery task for orders. Prices are immutable
+snapshots from the submitted payload and are never looked up again in Catalog.
+The raw Supabase row is retained as JSONB for audit.
+
+The database uniqueness constraint on `(source, external_order_id)` makes the
+flow idempotent. A pending Supabase row whose local order already exists is
+acknowledged as synced. This also repairs the case where local commit succeeded
+but the previous Supabase acknowledgement failed.
+
+### Administrative Order Entry
+
+```mermaid
+sequenceDiagram
+  participant Admin as SAVIS Admin
+  participant Orders as API Order module
+  participant Catalog as CatalogOrderingApi
+  participant PgApi as savis_api
+
+  Admin->>Orders: POST /api/orders (customer and product selections)
+  loop each selected product
+    Orders->>Catalog: Validate configuration and request snapshot
+    Catalog->>Catalog: Resolve current product data and prices
+    Catalog-->>Orders: Authoritative item and configuration snapshot
+  end
+  Orders->>PgApi: Persist ADMIN order in NEW status
+  Orders-->>Admin: Created normalized order
+```
+
+The browser submits catalog identifiers, quantities, and configuration codes;
+it cannot submit product names or prices. Catalog validates the current product
+rules and calculates prices before Order captures immutable snapshots. This
+keeps subsequent order processing independent from later catalog changes.
+The administrative product dropdown queries a bounded, debounced Catalog
+search instead of loading the complete product collection.
+
 ### Flow Review Checklist
 
 | Flow                       | Questions for the next iteration                                                               |
@@ -830,7 +920,7 @@ flowchart LR
   Executor["SAVIS Executor"] --> ExecutorSchema[("savis_executor")]
   Api --> PublicSchema[("Supabase public schema")]
 
-  ApiSchema --> ApiData["BOMs and activities<br/>activity rates<br/>available offers<br/>catalog aggregates"]
+  ApiSchema --> ApiData["BOMs and activities<br/>activity rates<br/>available offers<br/>catalog aggregates<br/>normalized orders"]
   ExecutorSchema --> ExecutorData["tasks<br/>reviewed offers<br/>provider access state"]
   PublicSchema --> PublicData["published catalog<br/>customer orders<br/>quote requests"]
 ```
@@ -853,6 +943,8 @@ forward-only.
 - Internal database identity columns remain private to their owning schema.
 - Catalog BOM references are UUID values without database foreign keys to BOM
   tables.
+- Supabase order UUIDs are stored as `external_order_id`; SAVIS public order
+  UUIDs remain the HTTP identifiers.
 - Executor and API offer records form separate models connected by published
   identifiers, not shared tables.
 
@@ -932,6 +1024,8 @@ throughput.
 - Supabase RLS controls public catalog reads and customer submissions.
 - Chrome relay port `9223` must be blocked from the public network.
 - The Admin browser never writes directly to Supabase.
+- Only SAVIS API reads or acknowledges the order inbox with the service-role
+  key. Supabase email notification does not call SAVIS API.
 
 ## Delivery Architecture
 
@@ -997,7 +1091,8 @@ Flyway runs as part of API startup before API readiness succeeds.
     module boundaries.
 11. Design message consumers for duplicate delivery.
 12. Keep pricing recommendations advisory.
-13. Keep Supabase as a projection, not a source of internal truth.
+13. Keep Supabase as a public projection and raw submission inbox, not the
+    source of normalized internal business truth.
 14. Require health checks before promoting a production release.
 
 ## Known Constraints
@@ -1013,5 +1108,6 @@ Flyway runs as part of API startup before API readiness succeeds.
 - Bulk catalog publication does not currently remove projections for products
   that were changed from published to unpublished; use single-product removal
   to reconcile those projections.
-- Customer orders and quote requests exist in Supabase but are not yet managed
-  by SAVIS business modules.
+- Quote requests exist in Supabase but are not yet managed by a SAVIS business
+  module. Failed order inbox rows currently require manual review and reset to
+  `pending` before retry.

@@ -34,6 +34,11 @@ const data = {
   },
   operations: [
     {
+      name: "Commandes",
+      url: "/orders",
+      icon: <HugeiconsIcon icon={PackageIcon} strokeWidth={2} />,
+    },
+    {
       name: "Produits",
       url: "/catalog-products",
       icon: <HugeiconsIcon icon={PackageIcon} strokeWidth={2} />,
