@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.9.0](https://github.com/wiljeanlouis/savis/compare/v1.8.1...v1.9.0) (2026-10-12)
+
+
+### Features
+
+* implement order module ([#143](https://github.com/wiljeanlouis/savis/issues/143)) ([2b85ae6](https://github.com/wiljeanlouis/savis/commit/2b85ae6f248af394648c915d806c0eed585e2de1))
+
 ## [1.8.1](https://github.com/wiljeanlouis/savis/compare/v1.8.0...v1.8.1) (2026-07-26)
 
 
