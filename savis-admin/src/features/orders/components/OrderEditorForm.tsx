@@ -59,103 +59,7 @@ export function OrderEditorForm({
 }: OrderEditorFormProps) {
   return (
     <div className="space-y-4">
-      <Card>
-        <CardHeader className="border-b">
-          <CardTitle>Client</CardTitle>
-          <p className="text-sm text-muted-foreground">
-            Coordonnées et adresse utilisées pour la commande et ses documents.
-          </p>
-        </CardHeader>
-        <CardContent className="space-y-5">
-          <div className="grid gap-4 sm:grid-cols-2">
-            <Field label="Nom du client">
-              <Input
-                required
-                value={draft.customerName}
-                onChange={(event) =>
-                  onDraftChange({
-                    ...draft,
-                    customerName: event.target.value,
-                  })
-                }
-              />
-            </Field>
-            <Field label="Téléphone">
-              <Input
-                required
-                value={draft.customerPhone}
-                onChange={(event) =>
-                  onDraftChange({
-                    ...draft,
-                    customerPhone: event.target.value,
-                  })
-                }
-              />
-            </Field>
-            <Field label="Courriel">
-              <Input
-                type="email"
-                value={draft.customerEmail}
-                onChange={(event) =>
-                  onDraftChange({
-                    ...draft,
-                    customerEmail: event.target.value,
-                  })
-                }
-              />
-            </Field>
-            <Field label="Note">
-              <Textarea
-                value={draft.note}
-                onChange={(event) =>
-                  onDraftChange({ ...draft, note: event.target.value })
-                }
-              />
-            </Field>
-          </div>
-
-          <div className="space-y-3 rounded-lg border p-4">
-            <div>
-              <h3 className="font-medium">Adresse du client</h3>
-              <p className="text-sm text-muted-foreground">
-                Facultative; elle apparaît sur la facture et la soumission.
-              </p>
-            </div>
-            <div className="grid gap-3 sm:grid-cols-2">
-              <AddressField
-                label="Adresse"
-                field="line1"
-                draft={draft}
-                onDraftChange={onDraftChange}
-              />
-              <AddressField
-                label="Appartement, bureau, etc."
-                field="line2"
-                draft={draft}
-                onDraftChange={onDraftChange}
-              />
-              <AddressField
-                label="Ville"
-                field="city"
-                draft={draft}
-                onDraftChange={onDraftChange}
-              />
-              <AddressField
-                label="Province"
-                field="province"
-                draft={draft}
-                onDraftChange={onDraftChange}
-              />
-              <AddressField
-                label="Code postal"
-                field="postalCode"
-                draft={draft}
-                onDraftChange={onDraftChange}
-              />
-            </div>
-          </div>
-        </CardContent>
-      </Card>
+      <OrderCustomerEditor draft={draft} onDraftChange={onDraftChange} />
 
       <Card>
         <CardHeader className="border-b">
@@ -277,6 +181,114 @@ export function OrderEditorForm({
         </p>
       ) : null}
     </div>
+  );
+}
+
+export function OrderCustomerEditor({
+  draft,
+  onDraftChange,
+}: {
+  draft: AdminOrderDraft;
+  onDraftChange: (draft: AdminOrderDraft) => void;
+}) {
+  return (
+    <Card>
+      <CardHeader className="border-b">
+        <CardTitle>Client</CardTitle>
+        <p className="text-sm text-muted-foreground">
+          Coordonnées et adresse utilisées pour la commande et ses documents.
+        </p>
+      </CardHeader>
+      <CardContent className="space-y-5">
+        <div className="grid gap-4 sm:grid-cols-2">
+          <Field label="Nom du client">
+            <Input
+              required
+              value={draft.customerName}
+              onChange={(event) =>
+                onDraftChange({
+                  ...draft,
+                  customerName: event.target.value,
+                })
+              }
+            />
+          </Field>
+          <Field label="Téléphone">
+            <Input
+              required
+              value={draft.customerPhone}
+              onChange={(event) =>
+                onDraftChange({
+                  ...draft,
+                  customerPhone: event.target.value,
+                })
+              }
+            />
+          </Field>
+          <Field label="Courriel">
+            <Input
+              type="email"
+              value={draft.customerEmail}
+              onChange={(event) =>
+                onDraftChange({
+                  ...draft,
+                  customerEmail: event.target.value,
+                })
+              }
+            />
+          </Field>
+          <Field label="Note">
+            <Textarea
+              value={draft.note}
+              onChange={(event) =>
+                onDraftChange({ ...draft, note: event.target.value })
+              }
+            />
+          </Field>
+        </div>
+
+        <div className="space-y-3 rounded-lg border p-4">
+          <div>
+            <h3 className="font-medium">Adresse du client</h3>
+            <p className="text-sm text-muted-foreground">
+              Facultative; elle apparaît sur la facture et la soumission.
+            </p>
+          </div>
+          <div className="grid gap-3 sm:grid-cols-2">
+            <AddressField
+              label="Adresse"
+              field="line1"
+              draft={draft}
+              onDraftChange={onDraftChange}
+            />
+            <AddressField
+              label="Appartement, bureau, etc."
+              field="line2"
+              draft={draft}
+              onDraftChange={onDraftChange}
+            />
+            <AddressField
+              label="Ville"
+              field="city"
+              draft={draft}
+              onDraftChange={onDraftChange}
+            />
+            <AddressField
+              label="Province"
+              field="province"
+              draft={draft}
+              onDraftChange={onDraftChange}
+            />
+            <AddressField
+              label="Code postal"
+              field="postalCode"
+              draft={draft}
+              onDraftChange={onDraftChange}
+            />
+          </div>
+        </div>
+      </CardContent>
+    </Card>
   );
 }
 

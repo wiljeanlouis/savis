@@ -262,7 +262,9 @@ purchase mode, selected choice, flavor allocation, ingredients, and extras.
 An administrative order can be edited from the same page while its status is
 `NEW`; products and price snapshots are recalculated from the current catalog
 when it is saved. Imported web orders and orders that have advanced in the
-lifecycle remain read-only.
+lifecycle keep their product configuration and price snapshots read-only. For
+a web order still at `NEW`, operators may correct only the customer name,
+phone, email, address, and note from the Client section.
 Operators can apply the valid lifecycle transitions from `NEW` through
 preparation and completion, or reject/cancel where allowed. Imported prices are
 read-only snapshots. A **PDF** menu in the order list and the **Documents PDF**
@@ -407,6 +409,7 @@ GET    /savis-api/orders/{id}/documents/{quote|invoice}
 POST   /savis-api/orders
 POST   /savis-api/orders/import
 PUT    /savis-api/orders/{id}
+PATCH  /savis-api/orders/{id}/customer
 PUT    /savis-api/orders/{id}/status
 ```
 

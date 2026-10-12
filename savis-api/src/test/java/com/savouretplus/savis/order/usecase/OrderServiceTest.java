@@ -139,6 +139,39 @@ class OrderServiceTest {
     }
 
     @Test
+    void correctsOnlyCustomerInformationOnANewWebOrder() {
+        Order initial = order(OrderStatus.NEW);
+        when(repository.findByPublicId(ORDER_ID)).thenReturn(Optional.of(initial));
+        when(repository.save(org.mockito.ArgumentMatchers.any(Order.class)))
+                .thenAnswer(invocation -> invocation.getArgument(0));
+        UpdateOrderCustomerCommand command = new UpdateOrderCustomerCommand(
+                "Ada corrigée", "438", "new@example.com",
+                new OrderAddress("123 rue Principale", null, "Montréal", "QC", "H1H 1H1"),
+                "Téléphoner avant la livraison");
+
+        Order updated = service().updateWebCustomer(ORDER_ID, command);
+
+        assertEquals("Ada corrigée", updated.customerName());
+        assertEquals("Montréal", updated.customerAddress().city());
+        assertEquals(initial.items(), updated.items());
+        assertEquals(initial.totalCents(), updated.totalCents());
+        assertEquals(initial.rawPayload(), updated.rawPayload());
+        verify(repository).save(updated);
+    }
+
+    @Test
+    void rejectsWebCustomerCorrectionForAdministrativeOrAdvancedOrders() {
+        when(repository.findByPublicId(ORDER_ID))
+                .thenReturn(Optional.of(administrativeOrder(OrderStatus.NEW)))
+                .thenReturn(Optional.of(order(OrderStatus.ACCEPTED)));
+        UpdateOrderCustomerCommand command = new UpdateOrderCustomerCommand(
+                "Ada", "514", null, null, null);
+
+        assertThrows(IllegalStateException.class, () -> service().updateWebCustomer(ORDER_ID, command));
+        assertThrows(IllegalStateException.class, () -> service().updateWebCustomer(ORDER_ID, command));
+    }
+
+    @Test
     void acceptsANewOrderAndRecordsTheTimestamp() {
         Order initial = order(OrderStatus.NEW);
         when(repository.findByPublicId(ORDER_ID)).thenReturn(Optional.of(initial));

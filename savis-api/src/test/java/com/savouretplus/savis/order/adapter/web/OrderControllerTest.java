@@ -70,6 +70,25 @@ class OrderControllerTest {
                 org.mockito.ArgumentMatchers.eq(ORDER_ID), org.mockito.ArgumentMatchers.any());
     }
 
+    @Test
+    void correctsCustomerInformationOnAWebOrder() {
+        UpdateOrderCustomerRequest request = new UpdateOrderCustomerRequest(
+                "Ada", "514", null, null, "Note corrigée");
+        Instant now = Instant.parse("2026-10-12T12:00:00Z");
+        Order updated = new Order(
+                1L, ORDER_ID, "WEB-00000001", OrderSource.SAVOURETPLUS_WEB, OrderStatus.NEW,
+                "Ada", "514", null, "Note corrigée", 0, UUID.randomUUID(), now, now,
+                null, null, null, null, null, List.of(), Map.of());
+        when(orders.updateWebCustomer(
+                org.mockito.ArgumentMatchers.eq(ORDER_ID), org.mockito.ArgumentMatchers.any()))
+                .thenReturn(updated);
+
+        controller().updateWebCustomer(ORDER_ID, request);
+
+        org.mockito.Mockito.verify(orders).updateWebCustomer(
+                org.mockito.ArgumentMatchers.eq(ORDER_ID), org.mockito.ArgumentMatchers.any());
+    }
+
     private OrderController controller() {
         return new OrderController(orders, importer, documents);
     }

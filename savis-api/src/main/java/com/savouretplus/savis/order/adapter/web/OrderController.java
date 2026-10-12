@@ -9,6 +9,7 @@ import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -75,6 +76,16 @@ public class OrderController {
             @PathVariable UUID orderId,
             @Valid @RequestBody CreateOrderRequest request) {
         return OrderResponse.from(orders.update(orderId, request.toCommand()));
+    }
+
+    /**
+     * Corrects customer information on a new imported web order.
+     */
+    @PatchMapping("/{orderId}/customer")
+    public OrderResponse updateWebCustomer(
+            @PathVariable UUID orderId,
+            @Valid @RequestBody UpdateOrderCustomerRequest request) {
+        return OrderResponse.from(orders.updateWebCustomer(orderId, request.toCommand()));
     }
 
     /**

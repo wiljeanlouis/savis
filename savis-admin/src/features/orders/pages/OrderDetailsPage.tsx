@@ -18,7 +18,10 @@ import {
 import { HugeiconsIcon } from "@hugeicons/react";
 import { Link, useBlocker, useNavigate, useParams } from "react-router";
 import { toast } from "sonner";
-import { OrderEditorForm } from "../components/OrderEditorForm";
+import {
+  OrderCustomerEditor,
+  OrderEditorForm,
+} from "../components/OrderEditorForm";
 import { OrderItemsDetails } from "../components/OrderItemsDetails";
 import { OrderRequirementReportCard } from "../components/OrderRequirementReportCard";
 import { OrderStatusBadge } from "../components/OrderStatusBadge";
@@ -30,8 +33,10 @@ import {
   useOrderDocumentDownload,
   useOrderRequirementReport,
   useUpdateOrder,
+  useUpdateOrderCustomer,
   useUpdateOrderStatus,
 } from "../hooks/useOrderApi";
+import { buildUpdateOrderCustomerRequest } from "../model/adminOrderDraft";
 import type {
   Order,
   OrderDocumentType,
@@ -43,6 +48,8 @@ import {
   formatOrderDate,
   orderSourceLabels,
 } from "../types";
+
+type OrderEditMode = "full" | "customer" | null;
 
 export function OrderDetailsPage() {
   const { orderId } = useParams();
@@ -56,14 +63,18 @@ function OrderDetailsContent({ orderId }: { orderId: string | undefined }) {
   const requirementsQuery = useOrderRequirementReport(orderId);
   const createMutation = useCreateOrder();
   const updateMutation = useUpdateOrder();
+  const customerMutation = useUpdateOrderCustomer();
   const statusMutation = useUpdateOrderStatus();
   const documents = useOrderDocumentDownload();
-  const [isEditing, setIsEditing] = useState(isCreating);
+  const [editMode, setEditMode] = useState<OrderEditMode>(
+    isCreating ? "full" : null,
+  );
+  const isEditing = editMode !== null;
   const [editorError, setEditorError] = useState<string | null>(null);
   const allowNavigation = useRef(false);
   const editor = useOrderEditor({
     order: orderQuery.data,
-    editable: isEditing,
+    editable: editMode === "full",
     persistNewDraft: isCreating,
   });
   const hasUnsavedChanges = isEditing && editor.isDirty;
@@ -113,17 +124,26 @@ function OrderDetailsContent({ orderId }: { orderId: string | undefined }) {
     event.preventDefault();
     setEditorError(null);
     try {
-      const request = editor.buildRequest();
       if (isCreating) {
+        const request = editor.buildRequest();
         const created = await createMutation.mutateAsync(request);
         editor.resetNewDraft();
         allowNavigation.current = true;
         toast.success("Commande créée.");
         navigate(`/orders/${created.id}`, { replace: true });
+      } else if (orderId && editMode === "customer") {
+        const updated = await customerMutation.mutateAsync({
+          orderId,
+          request: buildUpdateOrderCustomerRequest(editor.draft),
+        });
+        editor.resetFromOrder(updated);
+        setEditMode(null);
+        toast.success("Coordonnées du client mises à jour.");
       } else if (orderId) {
+        const request = editor.buildRequest();
         const updated = await updateMutation.mutateAsync({ orderId, request });
         editor.resetFromOrder(updated);
-        setIsEditing(false);
+        setEditMode(null);
         toast.success("Commande mise à jour.");
       }
     } catch (error) {
@@ -132,7 +152,9 @@ function OrderDetailsContent({ orderId }: { orderId: string | undefined }) {
       toast.error(
         isCreating
           ? "Impossible de créer la commande."
-          : "Impossible de modifier la commande.",
+          : editMode === "customer"
+            ? "Impossible de modifier les coordonnées du client."
+            : "Impossible de modifier la commande.",
         {
           description: detail,
         },
@@ -154,7 +176,7 @@ function OrderDetailsContent({ orderId }: { orderId: string | undefined }) {
       navigate("/orders");
     } else if (orderQuery.data) {
       editor.resetFromOrder(orderQuery.data);
-      setIsEditing(false);
+      setEditMode(null);
     }
   }
 
@@ -184,7 +206,12 @@ function OrderDetailsContent({ orderId }: { orderId: string | undefined }) {
 
   const order = orderQuery.data;
   const canEdit = order?.source === "ADMIN" && order.status === "NEW";
-  const isSaving = createMutation.isPending || updateMutation.isPending;
+  const canEditWebCustomer =
+    order?.source === "SAVOURETPLUS_WEB" && order.status === "NEW";
+  const isSaving =
+    createMutation.isPending ||
+    updateMutation.isPending ||
+    customerMutation.isPending;
 
   return (
     <div className="space-y-6">
@@ -229,7 +256,11 @@ function OrderDetailsContent({ orderId }: { orderId: string | undefined }) {
                 disabled={isSaving}
               >
                 {isSaving ? <Spinner /> : null}
-                {isCreating ? "Créer la commande" : "Enregistrer"}
+                {isCreating
+                  ? "Créer la commande"
+                  : editMode === "customer"
+                    ? "Enregistrer le client"
+                    : "Enregistrer"}
               </Button>
             </>
           ) : order ? (
@@ -245,7 +276,7 @@ function OrderDetailsContent({ orderId }: { orderId: string | undefined }) {
                   variant="outline"
                   onClick={(event) => {
                     event.preventDefault();
-                    setIsEditing(true);
+                    setEditMode("full");
                   }}
                 >
                   <HugeiconsIcon icon={Edit02Icon} strokeWidth={2} />
@@ -262,7 +293,21 @@ function OrderDetailsContent({ orderId }: { orderId: string | undefined }) {
         </div>
       </div>
 
-      {isEditing ? (
+      {editMode === "customer" ? (
+        <form id="order-editor-form" onSubmit={(event) => void save(event)}>
+          <div className="space-y-4">
+            <OrderCustomerEditor
+              draft={editor.draft}
+              onDraftChange={editor.setDraft}
+            />
+            {editorError ? (
+              <p className="rounded-md border border-destructive/30 bg-destructive/10 p-3 text-destructive">
+                {editorError}
+              </p>
+            ) : null}
+          </div>
+        </form>
+      ) : editMode === "full" ? (
         editor.isLoadingSelectedProducts ? (
           <CenteredSpinner />
         ) : (
@@ -297,6 +342,8 @@ function OrderDetailsContent({ orderId }: { orderId: string | undefined }) {
           requirements={requirementsQuery.data}
           requirementsPending={requirementsQuery.isPending}
           requirementsError={requirementsQuery.isError}
+          canEditCustomer={canEditWebCustomer}
+          onEditCustomer={() => setEditMode("customer")}
         />
       ) : null}
     </div>
@@ -342,18 +389,28 @@ function OrderReadOnlyContent({
   requirements,
   requirementsPending,
   requirementsError,
+  canEditCustomer,
+  onEditCustomer,
 }: {
   order: Order;
   requirements: OrderRequirementReport | undefined;
   requirementsPending: boolean;
   requirementsError: boolean;
+  canEditCustomer: boolean;
+  onEditCustomer: () => void;
 }) {
   return (
     <>
       <div className="grid gap-4 lg:grid-cols-3">
         <Card className="lg:col-span-2">
-          <CardHeader className="border-b">
+          <CardHeader className="flex-row items-center justify-between border-b">
             <CardTitle>Client</CardTitle>
+            {canEditCustomer ? (
+              <Button type="button" variant="outline" onClick={onEditCustomer}>
+                <HugeiconsIcon icon={Edit02Icon} strokeWidth={2} />
+                Modifier le client
+              </Button>
+            ) : null}
           </CardHeader>
           <CardContent>
             <dl className="grid gap-3 sm:grid-cols-2">

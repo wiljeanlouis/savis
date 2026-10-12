@@ -1,10 +1,14 @@
-import { getOrderDocument, updateOrder } from "@/features/orders/api/orderApi";
+import {
+  getOrderDocument,
+  updateOrder,
+  updateOrderCustomer,
+} from "@/features/orders/api/orderApi";
 import type { CreateOrderRequest, Order } from "@/features/orders/types";
 import { api } from "@/shared/api";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 vi.mock("@/shared/api", () => ({
-  api: { get: vi.fn(), post: vi.fn(), put: vi.fn() },
+  api: { get: vi.fn(), post: vi.fn(), put: vi.fn(), patch: vi.fn() },
 }));
 
 describe("orderApi", () => {
@@ -46,5 +50,23 @@ describe("orderApi", () => {
     );
 
     expect(api.put).toHaveBeenCalledWith("/orders/order-1", request);
+  });
+
+  it("patches only the customer fields of a web order", async () => {
+    const request = {
+      customerName: "Ada",
+      customerPhone: "514",
+      customerEmail: null,
+      customerAddress: null,
+      note: "Note corrigée",
+    };
+    const order = { id: "order-1" } as Order;
+    vi.mocked(api.patch).mockResolvedValue({ data: order });
+
+    await expect(
+      updateOrderCustomer({ orderId: "order-1", request }),
+    ).resolves.toBe(order);
+
+    expect(api.patch).toHaveBeenCalledWith("/orders/order-1/customer", request);
   });
 });

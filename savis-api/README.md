@@ -403,6 +403,7 @@ invalid catalog structures and disabled explicit publication return `400`.
 | `GET`  | `/api/orders`                        | List normalized local orders.                |
 | `GET`  | `/api/orders/{orderId}`              | Retrieve one order and its item snapshots.   |
 | `PUT`  | `/api/orders/{orderId}`              | Replace a `NEW` administrative order from current catalog selections. |
+| `PATCH` | `/api/orders/{orderId}/customer`     | Correct customer information on a `NEW` imported web order. |
 | `GET`  | `/api/orders/{orderId}/requirements` | Generate current aggregated production-component requirements. |
 | `GET`  | `/api/orders/{orderId}/documents/{quote\|invoice}` | Download a quote or invoice PDF. |
 | `PUT`  | `/api/orders/{orderId}/status`       | Apply a valid lifecycle transition.          |
@@ -423,6 +424,12 @@ The same payload can replace an administrative order while it remains `NEW`.
 Replacement is atomic and rebuilds all item, configuration, image, and price
 snapshots from the current Catalog. Imported web orders and administrative
 orders in any later lifecycle status are rejected with `409 Conflict`.
+
+For a web order that is still `NEW`, the customer name, phone, email, address,
+and note may be corrected through the dedicated customer endpoint. Product
+configuration, quantities, price snapshots, totals, source payload, and source
+identifiers are preserved. Web orders in later statuses are rejected with
+`409 Conflict`.
 
 Administrative orders can also include an optional customer address, a
 non-negative discount, and a non-negative delivery fee. The order total is the

@@ -116,6 +116,14 @@ export interface CreateOrderRequest {
   items: CreateOrderItemRequest[];
 }
 
+export interface UpdateOrderCustomerRequest {
+  customerName: string;
+  customerPhone: string;
+  customerEmail: string | null;
+  customerAddress: OrderAddress | null;
+  note: string | null;
+}
+
 export interface OrderAddress {
   line1: string | null;
   line2: string | null;

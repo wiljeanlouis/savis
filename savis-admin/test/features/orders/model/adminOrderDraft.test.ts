@@ -2,6 +2,7 @@ import type { CatalogProduct } from "@/features/catalog/types";
 import {
   adminOrderDraftFromOrder,
   buildCreateOrderRequest,
+  buildUpdateOrderCustomerRequest,
   createAdminOrderItem,
   emptyAdminOrderDraft,
   estimateOrderTotalCents,
@@ -183,6 +184,20 @@ describe("adminOrderDraft", () => {
           ingredients: { sprinkles: 2 },
         },
       ],
+    });
+
+    expect(buildUpdateOrderCustomerRequest(draft)).toEqual({
+      customerName: "Ada",
+      customerPhone: "514",
+      customerEmail: "ada@example.com",
+      customerAddress: {
+        line1: "123 rue Principale",
+        line2: null,
+        city: "Montréal",
+        province: "QC",
+        postalCode: "H1H 1H1",
+      },
+      note: "Sans noix",
     });
   });
 });

@@ -117,6 +117,45 @@ public class OrderService {
     }
 
     /**
+     * Corrects customer information on a new imported web order without changing its snapshots.
+     */
+    public Order updateWebCustomer(UUID orderId, UpdateOrderCustomerCommand command) {
+        Order current = get(orderId);
+        if (current.source() != OrderSource.SAVOURETPLUS_WEB) {
+            throw new IllegalStateException("Cette correction est réservée aux commandes web");
+        }
+        if (current.status() != OrderStatus.NEW) {
+            throw new IllegalStateException("Seule une commande web au statut NEW peut être corrigée");
+        }
+
+        Order changed = new Order(
+                current.id(),
+                current.publicId(),
+                current.orderNumber(),
+                current.source(),
+                current.status(),
+                command.customerName(),
+                command.customerPhone(),
+                blankToNull(command.customerEmail()),
+                command.customerAddress(),
+                blankToNull(command.note()),
+                current.discountCents(),
+                current.deliveryFeeCents(),
+                current.totalCents(),
+                current.externalOrderId(),
+                current.placedAt(),
+                current.importedAt(),
+                current.acceptedAt(),
+                current.inPreparationAt(),
+                current.readyAt(),
+                current.completedAt(),
+                current.cancelledAt(),
+                current.items(),
+                current.rawPayload());
+        return repository.save(changed);
+    }
+
+    /**
      * Returns all orders for administration views.
      */
     @Transactional(readOnly = true)

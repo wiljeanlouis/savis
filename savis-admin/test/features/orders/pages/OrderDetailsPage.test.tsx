@@ -6,6 +6,7 @@ import {
   useOrderDocumentDownload,
   useOrderRequirementReport,
   useUpdateOrder,
+  useUpdateOrderCustomer,
   useUpdateOrderStatus,
 } from "@/features/orders/hooks/useOrderApi";
 import type { Order } from "@/features/orders/types";
@@ -22,6 +23,7 @@ vi.mock("@/features/orders/hooks/useOrderApi", () => ({
   useOrderRequirementReport: vi.fn(),
   useCreateOrder: vi.fn(),
   useUpdateOrder: vi.fn(),
+  useUpdateOrderCustomer: vi.fn(),
   useUpdateOrderStatus: vi.fn(),
   useOrderDocumentDownload: vi.fn(),
 }));
@@ -32,6 +34,9 @@ vi.mock("@/features/orders/hooks/useOrderEditor", () => ({
 
 vi.mock("@/features/orders/components/OrderEditorForm", () => ({
   OrderEditorForm: () => <div data-testid="order-editor">Éditeur</div>,
+  OrderCustomerEditor: () => (
+    <div data-testid="customer-editor">Éditeur client</div>
+  ),
 }));
 
 vi.mock("@/features/orders/components/OrderItemsDetails", () => ({
@@ -77,11 +82,13 @@ const order: Order = {
 
 describe("OrderDetailsPage", () => {
   const update = vi.fn().mockResolvedValue(order);
+  const updateCustomer = vi.fn().mockResolvedValue(order);
   const resetFromOrder = vi.fn();
 
   beforeEach(() => {
     vi.clearAllMocks();
     update.mockResolvedValue(order);
+    updateCustomer.mockResolvedValue(order);
     vi.mocked(useOrder).mockReturnValue({
       data: order,
       isPending: false,
@@ -100,6 +107,10 @@ describe("OrderDetailsPage", () => {
       isPending: false,
       mutateAsync: update,
     } as never);
+    vi.mocked(useUpdateOrderCustomer).mockReturnValue({
+      isPending: false,
+      mutateAsync: updateCustomer,
+    } as never);
     vi.mocked(useUpdateOrderStatus).mockReturnValue({
       isPending: false,
       mutateAsync: vi.fn(),
@@ -109,7 +120,22 @@ describe("OrderDetailsPage", () => {
       download: vi.fn(),
     } as never);
     vi.mocked(useOrderEditor).mockReturnValue({
-      draft: {},
+      draft: {
+        customerName: "Ada",
+        customerPhone: "514",
+        customerEmail: "",
+        customerAddress: {
+          line1: "",
+          line2: "",
+          city: "",
+          province: "",
+          postalCode: "",
+        },
+        note: "",
+        discountCents: 0,
+        deliveryFeeCents: 0,
+        items: [],
+      },
       setDraft: vi.fn(),
       products: [],
       searchResults: [],
@@ -151,5 +177,48 @@ describe("OrderDetailsPage", () => {
     expect(screen.getByTestId("order-editor")).toBeInTheDocument();
     expect(update).toHaveBeenCalledOnce();
     expect(resetFromOrder).toHaveBeenCalledWith(order);
+  });
+
+  it("edits only customer information on a new web order", async () => {
+    const webOrder = {
+      ...order,
+      orderNumber: "WEB-00000001",
+      source: "SAVOURETPLUS_WEB",
+      externalOrderId: "20000000-0000-4000-8000-000000000002",
+    } satisfies Order;
+    vi.mocked(useOrder).mockReturnValue({
+      data: webOrder,
+      isPending: false,
+      isError: false,
+    } as never);
+    updateCustomer.mockResolvedValue(webOrder);
+    const router = createMemoryRouter(
+      [{ path: "/orders/:orderId", element: <OrderDetailsPage /> }],
+      { initialEntries: [`/orders/${webOrder.id}`] },
+    );
+    render(<RouterProvider router={router} />);
+
+    expect(
+      screen.queryByRole("button", { name: "Modifier" }),
+    ).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Modifier le client" }));
+    expect(screen.getByTestId("customer-editor")).toBeInTheDocument();
+
+    fireEvent.click(
+      screen.getByRole("button", { name: "Enregistrer le client" }),
+    );
+
+    await waitFor(() => expect(updateCustomer).toHaveBeenCalledOnce());
+    expect(updateCustomer).toHaveBeenCalledWith({
+      orderId: webOrder.id,
+      request: {
+        customerName: "Ada",
+        customerPhone: "514",
+        customerEmail: null,
+        customerAddress: null,
+        note: null,
+      },
+    });
+    expect(update).not.toHaveBeenCalled();
   });
 });

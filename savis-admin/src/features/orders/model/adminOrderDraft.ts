@@ -3,7 +3,11 @@ import type {
   ProductPurchaseMode,
 } from "@/features/catalog/types";
 import { createUuid } from "@/shared/lib/utils";
-import type { CreateOrderRequest, Order } from "../types";
+import type {
+  CreateOrderRequest,
+  Order,
+  UpdateOrderCustomerRequest,
+} from "../types";
 
 export interface AdminOrderDraft {
   customerName: string;
@@ -83,6 +87,24 @@ export function adminOrderDraftFromOrder(order: Order): AdminOrderDraft {
         ]),
       ),
     })),
+  };
+}
+
+export function buildUpdateOrderCustomerRequest(
+  draft: AdminOrderDraft,
+): UpdateOrderCustomerRequest {
+  if (!draft.customerName.trim()) {
+    throw new Error("Le nom du client est requis.");
+  }
+  if (!draft.customerPhone.trim()) {
+    throw new Error("Le téléphone du client est requis.");
+  }
+  return {
+    customerName: draft.customerName.trim(),
+    customerPhone: draft.customerPhone.trim(),
+    customerEmail: blankToNull(draft.customerEmail),
+    customerAddress: addressOrNull(draft.customerAddress),
+    note: blankToNull(draft.note),
   };
 }
 

@@ -82,7 +82,7 @@ public class OpenHtmlToPdfOrderDocumentRenderer implements OrderDocumentRenderer
     private PartyView issuer() {
         return new PartyView(
                 "Savour et Plus",
-                List.of("2190 rue Gabriel-Sagard", "Drummondville, QC J2B 0P8"),
+                List.of("2190, rue Gabriel-Sagard", "Drummondville, QC J2B 0P8"),
                 "savouretplus@gmail.com",
                 "+1 438 969 1433");
     }
