@@ -37,6 +37,10 @@ import {
   useUpdateOrderStatus,
 } from "../hooks/useOrderApi";
 import { buildUpdateOrderCustomerRequest } from "../model/adminOrderDraft";
+import {
+  formatOrderAddress,
+  formatPhoneForDisplay,
+} from "../model/contactFormat";
 import type {
   Order,
   OrderDocumentType,
@@ -415,11 +419,14 @@ function OrderReadOnlyContent({
           <CardContent>
             <dl className="grid gap-3 sm:grid-cols-2">
               <Info label="Nom" value={order.customerName} />
-              <Info label="Téléphone" value={order.customerPhone} />
+              <Info
+                label="Téléphone"
+                value={formatPhoneForDisplay(order.customerPhone)}
+              />
               <Info label="Courriel" value={order.customerEmail ?? "—"} />
               <Info
                 label="Adresse"
-                value={formatAddress(order.customerAddress)}
+                value={formatOrderAddress(order.customerAddress)}
               />
               <Info label="Note" value={order.note ?? "—"} />
             </dl>
@@ -509,16 +516,6 @@ function Amount({
         {formatOrderCurrency(cents)}
       </dd>
     </div>
-  );
-}
-
-function formatAddress(address: import("../types").OrderAddress | null) {
-  if (!address) return "—";
-  const locality = [address.city, address.province, address.postalCode]
-    .filter(Boolean)
-    .join(" ");
-  return (
-    [address.line1, address.line2, locality].filter(Boolean).join(", ") || "—"
   );
 }
 

@@ -7,6 +7,7 @@ import java.util.UUID;
 
 import org.springframework.stereotype.Component;
 
+import com.savouretplus.savis.order.domain.CustomerContactNormalizer;
 import com.savouretplus.savis.order.domain.Order;
 import com.savouretplus.savis.order.domain.OrderItem;
 import com.savouretplus.savis.order.domain.OrderItemAllocationType;
@@ -50,9 +51,9 @@ public class CustomerOrderImportMapper {
                 OrderSource.SAVOURETPLUS_WEB,
                 OrderStatus.NEW,
                 source.customerName(),
-                source.customerPhone(),
+                CustomerContactNormalizer.normalizePhone(source.customerPhone()),
                 blankToNull(source.customerEmail()),
-                source.customerAddress(),
+                CustomerContactNormalizer.normalizeAddress(source.customerAddress()),
                 blankToNull(source.note()),
                 source.discountCents(),
                 source.deliveryFeeCents(),

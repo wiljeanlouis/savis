@@ -67,7 +67,7 @@ class OrderServiceTest {
                 .thenAnswer(invocation -> invocation.getArgument(0));
         OrderService service = service();
         CreateOrderCommand command = new CreateOrderCommand(
-                "Ada", "514", "ada@example.com",
+                "Ada", "514 555-0100", "ada@example.com",
                 new OrderAddress("123 rue Principale", null, "Montréal", "QC", "H1H 1H1"),
                 "Livrer à 15 h", 100, 250,
                 List.of(new CreateOrderCommand.Item(
@@ -77,6 +77,7 @@ class OrderServiceTest {
 
         assertEquals(OrderSource.ADMIN, created.source());
         assertEquals(OrderStatus.NEW, created.status());
+        assertEquals("+15145550100", created.customerPhone());
         assertEquals("ADM-00000001", created.orderNumber());
         assertEquals(1500, created.totalCents());
         assertEquals(1350, created.subtotalCents());
@@ -108,7 +109,7 @@ class OrderServiceTest {
         when(repository.save(org.mockito.ArgumentMatchers.any(Order.class)))
                 .thenAnswer(invocation -> invocation.getArgument(0));
         CreateOrderCommand command = new CreateOrderCommand(
-                "Ada modifiée", "438", "new@example.com", null,
+                "Ada modifiée", "438 555-0101", "new@example.com", null,
                 "Nouvelle note", 100, 200,
                 List.of(new CreateOrderCommand.Item(
                         PRODUCT_ID, 2, "unit", "vanilla", List.of(), List.of())));
@@ -145,7 +146,7 @@ class OrderServiceTest {
         when(repository.save(org.mockito.ArgumentMatchers.any(Order.class)))
                 .thenAnswer(invocation -> invocation.getArgument(0));
         UpdateOrderCustomerCommand command = new UpdateOrderCustomerCommand(
-                "Ada corrigée", "438", "new@example.com",
+                "Ada corrigée", "438 555-0101", "new@example.com",
                 new OrderAddress("123 rue Principale", null, "Montréal", "QC", "H1H 1H1"),
                 "Téléphoner avant la livraison");
 

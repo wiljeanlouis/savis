@@ -1,6 +1,7 @@
 package com.savouretplus.savis.order.domain;
 
 import java.util.List;
+import java.util.Locale;
 import java.util.stream.Stream;
 
 /**
@@ -14,14 +15,15 @@ public record OrderAddress(
         String postalCode) {
 
     /**
-     * Trims address values and converts blank values to {@code null}.
+     * Normalizes whitespace, province and postal-code casing, and converts blank
+     * values to {@code null}.
      */
     public OrderAddress {
-        line1 = blankToNull(line1);
-        line2 = blankToNull(line2);
-        city = blankToNull(city);
-        province = blankToNull(province);
-        postalCode = blankToNull(postalCode);
+        line1 = normalizeText(line1);
+        line2 = normalizeText(line2);
+        city = normalizeText(city);
+        province = normalizeProvince(province);
+        postalCode = normalizePostalCode(postalCode);
     }
 
     /**
@@ -35,16 +37,31 @@ public record OrderAddress(
      * Returns non-empty address lines ready for display.
      */
     public List<String> displayLines() {
-        String locality = Stream.of(city, province, postalCode)
+        String region = Stream.of(province, postalCode)
                 .filter(value -> value != null && !value.isBlank())
                 .reduce((left, right) -> left + " " + right)
                 .orElse(null);
+        String locality = city == null ? region : region == null ? city : city + ", " + region;
         return Stream.of(line1, line2, locality)
                 .filter(value -> value != null && !value.isBlank())
                 .toList();
     }
 
-    private static String blankToNull(String value) {
-        return value == null || value.isBlank() ? null : value.trim();
+    private static String normalizeText(String value) {
+        return value == null || value.isBlank() ? null : value.trim().replaceAll("\\s+", " ");
+    }
+
+    private static String normalizeProvince(String value) {
+        String normalized = normalizeText(value);
+        return normalized == null ? null : normalized.toUpperCase(Locale.CANADA_FRENCH);
+    }
+
+    private static String normalizePostalCode(String value) {
+        String normalized = normalizeText(value);
+        if (normalized == null) {
+            return null;
+        }
+        String compact = normalized.replaceAll("[\\s-]", "").toUpperCase(Locale.CANADA_FRENCH);
+        return compact.length() == 6 ? compact.substring(0, 3) + " " + compact.substring(3) : compact;
     }
 }

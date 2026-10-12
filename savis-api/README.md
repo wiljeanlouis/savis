@@ -434,6 +434,11 @@ identifiers are preserved. Web orders in later statuses are rejected with
 Administrative orders can also include an optional customer address, a
 non-negative discount, and a non-negative delivery fee. The order total is the
 catalog subtotal minus the discount plus delivery. Taxes are not calculated.
+Customer phones are validated with Canada as the default region and persisted
+in E.164 form. Optional addresses normalize whitespace, uppercase the province,
+and validate Canadian postal codes in `A1A 1A1` form. The same normalization is
+applied to administrative creation and replacement, imported web orders, and
+customer corrections.
 The PDF documents use the persisted price snapshots and adjustments; the
 business coordinates, payment conditions, and 30-day quote validity are
 currently configured as fixed document-template values.

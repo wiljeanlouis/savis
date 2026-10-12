@@ -40,6 +40,8 @@ class OpenHtmlToPdfOrderDocumentRendererTest {
         assertTrue(invoiceText.contains("FACTURE"));
         assertTrue(invoiceText.contains("ADM-00000042"));
         assertTrue(invoiceText.contains("Ada Lovelace"));
+        assertTrue(invoiceText.contains("+1 514 555 0101"));
+        assertTrue(invoiceText.contains("Montréal, QC H1H 1H1"));
         assertTrue(invoiceText.contains("Rabais"));
         assertTrue(invoiceText.contains("Frais de livraison"));
         assertTrue(invoiceText.contains("26,00 CAD"));

@@ -17,6 +17,7 @@ import java.util.UUID;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.savouretplus.savis.order.domain.CustomerContactNormalizer;
 import com.savouretplus.savis.order.domain.Order;
 import com.savouretplus.savis.order.domain.OrderItem;
 import com.savouretplus.savis.order.domain.OrderItemChoiceAllocation;
@@ -60,9 +61,9 @@ public class OrderService {
                 OrderSource.ADMIN,
                 OrderStatus.NEW,
                 command.customerName(),
-                command.customerPhone(),
+                CustomerContactNormalizer.normalizePhone(command.customerPhone()),
                 blankToNull(command.customerEmail()),
-                command.customerAddress(),
+                CustomerContactNormalizer.normalizeAddress(command.customerAddress()),
                 blankToNull(command.note()),
                 command.discountCents(),
                 command.deliveryFeeCents(),
@@ -96,9 +97,9 @@ public class OrderService {
                 current.source(),
                 current.status(),
                 command.customerName(),
-                command.customerPhone(),
+                CustomerContactNormalizer.normalizePhone(command.customerPhone()),
                 blankToNull(command.customerEmail()),
-                command.customerAddress(),
+                CustomerContactNormalizer.normalizeAddress(command.customerAddress()),
                 blankToNull(command.note()),
                 command.discountCents(),
                 command.deliveryFeeCents(),
@@ -135,9 +136,9 @@ public class OrderService {
                 current.source(),
                 current.status(),
                 command.customerName(),
-                command.customerPhone(),
+                CustomerContactNormalizer.normalizePhone(command.customerPhone()),
                 blankToNull(command.customerEmail()),
-                command.customerAddress(),
+                CustomerContactNormalizer.normalizeAddress(command.customerAddress()),
                 blankToNull(command.note()),
                 current.discountCents(),
                 current.deliveryFeeCents(),

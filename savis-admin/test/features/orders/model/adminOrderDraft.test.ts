@@ -64,7 +64,7 @@ describe("adminOrderDraft", () => {
     const draft = {
       ...emptyAdminOrderDraft(),
       customerName: " Ada ",
-      customerPhone: " 514 ",
+      customerPhone: " (514) 555-0100 ",
       customerAddress: {
         line1: " 123 rue Principale ",
         line2: "",
@@ -80,6 +80,7 @@ describe("adminOrderDraft", () => {
     const request = buildCreateOrderRequest(draft, [product]);
 
     expect(request.customerName).toBe("Ada");
+    expect(request.customerPhone).toBe("+15145550100");
     expect(request.customerAddress).toEqual({
       line1: "123 rue Principale",
       line2: null,
@@ -116,7 +117,7 @@ describe("adminOrderDraft", () => {
       source: "ADMIN",
       status: "NEW",
       customerName: "Ada",
-      customerPhone: "514",
+      customerPhone: "+15145550100",
       customerEmail: "ada@example.com",
       customerAddress: {
         line1: "123 rue Principale",
@@ -173,6 +174,7 @@ describe("adminOrderDraft", () => {
 
     expect(draft).toMatchObject({
       customerName: "Ada",
+      customerPhone: "(514) 555-0100",
       customerAddress: { line1: "123 rue Principale" },
       discountCents: 200,
       deliveryFeeCents: 300,
@@ -188,7 +190,7 @@ describe("adminOrderDraft", () => {
 
     expect(buildUpdateOrderCustomerRequest(draft)).toEqual({
       customerName: "Ada",
-      customerPhone: "514",
+      customerPhone: "+15145550100",
       customerEmail: "ada@example.com",
       customerAddress: {
         line1: "123 rue Principale",

@@ -19,6 +19,7 @@ import { Download01Icon, Pdf01Icon } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
 import { Link } from "react-router";
 import type { OrderDocumentType, OrderSummary } from "../types";
+import { formatPhoneForDisplay, phoneHref } from "../model/contactFormat";
 import {
   formatOrderCurrency,
   formatOrderDate,
@@ -76,9 +77,9 @@ export function OrdersTable({
                 <TableCell>
                   <a
                     className="hover:underline"
-                    href={`tel:${order.customerPhone}`}
+                    href={`tel:${phoneHref(order.customerPhone)}`}
                   >
-                    {order.customerPhone}
+                    {formatPhoneForDisplay(order.customerPhone)}
                   </a>
                 </TableCell>
                 <TableCell className="font-medium">

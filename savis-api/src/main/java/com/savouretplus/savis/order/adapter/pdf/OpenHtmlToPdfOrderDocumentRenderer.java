@@ -20,6 +20,7 @@ import org.thymeleaf.context.Context;
 import org.thymeleaf.spring6.SpringTemplateEngine;
 
 import com.openhtmltopdf.pdfboxout.PdfRendererBuilder;
+import com.savouretplus.savis.order.domain.CustomerContactNormalizer;
 import com.savouretplus.savis.order.domain.Order;
 import com.savouretplus.savis.order.domain.OrderItem;
 import com.savouretplus.savis.order.port.OrderDocumentRenderer;
@@ -100,7 +101,9 @@ public class OpenHtmlToPdfOrderDocumentRenderer implements OrderDocumentRenderer
         List<String> address = order.customerAddress() == null
                 ? List.of()
                 : order.customerAddress().displayLines();
-        return new PartyView(order.customerName(), address, order.customerEmail(), order.customerPhone());
+        return new PartyView(
+                order.customerName(), address, order.customerEmail(),
+                CustomerContactNormalizer.formatPhoneForDocument(order.customerPhone()));
     }
 
     private ItemView item(OrderItem item) {

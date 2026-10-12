@@ -8,6 +8,11 @@ import type {
   Order,
   UpdateOrderCustomerRequest,
 } from "../types";
+import {
+  formatPhoneForDisplay,
+  normalizeCanadianPostalCode,
+  normalizePhone,
+} from "./contactFormat";
 
 export interface AdminOrderDraft {
   customerName: string;
@@ -56,7 +61,7 @@ export const emptyAdminOrderDraft = (): AdminOrderDraft => ({
 export function adminOrderDraftFromOrder(order: Order): AdminOrderDraft {
   return {
     customerName: order.customerName,
-    customerPhone: order.customerPhone,
+    customerPhone: formatPhoneForDisplay(order.customerPhone),
     customerEmail: order.customerEmail ?? "",
     customerAddress: {
       line1: order.customerAddress?.line1 ?? "",
@@ -101,7 +106,7 @@ export function buildUpdateOrderCustomerRequest(
   }
   return {
     customerName: draft.customerName.trim(),
-    customerPhone: draft.customerPhone.trim(),
+    customerPhone: normalizePhone(draft.customerPhone),
     customerEmail: blankToNull(draft.customerEmail),
     customerAddress: addressOrNull(draft.customerAddress),
     note: blankToNull(draft.note),
@@ -184,7 +189,7 @@ export function buildCreateOrderRequest(
 
   return {
     customerName: draft.customerName.trim(),
-    customerPhone: draft.customerPhone.trim(),
+    customerPhone: normalizePhone(draft.customerPhone),
     customerEmail: blankToNull(draft.customerEmail),
     customerAddress: addressOrNull(draft.customerAddress),
     note: blankToNull(draft.note),
@@ -328,8 +333,10 @@ function addressOrNull(address: AdminOrderDraft["customerAddress"]) {
     line1: blankToNull(address.line1),
     line2: blankToNull(address.line2),
     city: blankToNull(address.city),
-    province: blankToNull(address.province),
-    postalCode: blankToNull(address.postalCode),
+    province: blankToNull(address.province)?.toUpperCase() ?? null,
+    postalCode: blankToNull(address.postalCode)
+      ? normalizeCanadianPostalCode(address.postalCode)
+      : null,
   };
   return Object.values(normalized).some(Boolean) ? normalized : null;
 }

@@ -24,6 +24,11 @@ import {
   type AdminOrderDraft,
   type AdminOrderItemDraft,
 } from "../model/adminOrderDraft";
+import {
+  CANADIAN_PROVINCES,
+  formatCanadianPostalInput,
+  formatPhoneInput,
+} from "../model/contactFormat";
 import { formatOrderCurrency } from "../types";
 import { CatalogProductDropdown } from "./CatalogProductDropdown";
 import { OrderProductImage } from "./OrderProductImage";
@@ -216,11 +221,14 @@ export function OrderCustomerEditor({
           <Field label="Téléphone">
             <Input
               required
+              inputMode="tel"
+              autoComplete="tel"
+              placeholder="(819) 555-0123"
               value={draft.customerPhone}
               onChange={(event) =>
                 onDraftChange({
                   ...draft,
-                  customerPhone: event.target.value,
+                  customerPhone: formatPhoneInput(event.target.value),
                 })
               }
             />
@@ -273,12 +281,31 @@ export function OrderCustomerEditor({
               draft={draft}
               onDraftChange={onDraftChange}
             />
-            <AddressField
-              label="Province"
-              field="province"
-              draft={draft}
-              onDraftChange={onDraftChange}
-            />
+            <Field label="Province">
+              <Select
+                value={draft.customerAddress.province}
+                onValueChange={(province) =>
+                  onDraftChange({
+                    ...draft,
+                    customerAddress: {
+                      ...draft.customerAddress,
+                      province,
+                    },
+                  })
+                }
+              >
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder="Sélectionner…" />
+                </SelectTrigger>
+                <SelectContent>
+                  {CANADIAN_PROVINCES.map(([code, name]) => (
+                    <SelectItem key={code} value={code}>
+                      {name} ({code})
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </Field>
             <AddressField
               label="Code postal"
               field="postalCode"
@@ -306,19 +333,35 @@ function AddressField({
   return (
     <Field label={label}>
       <Input
+        autoComplete={addressAutoComplete(field)}
+        inputMode={field === "postalCode" ? "text" : undefined}
+        placeholder={field === "postalCode" ? "J2B 1V7" : undefined}
         value={draft.customerAddress[field]}
         onChange={(event) =>
           onDraftChange({
             ...draft,
             customerAddress: {
               ...draft.customerAddress,
-              [field]: event.target.value,
+              [field]:
+                field === "postalCode"
+                  ? formatCanadianPostalInput(event.target.value)
+                  : event.target.value,
             },
           })
         }
       />
     </Field>
   );
+}
+
+function addressAutoComplete(field: keyof AdminOrderDraft["customerAddress"]) {
+  return {
+    line1: "address-line1",
+    line2: "address-line2",
+    city: "address-level2",
+    province: "address-level1",
+    postalCode: "postal-code",
+  }[field];
 }
 
 function OrderItemEditor({

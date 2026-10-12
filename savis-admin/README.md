@@ -243,6 +243,13 @@ persisting the order. The browser keeps an unfinished new-order draft for the
 current tab and warns before leaving with unsaved changes. Taxes are not
 calculated.
 
+Customer phones are formatted as Canadian numbers while they are entered and
+sent to the API in E.164 form. The optional address uses a Canadian province
+selector and formats postal codes as `A1A 1A1`; an incomplete or invalid phone
+or postal code prevents submission. Order pages display phones in national
+format and addresses with the conventional comma before province and postal
+code.
+
 The product dropdown is searchable. Input is debounced before the browser asks
 Catalog for up to 20 currently available products, so the full catalog is not
 loaded into the order form. Products already added remain available to the

@@ -61,7 +61,7 @@ const order: Order = {
   source: "ADMIN",
   status: "NEW",
   customerName: "Ada",
-  customerPhone: "514",
+  customerPhone: "+15145550100",
   customerEmail: null,
   customerAddress: null,
   note: null,
@@ -122,7 +122,7 @@ describe("OrderDetailsPage", () => {
     vi.mocked(useOrderEditor).mockReturnValue({
       draft: {
         customerName: "Ada",
-        customerPhone: "514",
+        customerPhone: "+15145550100",
         customerEmail: "",
         customerAddress: {
           line1: "",
@@ -213,7 +213,7 @@ describe("OrderDetailsPage", () => {
       orderId: webOrder.id,
       request: {
         customerName: "Ada",
-        customerPhone: "514",
+        customerPhone: "+15145550100",
         customerEmail: null,
         customerAddress: null,
         note: null,
