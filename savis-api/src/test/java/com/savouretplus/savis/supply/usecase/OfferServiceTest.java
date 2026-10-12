@@ -90,6 +90,9 @@ class OfferServiceTest {
         Assertions.assertTrue(offerPricing.isPresent());
         Assertions.assertEquals(Money.of(4), offerPricing.get().price());
         Assertions.assertEquals(new Quantity(1, Unit.KILOGRAM), offerPricing.get().packageSize());
+        Assertions.assertEquals("Flour", offerPricing.get().componentName());
+        Assertions.assertEquals("Provider", offerPricing.get().supplierName());
+        Assertions.assertEquals(cheapPerGram.lastSeen(), offerPricing.get().observedAt());
     }
 
     @Test

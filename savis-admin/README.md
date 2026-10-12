@@ -3,12 +3,12 @@
 **SAVIS Admin** is the React back-office application for
 [SAVIS](../README.md). It provides the operational UI used to manage technical
 BOMs, provider offers, activity rates, sellable catalog products, pricing
-analysis, and catalog publication.
+analysis, catalog publication, and imported customer orders.
 
 The frontend does not own business rules or persistence:
 
-- [SAVIS API](../savis-api/README.md) owns BOM, supply, activity-rate, and
-  catalog workflows.
+- [SAVIS API](../savis-api/README.md) owns BOM, supply, activity-rate, catalog,
+  and order workflows.
 - [SAVIS Executor](../savis-executor/README.md) owns provider-offer
   acquisition, review state, refresh tasks, and task history.
 
@@ -24,6 +24,7 @@ The frontend does not own business rules or persistence:
     - [Inspect Acquisition Tasks](#inspect-acquisition-tasks)
     - [Configure Activity Rates](#configure-activity-rates)
     - [Manage Catalog Products](#manage-catalog-products)
+    - [Manage Orders](#manage-orders)
     - [Dashboard](#dashboard)
   - [Frontend Architecture](#frontend-architecture)
   - [Routing and Layout](#routing-and-layout)
@@ -46,6 +47,8 @@ The frontend does not own business rules or persistence:
 | Area              | Route                   | Backend         | Purpose                                                                                   |
 | ----------------- | ----------------------- | --------------- | ----------------------------------------------------------------------------------------- |
 | Dashboard         | `/` and `/dashboard`    | Local demo data | Displays the current dashboard shell, charts, cards, and table.                           |
+| Orders            | `/orders`                | SAVIS API       | Creates administrative orders, imports web orders, and manages their lifecycle.          |
+| Order detail      | `/orders/:orderId`       | SAVIS API       | Displays item, choice, allocation, ingredient, and price snapshots.                       |
 | Products          | `/catalog-products`     | SAVIS API       | Manages sellable products, categories, BOM references, pricing analysis, and publication. |
 | BOM compositions  | `/boms`                 | SAVIS API       | Lists, searches, creates, edits, prices, and deletes technical BOMs.                      |
 | BOM components    | `/bom-components`       | SAVIS Executor  | Reviews and manages acquired provider offers used as BOM components.                      |
@@ -226,6 +229,41 @@ The current action triggers bulk publication of products still marked
 `published`; it does not yet reconcile Supabase rows for products newly changed
 to unpublished.
 
+### Manage Orders
+
+The `/orders` page lists normalized local orders and provides both the
+**Nouvelle commande** form and the manual **Récupérer commandes web** action.
+The creation form captures the customer, products, purchase modes, choices,
+allocations, ingredients, and quantities. Its total is an estimate; SAVIS API
+validates the catalog rules and calculates the authoritative prices before
+persisting the order.
+
+The product dropdown is searchable. Input is debounced before the browser asks
+Catalog for up to 20 currently available products, so the full catalog is not
+loaded into the order form. Products already added remain available to the
+draft when the search term changes.
+
+Product snapshot images are shown in search results, configured draft lines,
+the order list, and order-item details. The list uses one stable thumbnail in a
+dedicated Articles column alongside the total item count, keeping order numbers
+aligned. A neutral placeholder is used when an image is absent or cannot be
+loaded.
+
+The browser calls SAVIS API only; it never receives the Supabase service-role
+key or queries `customer_orders` directly.
+
+The `/orders/:orderId` page displays customer information, submitted prices,
+purchase mode, selected choice, flavor allocation, ingredients, and extras.
+Operators can apply the valid lifecycle transitions from `NEW` through
+preparation and completion, or reject/cancel where allowed. Imported prices are
+read-only snapshots.
+
+The detail page also generates a **Besoins de production** report. It aggregates
+compatible component quantities from all applicable BOMs, shows the current
+known supplier product and price, and exposes the product/BOM contribution for
+traceability. This is not a shopping list: stock is not deducted and no package
+purchase quantity is inferred.
+
 ### Dashboard
 
 The dashboard currently uses static data from
@@ -248,6 +286,7 @@ src/
 |   |-- bom-component/
 |   |   `-- task/               # Child acquisition workflow
 |   |-- catalog/
+|   |-- orders/
 |   `-- dashboard/
 `-- shared/
     |-- api/                    # Axios clients
@@ -278,6 +317,7 @@ The application uses React Router's data router through
   always-open dialog above the shared layout.
 - `/boms/:id` uses a route loader to fetch the selected BOM.
 - `/bom-components/tasks` is a nested child route of `/bom-components`.
+- `/orders` creates and lists orders; `/orders/:orderId` displays one order.
 - Breadcrumbs are declared in route `handle` metadata.
 - The BOM sidebar parent groups Compositions and Components with shadcn
   collapsible menu primitives.
@@ -299,6 +339,7 @@ Examples:
 - `["executor-tasks", ...pagination]`;
 - `["activity-rates"]`;
 - `["catalog-products"]`;
+- `["orders"]`;
 - `["catalog-categories"]`.
 
 ### URL State
@@ -318,7 +359,7 @@ Two Axios clients are defined in `src/shared/api/index.ts`:
 
 | Client        | Base URL                                         | Used for                                                                         |
 | ------------- | ------------------------------------------------ | -------------------------------------------------------------------------------- |
-| `api`         | `VITE_API_URL`, default `/savis-api`             | BOMs, supply offers, activity rates, catalog products, pricing, and publication. |
+| `api`         | `VITE_API_URL`, default `/savis-api`             | BOMs, supply offers, activity rates, catalog, publication, and orders.            |
 | `executorApi` | `VITE_EXECUTOR_API_URL`, default `/executor-api` | Executor offers and tasks.                                                       |
 
 ### SAVIS API Proxy
@@ -347,6 +388,13 @@ DELETE /savis-api/catalog/products/{id}
 POST   /savis-api/catalog/products/{id}/pricing-analysis
 GET    /savis-api/catalog/products/{id}/worst-case-pricing
 POST   /savis-api/catalog/products/publish
+
+GET    /savis-api/orders
+GET    /savis-api/orders/{id}
+GET    /savis-api/orders/{id}/requirements
+POST   /savis-api/orders
+POST   /savis-api/orders/import
+PUT    /savis-api/orders/{id}/status
 ```
 
 ### Executor Endpoints

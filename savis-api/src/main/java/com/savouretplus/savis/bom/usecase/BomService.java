@@ -1,6 +1,7 @@
 package com.savouretplus.savis.bom.usecase;
 
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -10,6 +11,7 @@ import org.springframework.stereotype.Service;
 
 import com.savouretplus.savis.common.Money;
 import com.savouretplus.savis.bom.api.BomPricingApi;
+import com.savouretplus.savis.bom.api.BomRequirementsApi;
 import com.savouretplus.savis.bom.domain.ActivityRate;
 import com.savouretplus.savis.bom.domain.ActivityType;
 import com.savouretplus.savis.bom.domain.ComponentNeededEvent;
@@ -31,7 +33,7 @@ import lombok.extern.slf4j.Slf4j;
 @Service
 @Transactional
 @AllArgsConstructor
-public class BomService implements BomPricingApi {
+public class BomService implements BomPricingApi, BomRequirementsApi {
 
     private final BomRepositoryPort repository;
     private final ComponentPricePort priceCalculator;
@@ -128,6 +130,36 @@ public class BomService implements BomPricingApi {
         return new BomPricing(
                 calculateTotalCost(bom),
                 BigDecimal.valueOf(bom.getYield().quantity().value()));
+    }
+
+    /**
+     * Explodes a BOM and scales every component to the requested output quantity.
+     */
+    @Override
+    public BomRequirements getRequirements(UUID bomId, BigDecimal outputQuantity) {
+        if (outputQuantity == null || outputQuantity.signum() <= 0) {
+            throw new IllegalArgumentException("La quantité de production BOM doit être supérieure à zéro");
+        }
+
+        Bom bom = getBom(bomId);
+        BigDecimal yieldQuantity = BigDecimal.valueOf(bom.getYield().quantity().value());
+        if (yieldQuantity.signum() <= 0) {
+            throw new IllegalStateException("Le rendement du BOM doit être supérieur à zéro");
+        }
+
+        BigDecimal factor = outputQuantity.divide(yieldQuantity, 12, RoundingMode.HALF_UP);
+        return new BomRequirements(
+                bom.getPublicId(),
+                bom.getName(),
+                bom.components().stream()
+                        .map(component -> new ComponentRequirement(
+                                component.componentName(),
+                                BigDecimal.valueOf(component.quantity().value())
+                                        .multiply(factor)
+                                        .stripTrailingZeros(),
+                                component.quantity().unit(),
+                                component.selectedOfferId()))
+                        .toList());
     }
 
     private Map<ActivityType, Money> activityRatesByType() {

@@ -14,6 +14,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.savouretplus.savis.catalog.domain.Product;
 import com.savouretplus.savis.catalog.domain.ProductPricingAnalysis;
 import com.savouretplus.savis.catalog.usecase.CatalogPublicationService;
 import com.savouretplus.savis.catalog.usecase.ProductPricingService;
@@ -34,11 +35,18 @@ public class CatalogController {
     private final CatalogPublicationService publication;
 
     /**
-     * Returns all resources exposed by this endpoint or service.
+     * Returns all products, or a bounded server-filtered result when search parameters are supplied.
      */
     @GetMapping
-    public List<CatalogProductDto> list() {
-        return products.list().stream().map(CatalogProductDto::from).toList();
+    public List<CatalogProductDto> list(
+            @RequestParam(required = false) String search,
+            @RequestParam(defaultValue = "false") boolean availableOnly,
+            @RequestParam(required = false) Integer limit) {
+        List<Product> result =
+                search == null && !availableOnly && limit == null
+                        ? products.list()
+                        : products.search(search, availableOnly, limit != null ? limit : 20);
+        return result.stream().map(CatalogProductDto::from).toList();
     }
 
     /**

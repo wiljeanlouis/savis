@@ -15,6 +15,8 @@ import { BomComponentTasksPage } from "@/features/bom-component/task/pages/BomCo
 import { BomComponentsPage } from "@/features/bom-component/pages/BomComponentsPage";
 import { ActivityRatesPage } from "@/features/activity-rate/pages/ActivityRatesPage";
 import { CatalogProductsPage } from "@/features/catalog/pages/CatalogProductsPage";
+import { OrdersPage } from "@/features/orders/pages/OrdersPage";
+import { OrderDetailsPage } from "@/features/orders/pages/OrderDetailsPage";
 
 const router = createBrowserRouter([
   {
@@ -53,6 +55,50 @@ const router = createBrowserRouter([
               <BreadcrumbSeparator className="hidden md:block" />
               <BreadcrumbItem>
                 <BreadcrumbPage>Dashboard</BreadcrumbPage>
+              </BreadcrumbItem>
+            </>
+          ),
+        },
+      },
+      {
+        path: "/orders",
+        element: <OrdersPage />,
+        handle: {
+          breadcrumb: () => (
+            <>
+              <BreadcrumbItem className="hidden md:block">
+                <BreadcrumbLink asChild>
+                  <Link to="/">Accueil</Link>
+                </BreadcrumbLink>
+              </BreadcrumbItem>
+              <BreadcrumbSeparator className="hidden md:block" />
+              <BreadcrumbItem>
+                <BreadcrumbPage>Commandes</BreadcrumbPage>
+              </BreadcrumbItem>
+            </>
+          ),
+        },
+      },
+      {
+        path: "/orders/:orderId",
+        element: <OrderDetailsPage />,
+        handle: {
+          breadcrumb: () => (
+            <>
+              <BreadcrumbItem className="hidden md:block">
+                <BreadcrumbLink asChild>
+                  <Link to="/">Accueil</Link>
+                </BreadcrumbLink>
+              </BreadcrumbItem>
+              <BreadcrumbSeparator className="hidden md:block" />
+              <BreadcrumbItem className="hidden md:block">
+                <BreadcrumbLink asChild>
+                  <Link to="/orders">Commandes</Link>
+                </BreadcrumbLink>
+              </BreadcrumbItem>
+              <BreadcrumbSeparator className="hidden md:block" />
+              <BreadcrumbItem>
+                <BreadcrumbPage>Détail</BreadcrumbPage>
               </BreadcrumbItem>
             </>
           ),

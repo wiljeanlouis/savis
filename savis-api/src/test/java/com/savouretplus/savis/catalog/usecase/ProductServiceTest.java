@@ -1,6 +1,8 @@
 package com.savouretplus.savis.catalog.usecase;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.math.BigDecimal;
@@ -43,5 +45,22 @@ class ProductServiceTest {
 
         assertThrows(IllegalArgumentException.class,
                 () -> new ProductService(products, bomPricing).create(product));
+    }
+
+    @Test
+    void delegatesANormalizedBoundedProductSearch() {
+        when(products.search("Pâté", true, 20)).thenReturn(List.of());
+        ProductService service = new ProductService(products, bomPricing);
+
+        assertEquals(List.of(), service.search("  Pâté  ", true, 20));
+
+        verify(products).search("Pâté", true, 20);
+    }
+
+    @Test
+    void refusesAnUnboundedProductSearch() {
+        ProductService service = new ProductService(products, bomPricing);
+
+        assertThrows(IllegalArgumentException.class, () -> service.search("", true, 101));
     }
 }

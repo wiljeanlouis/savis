@@ -9,6 +9,7 @@ import java.util.UUID;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
+import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Repository;
 
 import com.savouretplus.savis.catalog.domain.Product;
@@ -57,6 +58,16 @@ public class ProductRepositoryAdapter implements ProductRepository {
     @Override
     public List<Product> findAll() {
         return repository.findAllByOrderByDisplayOrderAscNameAsc().stream().map(this::toDomain).toList();
+    }
+
+    /**
+     * Searches products by their customer-facing identity and availability.
+     */
+    @Override
+    public List<Product> search(String search, boolean availableOnly, int limit) {
+        return repository.search(search, availableOnly, PageRequest.of(0, limit)).stream()
+                .map(this::toDomain)
+                .toList();
     }
 
     /**

@@ -112,6 +112,8 @@ The slices collaborate through explicit public contracts:
 
 - BOM consumes `SupplyApi` to price components.
 - Catalog consumes `BomPricingApi` through its own `BomPricingPort`.
+- Order consumes `CatalogOrderingApi`, `BomRequirementsApi`, and `SupplyApi`
+  through local ports to generate production-requirement reports.
 - Catalog stores BOM UUIDs as values and does not access BOM entities or
   repositories.
 
@@ -368,6 +370,18 @@ It does not yet reconcile Supabase rows for products newly changed to
 unpublished. The single-product publication path supports unpublishing, but it
 is exposed by the HTTP controller.
 
+### Orders
+
+The Order slice owns the normalized local order aggregate, immutable item and
+configuration snapshots, lifecycle transitions, administrative order entry,
+and the manual external inbox import. Supabase `customer_orders.id` is stored
+as `externalOrderId`; the local database additionally assigns a public UUID and
+a sequence-backed order number.
+
+Web imports are idempotent through the unique `(source, externalOrderId)` key.
+The source row is retained as JSONB for audit. Successful local imports are
+acknowledged in Supabase only after persistence completes.
+
 ## HTTP API
 
 The service listens on port `8080` by default. OpenAPI documentation is
@@ -379,6 +393,42 @@ http://localhost:8080/swagger-ui.html
 
 Spring Problem Details is enabled. Catalog not-found errors return `404`;
 invalid catalog structures and disabled explicit publication return `400`.
+
+### Order Endpoints
+
+| Method | Path                                 | Purpose                                      |
+| ------ | ------------------------------------ | -------------------------------------------- |
+| `POST` | `/api/orders`                        | Create an administrative order from catalog selections. |
+| `POST` | `/api/orders/import`                 | Manually import orders from the configured inbox. |
+| `GET`  | `/api/orders`                        | List normalized local orders.                |
+| `GET`  | `/api/orders/{orderId}`              | Retrieve one order and its item snapshots.   |
+| `GET`  | `/api/orders/{orderId}/requirements` | Generate current aggregated production-component requirements. |
+| `PUT`  | `/api/orders/{orderId}/status`       | Apply a valid lifecycle transition.          |
+
+The import endpoint is the only import trigger. It reads Supabase with the
+server-side service-role key and does not use a webhook, scheduler, polling
+loop, or Executor task. Imported orders always start as `NEW`. Product names,
+purchase modes, choices, allocations, ingredient quantities, and prices are
+stored as submitted snapshots; Catalog is not consulted during import.
+
+Administrative creation accepts customer details plus product identifiers,
+quantities, and configuration codes. The API validates each selection against
+the current Catalog aggregate, calculates authoritative prices, and stores an
+immutable snapshot with source `ADMIN` and initial status `NEW`. Names and
+prices supplied by the browser are never trusted.
+
+Order-list summaries include the total item count and up to three product image
+previews captured from the immutable order snapshots.
+
+The requirement report resolves the ordered configuration through Catalog,
+explodes each applicable BOM, converts compatible component quantities, and
+aggregates them across the whole order. Each requirement retains its order-item
+and BOM sources and is enriched with the selected or cheapest compatible Supply
+offer when one exists. It is an operational production report: it does not
+change order snapshots or prices and does not estimate purchases because SAVIS
+does not yet track inventory. Catalog, BOM, and Supply data are read at report
+generation time; warnings and `complete=false` identify unresolved production
+inputs.
 
 Actuator health endpoints:
 
@@ -462,7 +512,7 @@ Only one rate can exist for each activity type.
 
 | Method   | Path                                                                        | Purpose                                                |
 | -------- | --------------------------------------------------------------------------- | ------------------------------------------------------ |
-| `GET`    | `/api/catalog/products`                                                     | List catalog products.                                 |
+| `GET`    | `/api/catalog/products`                                                     | List or search catalog products.                       |
 | `GET`    | `/api/catalog/products/{productId}`                                         | Retrieve one product.                                  |
 | `POST`   | `/api/catalog/products`                                                     | Create a product.                                      |
 | `PUT`    | `/api/catalog/products/{productId}`                                         | Update a product.                                      |
@@ -472,6 +522,12 @@ Only one rate can exist for each activity type.
 | `POST`   | `/api/catalog/products/{productId}/publish`                                 | Publish one product.                                   |
 | `POST`   | `/api/catalog/products/{productId}/unpublish`                               | Remove one product from the published catalog.         |
 | `POST`   | `/api/catalog/products/publish`                                             | Publish every product marked for publication.          |
+
+`GET /api/catalog/products` accepts the optional `search`, `availableOnly`,
+and `limit` parameters. Supplying any of them enables a bounded database search
+over the product code, name, and description; `limit` must be between 1 and
+100. Calling the endpoint without these parameters preserves the complete
+catalog-management listing.
 
 Pricing configuration payload:
 
@@ -582,6 +638,11 @@ Main tables:
 - `catalog_product_choice_groups`;
 - `catalog_product_choice_options`;
 - `catalog_product_ingredient_options`;
+- `orders`;
+- `order_items`;
+- `order_item_choice_selections`;
+- `order_item_choice_allocations`;
+- `order_item_ingredient_selections`;
 - `event_publication`, managed by Spring Modulith for event-publication
   infrastructure.
 
@@ -595,6 +656,8 @@ Persistence conventions:
   columns, not JPA relationships to BOM entities;
 - the product gallery is stored as PostgreSQL `jsonb`;
 - supply offers are reconciled by public UUID or provider identity.
+- web orders are unique by `(source, external_order_id)` and retain their raw
+  Supabase row as JSONB for audit.
 
 The application currently uses:
 
@@ -625,7 +688,7 @@ Flyway is disabled in the test profile.
 | `SPRING_RABBITMQ_PORT`       | `5672`                                        | RabbitMQ port.                       |
 | `SPRING_RABBITMQ_USERNAME`   | Spring Boot default                           | RabbitMQ user.                       |
 | `SPRING_RABBITMQ_PASSWORD`   | Spring Boot default                           | RabbitMQ password.                   |
-| `SUPABASE_ENABLED`           | `false`                                       | Enable the Supabase catalog adapter. |
+| `SUPABASE_ENABLED`           | `false`                                       | Enable Supabase publication and manual order import. |
 | `SUPABASE_URL`               | empty                                         | Supabase project URL.                |
 | `SUPABASE_SERVICE_ROLE_KEY`  | empty                                         | Supabase service-role credential.    |
 
@@ -736,7 +799,7 @@ Useful targeted checks:
 ## Current Boundaries
 
 - SAVIS API is the business system of record; Supabase is only a published
-  projection.
+  projection and raw public-submission inbox.
 - SAVIS Executor owns scraping, acquisition task execution, and offer review.
 - Catalog references BOMs only by UUID and public pricing contract.
 - BOM references Supply through its public API instead of Supply persistence.
