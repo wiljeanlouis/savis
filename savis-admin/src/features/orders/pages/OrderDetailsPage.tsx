@@ -1,12 +1,18 @@
 import { Button } from "@/shared/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/shared/ui/card";
 import { Spinner } from "@/shared/ui/spinner";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/shared/ui/tabs";
 import { Link, useParams } from "react-router";
 import { toast } from "sonner";
 import { OrderItemsDetails } from "../components/OrderItemsDetails";
+import { OrderRequirementReportCard } from "../components/OrderRequirementReportCard";
 import { OrderStatusBadge } from "../components/OrderStatusBadge";
 import { OrderStatusSelect } from "../components/OrderStatusSelect";
-import { useOrder, useUpdateOrderStatus } from "../hooks/useOrderApi";
+import {
+  useOrder,
+  useOrderRequirementReport,
+  useUpdateOrderStatus,
+} from "../hooks/useOrderApi";
 import type { OrderStatus } from "../types";
 import {
   formatOrderCurrency,
@@ -17,6 +23,7 @@ import {
 export function OrderDetailsPage() {
   const { orderId } = useParams();
   const orderQuery = useOrder(orderId);
+  const requirementsQuery = useOrderRequirementReport(orderId);
   const statusMutation = useUpdateOrderStatus();
 
   async function changeStatus(status: OrderStatus) {
@@ -108,10 +115,33 @@ export function OrderDetailsPage() {
         </Card>
       </div>
 
-      <section className="space-y-3">
-        <h2 className="text-lg font-semibold">Articles</h2>
-        <OrderItemsDetails items={order.items} />
-      </section>
+      <Tabs defaultValue="items" className="gap-4">
+        <TabsList className="h-10 w-full sm:w-fit">
+          <TabsTrigger value="items" className="px-4 text-sm">
+            Articles ({order.items.length})
+          </TabsTrigger>
+          <TabsTrigger value="requirements" className="px-4 text-sm">
+            Besoins de production
+            {requirementsQuery.data ? (
+              <span className="rounded-full bg-muted-foreground/15 px-1.5 text-xs tabular-nums">
+                {requirementsQuery.data.requirements.length}
+              </span>
+            ) : null}
+          </TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="items">
+          <OrderItemsDetails items={order.items} />
+        </TabsContent>
+
+        <TabsContent value="requirements">
+          <OrderRequirementReportCard
+            report={requirementsQuery.data}
+            isLoading={requirementsQuery.isPending}
+            isError={requirementsQuery.isError}
+          />
+        </TabsContent>
+      </Tabs>
     </div>
   );
 }

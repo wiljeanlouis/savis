@@ -118,6 +118,55 @@ export interface CreateOrderItemRequest {
   ingredients: { ingredientCode: string; quantity: number }[];
 }
 
+export interface OrderRequirementReport {
+  orderId: string;
+  orderNumber: string;
+  generatedAt: string;
+  requirements: OrderRequirement[];
+  complete: boolean;
+  warnings: string[];
+}
+
+export interface OrderRequirement {
+  componentKey: string;
+  componentName: string;
+  requiredQuantity: number;
+  unit: string;
+  sourcingInformation: SourcingInformation | null;
+  sources: OrderRequirementSource[];
+  onHandQuantity: number | null;
+  missingQuantity: number | null;
+  purchaseQuantity: number | null;
+  estimatedPurchaseCost: MoneyValue | null;
+}
+
+export interface OrderRequirementSource {
+  bomId: string;
+  bomName: string;
+  orderItemId: string;
+  productName: string;
+  configurationSource: string;
+  quantityContribution: number;
+  unit: string;
+}
+
+export interface SourcingInformation {
+  supplierProductId: string;
+  productName: string | null;
+  imageUrl: string | null;
+  brandOrLabel: string | null;
+  supplierName: string | null;
+  packageSize: number | null;
+  packageUnit: string | null;
+  currentPrice: MoneyValue | null;
+  observedAt: string | null;
+}
+
+export interface MoneyValue {
+  amount: number;
+  currency: string;
+}
+
 export const orderStatusLabels: Record<OrderStatus, string> = {
   NEW: "Nouvelle",
   ACCEPTED: "Acceptée",

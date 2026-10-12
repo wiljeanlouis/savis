@@ -112,6 +112,8 @@ The slices collaborate through explicit public contracts:
 
 - BOM consumes `SupplyApi` to price components.
 - Catalog consumes `BomPricingApi` through its own `BomPricingPort`.
+- Order consumes `CatalogOrderingApi`, `BomRequirementsApi`, and `SupplyApi`
+  through local ports to generate production-requirement reports.
 - Catalog stores BOM UUIDs as values and does not access BOM entities or
   repositories.
 
@@ -400,6 +402,7 @@ invalid catalog structures and disabled explicit publication return `400`.
 | `POST` | `/api/orders/import`                 | Manually import orders from the configured inbox. |
 | `GET`  | `/api/orders`                        | List normalized local orders.                |
 | `GET`  | `/api/orders/{orderId}`              | Retrieve one order and its item snapshots.   |
+| `GET`  | `/api/orders/{orderId}/requirements` | Generate current aggregated production-component requirements. |
 | `PUT`  | `/api/orders/{orderId}/status`       | Apply a valid lifecycle transition.          |
 
 The import endpoint is the only import trigger. It reads Supabase with the
@@ -416,6 +419,16 @@ prices supplied by the browser are never trusted.
 
 Order-list summaries include the total item count and up to three product image
 previews captured from the immutable order snapshots.
+
+The requirement report resolves the ordered configuration through Catalog,
+explodes each applicable BOM, converts compatible component quantities, and
+aggregates them across the whole order. Each requirement retains its order-item
+and BOM sources and is enriched with the selected or cheapest compatible Supply
+offer when one exists. It is an operational production report: it does not
+change order snapshots or prices and does not estimate purchases because SAVIS
+does not yet track inventory. Catalog, BOM, and Supply data are read at report
+generation time; warnings and `complete=false` identify unresolved production
+inputs.
 
 Actuator health endpoints:
 

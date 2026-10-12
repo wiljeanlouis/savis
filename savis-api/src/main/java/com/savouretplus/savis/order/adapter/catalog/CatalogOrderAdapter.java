@@ -48,6 +48,20 @@ public class CatalogOrderAdapter implements OrderCatalog {
                         .toList());
     }
 
+    /**
+     * Resolves current catalog BOM contributions for an ordered configuration.
+     */
+    @Override
+    public BomPlan bomPlan(ProductSelection selection) {
+        CatalogOrderingApi.BomPlan source = catalog.bomPlan(toCatalogSelection(selection));
+        return new BomPlan(
+                source.boms().stream()
+                        .map(value -> new ApplicableBom(
+                                value.bomId(), value.quantity(), value.sourceName()))
+                        .toList(),
+                source.warnings());
+    }
+
     private CatalogOrderingApi.ProductSelection toCatalogSelection(ProductSelection selection) {
         return new CatalogOrderingApi.ProductSelection(
                 selection.productId(),

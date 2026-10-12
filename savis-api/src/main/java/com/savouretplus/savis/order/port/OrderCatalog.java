@@ -1,5 +1,6 @@
 package com.savouretplus.savis.order.port;
 
+import java.math.BigDecimal;
 import java.util.List;
 import java.util.UUID;
 
@@ -15,6 +16,11 @@ public interface OrderCatalog {
      * Validates a product selection and returns the snapshot to store on the order.
      */
     ProductSnapshot snapshot(ProductSelection selection);
+
+    /**
+     * Resolves BOM contributions for an ordered product configuration.
+     */
+    BomPlan bomPlan(ProductSelection selection);
 
     /**
      * Describes the product configuration selected by an administrator.
@@ -94,6 +100,26 @@ public interface OrderCatalog {
             int quantity,
             int defaultQuantity,
             int extraPriceCents) {
+    }
+
+    /**
+     * Represents BOM contributions and diagnostics for one ordered product.
+     */
+    record BomPlan(List<ApplicableBom> boms, List<String> warnings) {
+
+        /**
+         * Normalizes BOM and warning collections.
+         */
+        public BomPlan {
+            boms = boms != null ? List.copyOf(boms) : List.of();
+            warnings = warnings != null ? List.copyOf(warnings) : List.of();
+        }
+    }
+
+    /**
+     * Represents one BOM output quantity used by an ordered product.
+     */
+    record ApplicableBom(UUID bomId, BigDecimal quantity, String sourceName) {
     }
 
 }

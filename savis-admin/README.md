@@ -258,6 +258,12 @@ Operators can apply the valid lifecycle transitions from `NEW` through
 preparation and completion, or reject/cancel where allowed. Imported prices are
 read-only snapshots.
 
+The detail page also generates a **Besoins de production** report. It aggregates
+compatible component quantities from all applicable BOMs, shows the current
+known supplier product and price, and exposes the product/BOM contribution for
+traceability. This is not a shopping list: stock is not deducted and no package
+purchase quantity is inferred.
+
 ### Dashboard
 
 The dashboard currently uses static data from
@@ -385,6 +391,7 @@ POST   /savis-api/catalog/products/publish
 
 GET    /savis-api/orders
 GET    /savis-api/orders/{id}
+GET    /savis-api/orders/{id}/requirements
 POST   /savis-api/orders
 POST   /savis-api/orders/import
 PUT    /savis-api/orders/{id}/status

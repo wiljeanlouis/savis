@@ -2,6 +2,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   createOrder,
   getOrder,
+  getOrderRequirementReport,
   getOrders,
   importOrders,
   updateOrderStatus,
@@ -16,6 +17,13 @@ export const useOrder = (orderId: string | undefined) =>
   useQuery({
     queryKey: [...ORDERS_QUERY_KEY, orderId],
     queryFn: () => getOrder(orderId!),
+    enabled: Boolean(orderId),
+  });
+
+export const useOrderRequirementReport = (orderId: string | undefined) =>
+  useQuery({
+    queryKey: [...ORDERS_QUERY_KEY, orderId, "requirements"],
+    queryFn: () => getOrderRequirementReport(orderId!),
     enabled: Boolean(orderId),
   });
 

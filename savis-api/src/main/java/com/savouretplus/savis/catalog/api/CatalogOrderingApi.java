@@ -1,5 +1,6 @@
 package com.savouretplus.savis.catalog.api;
 
+import java.math.BigDecimal;
 import java.util.List;
 import java.util.UUID;
 
@@ -12,6 +13,11 @@ public interface CatalogOrderingApi {
      * Validates a product configuration and returns its current sellable snapshot.
      */
     ProductSnapshot snapshot(ProductSelection selection);
+
+    /**
+     * Resolves the BOM contributions for a configured catalog product.
+     */
+    BomPlan bomPlan(ProductSelection selection);
 
     /**
      * Describes the catalog product configuration selected for an order item.
@@ -87,6 +93,26 @@ public interface CatalogOrderingApi {
             int quantity,
             int defaultQuantity,
             int extraPriceCents) {
+    }
+
+    /**
+     * Represents the BOM contributions and diagnostics for one product selection.
+     */
+    record BomPlan(List<ApplicableBom> boms, List<String> warnings) {
+
+        /**
+         * Normalizes BOM and warning collections.
+         */
+        public BomPlan {
+            boms = boms != null ? List.copyOf(boms) : List.of();
+            warnings = warnings != null ? List.copyOf(warnings) : List.of();
+        }
+    }
+
+    /**
+     * Represents one BOM output quantity contributed by a product configuration.
+     */
+    record ApplicableBom(UUID bomId, BigDecimal quantity, String sourceName) {
     }
 
 }

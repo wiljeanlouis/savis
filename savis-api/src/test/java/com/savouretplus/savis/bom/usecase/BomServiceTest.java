@@ -4,6 +4,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
+import java.math.BigDecimal;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -23,12 +24,14 @@ import com.savouretplus.savis.bom.domain.ActivityType;
 import com.savouretplus.savis.bom.domain.Bom;
 import com.savouretplus.savis.bom.domain.BomType;
 import com.savouretplus.savis.bom.domain.Minute;
+import com.savouretplus.savis.bom.domain.Yield;
 import com.savouretplus.savis.bom.port.ActivityRateRepositoryPort;
 import com.savouretplus.savis.bom.port.BomRepositoryPort;
 import com.savouretplus.savis.bom.port.ComponentNeededEventPort;
 import com.savouretplus.savis.bom.port.ComponentPricePort;
 import com.savouretplus.savis.bom.port.ComponentPriceRequest;
 import com.savouretplus.savis.common.Money;
+import com.savouretplus.savis.common.Quantity;
 import com.savouretplus.savis.common.Unit;
 
 @ExtendWith(MockitoExtension.class)
@@ -102,5 +105,34 @@ class BomServiceTest {
         verify(priceCalculator).getPrices(List.of());
         verify(activityRateRepository).findAll();
         verifyNoMoreInteractions(repository, priceCalculator, activityRateRepository, componentNeededEventPublisher);
+    }
+
+    @Test
+    void getRequirements_ShouldScaleComponentsFromTheBomYield() {
+        UUID publicId = UUID.randomUUID();
+        UUID offerId = UUID.randomUUID();
+        Bom bom = new Bom(
+                publicId,
+                "Pâté poulet",
+                "",
+                "",
+                "",
+                BomType.FOOD,
+                List.of(),
+                List.of(),
+                new Yield(new Quantity(10, Unit.PIECE), Unit.PIECE));
+        bom.addComponent("Farine", 500, Unit.GRAM, offerId);
+        when(repository.findByPublicId(publicId)).thenReturn(Optional.of(bom));
+
+        var requirements = bomService.getRequirements(publicId, new BigDecimal("20"));
+
+        Assertions.assertEquals(publicId, requirements.bomId());
+        Assertions.assertEquals("Pâté poulet", requirements.bomName());
+        Assertions.assertEquals(1, requirements.components().size());
+        Assertions.assertEquals("farine", requirements.components().getFirst().componentName());
+        Assertions.assertEquals(0,
+                requirements.components().getFirst().quantity().compareTo(new BigDecimal("1000")));
+        Assertions.assertEquals(Unit.GRAM, requirements.components().getFirst().unit());
+        Assertions.assertEquals(offerId, requirements.components().getFirst().selectedOfferId());
     }
 }

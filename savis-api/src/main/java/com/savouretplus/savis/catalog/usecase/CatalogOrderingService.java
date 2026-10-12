@@ -1,6 +1,8 @@
 package com.savouretplus.savis.catalog.usecase;
 
+import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.util.ArrayList;
 import java.util.List;
 
 import org.springframework.stereotype.Service;
@@ -8,10 +10,12 @@ import org.springframework.transaction.annotation.Transactional;
 
 import com.savouretplus.savis.catalog.api.CatalogOrderingApi;
 import com.savouretplus.savis.catalog.domain.Product;
+import com.savouretplus.savis.catalog.domain.ProductBom;
 import com.savouretplus.savis.catalog.domain.ProductChoiceOption;
 import com.savouretplus.savis.catalog.domain.ProductConfiguration;
 import com.savouretplus.savis.catalog.domain.ProductIngredientOption;
 import com.savouretplus.savis.catalog.domain.ProductPurchaseMode;
+import com.savouretplus.savis.catalog.domain.ProductType;
 import com.savouretplus.savis.common.Money;
 
 import lombok.AllArgsConstructor;
@@ -70,6 +74,61 @@ public class CatalogOrderingService implements CatalogOrderingApi {
                 ingredients);
     }
 
+    /**
+     * Resolves every BOM that applies to the selected product configuration.
+     */
+    @Override
+    public BomPlan bomPlan(ProductSelection selection) {
+        Product product = product(selection);
+        ProductConfiguration configuration = configuration(selection);
+        ProductPurchaseMode mode = product.selectedMode(configuration);
+        product.validateConfiguration(configuration);
+
+        List<ApplicableBom> applicableBoms = new ArrayList<>();
+        List<String> warnings = new ArrayList<>();
+        for (ProductBom productBom : product.productBoms()) {
+            addBom(applicableBoms, warnings, productBom.bomId(), productBom.quantity(), product.name());
+        }
+
+        if (product.productType() == ProductType.SINGLE_CHOICE) {
+            if (configuration.choiceCode() != null && !configuration.choiceCode().isBlank()) {
+                ProductChoiceOption option = product.requireActiveChoice(configuration.choiceCode());
+                addBom(applicableBoms, warnings, option.bomId(), BigDecimal.valueOf(mode.quantity()), option.name());
+            }
+        } else if (product.productType() == ProductType.SINGLE_CHOICE_BUNDLE) {
+            if (mode.allocationType() == com.savouretplus.savis.catalog.domain.AllocationType.CHOICE_ALLOCATION) {
+                configuration.allocations().forEach(allocation -> {
+                    ProductChoiceOption option = product.requireActiveChoice(allocation.choiceCode());
+                    addBom(
+                            applicableBoms,
+                            warnings,
+                            option.bomId(),
+                            BigDecimal.valueOf(allocation.quantity()),
+                            option.name());
+                });
+            } else if (configuration.choiceCode() != null && !configuration.choiceCode().isBlank()) {
+                ProductChoiceOption option = product.requireActiveChoice(configuration.choiceCode());
+                addBom(applicableBoms, warnings, option.bomId(), BigDecimal.valueOf(mode.quantity()), option.name());
+            }
+        } else if (product.productType() == ProductType.INGREDIENT_CUSTOMIZATION) {
+            product.ingredientOptions().stream()
+                    .filter(ProductIngredientOption::active)
+                    .forEach(option -> {
+                        int extraQuantity = option.extraQuantity(selectedIngredientQuantity(option, configuration));
+                        if (extraQuantity > 0) {
+                            addBom(
+                                    applicableBoms,
+                                    warnings,
+                                    option.bomId(),
+                                    BigDecimal.valueOf(extraQuantity),
+                                    option.name());
+                        }
+                    });
+        }
+
+        return new BomPlan(applicableBoms, warnings);
+    }
+
     private Product product(ProductSelection selection) {
         if (selection == null || selection.productId() == null) {
             throw new IllegalArgumentException("Le produit de la commande est requis");
@@ -93,6 +152,19 @@ public class CatalogOrderingService implements CatalogOrderingApi {
                         .map(value -> new com.savouretplus.savis.catalog.domain.IngredientSelection(
                                 value.ingredientCode(), value.quantity()))
                         .toList());
+    }
+
+    private void addBom(
+            List<ApplicableBom> boms,
+            List<String> warnings,
+            java.util.UUID bomId,
+            BigDecimal quantity,
+            String sourceName) {
+        if (bomId == null) {
+            warnings.add("Aucun BOM n'est associé à " + sourceName);
+        } else if (quantity != null && quantity.signum() > 0) {
+            boms.add(new ApplicableBom(bomId, quantity.stripTrailingZeros(), sourceName));
+        }
     }
 
     private ChoiceSelectionSnapshot choiceSelection(Product product, ProductConfiguration configuration) {

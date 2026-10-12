@@ -101,7 +101,7 @@ The main architectural patterns used are:
 | Repository pattern                           | JPA repositories in the API and SQLAlchemy repositories in the Executor                                                                                      | Hide persistence mechanics behind module-specific persistence adapters.                                                                                                        |
 | Application service / use-case orchestration | `BomService`, `OfferService`, catalog services, Executor use cases                                                                                           | Coordinate validation, persistence, pricing, messaging, and external ports without pushing workflow into controllers.                                                          |
 | Adapter pattern                              | Web controllers, RabbitMQ listeners/publishers, Supabase adapter, provider adapters                                                                          | Isolate protocol-specific and vendor-specific code at the edges.                                                                                                               |
-| Facade / public module API                   | `BomPricingApi`, `SupplyApi`                                                                                                                                 | Allow one module to consume another module's capability without depending on its entities or repositories.                                                                     |
+| Facade / public module API                   | `BomPricingApi`, `BomRequirementsApi`, `SupplyApi`, `CatalogOrderingApi`                                                                                                           | Allow one module to consume another module's capability without depending on its entities or repositories.                                                                     |
 | Event-driven integration                     | RabbitMQ offer request, result, and invalidation messages                                                                                                    | Decouple the API from slower provider acquisition and allow asynchronous processing.                                                                                           |
 | Outbox pattern                               | Spring Modulith event publication table `event_publication` for API events externalized to RabbitMQ                                                          | Persist event publication state with the API transaction so outbound integration messages are traceable and retryable instead of being fire-and-forget `RabbitTemplate` sends. |
 | Declarative event externalization            | `@Externalized` on `ComponentNeededEvent` and Modulith AMQP externalization                                                                                  | Declare which application events leave the module boundary and map domain events to RabbitMQ contracts in one place.                                                           |
@@ -293,8 +293,8 @@ flowchart TB
       OrderWeb["Web adapter<br/>OrderController"]
       OrderUse["Use cases<br/>OrderService<br/>ImportOrdersUseCase"]
       OrderDomain["Domain<br/>Order aggregate and snapshots"]
-      OrderPorts["Ports<br/>OrderRepository<br/>OrderInbox<br/>OrderCatalog"]
-      OrderAdapters["Adapters<br/>JPA<br/>Supabase PostgREST<br/>Catalog public API"]
+      OrderPorts["Ports<br/>OrderRepository<br/>OrderInbox<br/>OrderCatalog<br/>OrderBomRequirements<br/>OrderSourcing"]
+      OrderAdapters["Adapters<br/>JPA<br/>Supabase PostgREST<br/>Catalog, BOM, Supply APIs"]
     end
 
     Common["Shared value objects<br/>Money, Quantity, Unit"]
@@ -316,6 +316,8 @@ flowchart TB
   BomAdapters -->|SupplyApi| SupplyUse
   CatalogAdapters -->|BomPricingApi| BomUse
   OrderAdapters -->|CatalogOrderingApi| CatalogUse
+  OrderAdapters -->|BomRequirementsApi| BomUse
+  OrderAdapters -->|SupplyApi| SupplyUse
 
   BomDomain --> Common
   SupplyDomain --> Common
@@ -327,7 +329,8 @@ flowchart TB
 - BOM consumes offer prices through `SupplyApi`.
 - Catalog consumes BOM cost and yield through `BomPricingApi`.
 - Order consumes validated product snapshots through `CatalogOrderingApi` when
-  an administrator creates an order.
+  an administrator creates an order, and consumes public Catalog, BOM, and
+  Supply contracts when generating production requirements.
 - Catalog stores BOM UUID values, not JPA relationships to BOM entities.
 - `common` contains shared value objects, not workflow orchestration.
 - HTTP, JPA, RabbitMQ, and Supabase dependencies remain in adapters.
@@ -897,6 +900,38 @@ rules and calculates prices before Order captures immutable snapshots. This
 keeps subsequent order processing independent from later catalog changes.
 The administrative product dropdown queries a bounded, debounced Catalog
 search instead of loading the complete product collection.
+
+### Order Production Requirement Report
+
+```mermaid
+sequenceDiagram
+  participant Admin as SAVIS Admin
+  participant Orders as Order module
+  participant Catalog as CatalogOrderingApi
+  participant Bom as BomRequirementsApi
+  participant Supply as SupplyApi
+
+  Admin->>Orders: GET /api/orders/{id}/requirements
+  loop each immutable order item snapshot
+    Orders->>Catalog: Resolve applicable BOMs for ordered configuration
+    loop each BOM contribution
+      Orders->>Bom: Explode BOM for required output quantity
+      Bom-->>Orders: Scaled components and selected offer IDs
+    end
+  end
+  Orders->>Orders: Convert compatible units and aggregate components
+  loop each aggregated component
+    Orders->>Supply: Selected offer or cheapest compatible current offer
+  end
+  Orders-->>Admin: Requirements, sources, sourcing, completeness, warnings
+```
+
+The report reads current Catalog, BOM, and Supply data without modifying the
+order or its immutable commercial snapshots. `order` depends only on the public
+APIs of those modules through local ports and adapters. Missing supplier offers
+do not make production quantities incomplete. Inventory-aware missing and
+purchase quantities remain intentionally unset until an inventory module owns
+on-hand stock.
 
 ### Flow Review Checklist
 

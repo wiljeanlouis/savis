@@ -3,6 +3,7 @@ import type {
   CreateOrderRequest,
   ImportOrdersResult,
   Order,
+  OrderRequirementReport,
   OrderStatus,
   OrderSummary,
 } from "../types";
@@ -12,6 +13,12 @@ export const getOrders = async (): Promise<OrderSummary[]> =>
 
 export const getOrder = async (orderId: string): Promise<Order> =>
   (await api.get<Order>(`/orders/${orderId}`)).data;
+
+export const getOrderRequirementReport = async (
+  orderId: string,
+): Promise<OrderRequirementReport> =>
+  (await api.get<OrderRequirementReport>(`/orders/${orderId}/requirements`))
+    .data;
 
 export const createOrder = async (
   request: CreateOrderRequest,

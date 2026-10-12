@@ -60,6 +60,14 @@ public class OrderController {
     }
 
     /**
+     * Generates the current production-component requirements for one order.
+     */
+    @GetMapping("/{orderId}/requirements")
+    public OrderRequirementReportResponse requirements(@PathVariable UUID orderId) {
+        return OrderRequirementReportResponse.from(orders.requirementReport(orderId));
+    }
+
+    /**
      * Applies a lifecycle status transition to an order.
      */
     @PutMapping("/{orderId}/status")
