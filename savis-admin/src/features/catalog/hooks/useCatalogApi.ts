@@ -3,12 +3,14 @@ import {
   keepPreviousData,
   useMutation,
   useQuery,
+  useQueries,
   useQueryClient,
 } from "@tanstack/react-query";
 import {
   analyzeProductPricing,
   analyzeWorstCasePricing,
   deleteCatalogProduct,
+  getCatalogProduct,
   getCatalogProducts,
   publishCatalog,
   publishProduct,
@@ -29,6 +31,25 @@ export const useCatalogProductSearch = (search: string, enabled = true) => {
     queryFn: () => searchCatalogProducts(debouncedSearch),
     enabled,
     placeholderData: keepPreviousData,
+  });
+};
+
+export const useCatalogProductsByIds = (
+  productIds: string[],
+  enabled = true,
+) => {
+  const uniqueIds = Array.from(new Set(productIds));
+  return useQueries({
+    queries: uniqueIds.map((productId) => ({
+      queryKey: [...PRODUCTS, productId],
+      queryFn: () => getCatalogProduct(productId),
+      enabled,
+    })),
+    combine: (queries) => ({
+      data: queries.flatMap((query) => (query.data ? [query.data] : [])),
+      isPending: enabled && queries.some((query) => query.isPending),
+      isError: queries.some((query) => query.isError),
+    }),
   });
 };
 

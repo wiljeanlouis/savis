@@ -89,6 +89,56 @@ class OrderServiceTest {
     }
 
     @Test
+    void replacesANewAdministrativeOrderAndRecalculatesItsSnapshots() {
+        Order initial = administrativeOrder(OrderStatus.NEW);
+        OrderCatalog.ProductSelection selection = new OrderCatalog.ProductSelection(
+                PRODUCT_ID, "unit", "vanilla", List.of(), List.of());
+        when(repository.findByPublicId(ORDER_ID)).thenReturn(Optional.of(initial));
+        when(catalog.snapshot(selection)).thenReturn(new OrderCatalog.ProductSnapshot(
+                PRODUCT_ID,
+                "Cupcake actualisé",
+                OrderItemProductType.SINGLE_CHOICE,
+                "/cupcake-new.jpg",
+                500,
+                500,
+                new OrderCatalog.PurchaseMode("unit", "Unité", 1, OrderItemAllocationType.SINGLE_CHOICE),
+                new OrderCatalog.ChoiceSelection("vanilla", "Vanille", "Saveur"),
+                List.of(),
+                List.of()));
+        when(repository.save(org.mockito.ArgumentMatchers.any(Order.class)))
+                .thenAnswer(invocation -> invocation.getArgument(0));
+        CreateOrderCommand command = new CreateOrderCommand(
+                "Ada modifiée", "438", "new@example.com", null,
+                "Nouvelle note", 100, 200,
+                List.of(new CreateOrderCommand.Item(
+                        PRODUCT_ID, 2, "unit", "vanilla", List.of(), List.of())));
+
+        Order updated = service().update(ORDER_ID, command);
+
+        assertEquals(ORDER_ID, updated.publicId());
+        assertEquals("ADM-00000001", updated.orderNumber());
+        assertEquals(OrderSource.ADMIN, updated.source());
+        assertEquals(OrderStatus.NEW, updated.status());
+        assertEquals("Ada modifiée", updated.customerName());
+        assertEquals(1100, updated.totalCents());
+        assertEquals("Cupcake actualisé", updated.items().getFirst().productNameSnapshot());
+        assertEquals(NOW, updated.placedAt());
+        verify(repository).save(updated);
+    }
+
+    @Test
+    void rejectsReplacingAWebOrderOrANonNewAdministrativeOrder() {
+        when(repository.findByPublicId(ORDER_ID))
+                .thenReturn(Optional.of(order(OrderStatus.NEW)))
+                .thenReturn(Optional.of(administrativeOrder(OrderStatus.ACCEPTED)));
+        CreateOrderCommand command = new CreateOrderCommand(
+                "Ada", "514", null, null, List.of());
+
+        assertThrows(IllegalStateException.class, () -> service().update(ORDER_ID, command));
+        assertThrows(IllegalStateException.class, () -> service().update(ORDER_ID, command));
+    }
+
+    @Test
     void acceptsANewOrderAndRecordsTheTimestamp() {
         Order initial = order(OrderStatus.NEW);
         when(repository.findByPublicId(ORDER_ID)).thenReturn(Optional.of(initial));
@@ -189,6 +239,14 @@ class OrderServiceTest {
                 1L, ORDER_ID, "WEB-00000001", OrderSource.SAVOURETPLUS_WEB, status,
                 "Ada", "514", null, null, 1200, UUID.randomUUID(), NOW, NOW,
                 null, null, null, null, null, List.of(), Map.of());
+    }
+
+    private Order administrativeOrder(OrderStatus status) {
+        return new Order(
+                1L, ORDER_ID, "ADM-00000001", OrderSource.ADMIN, status,
+                "Ada", "514", null, null, 1200, null, NOW, NOW,
+                status == OrderStatus.ACCEPTED ? NOW : null,
+                null, null, null, null, List.of(), Map.of());
     }
 
     private OrderService service() {

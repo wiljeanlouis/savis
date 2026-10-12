@@ -68,6 +68,16 @@ public class OrderController {
     }
 
     /**
+     * Replaces an editable administrative order from current catalog products.
+     */
+    @PutMapping("/{orderId}")
+    public OrderResponse update(
+            @PathVariable UUID orderId,
+            @Valid @RequestBody CreateOrderRequest request) {
+        return OrderResponse.from(orders.update(orderId, request.toCommand()));
+    }
+
+    /**
      * Generates the current production-component requirements for one order.
      */
     @GetMapping("/{orderId}/requirements")

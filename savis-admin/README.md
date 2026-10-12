@@ -47,8 +47,9 @@ The frontend does not own business rules or persistence:
 | Area              | Route                   | Backend         | Purpose                                                                                   |
 | ----------------- | ----------------------- | --------------- | ----------------------------------------------------------------------------------------- |
 | Dashboard         | `/` and `/dashboard`    | Local demo data | Displays the current dashboard shell, charts, cards, and table.                           |
-| Orders            | `/orders`                | SAVIS API       | Creates administrative orders, imports web orders, and manages their lifecycle.          |
-| Order detail      | `/orders/:orderId`       | SAVIS API       | Displays item, choice, allocation, ingredient, and price snapshots.                       |
+| Orders            | `/orders`                | SAVIS API       | Lists orders, imports web orders, and manages their lifecycle.                            |
+| New order         | `/orders/new`            | SAVIS API       | Creates an administrative order in the unified order editor.                              |
+| Order detail      | `/orders/:orderId`       | SAVIS API       | Displays an order and edits administrative orders that are still `NEW`.                   |
 | Products          | `/catalog-products`     | SAVIS API       | Manages sellable products, categories, BOM references, pricing analysis, and publication. |
 | BOM compositions  | `/boms`                 | SAVIS API       | Lists, searches, creates, edits, prices, and deletes technical BOMs.                      |
 | BOM components    | `/bom-components`       | SAVIS Executor  | Reviews and manages acquired provider offers used as BOM components.                      |
@@ -231,13 +232,16 @@ to unpublished.
 
 ### Manage Orders
 
-The `/orders` page lists normalized local orders and provides both the
-**Nouvelle commande** form and the manual **Récupérer commandes web** action.
-The creation form captures the customer, an optional address, products,
+The `/orders` page lists normalized local orders and provides the manual
+**Récupérer commandes web** action. **Nouvelle commande** opens `/orders/new`,
+which shares its section-based layout with the order detail page. The editor
+captures the customer, an optional address, products,
 purchase modes, choices, allocations, ingredients, quantities, an optional
 discount, and an optional delivery fee. Its total is an estimate; SAVIS API
 validates the catalog rules and calculates the authoritative prices before
-persisting the order. Taxes are not calculated.
+persisting the order. The browser keeps an unfinished new-order draft for the
+current tab and warns before leaving with unsaved changes. Taxes are not
+calculated.
 
 The product dropdown is searchable. Input is debounced before the browser asks
 Catalog for up to 20 currently available products, so the full catalog is not
@@ -255,6 +259,10 @@ key or queries `customer_orders` directly.
 
 The `/orders/:orderId` page displays customer information, submitted prices,
 purchase mode, selected choice, flavor allocation, ingredients, and extras.
+An administrative order can be edited from the same page while its status is
+`NEW`; products and price snapshots are recalculated from the current catalog
+when it is saved. Imported web orders and orders that have advanced in the
+lifecycle remain read-only.
 Operators can apply the valid lifecycle transitions from `NEW` through
 preparation and completion, or reject/cancel where allowed. Imported prices are
 read-only snapshots. A **PDF** menu in the order list and the **Documents PDF**
@@ -398,6 +406,7 @@ GET    /savis-api/orders/{id}/requirements
 GET    /savis-api/orders/{id}/documents/{quote|invoice}
 POST   /savis-api/orders
 POST   /savis-api/orders/import
+PUT    /savis-api/orders/{id}
 PUT    /savis-api/orders/{id}/status
 ```
 

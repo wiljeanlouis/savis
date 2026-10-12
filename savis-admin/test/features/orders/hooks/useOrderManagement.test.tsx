@@ -1,6 +1,5 @@
 import { useOrderManagement } from "@/features/orders/hooks/useOrderManagement";
 import {
-  useCreateOrder,
   useImportOrders,
   useOrders,
 } from "@/features/orders/hooks/useOrderApi";
@@ -14,7 +13,6 @@ vi.mock("sonner", () => ({
 
 vi.mock("@/features/orders/hooks/useOrderApi", () => ({
   useOrders: vi.fn(),
-  useCreateOrder: vi.fn(),
   useImportOrders: vi.fn(),
 }));
 
@@ -26,56 +24,10 @@ describe("useOrderManagement", () => {
       isPending: false,
       isError: false,
     } as never);
-    vi.mocked(useCreateOrder).mockReturnValue({
-      mutateAsync: vi.fn(),
-      isPending: false,
-    } as never);
     vi.mocked(useImportOrders).mockReturnValue({
       mutateAsync: vi.fn(),
       isPending: false,
     } as never);
-  });
-
-  it("creates an administrative order and reports its number", async () => {
-    const mutateAsync = vi.fn().mockResolvedValue({
-      id: "order-id",
-      orderNumber: "ADM-00000001",
-    });
-    vi.mocked(useCreateOrder).mockReturnValue({
-      mutateAsync,
-      isPending: false,
-    } as never);
-    const request = {
-      customerName: "Ada",
-      customerPhone: "514",
-      customerEmail: null,
-      customerAddress: null,
-      note: null,
-      discountCents: 0,
-      deliveryFeeCents: 0,
-      items: [
-        {
-          productId: "product-id",
-          quantity: 1,
-          purchaseModeCode: "unit",
-          choiceCode: null,
-          allocations: [],
-          ingredients: [],
-        },
-      ],
-    };
-
-    const { result } = renderHook(() => useOrderManagement());
-    let created = false;
-    await act(async () => {
-      created = await result.current.createAdminOrder(request);
-    });
-
-    expect(created).toBe(true);
-    expect(mutateAsync).toHaveBeenCalledWith(request);
-    expect(toast.success).toHaveBeenCalledWith(
-      "Commande ADM-00000001 créée avec succès.",
-    );
   });
 
   it("imports web orders and reports the imported count", async () => {

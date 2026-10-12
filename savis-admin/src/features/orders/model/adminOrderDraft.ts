@@ -3,7 +3,7 @@ import type {
   ProductPurchaseMode,
 } from "@/features/catalog/types";
 import { createUuid } from "@/shared/lib/utils";
-import type { CreateOrderRequest } from "../types";
+import type { CreateOrderRequest, Order } from "../types";
 
 export interface AdminOrderDraft {
   customerName: string;
@@ -48,6 +48,43 @@ export const emptyAdminOrderDraft = (): AdminOrderDraft => ({
   deliveryFeeCents: 0,
   items: [],
 });
+
+export function adminOrderDraftFromOrder(order: Order): AdminOrderDraft {
+  return {
+    customerName: order.customerName,
+    customerPhone: order.customerPhone,
+    customerEmail: order.customerEmail ?? "",
+    customerAddress: {
+      line1: order.customerAddress?.line1 ?? "",
+      line2: order.customerAddress?.line2 ?? "",
+      city: order.customerAddress?.city ?? "",
+      province: order.customerAddress?.province ?? "",
+      postalCode: order.customerAddress?.postalCode ?? "",
+    },
+    note: order.note ?? "",
+    discountCents: order.discountCents,
+    deliveryFeeCents: order.deliveryFeeCents,
+    items: order.items.map((item) => ({
+      key: item.id,
+      productId: item.productId,
+      quantity: item.quantity,
+      purchaseModeCode: item.purchaseModeId ?? "",
+      choiceCode: item.choiceSelections[0]?.choiceId ?? "",
+      allocations: Object.fromEntries(
+        item.choiceAllocations.map((allocation) => [
+          allocation.choiceId,
+          allocation.quantity,
+        ]),
+      ),
+      ingredients: Object.fromEntries(
+        item.ingredientSelections.map((ingredient) => [
+          ingredient.ingredientId,
+          ingredient.quantity,
+        ]),
+      ),
+    })),
+  };
+}
 
 export function createAdminOrderItem(
   product: CatalogProduct,

@@ -80,6 +80,31 @@ const router = createBrowserRouter([
         },
       },
       {
+        path: "/orders/new",
+        element: <OrderDetailsPage />,
+        handle: {
+          breadcrumb: () => (
+            <>
+              <BreadcrumbItem className="hidden md:block">
+                <BreadcrumbLink asChild>
+                  <Link to="/">Accueil</Link>
+                </BreadcrumbLink>
+              </BreadcrumbItem>
+              <BreadcrumbSeparator className="hidden md:block" />
+              <BreadcrumbItem className="hidden md:block">
+                <BreadcrumbLink asChild>
+                  <Link to="/orders">Commandes</Link>
+                </BreadcrumbLink>
+              </BreadcrumbItem>
+              <BreadcrumbSeparator className="hidden md:block" />
+              <BreadcrumbItem>
+                <BreadcrumbPage>Nouvelle commande</BreadcrumbPage>
+              </BreadcrumbItem>
+            </>
+          ),
+        },
+      },
+      {
         path: "/orders/:orderId",
         element: <OrderDetailsPage />,
         handle: {

@@ -1,27 +1,9 @@
 import { toast } from "sonner";
-import type { CreateOrderRequest } from "../types";
-import { useCreateOrder, useImportOrders, useOrders } from "./useOrderApi";
+import { useImportOrders, useOrders } from "./useOrderApi";
 
 export function useOrderManagement() {
   const orders = useOrders();
   const importer = useImportOrders();
-  const creator = useCreateOrder();
-
-  async function createAdminOrder(request: CreateOrderRequest) {
-    try {
-      const order = await creator.mutateAsync(request);
-      toast.success(`Commande ${order.orderNumber} créée avec succès.`);
-      return true;
-    } catch (error) {
-      const response = error as {
-        response?: { data?: { detail?: string } };
-      };
-      toast.error("Impossible de créer la commande.", {
-        description: response.response?.data?.detail,
-      });
-      return false;
-    }
-  }
 
   async function retrieveWebOrders() {
     try {
@@ -54,8 +36,6 @@ export function useOrderManagement() {
     isLoading: orders.isPending,
     isError: orders.isError,
     isImporting: importer.isPending,
-    isCreating: creator.isPending,
-    createAdminOrder,
     retrieveWebOrders,
   };
 }

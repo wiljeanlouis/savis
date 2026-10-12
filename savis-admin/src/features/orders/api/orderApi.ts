@@ -41,6 +41,15 @@ export const createOrder = async (
   request: CreateOrderRequest,
 ): Promise<Order> => (await api.post<Order>("/orders", request)).data;
 
+export const updateOrder = async ({
+  orderId,
+  request,
+}: {
+  orderId: string;
+  request: CreateOrderRequest;
+}): Promise<Order> =>
+  (await api.put<Order>(`/orders/${orderId}`, request)).data;
+
 export const importOrders = async (): Promise<ImportOrdersResult> =>
   (await api.post<ImportOrdersResult>("/orders/import")).data;
 

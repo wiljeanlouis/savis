@@ -15,7 +15,7 @@ import jakarta.validation.constraints.Positive;
 import jakarta.validation.constraints.PositiveOrZero;
 
 /**
- * Represents an administrative order-creation request.
+ * Represents editable administrative order data for creation or replacement.
  */
 public record CreateOrderRequest(
         @NotBlank String customerName,

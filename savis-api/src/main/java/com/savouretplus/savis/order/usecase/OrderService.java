@@ -51,21 +51,7 @@ public class OrderService {
      * Creates and persists an administrative order from current catalog products.
      */
     public Order create(CreateOrderCommand command) {
-        if (command == null || command.items().isEmpty()) {
-            throw new IllegalArgumentException("La commande doit contenir au moins un item");
-        }
-
-        List<OrderItem> items = command.items().stream().map(this::createItem).toList();
-        int subtotalCents = items.stream().mapToInt(OrderItem::lineTotalCents).reduce(0, this::addExact);
-        if (command.discountCents() < 0 || command.deliveryFeeCents() < 0) {
-            throw new IllegalArgumentException("Le rabais et les frais de livraison ne peuvent pas être négatifs");
-        }
-        if (command.discountCents() > subtotalCents) {
-            throw new IllegalArgumentException("Le rabais ne peut pas dépasser le sous-total de la commande");
-        }
-        int totalCents = addExact(
-                Math.subtractExact(subtotalCents, command.discountCents()),
-                command.deliveryFeeCents());
+        PreparedOrder prepared = prepare(command);
         Instant now = Instant.now(clock);
         Order order = new Order(
                 null,
@@ -80,14 +66,54 @@ public class OrderService {
                 blankToNull(command.note()),
                 command.discountCents(),
                 command.deliveryFeeCents(),
-                totalCents,
+                prepared.totalCents(),
                 null,
                 now,
                 now,
                 null, null, null, null, null,
-                items,
+                prepared.items(),
                 Map.of());
         return repository.save(order);
+    }
+
+    /**
+     * Replaces an editable administrative order using current catalog snapshots.
+     */
+    public Order update(UUID orderId, CreateOrderCommand command) {
+        Order current = get(orderId);
+        if (current.source() != OrderSource.ADMIN) {
+            throw new IllegalStateException("Une commande web ne peut pas être modifiée directement");
+        }
+        if (current.status() != OrderStatus.NEW) {
+            throw new IllegalStateException("Seule une commande au statut NEW peut être modifiée");
+        }
+
+        PreparedOrder prepared = prepare(command);
+        Order changed = new Order(
+                current.id(),
+                current.publicId(),
+                current.orderNumber(),
+                current.source(),
+                current.status(),
+                command.customerName(),
+                command.customerPhone(),
+                blankToNull(command.customerEmail()),
+                command.customerAddress(),
+                blankToNull(command.note()),
+                command.discountCents(),
+                command.deliveryFeeCents(),
+                prepared.totalCents(),
+                current.externalOrderId(),
+                current.placedAt(),
+                current.importedAt(),
+                current.acceptedAt(),
+                current.inPreparationAt(),
+                current.readyAt(),
+                current.completedAt(),
+                current.cancelledAt(),
+                prepared.items(),
+                current.rawPayload());
+        return repository.save(changed);
     }
 
     /**
@@ -150,6 +176,24 @@ public class OrderService {
     public Order updateStatus(UUID orderId, OrderStatus status) {
         Order changed = get(orderId).changeStatus(status, Instant.now(clock));
         return repository.save(changed);
+    }
+
+    private PreparedOrder prepare(CreateOrderCommand command) {
+        if (command == null || command.items().isEmpty()) {
+            throw new IllegalArgumentException("La commande doit contenir au moins un item");
+        }
+        List<OrderItem> items = command.items().stream().map(this::createItem).toList();
+        int subtotalCents = items.stream().mapToInt(OrderItem::lineTotalCents).reduce(0, this::addExact);
+        if (command.discountCents() < 0 || command.deliveryFeeCents() < 0) {
+            throw new IllegalArgumentException("Le rabais et les frais de livraison ne peuvent pas être négatifs");
+        }
+        if (command.discountCents() > subtotalCents) {
+            throw new IllegalArgumentException("Le rabais ne peut pas dépasser le sous-total de la commande");
+        }
+        int totalCents = addExact(
+                Math.subtractExact(subtotalCents, command.discountCents()),
+                command.deliveryFeeCents());
+        return new PreparedOrder(items, totalCents);
     }
 
     private OrderItem createItem(CreateOrderCommand.Item command) {
@@ -428,6 +472,9 @@ public class OrderService {
         private void warn(String warning) {
             warnings.add(warning);
         }
+    }
+
+    private record PreparedOrder(List<OrderItem> items, int totalCents) {
     }
 
 }

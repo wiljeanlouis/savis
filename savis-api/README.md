@@ -402,6 +402,7 @@ invalid catalog structures and disabled explicit publication return `400`.
 | `POST` | `/api/orders/import`                 | Manually import orders from the configured inbox. |
 | `GET`  | `/api/orders`                        | List normalized local orders.                |
 | `GET`  | `/api/orders/{orderId}`              | Retrieve one order and its item snapshots.   |
+| `PUT`  | `/api/orders/{orderId}`              | Replace a `NEW` administrative order from current catalog selections. |
 | `GET`  | `/api/orders/{orderId}/requirements` | Generate current aggregated production-component requirements. |
 | `GET`  | `/api/orders/{orderId}/documents/{quote\|invoice}` | Download a quote or invoice PDF. |
 | `PUT`  | `/api/orders/{orderId}/status`       | Apply a valid lifecycle transition.          |
@@ -417,6 +418,11 @@ quantities, and configuration codes. The API validates each selection against
 the current Catalog aggregate, calculates authoritative prices, and stores an
 immutable snapshot with source `ADMIN` and initial status `NEW`. Names and
 prices supplied by the browser are never trusted.
+
+The same payload can replace an administrative order while it remains `NEW`.
+Replacement is atomic and rebuilds all item, configuration, image, and price
+snapshots from the current Catalog. Imported web orders and administrative
+orders in any later lifecycle status are rejected with `409 Conflict`.
 
 Administrative orders can also include an optional customer address, a
 non-negative discount, and a non-negative delivery fee. The order total is the
