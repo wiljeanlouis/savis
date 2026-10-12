@@ -21,6 +21,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import com.savouretplus.savis.order.domain.Order;
+import com.savouretplus.savis.order.domain.OrderAddress;
 import com.savouretplus.savis.order.domain.OrderItem;
 import com.savouretplus.savis.order.domain.OrderItemAllocationType;
 import com.savouretplus.savis.order.domain.OrderItemProductType;
@@ -66,7 +67,9 @@ class OrderServiceTest {
                 .thenAnswer(invocation -> invocation.getArgument(0));
         OrderService service = service();
         CreateOrderCommand command = new CreateOrderCommand(
-                "Ada", "514", "ada@example.com", "Livrer à 15 h",
+                "Ada", "514", "ada@example.com",
+                new OrderAddress("123 rue Principale", null, "Montréal", "QC", "H1H 1H1"),
+                "Livrer à 15 h", 100, 250,
                 List.of(new CreateOrderCommand.Item(
                         PRODUCT_ID, 3, "unit", "vanilla", List.of(), List.of())));
 
@@ -75,7 +78,11 @@ class OrderServiceTest {
         assertEquals(OrderSource.ADMIN, created.source());
         assertEquals(OrderStatus.NEW, created.status());
         assertEquals("ADM-00000001", created.orderNumber());
-        assertEquals(1350, created.totalCents());
+        assertEquals(1500, created.totalCents());
+        assertEquals(1350, created.subtotalCents());
+        assertEquals(100, created.discountCents());
+        assertEquals(250, created.deliveryFeeCents());
+        assertEquals("Montréal", created.customerAddress().city());
         assertEquals(NOW, created.placedAt());
         assertEquals("Vanille", created.items().getFirst().choiceSelections().getFirst().choiceName());
         verify(repository).save(created);

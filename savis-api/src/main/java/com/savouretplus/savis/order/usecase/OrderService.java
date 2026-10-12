@@ -56,7 +56,16 @@ public class OrderService {
         }
 
         List<OrderItem> items = command.items().stream().map(this::createItem).toList();
-        int totalCents = items.stream().mapToInt(OrderItem::lineTotalCents).reduce(0, this::addExact);
+        int subtotalCents = items.stream().mapToInt(OrderItem::lineTotalCents).reduce(0, this::addExact);
+        if (command.discountCents() < 0 || command.deliveryFeeCents() < 0) {
+            throw new IllegalArgumentException("Le rabais et les frais de livraison ne peuvent pas être négatifs");
+        }
+        if (command.discountCents() > subtotalCents) {
+            throw new IllegalArgumentException("Le rabais ne peut pas dépasser le sous-total de la commande");
+        }
+        int totalCents = addExact(
+                Math.subtractExact(subtotalCents, command.discountCents()),
+                command.deliveryFeeCents());
         Instant now = Instant.now(clock);
         Order order = new Order(
                 null,
@@ -67,7 +76,10 @@ public class OrderService {
                 command.customerName(),
                 command.customerPhone(),
                 blankToNull(command.customerEmail()),
+                command.customerAddress(),
                 blankToNull(command.note()),
+                command.discountCents(),
+                command.deliveryFeeCents(),
                 totalCents,
                 null,
                 now,

@@ -3,9 +3,11 @@ import { Button } from "@/shared/ui/button";
 import { Spinner } from "@/shared/ui/spinner";
 import { CreateOrderDialog } from "../components/CreateOrderDialog";
 import { OrdersTable } from "../components/OrdersTable";
+import { useOrderDocumentDownload } from "../hooks/useOrderApi";
 import { useOrderManagement } from "../hooks/useOrderManagement";
 
 export function OrdersPage() {
+  const documents = useOrderDocumentDownload();
   const {
     orders,
     isLoading,
@@ -50,7 +52,15 @@ export function OrdersPage() {
       ) : orders.length === 0 ? (
         <NoData />
       ) : (
-        <OrdersTable orders={orders} />
+        <OrdersTable
+          orders={orders}
+          downloadingOrderId={
+            documents.isPending ? documents.pendingOrderId : undefined
+          }
+          onDownloadDocument={(orderId, documentType) =>
+            void documents.download(orderId, documentType)
+          }
+        />
       )}
     </div>
   );

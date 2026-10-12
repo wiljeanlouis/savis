@@ -34,7 +34,11 @@ export interface OrderItemPreview {
 }
 
 export interface Order extends OrderBase {
+  customerAddress: OrderAddress | null;
   note: string | null;
+  subtotalCents: number;
+  discountCents: number;
+  deliveryFeeCents: number;
   externalOrderId: string | null;
   acceptedAt: string | null;
   inPreparationAt: string | null;
@@ -105,9 +109,22 @@ export interface CreateOrderRequest {
   customerName: string;
   customerPhone: string;
   customerEmail: string | null;
+  customerAddress: OrderAddress | null;
   note: string | null;
+  discountCents: number;
+  deliveryFeeCents: number;
   items: CreateOrderItemRequest[];
 }
+
+export interface OrderAddress {
+  line1: string | null;
+  line2: string | null;
+  city: string | null;
+  province: string | null;
+  postalCode: string | null;
+}
+
+export type OrderDocumentType = "quote" | "invoice";
 
 export interface CreateOrderItemRequest {
   productId: string;

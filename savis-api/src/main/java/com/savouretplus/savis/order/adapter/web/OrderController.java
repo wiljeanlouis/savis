@@ -3,6 +3,10 @@ package com.savouretplus.savis.order.adapter.web;
 import java.util.List;
 import java.util.UUID;
 
+import org.springframework.http.ContentDisposition;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -11,7 +15,10 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.savouretplus.savis.order.usecase.GenerateOrderDocumentUseCase;
+import com.savouretplus.savis.order.usecase.GeneratedOrderDocument;
 import com.savouretplus.savis.order.usecase.ImportOrdersUseCase;
+import com.savouretplus.savis.order.usecase.OrderDocumentType;
 import com.savouretplus.savis.order.usecase.OrderService;
 
 import jakarta.validation.Valid;
@@ -26,6 +33,7 @@ import lombok.AllArgsConstructor;
 public class OrderController {
     private final OrderService orders;
     private final ImportOrdersUseCase importer;
+    private final GenerateOrderDocumentUseCase documents;
 
     /**
      * Creates a new administrative order from current catalog products.
@@ -65,6 +73,25 @@ public class OrderController {
     @GetMapping("/{orderId}/requirements")
     public OrderRequirementReportResponse requirements(@PathVariable UUID orderId) {
         return OrderRequirementReportResponse.from(orders.requirementReport(orderId));
+    }
+
+    /**
+     * Generates a customer-facing invoice or quote as a downloadable PDF.
+     */
+    @GetMapping(value = "/{orderId}/documents/{documentType}", produces = MediaType.APPLICATION_PDF_VALUE)
+    public ResponseEntity<byte[]> document(
+            @PathVariable UUID orderId,
+            @PathVariable String documentType) {
+        GeneratedOrderDocument document = documents.generate(
+                orderId, OrderDocumentType.fromSlug(documentType));
+        return ResponseEntity.ok()
+                .header(HttpHeaders.CONTENT_DISPOSITION, ContentDisposition.attachment()
+                        .filename(document.fileName())
+                        .build()
+                        .toString())
+                .cacheControl(org.springframework.http.CacheControl.noStore())
+                .contentType(MediaType.APPLICATION_PDF)
+                .body(document.content());
     }
 
     /**

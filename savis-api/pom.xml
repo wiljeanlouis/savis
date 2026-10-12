@@ -33,6 +33,7 @@
 		<springdoc-openapi-starter-webmvc-ui.version>3.0.3</springdoc-openapi-starter-webmvc-ui.version>
 		<mapstruct.version>1.6.3</mapstruct.version>
 		<wiremock.version>3.13.2</wiremock.version>
+		<openhtmltopdf.version>1.1.97</openhtmltopdf.version>
 	</properties>
 		<dependencies>
 			<dependency>
@@ -54,6 +55,15 @@
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
 			<artifactId>spring-boot-starter-webmvc</artifactId>
+		</dependency>
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-thymeleaf</artifactId>
+		</dependency>
+		<dependency>
+			<groupId>io.github.openhtmltopdf</groupId>
+			<artifactId>openhtmltopdf-pdfbox</artifactId>
+			<version>${openhtmltopdf.version}</version>
 		</dependency>
 		<dependency>
 			<groupId>org.springdoc</groupId>

@@ -9,6 +9,7 @@ import java.util.UUID;
 
 import org.springframework.stereotype.Component;
 
+import com.savouretplus.savis.order.domain.OrderAddress;
 import com.savouretplus.savis.order.port.PendingCustomerOrder;
 
 /**
@@ -34,9 +35,12 @@ class SupabaseCustomerOrderMapper {
                 source.customer_name(),
                 source.customer_phone(),
                 source.customer_email(),
+                address(source.customer_address()),
                 source.note(),
                 source.status(),
                 source.source(),
+                valueOrZero(source.discount_cents()),
+                valueOrZero(source.delivery_fee_cents()),
                 source.total_cents(),
                 items,
                 source.created_at(),
@@ -99,9 +103,12 @@ class SupabaseCustomerOrderMapper {
         payload.put("customer_name", source.customer_name());
         payload.put("customer_phone", source.customer_phone());
         payload.put("customer_email", source.customer_email());
+        payload.put("customer_address", source.customer_address());
         payload.put("note", source.note());
         payload.put("status", source.status());
         payload.put("source", source.source());
+        payload.put("discount_cents", valueOrZero(source.discount_cents()));
+        payload.put("delivery_fee_cents", valueOrZero(source.delivery_fee_cents()));
         payload.put("total_cents", source.total_cents());
         payload.put("items", source.items());
         payload.put("created_at", instantValue(source.created_at()));
@@ -110,6 +117,23 @@ class SupabaseCustomerOrderMapper {
         payload.put("sync_error", source.sync_error());
         payload.put("notified_at", instantValue(source.notified_at()));
         return payload;
+    }
+
+    private OrderAddress address(Map<String, String> source) {
+        if (source == null) {
+            return null;
+        }
+        OrderAddress address = new OrderAddress(
+                source.get("line1"),
+                source.get("line2"),
+                source.get("city"),
+                source.get("province"),
+                source.get("postal_code"));
+        return address.isEmpty() ? null : address;
+    }
+
+    private int valueOrZero(Integer value) {
+        return value == null ? 0 : value;
     }
 
     private String instantValue(Instant value) {

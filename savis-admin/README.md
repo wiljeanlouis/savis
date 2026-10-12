@@ -233,10 +233,11 @@ to unpublished.
 
 The `/orders` page lists normalized local orders and provides both the
 **Nouvelle commande** form and the manual **Récupérer commandes web** action.
-The creation form captures the customer, products, purchase modes, choices,
-allocations, ingredients, and quantities. Its total is an estimate; SAVIS API
+The creation form captures the customer, an optional address, products,
+purchase modes, choices, allocations, ingredients, quantities, an optional
+discount, and an optional delivery fee. Its total is an estimate; SAVIS API
 validates the catalog rules and calculates the authoritative prices before
-persisting the order.
+persisting the order. Taxes are not calculated.
 
 The product dropdown is searchable. Input is debounced before the browser asks
 Catalog for up to 20 currently available products, so the full catalog is not
@@ -256,7 +257,9 @@ The `/orders/:orderId` page displays customer information, submitted prices,
 purchase mode, selected choice, flavor allocation, ingredients, and extras.
 Operators can apply the valid lifecycle transitions from `NEW` through
 preparation and completion, or reject/cancel where allowed. Imported prices are
-read-only snapshots.
+read-only snapshots. A **PDF** menu in the order list and the **Documents PDF**
+menu on the detail page download either a quote or an invoice for the selected
+order.
 
 The detail page also generates a **Besoins de production** report. It aggregates
 compatible component quantities from all applicable BOMs, shows the current
@@ -392,6 +395,7 @@ POST   /savis-api/catalog/products/publish
 GET    /savis-api/orders
 GET    /savis-api/orders/{id}
 GET    /savis-api/orders/{id}/requirements
+GET    /savis-api/orders/{id}/documents/{quote|invoice}
 POST   /savis-api/orders
 POST   /savis-api/orders/import
 PUT    /savis-api/orders/{id}/status

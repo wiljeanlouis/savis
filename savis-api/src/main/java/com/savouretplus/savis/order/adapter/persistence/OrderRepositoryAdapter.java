@@ -15,6 +15,7 @@ import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.savouretplus.savis.order.domain.Order;
+import com.savouretplus.savis.order.domain.OrderAddress;
 import com.savouretplus.savis.order.domain.OrderItem;
 import com.savouretplus.savis.order.domain.OrderItemChoiceAllocation;
 import com.savouretplus.savis.order.domain.OrderItemChoiceSelection;
@@ -78,7 +79,15 @@ public class OrderRepositoryAdapter implements OrderRepository {
         entity.setCustomerName(order.customerName());
         entity.setCustomerPhone(order.customerPhone());
         entity.setCustomerEmail(order.customerEmail());
+        OrderAddress address = order.customerAddress();
+        entity.setCustomerAddressLine1(address == null ? null : address.line1());
+        entity.setCustomerAddressLine2(address == null ? null : address.line2());
+        entity.setCustomerCity(address == null ? null : address.city());
+        entity.setCustomerProvince(address == null ? null : address.province());
+        entity.setCustomerPostalCode(address == null ? null : address.postalCode());
         entity.setNote(order.note());
+        entity.setDiscountCents(order.discountCents());
+        entity.setDeliveryFeeCents(order.deliveryFeeCents());
         entity.setTotalCents(order.totalCents());
         entity.setExternalOrderId(order.externalOrderId());
         entity.setPlacedAt(order.placedAt());
@@ -144,11 +153,22 @@ public class OrderRepositoryAdapter implements OrderRepository {
     private Order toDomain(OrderEntity entity) {
         return new Order(
                 entity.getId(), entity.getPublicId(), entity.getOrderNumber(), entity.getSource(), entity.getStatus(),
-                entity.getCustomerName(), entity.getCustomerPhone(), entity.getCustomerEmail(), entity.getNote(),
-                entity.getTotalCents(), entity.getExternalOrderId(), entity.getPlacedAt(), entity.getImportedAt(),
+                entity.getCustomerName(), entity.getCustomerPhone(), entity.getCustomerEmail(), address(entity),
+                entity.getNote(), entity.getDiscountCents(), entity.getDeliveryFeeCents(), entity.getTotalCents(),
+                entity.getExternalOrderId(), entity.getPlacedAt(), entity.getImportedAt(),
                 entity.getAcceptedAt(), entity.getInPreparationAt(), entity.getReadyAt(), entity.getCompletedAt(),
                 entity.getCancelledAt(), entity.getItems().stream().map(this::toDomain).toList(),
                 entity.getRawPayload());
+    }
+
+    private OrderAddress address(OrderEntity entity) {
+        OrderAddress address = new OrderAddress(
+                entity.getCustomerAddressLine1(),
+                entity.getCustomerAddressLine2(),
+                entity.getCustomerCity(),
+                entity.getCustomerProvince(),
+                entity.getCustomerPostalCode());
+        return address.isEmpty() ? null : address;
     }
 
     private OrderItem toDomain(OrderItemEntity entity) {

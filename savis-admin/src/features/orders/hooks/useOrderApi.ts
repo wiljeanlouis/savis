@@ -1,8 +1,10 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { toast } from "sonner";
 import {
   createOrder,
   getOrder,
   getOrderRequirementReport,
+  getOrderDocument,
   getOrders,
   importOrders,
   updateOrderStatus,
@@ -26,6 +28,47 @@ export const useOrderRequirementReport = (orderId: string | undefined) =>
     queryFn: () => getOrderRequirementReport(orderId!),
     enabled: Boolean(orderId),
   });
+
+export const useOrderDocument = () =>
+  useMutation({
+    mutationFn: ({
+      orderId,
+      documentType,
+    }: {
+      orderId: string;
+      documentType: import("../types").OrderDocumentType;
+    }) => getOrderDocument(orderId, documentType),
+  });
+
+export const useOrderDocumentDownload = () => {
+  const mutation = useOrderDocument();
+
+  const download = async (
+    orderId: string,
+    documentType: import("../types").OrderDocumentType,
+  ) => {
+    try {
+      const document = await mutation.mutateAsync({ orderId, documentType });
+      const url = URL.createObjectURL(document.content);
+      const link = window.document.createElement("a");
+      link.href = url;
+      link.download = document.fileName;
+      link.style.display = "none";
+      window.document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.setTimeout(() => URL.revokeObjectURL(url), 0);
+    } catch {
+      toast.error("Impossible de générer le document PDF.");
+    }
+  };
+
+  return {
+    download,
+    isPending: mutation.isPending,
+    pendingOrderId: mutation.variables?.orderId,
+  };
+};
 
 export const useCreateOrder = () => {
   const client = useQueryClient();

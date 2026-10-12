@@ -7,6 +7,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
+import com.savouretplus.savis.order.domain.OrderAddress;
+
 /**
  * Represents a provider-neutral snapshot of a customer order waiting to be imported.
  */
@@ -15,9 +17,12 @@ public record PendingCustomerOrder(
         String customerName,
         String customerPhone,
         String customerEmail,
+        OrderAddress customerAddress,
         String note,
         String externalStatus,
         String externalSource,
+        int discountCents,
+        int deliveryFeeCents,
         int totalCents,
         List<Item> items,
         Instant placedAt,
@@ -31,6 +36,26 @@ public record PendingCustomerOrder(
         rawPayload = rawPayload != null
                 ? Collections.unmodifiableMap(new LinkedHashMap<>(rawPayload))
                 : Map.of();
+    }
+
+    /**
+     * Creates a pending order without optional address or price adjustments.
+     */
+    public PendingCustomerOrder(
+            UUID externalId,
+            String customerName,
+            String customerPhone,
+            String customerEmail,
+            String note,
+            String externalStatus,
+            String externalSource,
+            int totalCents,
+            List<Item> items,
+            Instant placedAt,
+            Map<String, Object> rawPayload) {
+        this(
+                externalId, customerName, customerPhone, customerEmail, null, note, externalStatus,
+                externalSource, 0, 0, totalCents, items, placedAt, rawPayload);
     }
 
     /**

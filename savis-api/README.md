@@ -403,6 +403,7 @@ invalid catalog structures and disabled explicit publication return `400`.
 | `GET`  | `/api/orders`                        | List normalized local orders.                |
 | `GET`  | `/api/orders/{orderId}`              | Retrieve one order and its item snapshots.   |
 | `GET`  | `/api/orders/{orderId}/requirements` | Generate current aggregated production-component requirements. |
+| `GET`  | `/api/orders/{orderId}/documents/{quote\|invoice}` | Download a quote or invoice PDF. |
 | `PUT`  | `/api/orders/{orderId}/status`       | Apply a valid lifecycle transition.          |
 
 The import endpoint is the only import trigger. It reads Supabase with the
@@ -416,6 +417,13 @@ quantities, and configuration codes. The API validates each selection against
 the current Catalog aggregate, calculates authoritative prices, and stores an
 immutable snapshot with source `ADMIN` and initial status `NEW`. Names and
 prices supplied by the browser are never trusted.
+
+Administrative orders can also include an optional customer address, a
+non-negative discount, and a non-negative delivery fee. The order total is the
+catalog subtotal minus the discount plus delivery. Taxes are not calculated.
+The PDF documents use the persisted price snapshots and adjustments; the
+business coordinates, payment conditions, and 30-day quote validity are
+currently configured as fixed document-template values.
 
 Order-list summaries include the total item count and up to three product image
 previews captured from the immutable order snapshots.

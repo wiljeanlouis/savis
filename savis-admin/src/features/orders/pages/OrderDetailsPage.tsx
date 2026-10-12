@@ -2,6 +2,18 @@ import { Button } from "@/shared/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/shared/ui/card";
 import { Spinner } from "@/shared/ui/spinner";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/shared/ui/tabs";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/shared/ui/dropdown-menu";
+import { HugeiconsIcon } from "@hugeicons/react";
+import {
+  ArrowDown01Icon,
+  Download01Icon,
+  Pdf01Icon,
+} from "@hugeicons/core-free-icons";
 import { Link, useParams } from "react-router";
 import { toast } from "sonner";
 import { OrderItemsDetails } from "../components/OrderItemsDetails";
@@ -10,10 +22,11 @@ import { OrderStatusBadge } from "../components/OrderStatusBadge";
 import { OrderStatusSelect } from "../components/OrderStatusSelect";
 import {
   useOrder,
+  useOrderDocumentDownload,
   useOrderRequirementReport,
   useUpdateOrderStatus,
 } from "../hooks/useOrderApi";
-import type { OrderStatus } from "../types";
+import type { OrderDocumentType, OrderStatus } from "../types";
 import {
   formatOrderCurrency,
   formatOrderDate,
@@ -25,6 +38,7 @@ export function OrderDetailsPage() {
   const orderQuery = useOrder(orderId);
   const requirementsQuery = useOrderRequirementReport(orderId);
   const statusMutation = useUpdateOrderStatus();
+  const documents = useOrderDocumentDownload();
 
   async function changeStatus(status: OrderStatus) {
     if (!orderId) return;
@@ -39,6 +53,11 @@ export function OrderDetailsPage() {
         description: response.response?.data?.detail,
       });
     }
+  }
+
+  async function downloadDocument(documentType: OrderDocumentType) {
+    if (!orderId) return;
+    await documents.download(orderId, documentType);
   }
 
   if (orderQuery.isPending) {
@@ -79,11 +98,38 @@ export function OrderDetailsPage() {
             {orderSourceLabels[order.source]}
           </p>
         </div>
-        <OrderStatusSelect
-          status={order.status}
-          disabled={statusMutation.isPending}
-          onChange={(status) => void changeStatus(status)}
-        />
+        <div className="flex flex-wrap items-center gap-2">
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="outline" disabled={documents.isPending}>
+                {documents.isPending ? (
+                  <Spinner />
+                ) : (
+                  <HugeiconsIcon icon={Pdf01Icon} strokeWidth={2} />
+                )}
+                Documents PDF
+                <HugeiconsIcon icon={ArrowDown01Icon} strokeWidth={2} />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="min-w-56">
+              <DropdownMenuItem onClick={() => void downloadDocument("quote")}>
+                <HugeiconsIcon icon={Download01Icon} strokeWidth={2} />
+                Télécharger la soumission
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                onClick={() => void downloadDocument("invoice")}
+              >
+                <HugeiconsIcon icon={Download01Icon} strokeWidth={2} />
+                Télécharger la facture
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+          <OrderStatusSelect
+            status={order.status}
+            disabled={statusMutation.isPending}
+            onChange={(status) => void changeStatus(status)}
+          />
+        </div>
       </div>
 
       <div className="grid gap-4 lg:grid-cols-3">
@@ -96,6 +142,10 @@ export function OrderDetailsPage() {
               <Info label="Nom" value={order.customerName} />
               <Info label="Téléphone" value={order.customerPhone} />
               <Info label="Courriel" value={order.customerEmail ?? "—"} />
+              <Info
+                label="Adresse"
+                value={formatAddress(order.customerAddress)}
+              />
               <Info label="Note" value={order.note ?? "—"} />
             </dl>
           </CardContent>
@@ -105,9 +155,16 @@ export function OrderDetailsPage() {
             <CardTitle>Total</CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="text-2xl font-semibold">
-              {formatOrderCurrency(order.totalCents)}
-            </p>
+            <dl className="space-y-2">
+              <Amount label="Sous-total" cents={order.subtotalCents} />
+              {order.discountCents > 0 ? (
+                <Amount label="Rabais" cents={-order.discountCents} />
+              ) : null}
+              {order.deliveryFeeCents > 0 ? (
+                <Amount label="Livraison" cents={order.deliveryFeeCents} />
+              ) : null}
+              <Amount label="Total" cents={order.totalCents} emphasized />
+            </dl>
             <p className="mt-2 text-muted-foreground">
               Prix figé lors de la création de la commande.
             </p>
@@ -153,4 +210,31 @@ function Info({ label, value }: { label: string; value: string }) {
       <dd className="mt-1 font-medium">{value}</dd>
     </div>
   );
+}
+
+function Amount({
+  label,
+  cents,
+  emphasized = false,
+}: {
+  label: string;
+  cents: number;
+  emphasized?: boolean;
+}) {
+  return (
+    <div className="flex items-center justify-between gap-3">
+      <dt className="text-muted-foreground">{label}</dt>
+      <dd className={emphasized ? "text-2xl font-semibold" : "font-medium"}>
+        {formatOrderCurrency(cents)}
+      </dd>
+    </div>
+  );
+}
+
+function formatAddress(address: import("../types").OrderAddress | null) {
+  if (!address) return "—";
+  const locality = [address.city, address.province, address.postalCode]
+    .filter(Boolean)
+    .join(" ");
+  return [address.line1, address.line2, locality].filter(Boolean).join(", ");
 }

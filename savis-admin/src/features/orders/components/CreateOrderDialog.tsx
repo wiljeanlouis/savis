@@ -33,6 +33,7 @@ import {
   createAdminOrderItem,
   emptyAdminOrderDraft,
   estimateOrderTotalCents,
+  estimateOrderSubtotalCents,
   selectedMode,
   type AdminOrderDraft,
   type AdminOrderItemDraft,
@@ -172,6 +173,87 @@ export function CreateOrderDialog({
             </Field>
           </div>
 
+          <section className="space-y-3 rounded-lg border p-4">
+            <div>
+              <h3 className="font-medium">Adresse du client</h3>
+              <p className="text-muted-foreground">
+                Facultative; elle apparaîtra sur la facture et la soumission.
+              </p>
+            </div>
+            <div className="grid gap-3 sm:grid-cols-2">
+              <Field label="Adresse">
+                <Input
+                  value={draft.customerAddress.line1}
+                  onChange={(event) =>
+                    setDraft({
+                      ...draft,
+                      customerAddress: {
+                        ...draft.customerAddress,
+                        line1: event.target.value,
+                      },
+                    })
+                  }
+                />
+              </Field>
+              <Field label="Appartement, bureau, etc.">
+                <Input
+                  value={draft.customerAddress.line2}
+                  onChange={(event) =>
+                    setDraft({
+                      ...draft,
+                      customerAddress: {
+                        ...draft.customerAddress,
+                        line2: event.target.value,
+                      },
+                    })
+                  }
+                />
+              </Field>
+              <Field label="Ville">
+                <Input
+                  value={draft.customerAddress.city}
+                  onChange={(event) =>
+                    setDraft({
+                      ...draft,
+                      customerAddress: {
+                        ...draft.customerAddress,
+                        city: event.target.value,
+                      },
+                    })
+                  }
+                />
+              </Field>
+              <Field label="Province">
+                <Input
+                  value={draft.customerAddress.province}
+                  onChange={(event) =>
+                    setDraft({
+                      ...draft,
+                      customerAddress: {
+                        ...draft.customerAddress,
+                        province: event.target.value,
+                      },
+                    })
+                  }
+                />
+              </Field>
+              <Field label="Code postal">
+                <Input
+                  value={draft.customerAddress.postalCode}
+                  onChange={(event) =>
+                    setDraft({
+                      ...draft,
+                      customerAddress: {
+                        ...draft.customerAddress,
+                        postalCode: event.target.value,
+                      },
+                    })
+                  }
+                />
+              </Field>
+            </div>
+          </section>
+
           <section className="space-y-3">
             <div className="flex flex-wrap items-center justify-between gap-3">
               <div>
@@ -218,11 +300,52 @@ export function CreateOrderDialog({
             </p>
           )}
 
-          <div className="flex items-center justify-between rounded-lg bg-muted/50 p-3">
-            <span className="font-medium">Total estimé</span>
-            <span className="text-base font-semibold">
-              {formatOrderCurrency(estimateOrderTotalCents(draft, products))}
-            </span>
+          <div className="grid gap-4 rounded-lg bg-muted/50 p-4 sm:grid-cols-2">
+            <Field label="Rabais">
+              <Input
+                type="number"
+                min={0}
+                step="0.01"
+                value={draft.discountCents / 100}
+                onChange={(event) =>
+                  setDraft({
+                    ...draft,
+                    discountCents: cents(Number(event.target.value)),
+                  })
+                }
+              />
+            </Field>
+            <Field label="Frais de livraison">
+              <Input
+                type="number"
+                min={0}
+                step="0.01"
+                value={draft.deliveryFeeCents / 100}
+                onChange={(event) =>
+                  setDraft({
+                    ...draft,
+                    deliveryFeeCents: cents(Number(event.target.value)),
+                  })
+                }
+              />
+            </Field>
+            <dl className="space-y-1 sm:col-span-2 sm:ml-auto sm:min-w-72">
+              <MoneyRow
+                label="Sous-total"
+                cents={estimateOrderSubtotalCents(draft, products)}
+              />
+              {draft.discountCents > 0 ? (
+                <MoneyRow label="Rabais" cents={-draft.discountCents} />
+              ) : null}
+              {draft.deliveryFeeCents > 0 ? (
+                <MoneyRow label="Livraison" cents={draft.deliveryFeeCents} />
+              ) : null}
+              <MoneyRow
+                label="Total estimé"
+                cents={estimateOrderTotalCents(draft, products)}
+                emphasized
+              />
+            </dl>
           </div>
 
           <DialogFooter>
@@ -399,6 +522,27 @@ function Field({ label, children }: { label: string; children: ReactNode }) {
     <div className="space-y-1.5">
       <Label>{label}</Label>
       {children}
+    </div>
+  );
+}
+
+function MoneyRow({
+  label,
+  cents,
+  emphasized = false,
+}: {
+  label: string;
+  cents: number;
+  emphasized?: boolean;
+}) {
+  return (
+    <div className="flex items-center justify-between gap-6">
+      <dt className={emphasized ? "font-semibold" : "text-muted-foreground"}>
+        {label}
+      </dt>
+      <dd className={emphasized ? "text-base font-semibold" : "font-medium"}>
+        {formatOrderCurrency(cents)}
+      </dd>
     </div>
   );
 }

@@ -9,7 +9,16 @@ export interface AdminOrderDraft {
   customerName: string;
   customerPhone: string;
   customerEmail: string;
+  customerAddress: {
+    line1: string;
+    line2: string;
+    city: string;
+    province: string;
+    postalCode: string;
+  };
   note: string;
+  discountCents: number;
+  deliveryFeeCents: number;
   items: AdminOrderItemDraft[];
 }
 
@@ -27,7 +36,16 @@ export const emptyAdminOrderDraft = (): AdminOrderDraft => ({
   customerName: "",
   customerPhone: "",
   customerEmail: "",
+  customerAddress: {
+    line1: "",
+    line2: "",
+    city: "",
+    province: "",
+    postalCode: "",
+  },
   note: "",
+  discountCents: 0,
+  deliveryFeeCents: 0,
   items: [],
 });
 
@@ -95,12 +113,24 @@ export function buildCreateOrderRequest(
   if (draft.items.length === 0) {
     throw new Error("Ajoutez au moins un produit à la commande.");
   }
+  const subtotalCents = estimateOrderSubtotalCents(draft, products);
+  if (draft.discountCents < 0 || draft.deliveryFeeCents < 0) {
+    throw new Error(
+      "Le rabais et les frais de livraison doivent être positifs.",
+    );
+  }
+  if (draft.discountCents > subtotalCents) {
+    throw new Error("Le rabais ne peut pas dépasser le sous-total.");
+  }
 
   return {
     customerName: draft.customerName.trim(),
     customerPhone: draft.customerPhone.trim(),
     customerEmail: blankToNull(draft.customerEmail),
+    customerAddress: addressOrNull(draft.customerAddress),
     note: blankToNull(draft.note),
+    discountCents: draft.discountCents,
+    deliveryFeeCents: draft.deliveryFeeCents,
     items: draft.items.map((item) => {
       const product = requireProduct(products, item.productId);
       const mode = requireMode(product, item.purchaseModeCode);
@@ -158,6 +188,14 @@ export function buildCreateOrderRequest(
 }
 
 export function estimateOrderTotalCents(
+  draft: AdminOrderDraft,
+  products: CatalogProduct[],
+) {
+  const subtotal = estimateOrderSubtotalCents(draft, products);
+  return Math.max(0, subtotal - draft.discountCents) + draft.deliveryFeeCents;
+}
+
+export function estimateOrderSubtotalCents(
   draft: AdminOrderDraft,
   products: CatalogProduct[],
 ) {
@@ -224,4 +262,15 @@ function cents(amount: number) {
 function blankToNull(value: string) {
   const trimmed = value.trim();
   return trimmed ? trimmed : null;
+}
+
+function addressOrNull(address: AdminOrderDraft["customerAddress"]) {
+  const normalized = {
+    line1: blankToNull(address.line1),
+    line2: blankToNull(address.line2),
+    city: blankToNull(address.city),
+    province: blankToNull(address.province),
+    postalCode: blankToNull(address.postalCode),
+  };
+  return Object.values(normalized).some(Boolean) ? normalized : null;
 }

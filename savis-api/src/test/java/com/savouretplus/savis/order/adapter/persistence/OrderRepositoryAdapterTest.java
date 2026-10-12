@@ -16,6 +16,7 @@ import org.springframework.test.context.ActiveProfiles;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.savouretplus.savis.order.domain.Order;
+import com.savouretplus.savis.order.domain.OrderAddress;
 import com.savouretplus.savis.order.domain.OrderItem;
 import com.savouretplus.savis.order.domain.OrderItemAllocationType;
 import com.savouretplus.savis.order.domain.OrderItemChoiceAllocation;
@@ -43,6 +44,9 @@ class OrderRepositoryAdapterTest {
         assertEquals("Poulet", reloaded.items().getFirst().choiceSelections().getFirst().choiceName());
         assertEquals(6, reloaded.items().getFirst().choiceAllocations().getFirst().quantity());
         assertEquals(1, reloaded.items().getFirst().ingredientSelections().getFirst().defaultQuantity());
+        assertEquals("Drummondville", reloaded.customerAddress().city());
+        assertEquals(150, reloaded.discountCents());
+        assertEquals(300, reloaded.deliveryFeeCents());
 
         assertThrows(
                 DataIntegrityViolationException.class,
@@ -60,7 +64,9 @@ class OrderRepositoryAdapterTest {
                 List.of(new OrderItemIngredientSelection(null, "spice", "Épices", 2, 1, 150)));
         return new Order(
                 null, null, number, OrderSource.SAVOURETPLUS_WEB, OrderStatus.NEW,
-                "Ada", "514", null, null, 3150, externalId, now, now,
+                "Ada", "514", null,
+                new OrderAddress("416 rue Lindsay", null, "Drummondville", "QC", "J2B 1G6"),
+                null, 150, 300, 3300, externalId, now, now,
                 null, null, null, null, null, List.of(item), Map.of("source", "savouretplus"));
     }
 }

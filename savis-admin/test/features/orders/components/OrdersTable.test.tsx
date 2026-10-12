@@ -1,11 +1,14 @@
 import { OrdersTable } from "@/features/orders/components/OrdersTable";
 import type { OrderSummary } from "@/features/orders/types";
 import { render, screen } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { MemoryRouter } from "react-router";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 
 describe("OrdersTable", () => {
-  it("renders one stable product preview and the total item count", () => {
+  it("renders one stable product preview, the item count, and PDF downloads", async () => {
+    const user = userEvent.setup();
+    const onDownloadDocument = vi.fn();
     const order: OrderSummary = {
       id: "order-id",
       orderNumber: "ADM-00000001",
@@ -31,7 +34,7 @@ describe("OrdersTable", () => {
 
     render(
       <MemoryRouter>
-        <OrdersTable orders={[order]} />
+        <OrdersTable orders={[order]} onDownloadDocument={onDownloadDocument} />
       </MemoryRouter>,
     );
 
@@ -43,5 +46,16 @@ describe("OrdersTable", () => {
     expect(
       screen.queryByRole("img", { name: "Aucune image pour Gâteau" }),
     ).not.toBeInTheDocument();
+
+    await user.click(
+      screen.getByRole("button", {
+        name: "Documents PDF de ADM-00000001",
+      }),
+    );
+    await user.click(
+      screen.getByRole("menuitem", { name: "Télécharger la soumission" }),
+    );
+
+    expect(onDownloadDocument).toHaveBeenCalledWith("order-id", "quote");
   });
 });

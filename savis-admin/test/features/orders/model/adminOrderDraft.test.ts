@@ -62,19 +62,35 @@ describe("adminOrderDraft", () => {
       ...emptyAdminOrderDraft(),
       customerName: " Ada ",
       customerPhone: " 514 ",
+      customerAddress: {
+        line1: " 123 rue Principale ",
+        line2: "",
+        city: " Montréal ",
+        province: " QC ",
+        postalCode: " H1H 1H1 ",
+      },
+      discountCents: 200,
+      deliveryFeeCents: 350,
       items: [item],
     };
 
     const request = buildCreateOrderRequest(draft, [product]);
 
     expect(request.customerName).toBe("Ada");
+    expect(request.customerAddress).toEqual({
+      line1: "123 rue Principale",
+      line2: null,
+      city: "Montréal",
+      province: "QC",
+      postalCode: "H1H 1H1",
+    });
     expect(request.items[0]).toMatchObject({
       productId: product.id,
       quantity: 3,
       purchaseModeCode: "unit",
       ingredients: [{ ingredientCode: "sprinkles", quantity: 2 }],
     });
-    expect(estimateOrderTotalCents(draft, [product])).toBe(2850);
+    expect(estimateOrderTotalCents(draft, [product])).toBe(3000);
   });
 
   it("rejects an empty order", () => {

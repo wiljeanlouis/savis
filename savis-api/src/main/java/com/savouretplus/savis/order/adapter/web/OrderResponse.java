@@ -5,6 +5,7 @@ import java.util.List;
 import java.util.UUID;
 
 import com.savouretplus.savis.order.domain.Order;
+import com.savouretplus.savis.order.domain.OrderAddress;
 import com.savouretplus.savis.order.domain.OrderItem;
 import com.savouretplus.savis.order.domain.OrderItemAllocationType;
 import com.savouretplus.savis.order.domain.OrderItemProductType;
@@ -22,7 +23,11 @@ public record OrderResponse(
         String customerName,
         String customerPhone,
         String customerEmail,
+        AddressResponse customerAddress,
         String note,
+        int subtotalCents,
+        int discountCents,
+        int deliveryFeeCents,
         int totalCents,
         UUID externalOrderId,
         Instant placedAt,
@@ -40,10 +45,27 @@ public record OrderResponse(
     static OrderResponse from(Order order) {
         return new OrderResponse(
                 order.publicId(), order.orderNumber(), order.source(), order.status(), order.customerName(),
-                order.customerPhone(), order.customerEmail(), order.note(), order.totalCents(),
+                order.customerPhone(), order.customerEmail(), AddressResponse.from(order.customerAddress()),
+                order.note(), order.subtotalCents(), order.discountCents(), order.deliveryFeeCents(), order.totalCents(),
                 order.externalOrderId(), order.placedAt(), order.importedAt(), order.acceptedAt(),
                 order.inPreparationAt(), order.readyAt(), order.completedAt(), order.cancelledAt(),
                 order.items().stream().map(OrderItemResponse::from).toList());
+    }
+
+    /**
+     * Represents an optional structured customer address.
+     */
+    public record AddressResponse(
+            String line1,
+            String line2,
+            String city,
+            String province,
+            String postalCode) {
+
+        private static AddressResponse from(OrderAddress address) {
+            return address == null ? null : new AddressResponse(
+                    address.line1(), address.line2(), address.city(), address.province(), address.postalCode());
+        }
     }
 
     /**

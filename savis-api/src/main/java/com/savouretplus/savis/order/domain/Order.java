@@ -20,7 +20,10 @@ public record Order(
         String customerName,
         String customerPhone,
         String customerEmail,
+        OrderAddress customerAddress,
         String note,
+        int discountCents,
+        int deliveryFeeCents,
         int totalCents,
         UUID externalOrderId,
         Instant placedAt,
@@ -50,10 +53,51 @@ public record Order(
         if (totalCents < 0) {
             throw new IllegalArgumentException("Le total de la commande ne peut pas être négatif");
         }
+        if (discountCents < 0 || deliveryFeeCents < 0) {
+            throw new IllegalArgumentException("Le rabais et les frais de livraison ne peuvent pas être négatifs");
+        }
+        customerAddress = customerAddress == null || customerAddress.isEmpty() ? null : customerAddress;
         items = items != null ? List.copyOf(items) : List.of();
         rawPayload = rawPayload != null
                 ? Collections.unmodifiableMap(new LinkedHashMap<>(rawPayload))
                 : Map.of();
+    }
+
+    /**
+     * Creates an order without optional billing adjustments or a customer address.
+     */
+    public Order(
+            Long id,
+            UUID publicId,
+            String orderNumber,
+            OrderSource source,
+            OrderStatus status,
+            String customerName,
+            String customerPhone,
+            String customerEmail,
+            String note,
+            int totalCents,
+            UUID externalOrderId,
+            Instant placedAt,
+            Instant importedAt,
+            Instant acceptedAt,
+            Instant inPreparationAt,
+            Instant readyAt,
+            Instant completedAt,
+            Instant cancelledAt,
+            List<OrderItem> items,
+            Map<String, Object> rawPayload) {
+        this(
+                id, publicId, orderNumber, source, status, customerName, customerPhone, customerEmail,
+                null, note, 0, 0, totalCents, externalOrderId, placedAt, importedAt, acceptedAt,
+                inPreparationAt, readyAt, completedAt, cancelledAt, items, rawPayload);
+    }
+
+    /**
+     * Returns the sum of all captured order-item line totals.
+     */
+    public int subtotalCents() {
+        return items.stream().mapToInt(OrderItem::lineTotalCents).sum();
     }
 
     /**
@@ -73,7 +117,8 @@ public record Order(
 
         return new Order(
                 id, publicId, orderNumber, source, nextStatus, customerName, customerPhone,
-                customerEmail, note, totalCents, externalOrderId, placedAt, importedAt,
+                customerEmail, customerAddress, note, discountCents, deliveryFeeCents, totalCents,
+                externalOrderId, placedAt, importedAt,
                 nextStatus == OrderStatus.ACCEPTED && acceptedAt == null ? changedAt : acceptedAt,
                 nextStatus == OrderStatus.IN_PREPARATION && inPreparationAt == null ? changedAt : inPreparationAt,
                 nextStatus == OrderStatus.READY && readyAt == null ? changedAt : readyAt,

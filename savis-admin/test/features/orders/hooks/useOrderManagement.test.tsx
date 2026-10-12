@@ -49,7 +49,10 @@ describe("useOrderManagement", () => {
       customerName: "Ada",
       customerPhone: "514",
       customerEmail: null,
+      customerAddress: null,
       note: null,
+      discountCents: 0,
+      deliveryFeeCents: 0,
       items: [
         {
           productId: "product-id",
