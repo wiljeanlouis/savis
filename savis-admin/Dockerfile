@@ -9,6 +9,8 @@ COPY . .
 CMD ["npm", "run", "dev", "--", "--host"]
 
 FROM base AS build
+ARG SAVIS_VERSION=dev
+ENV VITE_SAVIS_VERSION=${SAVIS_VERSION}
 COPY . .
 RUN npm run build
 

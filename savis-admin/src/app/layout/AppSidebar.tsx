@@ -4,6 +4,7 @@ import { NavMain } from "@/app/layout/components/NavMain";
 import {
   Sidebar,
   SidebarContent,
+  SidebarFooter,
   SidebarHeader,
   SidebarMenu,
   SidebarMenuButton,
@@ -19,9 +20,12 @@ import {
   Money03Icon,
   PackageIcon,
   GearsFreeIcons,
+  ShoppingCart02Icon,
 } from "@hugeicons/core-free-icons";
 import { Link } from "react-router";
 import { NavSection } from "./components/NavSection";
+
+const savisVersion = import.meta.env.VITE_SAVIS_VERSION?.trim() || "dev";
 
 export const activeClass =
   "data-[active=true]:bg-primary data-[active=true]:text-primary-foreground";
@@ -36,7 +40,7 @@ const data = {
     {
       name: "Commandes",
       url: "/orders",
-      icon: <HugeiconsIcon icon={PackageIcon} strokeWidth={2} />,
+      icon: <HugeiconsIcon icon={ShoppingCart02Icon} strokeWidth={2} />,
     },
     {
       name: "Produits",
@@ -125,6 +129,11 @@ export const AppSidebar = ({
         {/* <NavDocuments items={data.documents} />
         <NavSecondary items={data.navSecondary} className="mt-auto" /> */}
       </SidebarContent>
+      <SidebarFooter className="border-t border-sidebar-border">
+        <p className="px-2 py-1 text-xs text-sidebar-foreground/60">
+          version <span className="font-mono">{savisVersion}</span>
+        </p>
+      </SidebarFooter>
     </Sidebar>
   );
 };
