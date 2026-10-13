@@ -50,6 +50,7 @@ public class PublishedCatalogProductMapper {
                 product.slug(), product.name(), product.category().code(),
                 product.subcategory() != null ? product.subcategory().code() : null,
                 product.description(),
+                product.commercialType().name().toLowerCase(Locale.ROOT),
                 product.productType().name().toLowerCase(Locale.ROOT),
                 modes, choiceGroup, ingredients, product.imageUrl(), product.gallery(), product.availabilityNote(),
                 product.available(), product.displayOrder());

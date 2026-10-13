@@ -9,6 +9,7 @@ import java.util.UUID;
 import org.junit.jupiter.api.Test;
 
 import com.savouretplus.savis.catalog.domain.AllocationType;
+import com.savouretplus.savis.catalog.domain.CommercialType;
 import com.savouretplus.savis.catalog.domain.Product;
 import com.savouretplus.savis.catalog.domain.ProductCategory;
 import com.savouretplus.savis.catalog.domain.ProductChoiceGroup;
@@ -25,7 +26,8 @@ class PublishedCatalogProductMapperTest {
         UUID bomId = UUID.randomUUID();
         Product product = new Product(
                 null, "pate-four", "pate-four", "Pâté au four", "",
-                ProductType.SINGLE_CHOICE_BUNDLE, ProductCategory.DECORATION,
+                CommercialType.SERVICE, ProductType.SINGLE_CHOICE_BUNDLE,
+                ProductCategory.DECORATION,
                 ProductSubcategory.BALLOON_ARCH, List.of(),
                 new BigDecimal("0.35"), "/pate.jpg",
                 List.of("/pate-2.jpg"), "Disponible", true, true, 1,
@@ -45,6 +47,7 @@ class PublishedCatalogProductMapperTest {
 
         assertEquals(1, result.purchaseModes().size());
         assertEquals("decoration", result.category());
+        assertEquals("service", result.commercialType());
         assertEquals("balloon-arch", result.subcategory());
         assertEquals("choice_allocation", result.purchaseModes().getFirst().get("allocation_type"));
         assertEquals(bomId.toString(),

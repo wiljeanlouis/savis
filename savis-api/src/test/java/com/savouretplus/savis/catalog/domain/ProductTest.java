@@ -38,7 +38,8 @@ class ProductTest {
             ProductSubcategory subcategory,
             List<ProductPurchaseMode> purchaseModes) {
         return new Product(
-                null, "pate", "pate", "Pâté", "", ProductType.STANDARD, category,
+                null, "pate", "pate", "Pâté", "", CommercialType.GOODS,
+                ProductType.STANDARD, category,
                 subcategory, List.of(), new BigDecimal("0.30"), "/pate.jpg", List.of(), "Disponible",
                 true, false, 0, purchaseModes, null, List.of());
     }

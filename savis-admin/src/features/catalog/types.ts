@@ -6,6 +6,8 @@ export type ProductType =
   | "SINGLE_CHOICE_BUNDLE"
   | "INGREDIENT_CUSTOMIZATION";
 
+export type CommercialType = "GOODS" | "SERVICE";
+
 export type AllocationType = "NONE" | "SINGLE_CHOICE" | "CHOICE_ALLOCATION";
 export type PriceHealthStatus = "GOOD" | "REVIEW" | "LOSS" | "INCOMPLETE";
 export type ProductCategory = "TASTING" | "DECORATION";
@@ -116,6 +118,7 @@ export interface CatalogProduct {
   slug: string;
   name: string;
   description: string;
+  commercialType: CommercialType;
   productType: ProductType;
   category: ProductCategory;
   subcategory: ProductSubcategory | null;
@@ -163,6 +166,7 @@ export const emptyCatalogProduct = (
   slug: "",
   name: "",
   description: "",
+  commercialType: "GOODS",
   productType: "STANDARD",
   category,
   subcategory: null,

@@ -14,6 +14,7 @@ describe("CatalogProductDropdown", () => {
       id: "product-id",
       code: "COOKIE",
       name: "Biscuit personnalisé",
+      commercialType: "SERVICE",
     } as CatalogProduct;
 
     function TestDropdown() {

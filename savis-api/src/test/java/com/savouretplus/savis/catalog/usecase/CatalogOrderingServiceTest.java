@@ -15,6 +15,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 import com.savouretplus.savis.catalog.api.CatalogOrderingApi;
 import com.savouretplus.savis.catalog.domain.AllocationType;
+import com.savouretplus.savis.catalog.domain.CommercialType;
 import com.savouretplus.savis.catalog.domain.Product;
 import com.savouretplus.savis.catalog.domain.ProductBom;
 import com.savouretplus.savis.catalog.domain.ProductCategory;
@@ -39,6 +40,7 @@ class CatalogOrderingServiceTest {
                 "cookie",
                 "Biscuit personnalisé",
                 "",
+                CommercialType.GOODS,
                 ProductType.INGREDIENT_CUSTOMIZATION,
                 ProductCategory.TASTING,
                 null,
@@ -97,6 +99,7 @@ class CatalogOrderingServiceTest {
                 "cookie",
                 "Biscuit personnalisé",
                 "",
+                CommercialType.GOODS,
                 ProductType.INGREDIENT_CUSTOMIZATION,
                 ProductCategory.TASTING,
                 null,
@@ -140,6 +143,7 @@ class CatalogOrderingServiceTest {
                 "patty-box",
                 "Boîte de pâtés",
                 "",
+                CommercialType.GOODS,
                 ProductType.SINGLE_CHOICE_BUNDLE,
                 ProductCategory.TASTING,
                 null,
@@ -177,5 +181,42 @@ class CatalogOrderingServiceTest {
         assertEquals(List.of(
                 new CatalogOrderingApi.ApplicableBom(chickenBomId, new BigDecimal("12"), "Poulet"),
                 new CatalogOrderingApi.ApplicableBom(tunaBomId, new BigDecimal("8"), "Thon")), plan.boms());
+    }
+
+    @Test
+    void sellsAServiceWithoutBomWithoutCreatingProductionRequirements() {
+        Product serviceProduct = new Product(
+                PRODUCT_ID,
+                "INSTALLATION",
+                "installation",
+                "Service d'installation",
+                "",
+                CommercialType.SERVICE,
+                ProductType.STANDARD,
+                ProductCategory.DECORATION,
+                null,
+                List.of(),
+                new BigDecimal("0.30"),
+                "/installation.jpg",
+                List.of(),
+                "Sur rendez-vous",
+                true,
+                true,
+                0,
+                List.of(new ProductPurchaseMode(
+                        null, "service", "Service", 1, Money.of(150), AllocationType.NONE, true, 0)),
+                null,
+                List.of());
+        when(products.get(PRODUCT_ID)).thenReturn(serviceProduct);
+        CatalogOrderingService service = new CatalogOrderingService(products);
+        CatalogOrderingApi.ProductSelection selection = new CatalogOrderingApi.ProductSelection(
+                PRODUCT_ID, "service", null, List.of(), List.of());
+
+        CatalogOrderingApi.ProductSnapshot snapshot = service.snapshot(selection);
+        CatalogOrderingApi.BomPlan plan = service.bomPlan(selection);
+
+        assertEquals(15000, snapshot.unitPriceCents());
+        assertEquals(List.of(), plan.boms());
+        assertEquals(List.of(), plan.warnings());
     }
 }

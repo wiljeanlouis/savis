@@ -3,6 +3,7 @@ package com.savouretplus.savis.order.usecase;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 import java.math.BigDecimal;
@@ -266,6 +267,43 @@ class OrderServiceTest {
         assertEquals("https://example.com/flour.jpg", flour.sourcingInformation().imageUrl());
         assertEquals(0, flour.sources().getFirst().quantityContribution().compareTo(new BigDecimal("0.5")));
         assertEquals(null, flour.onHandQuantity());
+    }
+
+    @Test
+    void reportsNoProductionRequirementsForAnAdministrativeServiceWithoutBom() {
+        OrderItem serviceItem = new OrderItem(
+                null,
+                UUID.randomUUID(),
+                PRODUCT_ID,
+                "Service d'installation",
+                OrderItemProductType.STANDARD,
+                null,
+                1,
+                15000,
+                15000,
+                15000,
+                "service",
+                "Service",
+                1,
+                OrderItemAllocationType.NONE,
+                null,
+                List.of(),
+                List.of(),
+                List.of());
+        Order order = new Order(
+                1L, ORDER_ID, "ADM-00000001", OrderSource.ADMIN, OrderStatus.NEW,
+                "Ada", "514", null, null, 15000, null, NOW, NOW,
+                null, null, null, null, null, List.of(serviceItem), Map.of());
+        when(repository.findByPublicId(ORDER_ID)).thenReturn(Optional.of(order));
+        when(catalog.bomPlan(org.mockito.ArgumentMatchers.any()))
+                .thenReturn(new OrderCatalog.BomPlan(List.of(), List.of()));
+
+        OrderRequirementReport report = service().requirementReport(ORDER_ID);
+
+        assertEquals(true, report.complete());
+        assertEquals(List.of(), report.requirements());
+        assertEquals(List.of(), report.warnings());
+        verifyNoInteractions(bomRequirements, sourcing);
     }
 
     private Order order(OrderStatus status) {

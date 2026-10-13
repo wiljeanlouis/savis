@@ -230,6 +230,15 @@ The Catalog slice owns:
 - pricing analysis;
 - Supabase publication.
 
+Commercial nature is independent from product configuration:
+
+- `GOODS` identifies a physical good;
+- `SERVICE` identifies a service sold through the same catalog and order flows.
+
+Both commercial types may reference zero or more BOMs. Equipment rental and
+other inputs used to deliver a service remain internal BOM costs; they are not
+modeled as a third commercial product type.
+
 Supported product types:
 
 - `STANDARD`;

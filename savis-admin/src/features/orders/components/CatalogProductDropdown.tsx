@@ -85,7 +85,8 @@ export function CatalogProductDropdown({
               <span className="min-w-0">
                 <span className="block truncate">{product.name}</span>
                 <span className="block truncate text-muted-foreground">
-                  {product.code}
+                  {product.code} ·{" "}
+                  {product.commercialType === "SERVICE" ? "Service" : "Bien"}
                 </span>
               </span>
             </Button>

@@ -15,6 +15,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import com.savouretplus.savis.catalog.domain.Product;
+import com.savouretplus.savis.catalog.domain.CommercialType;
 import com.savouretplus.savis.catalog.domain.ProductBom;
 import com.savouretplus.savis.catalog.domain.ProductCategory;
 import com.savouretplus.savis.catalog.domain.ProductPurchaseMode;
@@ -33,7 +34,8 @@ class ProductServiceTest {
     void refusesUnknownProductBomOnCreate() {
         UUID bomId = UUID.randomUUID();
         Product product = new Product(
-                null, "pate", "pate", "Pâté", "", ProductType.STANDARD,
+                null, "pate", "pate", "Pâté", "", CommercialType.GOODS,
+                ProductType.STANDARD,
                 ProductCategory.TASTING, null,
                 List.of(new ProductBom(null, bomId, BigDecimal.ONE, 0)),
                 new BigDecimal("0.30"),

@@ -16,6 +16,7 @@ const product: CatalogProduct = {
   slug: "cookie",
   name: "Biscuit personnalisé",
   description: "",
+  commercialType: "GOODS",
   productType: "INGREDIENT_CUSTOMIZATION",
   category: "TASTING",
   subcategory: null,

@@ -33,4 +33,15 @@ describe("catalogProductDraftStorage", () => {
     expect(loadDraft()).toBeNull();
     expect(hasDraft()).toBe(false);
   });
+
+  it("defaults an older draft to goods", () => {
+    localStorage.setItem(
+      "catalog-product-draft",
+      JSON.stringify(emptyCatalogProduct("TASTING"), (key, value) =>
+        key === "commercialType" ? undefined : value,
+      ),
+    );
+
+    expect(loadDraft()?.commercialType).toBe("GOODS");
+  });
 });

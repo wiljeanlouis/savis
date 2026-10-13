@@ -43,6 +43,7 @@ import {
   productCategories,
   subcategoriesForCategory,
   type CatalogProduct,
+  type CommercialType,
   type ProductCategory,
   type ProductSubcategory,
   type ProductType,
@@ -335,7 +336,28 @@ export function CatalogProductDialog({
                   </FieldDescription>
                 </Field>
                 <Field>
-                  <FieldLabel>Type</FieldLabel>
+                  <FieldLabel>Nature commerciale</FieldLabel>
+                  <Select
+                    value={form.commercialType}
+                    onValueChange={(value) =>
+                      update("commercialType", value as CommercialType)
+                    }
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="GOODS">Bien</SelectItem>
+                      <SelectItem value="SERVICE">Service</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <FieldDescription>
+                    Distingue ce qui est vendu; les coûts internes restent dans
+                    les BOM.
+                  </FieldDescription>
+                </Field>
+                <Field>
+                  <FieldLabel>Configuration</FieldLabel>
                   <Select
                     value={form.productType}
                     onValueChange={(value) =>
@@ -359,8 +381,8 @@ export function CatalogProductDialog({
                     </SelectContent>
                   </Select>
                   <FieldDescription>
-                    Choisissez le flow métier du produit : simple, choix unique,
-                    bundle ou ingrédients personnalisables.
+                    Choisissez le flux métier : simple, choix unique, bundle ou
+                    ingrédients personnalisables.
                   </FieldDescription>
                 </Field>
 

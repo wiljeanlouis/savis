@@ -174,7 +174,8 @@ The catalog page manages products sold to customers. Product data includes:
 
 - identity, slug, description, images, availability, and display order;
 - category and optional subcategory;
-- product type;
+- commercial nature (`GOODS`/Bien or `SERVICE`/Service);
+- configuration type;
 - base sale price and target margin;
 - common `ProductBom` references with decimal quantities and display order;
 - purchase modes and their sale prices;
@@ -187,6 +188,10 @@ Supported product types:
 - `SINGLE_CHOICE`;
 - `SINGLE_CHOICE_BUNDLE`;
 - `INGREDIENT_CUSTOMIZATION`.
+
+Commercial nature does not impose a BOM. A service can be sold without one; if
+a service uses labor, supplies, or rented equipment, those remain internal BOM
+costs rather than a separate `RENTAL` catalog product type.
 
 Categories are selected from the fixed catalog values `TASTING` and
 `DECORATION`.
