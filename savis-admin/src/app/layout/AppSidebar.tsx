@@ -21,6 +21,7 @@ import {
   PackageIcon,
   GearsFreeIcons,
   ShoppingCart02Icon,
+  Clock03Icon,
 } from "@hugeicons/core-free-icons";
 import { Link } from "react-router";
 import { NavSection } from "./components/NavSection";
@@ -62,7 +63,7 @@ const data = {
     {
       name: "Taux horaire",
       url: "/activity-rates",
-      icon: <HugeiconsIcon icon={Money03Icon} strokeWidth={2} />,
+      icon: <HugeiconsIcon icon={Clock03Icon} strokeWidth={2} />,
     },
     {
       name: "BOM",
