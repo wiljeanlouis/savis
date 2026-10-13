@@ -14,6 +14,7 @@
     .brand-logo { display: block; width: 58mm; height: auto; }
     .title { font-family: 'Savis Title'; font-size: 37pt; font-weight: 700; letter-spacing: 1px; text-align: right; }
     .metadata { border-bottom: 1.5px solid #222; padding-bottom: 2mm; margin-bottom: 3mm; font-weight: bold; }
+    .cancelled { margin: -3mm 0 4mm; padding: 2mm; border: 1px solid #a61b1b; color: #a61b1b; font-weight: bold; text-align: center; }
     .parties { width: 100%; border-collapse: collapse; margin-bottom: 14mm; }
     .party { width: 50%; vertical-align: top; line-height: 1.35; }
     .party-right { text-align: right; }
@@ -61,7 +62,11 @@
     &#160;&#160;&#160; <span th:text="${referenceLabel}">COMMANDE</span> :
     <span th:text="${referenceNumber}">WEB-00000001</span>
     <span th:if="${quote}">&#160;&#160;&#160; VALIDE JUSQU'AU : <span th:text="${validUntil}">31/01/2026</span></span>
+    <span th:if="${hasSourceReference}">&#160;&#160;&#160; <span th:text="${sourceReferenceLabel}">COMMANDE</span> :
+      <span th:text="${sourceReferenceNumber}">ADM-00000001</span></span>
   </div>
+
+  <div class="cancelled" th:if="${cancelled}">FACTURE ANNULÉE</div>
 
   <table class="parties">
     <tr>
@@ -116,6 +121,14 @@
     <tr th:if="${hasDeliveryFee}">
       <td>Frais de livraison</td>
       <td class="amount" th:text="${deliveryFee}">0,00 CAD</td>
+    </tr>
+    <tr th:if="${hasGst}">
+      <td>TPS</td>
+      <td class="amount" th:text="${gst}">0,00 CAD</td>
+    </tr>
+    <tr th:if="${hasQst}">
+      <td>TVQ</td>
+      <td class="amount" th:text="${qst}">0,00 CAD</td>
     </tr>
     <tr class="grand">
       <td th:text="${quote} ? 'Total de la soumission' : 'Total facturé'">Total</td>

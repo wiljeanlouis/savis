@@ -10,6 +10,7 @@ import {
   useUpdateOrderStatus,
 } from "@/features/orders/hooks/useOrderApi";
 import type { Order } from "@/features/orders/types";
+import { useCreateInvoice } from "@/features/invoices/hooks/useInvoiceApi";
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { createMemoryRouter, RouterProvider } from "react-router";
 import { beforeEach, describe, expect, it, vi } from "vitest";
@@ -30,6 +31,10 @@ vi.mock("@/features/orders/hooks/useOrderApi", () => ({
 
 vi.mock("@/features/orders/hooks/useOrderEditor", () => ({
   useOrderEditor: vi.fn(),
+}));
+
+vi.mock("@/features/invoices/hooks/useInvoiceApi", () => ({
+  useCreateInvoice: vi.fn(),
 }));
 
 vi.mock("@/features/orders/components/OrderEditorForm", () => ({
@@ -83,12 +88,14 @@ const order: Order = {
 describe("OrderDetailsPage", () => {
   const update = vi.fn().mockResolvedValue(order);
   const updateCustomer = vi.fn().mockResolvedValue(order);
+  const createInvoice = vi.fn();
   const resetFromOrder = vi.fn();
 
   beforeEach(() => {
     vi.clearAllMocks();
     update.mockResolvedValue(order);
     updateCustomer.mockResolvedValue(order);
+    createInvoice.mockResolvedValue({ id: "invoice-1" });
     vi.mocked(useOrder).mockReturnValue({
       data: order,
       isPending: false,
@@ -118,6 +125,10 @@ describe("OrderDetailsPage", () => {
     vi.mocked(useOrderDocumentDownload).mockReturnValue({
       isPending: false,
       download: vi.fn(),
+    } as never);
+    vi.mocked(useCreateInvoice).mockReturnValue({
+      isPending: false,
+      mutateAsync: createInvoice,
     } as never);
     vi.mocked(useOrderEditor).mockReturnValue({
       draft: {
@@ -220,5 +231,29 @@ describe("OrderDetailsPage", () => {
       },
     });
     expect(update).not.toHaveBeenCalled();
+  });
+
+  it("creates or reopens the single invoice of an eligible order", async () => {
+    const acceptedOrder = { ...order, status: "ACCEPTED" } satisfies Order;
+    vi.mocked(useOrder).mockReturnValue({
+      data: acceptedOrder,
+      isPending: false,
+      isError: false,
+    } as never);
+    const router = createMemoryRouter(
+      [
+        { path: "/orders/:orderId", element: <OrderDetailsPage /> },
+        { path: "/invoices/:invoiceId", element: <div>Détail facture</div> },
+      ],
+      { initialEntries: [`/orders/${acceptedOrder.id}`] },
+    );
+    render(<RouterProvider router={router} />);
+
+    fireEvent.click(
+      screen.getByRole("button", { name: "Créer ou voir la facture" }),
+    );
+
+    await waitFor(() => expect(createInvoice).toHaveBeenCalledWith(order.id));
+    expect(await screen.findByText("Détail facture")).toBeInTheDocument();
   });
 });

@@ -5,8 +5,11 @@ import java.util.Optional;
 import java.util.UUID;
 
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Lock;
 
 import com.savouretplus.savis.order.domain.OrderSource;
+
+import jakarta.persistence.LockModeType;
 
 /**
  * Spring Data repository for local order entities.
@@ -17,6 +20,12 @@ interface OrderJpaRepository extends JpaRepository<OrderEntity, Long> {
      * Finds an order entity by its public identifier.
      */
     Optional<OrderEntity> findByPublicId(UUID publicId);
+
+    /**
+     * Finds an order entity while preventing concurrent invoice creation.
+     */
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    Optional<OrderEntity> findForUpdateByPublicId(UUID publicId);
 
     /**
      * Returns order entities from newest to oldest.

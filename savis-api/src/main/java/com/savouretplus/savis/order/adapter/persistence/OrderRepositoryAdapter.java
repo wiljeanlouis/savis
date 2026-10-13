@@ -54,6 +54,15 @@ public class OrderRepositoryAdapter implements OrderRepository {
     }
 
     /**
+     * Finds and locks an order for a cross-module state-changing operation.
+     */
+    @Override
+    @Transactional
+    public Optional<Order> findByPublicIdForUpdate(UUID publicId) {
+        return repository.findForUpdateByPublicId(publicId).map(this::toDomain);
+    }
+
+    /**
      * Returns all reconstructed orders from newest to oldest.
      */
     @Override

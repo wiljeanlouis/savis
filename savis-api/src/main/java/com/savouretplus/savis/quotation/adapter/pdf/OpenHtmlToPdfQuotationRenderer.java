@@ -49,6 +49,8 @@ public class OpenHtmlToPdfQuotationRenderer implements QuotationDocumentRenderer
         context.setVariable("validUntil", DATE_FORMAT.format(quotation.validUntil()));
         context.setVariable("referenceLabel", "SOUMISSION");
         context.setVariable("referenceNumber", quotation.quotationNumber());
+        context.setVariable("hasSourceReference", false);
+        context.setVariable("cancelled", false);
         context.setVariable("logoDataUri", logoDataUri());
         context.setVariable("issuer", issuer());
         context.setVariable("customer", customer(quotation));
@@ -58,6 +60,8 @@ public class OpenHtmlToPdfQuotationRenderer implements QuotationDocumentRenderer
         context.setVariable("hasDiscount", quotation.discountCents() > 0);
         context.setVariable("deliveryFee", money(quotation.deliveryFeeCents()));
         context.setVariable("hasDeliveryFee", quotation.deliveryFeeCents() > 0);
+        context.setVariable("hasGst", false);
+        context.setVariable("hasQst", false);
         context.setVariable("total", money(quotation.totalCents()));
         context.setVariable("note", quotation.note());
         context.setVariable("hasNote", quotation.note() != null && !quotation.note().isBlank());

@@ -1,11 +1,5 @@
 import { Button } from "@/shared/ui/button";
 import { Card, CardContent } from "@/shared/ui/card";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/shared/ui/dropdown-menu";
 import { Spinner } from "@/shared/ui/spinner";
 import {
   Table,
@@ -15,7 +9,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/shared/ui/table";
-import { Download01Icon, Pdf01Icon } from "@hugeicons/core-free-icons";
+import { Download01Icon } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
 import { Link } from "react-router";
 import type { OrderDocumentType, OrderSummary } from "../types";
@@ -116,33 +110,20 @@ function OrderDocumentMenu({
   onDownload: (orderId: string, documentType: OrderDocumentType) => void;
 }) {
   return (
-    <DropdownMenu>
-      <DropdownMenuTrigger asChild>
-        <Button
-          variant="outline"
-          size="sm"
-          disabled={isDownloading}
-          aria-label={`Documents PDF de ${order.orderNumber}`}
-        >
-          {isDownloading ? (
-            <Spinner />
-          ) : (
-            <HugeiconsIcon icon={Pdf01Icon} strokeWidth={2} />
-          )}
-          PDF
-        </Button>
-      </DropdownMenuTrigger>
-      <DropdownMenuContent align="end" className="min-w-56">
-        <DropdownMenuItem onClick={() => onDownload(order.id, "quote")}>
-          <HugeiconsIcon icon={Download01Icon} strokeWidth={2} />
-          Télécharger la soumission
-        </DropdownMenuItem>
-        <DropdownMenuItem onClick={() => onDownload(order.id, "invoice")}>
-          <HugeiconsIcon icon={Download01Icon} strokeWidth={2} />
-          Télécharger la facture
-        </DropdownMenuItem>
-      </DropdownMenuContent>
-    </DropdownMenu>
+    <Button
+      variant="outline"
+      size="sm"
+      disabled={isDownloading}
+      aria-label={`Télécharger la soumission de ${order.orderNumber}`}
+      onClick={() => onDownload(order.id, "quote")}
+    >
+      {isDownloading ? (
+        <Spinner />
+      ) : (
+        <HugeiconsIcon icon={Download01Icon} strokeWidth={2} />
+      )}
+      PDF
+    </Button>
   );
 }
 

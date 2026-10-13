@@ -1,23 +1,17 @@
 import { useEffect, useRef, useState, type FormEvent } from "react";
 import { Button } from "@/shared/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/shared/ui/card";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/shared/ui/dropdown-menu";
 import { Spinner } from "@/shared/ui/spinner";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/shared/ui/tabs";
 import {
-  ArrowDown01Icon,
   Download01Icon,
   Edit02Icon,
-  Pdf01Icon,
+  Money03Icon,
 } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
 import { Link, useBlocker, useNavigate, useParams } from "react-router";
 import { toast } from "sonner";
+import { useCreateInvoice } from "@/features/invoices/hooks/useInvoiceApi";
 import {
   OrderCustomerEditor,
   OrderEditorForm,
@@ -70,6 +64,7 @@ function OrderDetailsContent({ orderId }: { orderId: string | undefined }) {
   const customerMutation = useUpdateOrderCustomer();
   const statusMutation = useUpdateOrderStatus();
   const documents = useOrderDocumentDownload();
+  const invoiceCreation = useCreateInvoice();
   const [editMode, setEditMode] = useState<OrderEditMode>(
     isCreating ? "full" : null,
   );
@@ -122,6 +117,19 @@ function OrderDetailsContent({ orderId }: { orderId: string | undefined }) {
 
   async function downloadDocument(documentType: OrderDocumentType) {
     if (orderId) await documents.download(orderId, documentType);
+  }
+
+  async function createInvoice() {
+    if (!orderId) return;
+    try {
+      const invoice = await invoiceCreation.mutateAsync(orderId);
+      toast.success("Facture brouillon prête.");
+      navigate(`/invoices/${invoice.id}`);
+    } catch (error) {
+      toast.error("Impossible de créer la facture.", {
+        description: problemDetail(error),
+      });
+    }
   }
 
   async function save(event: FormEvent<HTMLFormElement>) {
@@ -212,6 +220,9 @@ function OrderDetailsContent({ orderId }: { orderId: string | undefined }) {
   const canEdit = order?.source === "ADMIN" && order.status === "NEW";
   const canEditWebCustomer =
     order?.source === "SAVOURETPLUS_WEB" && order.status === "NEW";
+  const canInvoice =
+    order &&
+    ["ACCEPTED", "IN_PREPARATION", "READY", "COMPLETED"].includes(order.status);
   const isSaving =
     createMutation.isPending ||
     updateMutation.isPending ||
@@ -273,6 +284,21 @@ function OrderDetailsContent({ orderId }: { orderId: string | undefined }) {
                 isPending={documents.isPending}
                 onDownload={downloadDocument}
               />
+              {canInvoice ? (
+                <Button
+                  type="button"
+                  variant="outline"
+                  disabled={invoiceCreation.isPending}
+                  onClick={() => void createInvoice()}
+                >
+                  {invoiceCreation.isPending ? (
+                    <Spinner />
+                  ) : (
+                    <HugeiconsIcon icon={Money03Icon} strokeWidth={2} />
+                  )}
+                  Créer ou voir la facture
+                </Button>
+              ) : null}
               {canEdit ? (
                 <Button
                   key="edit-order"
@@ -362,29 +388,19 @@ function DocumentMenu({
   onDownload: (documentType: OrderDocumentType) => Promise<void>;
 }) {
   return (
-    <DropdownMenu>
-      <DropdownMenuTrigger asChild>
-        <Button type="button" variant="outline" disabled={isPending}>
-          {isPending ? (
-            <Spinner />
-          ) : (
-            <HugeiconsIcon icon={Pdf01Icon} strokeWidth={2} />
-          )}
-          Documents PDF
-          <HugeiconsIcon icon={ArrowDown01Icon} strokeWidth={2} />
-        </Button>
-      </DropdownMenuTrigger>
-      <DropdownMenuContent align="end" className="min-w-56">
-        <DropdownMenuItem onClick={() => void onDownload("quote")}>
-          <HugeiconsIcon icon={Download01Icon} strokeWidth={2} />
-          Télécharger la soumission
-        </DropdownMenuItem>
-        <DropdownMenuItem onClick={() => void onDownload("invoice")}>
-          <HugeiconsIcon icon={Download01Icon} strokeWidth={2} />
-          Télécharger la facture
-        </DropdownMenuItem>
-      </DropdownMenuContent>
-    </DropdownMenu>
+    <Button
+      type="button"
+      variant="outline"
+      disabled={isPending}
+      onClick={() => void onDownload("quote")}
+    >
+      {isPending ? (
+        <Spinner />
+      ) : (
+        <HugeiconsIcon icon={Download01Icon} strokeWidth={2} />
+      )}
+      Soumission PDF
+    </Button>
   );
 }
 

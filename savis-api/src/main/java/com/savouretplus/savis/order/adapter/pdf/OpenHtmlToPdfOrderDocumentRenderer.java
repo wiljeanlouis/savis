@@ -56,6 +56,8 @@ public class OpenHtmlToPdfOrderDocumentRenderer implements OrderDocumentRenderer
         context.setVariable("validUntil", DATE_FORMAT.format(documentDate.plusDays(QUOTE_VALIDITY_DAYS)));
         context.setVariable("referenceLabel", "COMMANDE");
         context.setVariable("referenceNumber", order.orderNumber());
+        context.setVariable("hasSourceReference", false);
+        context.setVariable("cancelled", false);
         context.setVariable("logoDataUri", logoDataUri());
         context.setVariable("issuer", issuer());
         context.setVariable("customer", customer(order));
@@ -65,6 +67,8 @@ public class OpenHtmlToPdfOrderDocumentRenderer implements OrderDocumentRenderer
         context.setVariable("hasDiscount", order.discountCents() > 0);
         context.setVariable("deliveryFee", money(order.deliveryFeeCents()));
         context.setVariable("hasDeliveryFee", order.deliveryFeeCents() > 0);
+        context.setVariable("hasGst", false);
+        context.setVariable("hasQst", false);
         context.setVariable("total", money(order.totalCents()));
         context.setVariable("paymentTerms", "Paiement par virement Interac.");
         context.setVariable("quoteValidityDays", QUOTE_VALIDITY_DAYS);

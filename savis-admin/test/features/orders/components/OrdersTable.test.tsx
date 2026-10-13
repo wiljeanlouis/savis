@@ -49,11 +49,8 @@ describe("OrdersTable", () => {
 
     await user.click(
       screen.getByRole("button", {
-        name: "Documents PDF de ADM-00000001",
+        name: "Télécharger la soumission de ADM-00000001",
       }),
-    );
-    await user.click(
-      screen.getByRole("menuitem", { name: "Télécharger la soumission" }),
     );
 
     expect(onDownloadDocument).toHaveBeenCalledWith("order-id", "quote");

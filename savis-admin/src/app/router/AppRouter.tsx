@@ -19,6 +19,8 @@ import { OrdersPage } from "@/features/orders/pages/OrdersPage";
 import { OrderDetailsPage } from "@/features/orders/pages/OrderDetailsPage";
 import { QuotationsPage } from "@/features/quotations/pages/QuotationsPage";
 import { QuotationDetailsPage } from "@/features/quotations/pages/QuotationDetailsPage";
+import { InvoicesPage } from "@/features/invoices/pages/InvoicesPage";
+import { InvoiceDetailsPage } from "@/features/invoices/pages/InvoiceDetailsPage";
 
 const router = createBrowserRouter([
   {
@@ -109,6 +111,44 @@ const router = createBrowserRouter([
               <BreadcrumbItem className="hidden md:block">
                 <BreadcrumbLink asChild>
                   <Link to="/quotations">Soumissions</Link>
+                </BreadcrumbLink>
+              </BreadcrumbItem>
+              <BreadcrumbSeparator className="hidden md:block" />
+              <BreadcrumbItem>
+                <BreadcrumbPage>Détail</BreadcrumbPage>
+              </BreadcrumbItem>
+            </>
+          ),
+        },
+      },
+      {
+        path: "/invoices",
+        element: <InvoicesPage />,
+        handle: {
+          breadcrumb: () => (
+            <>
+              <BreadcrumbItem className="hidden md:block">
+                <BreadcrumbLink asChild>
+                  <Link to="/">Accueil</Link>
+                </BreadcrumbLink>
+              </BreadcrumbItem>
+              <BreadcrumbSeparator className="hidden md:block" />
+              <BreadcrumbItem>
+                <BreadcrumbPage>Factures</BreadcrumbPage>
+              </BreadcrumbItem>
+            </>
+          ),
+        },
+      },
+      {
+        path: "/invoices/:invoiceId",
+        element: <InvoiceDetailsPage />,
+        handle: {
+          breadcrumb: () => (
+            <>
+              <BreadcrumbItem className="hidden md:block">
+                <BreadcrumbLink asChild>
+                  <Link to="/invoices">Factures</Link>
                 </BreadcrumbLink>
               </BreadcrumbItem>
               <BreadcrumbSeparator className="hidden md:block" />

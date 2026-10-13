@@ -48,6 +48,11 @@ const data = {
       icon: <HugeiconsIcon icon={ShoppingCart02Icon} strokeWidth={2} />,
     },
     {
+      name: "Factures",
+      url: "/invoices",
+      icon: <HugeiconsIcon icon={Money03Icon} strokeWidth={2} />,
+    },
+    {
       name: "Produits",
       url: "/catalog-products",
       icon: <HugeiconsIcon icon={PackageIcon} strokeWidth={2} />,

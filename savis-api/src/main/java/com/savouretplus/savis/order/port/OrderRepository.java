@@ -23,6 +23,11 @@ public interface OrderRepository {
     Optional<Order> findByPublicId(UUID publicId);
 
     /**
+     * Finds and locks an order for a state-changing cross-module operation.
+     */
+    Optional<Order> findByPublicIdForUpdate(UUID publicId);
+
+    /**
      * Returns all persisted orders.
      */
     List<Order> findAll();
