@@ -14,7 +14,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/shared/ui/table";
-import { Download01Icon } from "@hugeicons/core-free-icons";
+import { FileViewIcon } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
 import { Link } from "react-router";
 import type { Invoice } from "../types";
@@ -23,12 +23,12 @@ import { InvoiceStatusBadge } from "./InvoiceStatusBadge";
 
 export function InvoicesTable({
   invoices,
-  downloadingInvoiceId,
-  onDownload,
+  openingInvoiceId,
+  onOpen,
 }: {
   invoices: Invoice[];
-  downloadingInvoiceId?: string;
-  onDownload: (invoiceId: string) => void;
+  openingInvoiceId?: string;
+  onOpen: (invoiceId: string) => void;
 }) {
   return (
     <Card>
@@ -89,15 +89,16 @@ export function InvoicesTable({
                       type="button"
                       size="sm"
                       variant="outline"
-                      disabled={downloadingInvoiceId === invoice.id}
-                      onClick={() => onDownload(invoice.id)}
+                      disabled={openingInvoiceId === invoice.id}
+                      onClick={() => onOpen(invoice.id)}
+                      aria-label={`Ouvrir ${invoiceDisplayNumber(invoice)} dans un nouvel onglet`}
                     >
-                      {downloadingInvoiceId === invoice.id ? (
+                      {openingInvoiceId === invoice.id ? (
                         <Spinner />
                       ) : (
-                        <HugeiconsIcon icon={Download01Icon} strokeWidth={2} />
+                        <HugeiconsIcon icon={FileViewIcon} strokeWidth={2} />
                       )}
-                      PDF
+                      Voir PDF
                     </Button>
                   ) : null}
                 </TableCell>

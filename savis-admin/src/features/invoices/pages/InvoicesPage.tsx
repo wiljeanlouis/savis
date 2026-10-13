@@ -9,10 +9,7 @@ import {
 import { Spinner } from "@/shared/ui/spinner";
 import { useState } from "react";
 import { InvoicesTable } from "../components/InvoicesTable";
-import {
-  useInvoiceDocumentDownload,
-  useInvoices,
-} from "../hooks/useInvoiceApi";
+import { useInvoiceDocumentPreview, useInvoices } from "../hooks/useInvoiceApi";
 import type { InvoiceStatus } from "../types";
 import { invoiceStatusLabels } from "../types";
 
@@ -22,7 +19,7 @@ const statuses: InvoiceStatus[] = ["DRAFT", "ISSUED", "CANCELLED"];
 export function InvoicesPage() {
   const [status, setStatus] = useState<InvoiceStatus | undefined>();
   const query = useInvoices(status);
-  const documents = useInvoiceDocumentDownload();
+  const documents = useInvoiceDocumentPreview();
   const invoices = query.data ?? [];
 
   return (
@@ -70,10 +67,10 @@ export function InvoicesPage() {
       ) : (
         <InvoicesTable
           invoices={invoices}
-          downloadingInvoiceId={
+          openingInvoiceId={
             documents.isPending ? documents.pendingInvoiceId : undefined
           }
-          onDownload={(id) => void documents.download(id)}
+          onOpen={(id) => void documents.open(id)}
         />
       )}
     </div>

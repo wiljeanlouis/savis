@@ -38,7 +38,7 @@ describe("invoiceApi", () => {
     });
   });
 
-  it("downloads the persisted invoice PDF with its server filename", async () => {
+  it("fetches the persisted invoice PDF with its server filename", async () => {
     const content = new Blob(["pdf"], { type: "application/pdf" });
     vi.mocked(api.get).mockResolvedValue({
       data: content,

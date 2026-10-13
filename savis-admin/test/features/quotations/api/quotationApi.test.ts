@@ -28,7 +28,7 @@ describe("quotationApi", () => {
     expect(api.post).toHaveBeenCalledWith("/quotations/quotation-1/convert");
   });
 
-  it("downloads the standalone PDF with its server filename", async () => {
+  it("fetches the standalone PDF with its server filename", async () => {
     const content = new Blob(["pdf"], { type: "application/pdf" });
     vi.mocked(api.get).mockResolvedValue({
       data: content,

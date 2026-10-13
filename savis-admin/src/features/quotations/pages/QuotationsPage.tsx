@@ -6,14 +6,14 @@ import { HugeiconsIcon } from "@hugeicons/react";
 import { Link } from "react-router";
 import { QuotationsTable } from "../components/QuotationsTable";
 import {
-  useQuotationDocumentDownload,
+  useQuotationDocumentPreview,
   useQuotations,
 } from "../hooks/useQuotationApi";
 
 /** Displays all standalone commercial quotations. */
 export function QuotationsPage() {
   const query = useQuotations();
-  const documents = useQuotationDocumentDownload();
+  const documents = useQuotationDocumentPreview();
   const quotations = query.data ?? [];
 
   return (
@@ -46,10 +46,10 @@ export function QuotationsPage() {
       ) : (
         <QuotationsTable
           quotations={quotations}
-          downloadingQuotationId={
+          openingQuotationId={
             documents.isPending ? documents.pendingQuotationId : undefined
           }
-          onDownload={(id) => void documents.download(id)}
+          onOpen={(id) => void documents.open(id)}
         />
       )}
     </div>

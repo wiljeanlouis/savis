@@ -2,7 +2,7 @@ import { InvoiceDetailsPage } from "@/features/invoices/pages/InvoiceDetailsPage
 import {
   useCancelInvoice,
   useInvoice,
-  useInvoiceDocumentDownload,
+  useInvoiceDocumentPreview,
   useIssueInvoice,
   useUpdateInvoice,
 } from "@/features/invoices/hooks/useInvoiceApi";
@@ -20,7 +20,7 @@ vi.mock("@/features/invoices/hooks/useInvoiceApi", () => ({
   useUpdateInvoice: vi.fn(),
   useIssueInvoice: vi.fn(),
   useCancelInvoice: vi.fn(),
-  useInvoiceDocumentDownload: vi.fn(),
+  useInvoiceDocumentPreview: vi.fn(),
 }));
 
 vi.mock("@/features/orders/components/OrderItemsDetails", () => ({
@@ -80,8 +80,8 @@ describe("InvoiceDetailsPage", () => {
       mutateAsync: cancel,
       isPending: false,
     } as never);
-    vi.mocked(useInvoiceDocumentDownload).mockReturnValue({
-      download: vi.fn(),
+    vi.mocked(useInvoiceDocumentPreview).mockReturnValue({
+      open: vi.fn(),
       isPending: false,
     } as never);
   });

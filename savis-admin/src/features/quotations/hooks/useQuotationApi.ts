@@ -1,4 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { openPdfInNewTab } from "@/shared/lib/openPdfInNewTab";
 import { toast } from "sonner";
 import {
   convertQuotation,
@@ -53,26 +54,24 @@ export const useConvertQuotation = () => {
   });
 };
 
-export const useQuotationDocumentDownload = () => {
+export const useQuotationDocumentPreview = () => {
   const mutation = useMutation({ mutationFn: getQuotationDocument });
-  const download = async (quotationId: string) => {
+  const open = async (quotationId: string) => {
     try {
-      const document = await mutation.mutateAsync(quotationId);
-      const url = URL.createObjectURL(document.content);
-      const link = window.document.createElement("a");
-      link.href = url;
-      link.download = document.fileName;
-      link.style.display = "none";
-      window.document.body.appendChild(link);
-      link.click();
-      link.remove();
-      window.setTimeout(() => URL.revokeObjectURL(url), 0);
+      const opened = await openPdfInNewTab(() =>
+        mutation.mutateAsync(quotationId),
+      );
+      if (!opened) {
+        toast.error("Le navigateur a bloqué l’ouverture du PDF.", {
+          description: "Autorisez les fenêtres contextuelles pour SAVIS.",
+        });
+      }
     } catch {
       toast.error("Impossible de générer la soumission PDF.");
     }
   };
   return {
-    download,
+    open,
     isPending: mutation.isPending,
     pendingQuotationId: mutation.variables,
   };

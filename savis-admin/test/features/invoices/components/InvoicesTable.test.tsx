@@ -33,7 +33,7 @@ const base: Invoice = {
 describe("InvoicesTable", () => {
   it("links the source order and only offers a final PDF after issuance", async () => {
     const user = userEvent.setup();
-    const download = vi.fn();
+    const open = vi.fn();
     const issued = {
       ...base,
       id: "invoice-2",
@@ -44,7 +44,7 @@ describe("InvoicesTable", () => {
 
     render(
       <MemoryRouter>
-        <InvoicesTable invoices={[base, issued]} onDownload={download} />
+        <InvoicesTable invoices={[base, issued]} onOpen={open} />
       </MemoryRouter>,
     );
 
@@ -52,9 +52,17 @@ describe("InvoicesTable", () => {
     expect(
       screen.getAllByRole("link", { name: "ADM-00000001" })[0],
     ).toHaveAttribute("href", "/orders/order-1");
-    expect(screen.getAllByRole("button", { name: "PDF" })).toHaveLength(1);
+    expect(
+      screen.getAllByRole("button", {
+        name: "Ouvrir FAC-00000001 dans un nouvel onglet",
+      }),
+    ).toHaveLength(1);
 
-    await user.click(screen.getByRole("button", { name: "PDF" }));
-    expect(download).toHaveBeenCalledWith("invoice-2");
+    await user.click(
+      screen.getByRole("button", {
+        name: "Ouvrir FAC-00000001 dans un nouvel onglet",
+      }),
+    );
+    expect(open).toHaveBeenCalledWith("invoice-2");
   });
 });

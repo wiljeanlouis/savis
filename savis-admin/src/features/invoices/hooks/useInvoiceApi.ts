@@ -1,4 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { openPdfInNewTab } from "@/shared/lib/openPdfInNewTab";
 import { toast } from "sonner";
 import {
   cancelInvoice,
@@ -45,26 +46,24 @@ export const useUpdateInvoice = () => useInvoiceMutation(updateInvoice);
 export const useIssueInvoice = () => useInvoiceMutation(issueInvoice);
 export const useCancelInvoice = () => useInvoiceMutation(cancelInvoice);
 
-export const useInvoiceDocumentDownload = () => {
+export const useInvoiceDocumentPreview = () => {
   const mutation = useMutation({ mutationFn: getInvoiceDocument });
-  const download = async (invoiceId: string) => {
+  const open = async (invoiceId: string) => {
     try {
-      const document = await mutation.mutateAsync(invoiceId);
-      const url = URL.createObjectURL(document.content);
-      const link = window.document.createElement("a");
-      link.href = url;
-      link.download = document.fileName;
-      link.style.display = "none";
-      window.document.body.appendChild(link);
-      link.click();
-      link.remove();
-      window.setTimeout(() => URL.revokeObjectURL(url), 0);
+      const opened = await openPdfInNewTab(() =>
+        mutation.mutateAsync(invoiceId),
+      );
+      if (!opened) {
+        toast.error("Le navigateur a bloqué l’ouverture du PDF.", {
+          description: "Autorisez les fenêtres contextuelles pour SAVIS.",
+        });
+      }
     } catch {
       toast.error("Impossible de générer la facture PDF.");
     }
   };
   return {
-    download,
+    open,
     isPending: mutation.isPending,
     pendingInvoiceId: mutation.variables,
   };

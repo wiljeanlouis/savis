@@ -14,7 +14,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/shared/ui/table";
-import { Download01Icon } from "@hugeicons/core-free-icons";
+import { FileViewIcon } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
 import { Link } from "react-router";
 import type { Quotation } from "../types";
@@ -23,12 +23,12 @@ import { QuotationStatusBadge } from "./QuotationStatusBadge";
 /** Lists quotation commercial data and document actions. */
 export function QuotationsTable({
   quotations,
-  downloadingQuotationId,
-  onDownload,
+  openingQuotationId,
+  onOpen,
 }: {
   quotations: Quotation[];
-  downloadingQuotationId?: string;
-  onDownload: (quotationId: string) => void;
+  openingQuotationId?: string;
+  onOpen: (quotationId: string) => void;
 }) {
   return (
     <Card>
@@ -83,16 +83,16 @@ export function QuotationsTable({
                     type="button"
                     size="sm"
                     variant="outline"
-                    disabled={downloadingQuotationId === quotation.id}
-                    onClick={() => onDownload(quotation.id)}
-                    aria-label={`Télécharger ${quotation.quotationNumber}`}
+                    disabled={openingQuotationId === quotation.id}
+                    onClick={() => onOpen(quotation.id)}
+                    aria-label={`Ouvrir ${quotation.quotationNumber} dans un nouvel onglet`}
                   >
-                    {downloadingQuotationId === quotation.id ? (
+                    {openingQuotationId === quotation.id ? (
                       <Spinner />
                     ) : (
-                      <HugeiconsIcon icon={Download01Icon} strokeWidth={2} />
+                      <HugeiconsIcon icon={FileViewIcon} strokeWidth={2} />
                     )}
-                    PDF
+                    Voir PDF
                   </Button>
                 </TableCell>
               </TableRow>

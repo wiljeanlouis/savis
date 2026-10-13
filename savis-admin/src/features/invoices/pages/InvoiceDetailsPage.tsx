@@ -11,8 +11,8 @@ import { Label } from "@/shared/ui/label";
 import { Spinner } from "@/shared/ui/spinner";
 import { Textarea } from "@/shared/ui/textarea";
 import {
-  Download01Icon,
   Edit02Icon,
+  FileViewIcon,
   SentIcon,
   UnavailableIcon,
 } from "@hugeicons/core-free-icons";
@@ -24,7 +24,7 @@ import { InvoiceStatusBadge } from "../components/InvoiceStatusBadge";
 import {
   useCancelInvoice,
   useInvoice,
-  useInvoiceDocumentDownload,
+  useInvoiceDocumentPreview,
   useIssueInvoice,
   useUpdateInvoice,
 } from "../hooks/useInvoiceApi";
@@ -48,7 +48,7 @@ export function InvoiceDetailsPage() {
   const updateMutation = useUpdateInvoice();
   const issueMutation = useIssueInvoice();
   const cancelMutation = useCancelInvoice();
-  const documents = useInvoiceDocumentDownload();
+  const documents = useInvoiceDocumentPreview();
   const [editing, setEditing] = useState(false);
   const [form, setForm] = useState<DraftForm | null>(null);
 
@@ -183,14 +183,14 @@ export function InvoiceDetailsPage() {
                   type="button"
                   variant="outline"
                   disabled={busy}
-                  onClick={() => void documents.download(invoice.id)}
+                  onClick={() => void documents.open(invoice.id)}
                 >
                   {documents.isPending ? (
                     <Spinner />
                   ) : (
-                    <HugeiconsIcon icon={Download01Icon} strokeWidth={2} />
+                    <HugeiconsIcon icon={FileViewIcon} strokeWidth={2} />
                   )}
-                  PDF
+                  Voir PDF
                 </Button>
               ) : null}
               {invoice.status === "DRAFT" ? (

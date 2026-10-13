@@ -13,8 +13,8 @@ import { Label } from "@/shared/ui/label";
 import { Spinner } from "@/shared/ui/spinner";
 import {
   CheckmarkCircle02Icon,
-  Download01Icon,
   Edit02Icon,
+  FileViewIcon,
   SentIcon,
   ShoppingCart02Icon,
   UnavailableIcon,
@@ -29,7 +29,7 @@ import {
   useConvertQuotation,
   useCreateQuotation,
   useQuotation,
-  useQuotationDocumentDownload,
+  useQuotationDocumentPreview,
   useUpdateQuotation,
   useUpdateQuotationStatus,
 } from "../hooks/useQuotationApi";
@@ -57,7 +57,7 @@ function QuotationDetailsContent({ quotationId }: { quotationId?: string }) {
   const updateMutation = useUpdateQuotation();
   const statusMutation = useUpdateQuotationStatus();
   const conversion = useConvertQuotation();
-  const documents = useQuotationDocumentDownload();
+  const documents = useQuotationDocumentPreview();
   const editor = useQuotationEditor({
     quotation,
     editable: editing,
@@ -184,7 +184,7 @@ function QuotationDetailsContent({ quotationId }: { quotationId?: string }) {
               onEdit={() => setEditing(true)}
               onStatus={(status) => void changeStatus(status)}
               onConvert={() => void convert()}
-              onDownload={() => void documents.download(quotation.id)}
+              onOpen={() => void documents.open(quotation.id)}
             />
           ) : null}
         </div>
@@ -256,25 +256,20 @@ function QuotationActions({
   onEdit,
   onStatus,
   onConvert,
-  onDownload,
+  onOpen,
 }: {
   quotation: Quotation;
   busy: boolean;
   onEdit: () => void;
   onStatus: (status: QuotationStatus) => void;
   onConvert: () => void;
-  onDownload: () => void;
+  onOpen: () => void;
 }) {
   return (
     <>
-      <Button
-        type="button"
-        variant="outline"
-        disabled={busy}
-        onClick={onDownload}
-      >
-        <HugeiconsIcon icon={Download01Icon} strokeWidth={2} />
-        PDF
+      <Button type="button" variant="outline" disabled={busy} onClick={onOpen}>
+        <HugeiconsIcon icon={FileViewIcon} strokeWidth={2} />
+        Voir PDF
       </Button>
       {quotation.status === "DRAFT" ? (
         <>
