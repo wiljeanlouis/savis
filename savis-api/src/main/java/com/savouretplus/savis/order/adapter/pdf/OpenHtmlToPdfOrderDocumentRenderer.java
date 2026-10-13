@@ -20,6 +20,7 @@ import org.thymeleaf.context.Context;
 import org.thymeleaf.spring6.SpringTemplateEngine;
 
 import com.openhtmltopdf.pdfboxout.PdfRendererBuilder;
+import com.savouretplus.savis.common.pdf.CommercialPdfFonts;
 import com.savouretplus.savis.order.domain.CustomerContactNormalizer;
 import com.savouretplus.savis.order.domain.Order;
 import com.savouretplus.savis.order.domain.OrderItem;
@@ -71,7 +72,8 @@ public class OpenHtmlToPdfOrderDocumentRenderer implements OrderDocumentRenderer
 
         String html = templates.process("order/order-document", context);
         try (ByteArrayOutputStream output = new ByteArrayOutputStream()) {
-            new PdfRendererBuilder()
+            PdfRendererBuilder builder = CommercialPdfFonts.registerOn(new PdfRendererBuilder());
+            builder
                     .useFastMode()
                     .withHtmlContent(html, null)
                     .toStream(output)

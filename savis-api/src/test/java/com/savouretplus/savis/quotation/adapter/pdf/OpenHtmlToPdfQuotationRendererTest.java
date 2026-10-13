@@ -7,7 +7,9 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.Instant;
 import java.time.LocalDate;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.UUID;
 
 import org.apache.pdfbox.Loader;
@@ -28,6 +30,7 @@ class OpenHtmlToPdfQuotationRendererTest {
         byte[] pdf = renderer().render(quotation());
 
         assertTrue(new String(pdf, 0, 5).startsWith("%PDF-"));
+        assertCommercialFontsAreEmbedded(pdf);
         String text = text(pdf);
         assertTrue(text.contains("SOUMISSION"));
         assertTrue(text.contains("SOU-00000042"));
@@ -57,6 +60,21 @@ class OpenHtmlToPdfQuotationRendererTest {
         try (var document = Loader.loadPDF(content)) {
             return new PDFTextStripper().getText(document);
         }
+    }
+
+    private void assertCommercialFontsAreEmbedded(byte[] content) throws Exception {
+        Set<String> fontNames = new HashSet<>();
+        try (var document = Loader.loadPDF(content)) {
+            for (var page : document.getPages()) {
+                for (var key : page.getResources().getFontNames()) {
+                    var font = page.getResources().getFont(key);
+                    assertTrue(font.isEmbedded(), () -> "La police PDF n'est pas incorporée : " + font.getName());
+                    fontNames.add(font.getName());
+                }
+            }
+        }
+        assertTrue(fontNames.stream().anyMatch(name -> name.contains("LiberationSans")));
+        assertTrue(fontNames.stream().anyMatch(name -> name.contains("RobotoCondensed-Bold")));
     }
 
     private Quotation quotation() {

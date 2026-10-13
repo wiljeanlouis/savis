@@ -5,8 +5,10 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.Instant;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 
 import org.apache.pdfbox.Loader;
@@ -36,6 +38,8 @@ class OpenHtmlToPdfOrderDocumentRendererTest {
         byte[] quote = renderer.render(order(), OrderDocumentType.QUOTE, GENERATED_AT);
 
         assertTrue(new String(invoice, 0, 5).startsWith("%PDF-"));
+        assertCommercialFontsAreEmbedded(invoice);
+        assertCommercialFontsAreEmbedded(quote);
         String invoiceText = text(invoice);
         assertTrue(invoiceText.contains("FACTURE"));
         assertTrue(invoiceText.contains("ADM-00000042"));
@@ -72,6 +76,21 @@ class OpenHtmlToPdfOrderDocumentRendererTest {
         try (var document = Loader.loadPDF(content)) {
             return new PDFTextStripper().getText(document);
         }
+    }
+
+    private void assertCommercialFontsAreEmbedded(byte[] content) throws Exception {
+        Set<String> fontNames = new HashSet<>();
+        try (var document = Loader.loadPDF(content)) {
+            for (var page : document.getPages()) {
+                for (var key : page.getResources().getFontNames()) {
+                    var font = page.getResources().getFont(key);
+                    assertTrue(font.isEmbedded(), () -> "La police PDF n'est pas incorporée : " + font.getName());
+                    fontNames.add(font.getName());
+                }
+            }
+        }
+        assertTrue(fontNames.stream().anyMatch(name -> name.contains("LiberationSans")));
+        assertTrue(fontNames.stream().anyMatch(name -> name.contains("RobotoCondensed-Bold")));
     }
 
     private Order order() {
