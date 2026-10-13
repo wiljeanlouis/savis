@@ -7,7 +7,7 @@ export type OrderStatus =
   | "CANCELLED"
   | "REJECTED";
 
-export type OrderSource = "SAVOURETPLUS_WEB" | "ADMIN";
+export type OrderSource = "SAVOURETPLUS_WEB" | "ADMIN" | "QUOTATION";
 
 interface OrderBase {
   id: string;
@@ -205,6 +205,7 @@ export const orderStatusLabels: Record<OrderStatus, string> = {
 export const orderSourceLabels: Record<OrderSource, string> = {
   SAVOURETPLUS_WEB: "SavouretPlus Web",
   ADMIN: "Administration",
+  QUOTATION: "Soumission acceptée",
 };
 
 export const nextOrderStatuses: Record<OrderStatus, OrderStatus[]> = {

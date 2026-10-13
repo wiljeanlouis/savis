@@ -56,6 +56,7 @@ public interface CatalogOrderingApi {
     record ProductSnapshot(
             UUID productId,
             String productName,
+            String commercialType,
             String productType,
             String imageUrl,
             int basePriceCents,

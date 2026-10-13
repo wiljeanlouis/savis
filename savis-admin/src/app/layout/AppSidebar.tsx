@@ -38,6 +38,11 @@ const data = {
   },
   operations: [
     {
+      name: "Soumissions",
+      url: "/quotations",
+      icon: <HugeiconsIcon icon={File01Icon} strokeWidth={2} />,
+    },
+    {
       name: "Commandes",
       url: "/orders",
       icon: <HugeiconsIcon icon={ShoppingCart02Icon} strokeWidth={2} />,

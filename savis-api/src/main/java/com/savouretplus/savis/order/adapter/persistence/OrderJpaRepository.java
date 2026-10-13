@@ -27,4 +27,9 @@ interface OrderJpaRepository extends JpaRepository<OrderEntity, Long> {
      * Reports whether an external order has already been persisted.
      */
     boolean existsBySourceAndExternalOrderId(OrderSource source, UUID externalOrderId);
+
+    /**
+     * Finds an order entity by its source and origin identifier.
+     */
+    Optional<OrderEntity> findBySourceAndExternalOrderId(OrderSource source, UUID externalOrderId);
 }

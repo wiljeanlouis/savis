@@ -35,7 +35,9 @@
     .document-note { margin-top: 12mm; page-break-inside: avoid; }
     .document-note h2 { margin: 0 0 3mm; font-size: 12pt; text-transform: uppercase; }
     .signature { width: 100%; margin-top: 13mm; border-collapse: collapse; page-break-inside: avoid; }
-    .signature td { width: 50%; padding-right: 8mm; font-weight: bold; }
+    .signature td { padding-right: 4mm; font-weight: bold; white-space: nowrap; }
+    .signature td:first-child { width: 60%; }
+    .signature td:last-child { width: 40%; padding-right: 0; }
     .line { display: inline-block; width: 42mm; border-bottom: 1px dotted #333; }
     .thanks { margin-top: 15mm; color: #d74d7c; font-size: 11pt; font-style: italic; text-align: center; text-transform: uppercase; }
     .page-number { position: running(pageNumber); }
@@ -56,7 +58,8 @@
 
   <div class="metadata">
     DATE : <span th:text="${documentDate}">01/01/2026</span>
-    &#160;&#160;&#160; COMMANDE : <span th:text="${orderNumber}">WEB-00000001</span>
+    &#160;&#160;&#160; <span th:text="${referenceLabel}">COMMANDE</span> :
+    <span th:text="${referenceNumber}">WEB-00000001</span>
     <span th:if="${quote}">&#160;&#160;&#160; VALIDE JUSQU'AU : <span th:text="${validUntil}">31/01/2026</span></span>
   </div>
 
@@ -119,6 +122,11 @@
       <td class="amount" th:text="${total}">0,00 CAD</td>
     </tr>
   </table>
+
+  <div class="document-note" th:if="${hasNote}">
+    <h2>Notes</h2>
+    <span th:text="${note}">Notes commerciales</span>
+  </div>
 
   <div class="document-note" th:if="${!quote}">
     <h2>Règlement</h2>

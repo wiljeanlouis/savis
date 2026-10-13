@@ -63,6 +63,7 @@ public class CatalogOrderingService implements CatalogOrderingApi {
         return new ProductSnapshot(
                 product.publicId(),
                 product.name(),
+                product.commercialType().name(),
                 product.productType().name(),
                 product.imageUrl(),
                 cents(mode.price()),

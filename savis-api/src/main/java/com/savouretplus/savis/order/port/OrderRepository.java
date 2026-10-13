@@ -31,4 +31,9 @@ public interface OrderRepository {
      * Reports whether an order has already been imported from an external source.
      */
     boolean existsBySourceAndExternalOrderId(OrderSource source, UUID externalOrderId);
+
+    /**
+     * Finds an order created from the provided source identifier.
+     */
+    Optional<Order> findBySourceAndExternalOrderId(OrderSource source, UUID externalOrderId);
 }

@@ -71,6 +71,15 @@ public class OrderRepositoryAdapter implements OrderRepository {
         return repository.existsBySourceAndExternalOrderId(source, externalOrderId);
     }
 
+    /**
+     * Finds an order created from the provided source identifier.
+     */
+    @Override
+    @Transactional(readOnly = true)
+    public Optional<Order> findBySourceAndExternalOrderId(OrderSource source, UUID externalOrderId) {
+        return repository.findBySourceAndExternalOrderId(source, externalOrderId).map(this::toDomain);
+    }
+
     private void update(OrderEntity entity, Order order) {
         entity.setPublicId(order.publicId());
         entity.setOrderNumber(order.orderNumber());

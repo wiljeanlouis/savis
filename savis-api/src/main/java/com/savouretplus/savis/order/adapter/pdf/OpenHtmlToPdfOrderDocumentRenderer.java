@@ -53,7 +53,8 @@ public class OpenHtmlToPdfOrderDocumentRenderer implements OrderDocumentRenderer
         context.setVariable("title", type == OrderDocumentType.QUOTE ? "SOUMISSION" : "FACTURE");
         context.setVariable("documentDate", DATE_FORMAT.format(documentDate));
         context.setVariable("validUntil", DATE_FORMAT.format(documentDate.plusDays(QUOTE_VALIDITY_DAYS)));
-        context.setVariable("orderNumber", order.orderNumber());
+        context.setVariable("referenceLabel", "COMMANDE");
+        context.setVariable("referenceNumber", order.orderNumber());
         context.setVariable("logoDataUri", logoDataUri());
         context.setVariable("issuer", issuer());
         context.setVariable("customer", customer(order));
@@ -66,6 +67,7 @@ public class OpenHtmlToPdfOrderDocumentRenderer implements OrderDocumentRenderer
         context.setVariable("total", money(order.totalCents()));
         context.setVariable("paymentTerms", "Paiement par virement Interac.");
         context.setVariable("quoteValidityDays", QUOTE_VALIDITY_DAYS);
+        context.setVariable("hasNote", false);
 
         String html = templates.process("order/order-document", context);
         try (ByteArrayOutputStream output = new ByteArrayOutputStream()) {

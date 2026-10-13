@@ -47,8 +47,9 @@ public record Order(
         if (source == null || status == null || placedAt == null || importedAt == null) {
             throw new IllegalArgumentException("La source, le statut et les dates de commande sont requis");
         }
-        if (source == OrderSource.SAVOURETPLUS_WEB && externalOrderId == null) {
-            throw new IllegalArgumentException("L'identifiant externe d'une commande web est requis");
+        if ((source == OrderSource.SAVOURETPLUS_WEB || source == OrderSource.QUOTATION)
+                && externalOrderId == null) {
+            throw new IllegalArgumentException("L'identifiant d'origine de la commande est requis");
         }
         if (totalCents < 0) {
             throw new IllegalArgumentException("Le total de la commande ne peut pas être négatif");

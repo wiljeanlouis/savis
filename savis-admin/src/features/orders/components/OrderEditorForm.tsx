@@ -46,6 +46,7 @@ interface OrderEditorFormProps {
   onAddProduct: (product: CatalogProduct) => void;
   onPatchItem: (key: string, patch: Partial<AdminOrderItemDraft>) => void;
   onRemoveItem: (key: string) => void;
+  documentContext?: "commande" | "soumission";
 }
 
 export function OrderEditorForm({
@@ -61,10 +62,15 @@ export function OrderEditorForm({
   onAddProduct,
   onPatchItem,
   onRemoveItem,
+  documentContext = "commande",
 }: OrderEditorFormProps) {
   return (
     <div className="space-y-4">
-      <OrderCustomerEditor draft={draft} onDraftChange={onDraftChange} />
+      <OrderCustomerEditor
+        draft={draft}
+        onDraftChange={onDraftChange}
+        documentContext={documentContext}
+      />
 
       <Card>
         <CardHeader className="border-b">
@@ -192,16 +198,19 @@ export function OrderEditorForm({
 export function OrderCustomerEditor({
   draft,
   onDraftChange,
+  documentContext = "commande",
 }: {
   draft: AdminOrderDraft;
   onDraftChange: (draft: AdminOrderDraft) => void;
+  documentContext?: "commande" | "soumission";
 }) {
   return (
     <Card>
       <CardHeader className="border-b">
         <CardTitle>Client</CardTitle>
         <p className="text-sm text-muted-foreground">
-          Coordonnées et adresse utilisées pour la commande et ses documents.
+          Coordonnées et adresse utilisées pour la {documentContext} et ses
+          documents.
         </p>
       </CardHeader>
       <CardContent className="space-y-5">
