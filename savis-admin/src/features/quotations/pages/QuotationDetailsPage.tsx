@@ -121,7 +121,7 @@ function QuotationDetailsContent({ quotationId }: { quotationId?: string }) {
   function cancelEditing() {
     setError(null);
     if (isCreating) {
-      void navigate("/quotations");
+      void navigate("/sales/quotations");
     } else if (quotation) {
       editor.resetFromQuotation(quotation);
       setEditing(false);
@@ -134,7 +134,7 @@ function QuotationDetailsContent({ quotationId }: { quotationId?: string }) {
         <div>
           <Link
             className="text-sm text-muted-foreground hover:underline"
-            to="/quotations"
+            to="/sales/quotations"
           >
             ← Toutes les soumissions
           </Link>

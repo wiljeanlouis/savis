@@ -17,7 +17,6 @@ import {
   HelpCircleIcon,
   Database01Icon,
   Analytics01Icon,
-  Money03Icon,
   PackageIcon,
   GearsFreeIcons,
   ShoppingCart02Icon,
@@ -39,19 +38,10 @@ const data = {
   },
   operations: [
     {
-      name: "Soumissions",
-      url: "/quotations",
-      icon: <HugeiconsIcon icon={File01Icon} strokeWidth={2} />,
-    },
-    {
-      name: "Commandes",
-      url: "/orders",
+      name: "Ventes",
+      url: "/sales/orders",
+      activeUrls: ["/sales", "/quotations", "/orders", "/invoices"],
       icon: <HugeiconsIcon icon={ShoppingCart02Icon} strokeWidth={2} />,
-    },
-    {
-      name: "Factures",
-      url: "/invoices",
-      icon: <HugeiconsIcon icon={Money03Icon} strokeWidth={2} />,
     },
     {
       name: "Produits",

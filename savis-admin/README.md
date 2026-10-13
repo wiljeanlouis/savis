@@ -47,9 +47,10 @@ The frontend does not own business rules or persistence:
 | Area              | Route                   | Backend         | Purpose                                                                                   |
 | ----------------- | ----------------------- | --------------- | ----------------------------------------------------------------------------------------- |
 | Dashboard         | `/` and `/dashboard`    | Local demo data | Displays the current dashboard shell, charts, cards, and table.                           |
-| Orders            | `/orders`                | SAVIS API       | Lists orders, imports web orders, and manages their lifecycle.                            |
-| New order         | `/orders/new`            | SAVIS API       | Creates an administrative order in the unified order editor.                              |
-| Order detail      | `/orders/:orderId`       | SAVIS API       | Displays an order and edits administrative orders that are still `NEW`.                   |
+| Sales             | `/sales/*`              | SAVIS API       | Groups quotations, orders, and invoices in one tabbed workspace.                          |
+| Orders            | `/sales/orders`         | SAVIS API       | Lists orders, imports web orders, and manages their lifecycle.                            |
+| New order         | `/orders/new`           | SAVIS API       | Creates an administrative order in the unified order editor.                              |
+| Order detail      | `/orders/:orderId`      | SAVIS API       | Displays an order and edits administrative orders that are still `NEW`.                   |
 | Products          | `/catalog-products`     | SAVIS API       | Manages sellable products, categories, BOM references, pricing analysis, and publication. |
 | BOM compositions  | `/boms`                 | SAVIS API       | Lists, searches, creates, edits, prices, and deletes technical BOMs.                      |
 | BOM components    | `/bom-components`       | SAVIS Executor  | Reviews and manages acquired provider offers used as BOM components.                      |
@@ -237,7 +238,7 @@ to unpublished.
 
 ### Manage Orders
 
-The `/orders` page lists normalized local orders and provides the manual
+The `/sales/orders` page lists normalized local orders and provides the manual
 **Récupérer commandes web** action. **Nouvelle commande** opens `/orders/new`,
 which shares its section-based layout with the order detail page. The editor
 captures the customer, an optional address, products,
@@ -341,7 +342,10 @@ The application uses React Router's data router through
   always-open dialog above the shared layout.
 - `/boms/:id` uses a route loader to fetch the selected BOM.
 - `/bom-components/tasks` is a nested child route of `/bom-components`.
-- `/orders` creates and lists orders; `/orders/:orderId` displays one order.
+- `/sales/quotations`, `/sales/orders`, and `/sales/invoices` share the Sales
+  workspace; `/sales` opens the order tab by default.
+- `/orders/:orderId`, `/quotations/:quotationId`, and `/invoices/:invoiceId`
+  keep the existing detail routes.
 - Breadcrumbs are declared in route `handle` metadata.
 - The BOM sidebar parent groups Compositions and Components with shadcn
   collapsible menu primitives.

@@ -170,7 +170,7 @@ function OrderDetailsContent({ orderId }: { orderId: string | undefined }) {
     if (isCreating) {
       editor.resetNewDraft();
       allowNavigation.current = true;
-      navigate("/orders");
+      navigate("/sales/orders");
     } else if (orderQuery.data) {
       editor.resetFromOrder(orderQuery.data);
       setEditMode(null);
@@ -186,7 +186,7 @@ function OrderDetailsContent({ orderId }: { orderId: string | undefined }) {
     }
     if (isCreating) editor.resetNewDraft();
     allowNavigation.current = true;
-    navigate("/orders");
+    navigate("/sales/orders");
   }
 
   if (!isCreating && orderQuery.isPending) return <CenteredSpinner />;
@@ -195,7 +195,7 @@ function OrderDetailsContent({ orderId }: { orderId: string | undefined }) {
       <div className="space-y-4">
         <p className="text-destructive">Commande introuvable.</p>
         <Button asChild variant="outline">
-          <Link to="/orders">Retour aux commandes</Link>
+          <Link to="/sales/orders">Retour aux commandes</Link>
         </Button>
       </div>
     );

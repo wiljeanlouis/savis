@@ -23,6 +23,7 @@ import { ArrowDown01Icon } from "@hugeicons/core-free-icons";
 interface NavItem {
   name: string;
   url?: string;
+  activeUrls?: string[];
   icon: React.ReactNode;
   children?: {
     name: string;
@@ -43,6 +44,8 @@ export function NavSection({ title, items }: Props) {
   const isChildRouteActive = (
     child: NonNullable<NavItem["children"]>[number],
   ) => (child.activeUrls ?? [child.url]).some(isRouteActive);
+  const isItemRouteActive = (item: NavItem) =>
+    (item.activeUrls ?? (item.url ? [item.url] : [])).some(isRouteActive);
 
   return (
     <SidebarGroup className="group-data-[collapsible=icon]:hidden">
@@ -105,7 +108,7 @@ export function NavSection({ title, items }: Props) {
             return null;
           }
 
-          const isActive = isRouteActive(item.url);
+          const isActive = isItemRouteActive(item);
           return (
             <SidebarMenuItem key={item.name}>
               <SidebarMenuButton

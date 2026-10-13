@@ -137,7 +137,7 @@ export function InvoiceDetailsPage() {
         <div>
           <Link
             className="text-sm text-muted-foreground hover:underline"
-            to="/invoices"
+            to="/sales/invoices"
           >
             ← Toutes les factures
           </Link>

@@ -1,4 +1,9 @@
-import { createBrowserRouter, Link, RouterProvider } from "react-router";
+import {
+  createBrowserRouter,
+  Link,
+  Navigate,
+  RouterProvider,
+} from "react-router";
 import { DashboardPage } from "@/features/dashboard/pages/DashboardPage";
 import { MainLayout } from "@/app/layout/MainLayout";
 import {
@@ -21,6 +26,7 @@ import { QuotationsPage } from "@/features/quotations/pages/QuotationsPage";
 import { QuotationDetailsPage } from "@/features/quotations/pages/QuotationDetailsPage";
 import { InvoicesPage } from "@/features/invoices/pages/InvoicesPage";
 import { InvoiceDetailsPage } from "@/features/invoices/pages/InvoiceDetailsPage";
+import { SalesLayout } from "@/features/sales/pages/SalesLayout";
 
 const router = createBrowserRouter([
   {
@@ -65,23 +71,47 @@ const router = createBrowserRouter([
         },
       },
       {
+        path: "/sales",
+        element: <SalesLayout />,
+        children: [
+          {
+            index: true,
+            element: <Navigate replace to="/sales/orders" />,
+          },
+          {
+            path: "quotations",
+            element: <QuotationsPage />,
+            handle: {
+              breadcrumb: () => <SalesBreadcrumb section="Soumissions" />,
+            },
+          },
+          {
+            path: "orders",
+            element: <OrdersPage />,
+            handle: {
+              breadcrumb: () => <SalesBreadcrumb section="Commandes" />,
+            },
+          },
+          {
+            path: "invoices",
+            element: <InvoicesPage />,
+            handle: {
+              breadcrumb: () => <SalesBreadcrumb section="Factures" />,
+            },
+          },
+        ],
+      },
+      {
         path: "/quotations",
-        element: <QuotationsPage />,
-        handle: {
-          breadcrumb: () => (
-            <>
-              <BreadcrumbItem className="hidden md:block">
-                <BreadcrumbLink asChild>
-                  <Link to="/">Accueil</Link>
-                </BreadcrumbLink>
-              </BreadcrumbItem>
-              <BreadcrumbSeparator className="hidden md:block" />
-              <BreadcrumbItem>
-                <BreadcrumbPage>Soumissions</BreadcrumbPage>
-              </BreadcrumbItem>
-            </>
-          ),
-        },
+        element: <Navigate replace to="/sales/quotations" />,
+      },
+      {
+        path: "/orders",
+        element: <Navigate replace to="/sales/orders" />,
+      },
+      {
+        path: "/invoices",
+        element: <Navigate replace to="/sales/invoices" />,
       },
       {
         path: "/quotations/new",
@@ -91,7 +121,19 @@ const router = createBrowserRouter([
             <>
               <BreadcrumbItem className="hidden md:block">
                 <BreadcrumbLink asChild>
-                  <Link to="/quotations">Soumissions</Link>
+                  <Link to="/">Accueil</Link>
+                </BreadcrumbLink>
+              </BreadcrumbItem>
+              <BreadcrumbSeparator className="hidden md:block" />
+              <BreadcrumbItem className="hidden md:block">
+                <BreadcrumbLink asChild>
+                  <Link to="/sales/orders">Ventes</Link>
+                </BreadcrumbLink>
+              </BreadcrumbItem>
+              <BreadcrumbSeparator className="hidden md:block" />
+              <BreadcrumbItem className="hidden md:block">
+                <BreadcrumbLink asChild>
+                  <Link to="/sales/quotations">Soumissions</Link>
                 </BreadcrumbLink>
               </BreadcrumbItem>
               <BreadcrumbSeparator className="hidden md:block" />
@@ -110,31 +152,24 @@ const router = createBrowserRouter([
             <>
               <BreadcrumbItem className="hidden md:block">
                 <BreadcrumbLink asChild>
-                  <Link to="/quotations">Soumissions</Link>
+                  <Link to="/">Accueil</Link>
+                </BreadcrumbLink>
+              </BreadcrumbItem>
+              <BreadcrumbSeparator className="hidden md:block" />
+              <BreadcrumbItem className="hidden md:block">
+                <BreadcrumbLink asChild>
+                  <Link to="/sales/orders">Ventes</Link>
+                </BreadcrumbLink>
+              </BreadcrumbItem>
+              <BreadcrumbSeparator className="hidden md:block" />
+              <BreadcrumbItem className="hidden md:block">
+                <BreadcrumbLink asChild>
+                  <Link to="/sales/quotations">Soumissions</Link>
                 </BreadcrumbLink>
               </BreadcrumbItem>
               <BreadcrumbSeparator className="hidden md:block" />
               <BreadcrumbItem>
                 <BreadcrumbPage>Détail</BreadcrumbPage>
-              </BreadcrumbItem>
-            </>
-          ),
-        },
-      },
-      {
-        path: "/invoices",
-        element: <InvoicesPage />,
-        handle: {
-          breadcrumb: () => (
-            <>
-              <BreadcrumbItem className="hidden md:block">
-                <BreadcrumbLink asChild>
-                  <Link to="/">Accueil</Link>
-                </BreadcrumbLink>
-              </BreadcrumbItem>
-              <BreadcrumbSeparator className="hidden md:block" />
-              <BreadcrumbItem>
-                <BreadcrumbPage>Factures</BreadcrumbPage>
               </BreadcrumbItem>
             </>
           ),
@@ -148,31 +183,24 @@ const router = createBrowserRouter([
             <>
               <BreadcrumbItem className="hidden md:block">
                 <BreadcrumbLink asChild>
-                  <Link to="/invoices">Factures</Link>
+                  <Link to="/">Accueil</Link>
+                </BreadcrumbLink>
+              </BreadcrumbItem>
+              <BreadcrumbSeparator className="hidden md:block" />
+              <BreadcrumbItem className="hidden md:block">
+                <BreadcrumbLink asChild>
+                  <Link to="/sales/orders">Ventes</Link>
+                </BreadcrumbLink>
+              </BreadcrumbItem>
+              <BreadcrumbSeparator className="hidden md:block" />
+              <BreadcrumbItem className="hidden md:block">
+                <BreadcrumbLink asChild>
+                  <Link to="/sales/invoices">Factures</Link>
                 </BreadcrumbLink>
               </BreadcrumbItem>
               <BreadcrumbSeparator className="hidden md:block" />
               <BreadcrumbItem>
                 <BreadcrumbPage>Détail</BreadcrumbPage>
-              </BreadcrumbItem>
-            </>
-          ),
-        },
-      },
-      {
-        path: "/orders",
-        element: <OrdersPage />,
-        handle: {
-          breadcrumb: () => (
-            <>
-              <BreadcrumbItem className="hidden md:block">
-                <BreadcrumbLink asChild>
-                  <Link to="/">Accueil</Link>
-                </BreadcrumbLink>
-              </BreadcrumbItem>
-              <BreadcrumbSeparator className="hidden md:block" />
-              <BreadcrumbItem>
-                <BreadcrumbPage>Commandes</BreadcrumbPage>
               </BreadcrumbItem>
             </>
           ),
@@ -192,7 +220,13 @@ const router = createBrowserRouter([
               <BreadcrumbSeparator className="hidden md:block" />
               <BreadcrumbItem className="hidden md:block">
                 <BreadcrumbLink asChild>
-                  <Link to="/orders">Commandes</Link>
+                  <Link to="/sales/orders">Ventes</Link>
+                </BreadcrumbLink>
+              </BreadcrumbItem>
+              <BreadcrumbSeparator className="hidden md:block" />
+              <BreadcrumbItem className="hidden md:block">
+                <BreadcrumbLink asChild>
+                  <Link to="/sales/orders">Commandes</Link>
                 </BreadcrumbLink>
               </BreadcrumbItem>
               <BreadcrumbSeparator className="hidden md:block" />
@@ -217,7 +251,13 @@ const router = createBrowserRouter([
               <BreadcrumbSeparator className="hidden md:block" />
               <BreadcrumbItem className="hidden md:block">
                 <BreadcrumbLink asChild>
-                  <Link to="/orders">Commandes</Link>
+                  <Link to="/sales/orders">Ventes</Link>
+                </BreadcrumbLink>
+              </BreadcrumbItem>
+              <BreadcrumbSeparator className="hidden md:block" />
+              <BreadcrumbItem className="hidden md:block">
+                <BreadcrumbLink asChild>
+                  <Link to="/sales/orders">Commandes</Link>
                 </BreadcrumbLink>
               </BreadcrumbItem>
               <BreadcrumbSeparator className="hidden md:block" />
@@ -393,6 +433,28 @@ const router = createBrowserRouter([
     ],
   },
 ]);
+
+function SalesBreadcrumb({ section }: { section: string }) {
+  return (
+    <>
+      <BreadcrumbItem className="hidden md:block">
+        <BreadcrumbLink asChild>
+          <Link to="/">Accueil</Link>
+        </BreadcrumbLink>
+      </BreadcrumbItem>
+      <BreadcrumbSeparator className="hidden md:block" />
+      <BreadcrumbItem className="hidden md:block">
+        <BreadcrumbLink asChild>
+          <Link to="/sales/orders">Ventes</Link>
+        </BreadcrumbLink>
+      </BreadcrumbItem>
+      <BreadcrumbSeparator className="hidden md:block" />
+      <BreadcrumbItem>
+        <BreadcrumbPage>{section}</BreadcrumbPage>
+      </BreadcrumbItem>
+    </>
+  );
+}
 
 export const AppRouter = () => {
   return <RouterProvider router={router} />;
