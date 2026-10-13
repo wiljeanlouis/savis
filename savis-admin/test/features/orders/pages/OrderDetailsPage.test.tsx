@@ -3,7 +3,6 @@ import { useOrderEditor } from "@/features/orders/hooks/useOrderEditor";
 import {
   useCreateOrder,
   useOrder,
-  useOrderDocumentDownload,
   useOrderRequirementReport,
   useUpdateOrder,
   useUpdateOrderCustomer,
@@ -26,7 +25,6 @@ vi.mock("@/features/orders/hooks/useOrderApi", () => ({
   useUpdateOrder: vi.fn(),
   useUpdateOrderCustomer: vi.fn(),
   useUpdateOrderStatus: vi.fn(),
-  useOrderDocumentDownload: vi.fn(),
 }));
 
 vi.mock("@/features/orders/hooks/useOrderEditor", () => ({
@@ -121,10 +119,6 @@ describe("OrderDetailsPage", () => {
     vi.mocked(useUpdateOrderStatus).mockReturnValue({
       isPending: false,
       mutateAsync: vi.fn(),
-    } as never);
-    vi.mocked(useOrderDocumentDownload).mockReturnValue({
-      isPending: false,
-      download: vi.fn(),
     } as never);
     vi.mocked(useCreateInvoice).mockReturnValue({
       isPending: false,

@@ -279,9 +279,8 @@ a web order still at `NEW`, operators may correct only the customer name,
 phone, email, address, and note from the Client section.
 Operators can apply the valid lifecycle transitions from `NEW` through
 preparation and completion, or reject/cancel where allowed. Imported prices are
-read-only snapshots. A **PDF** menu in the order list and the **Documents PDF**
-menu on the detail page download either a quote or an invoice for the selected
-order.
+read-only snapshots. Commercial PDFs are generated from the dedicated
+Quotation and Invoice modules rather than directly from an order.
 
 The detail page also generates a **Besoins de production** report. It aggregates
 compatible component quantities from all applicable BOMs, shows the current
@@ -417,7 +416,6 @@ POST   /savis-api/catalog/products/publish
 GET    /savis-api/orders
 GET    /savis-api/orders/{id}
 GET    /savis-api/orders/{id}/requirements
-GET    /savis-api/orders/{id}/documents/{quote|invoice}
 POST   /savis-api/orders
 POST   /savis-api/orders/import
 PUT    /savis-api/orders/{id}

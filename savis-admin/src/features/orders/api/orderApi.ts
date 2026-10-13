@@ -4,7 +4,6 @@ import type {
   ImportOrdersResult,
   Order,
   OrderRequirementReport,
-  OrderDocumentType,
   OrderStatus,
   OrderSummary,
   UpdateOrderCustomerRequest,
@@ -21,22 +20,6 @@ export const getOrderRequirementReport = async (
 ): Promise<OrderRequirementReport> =>
   (await api.get<OrderRequirementReport>(`/orders/${orderId}/requirements`))
     .data;
-
-export const getOrderDocument = async (
-  orderId: string,
-  documentType: OrderDocumentType,
-): Promise<{ content: Blob; fileName: string }> => {
-  const response = await api.get<Blob>(
-    `/orders/${orderId}/documents/${documentType}`,
-    { responseType: "blob" },
-  );
-  return {
-    content: response.data,
-    fileName:
-      fileNameFromDisposition(response.headers["content-disposition"]) ??
-      `${documentType}-${orderId}.pdf`,
-  };
-};
 
 export const createOrder = async (
   request: CreateOrderRequest,
@@ -71,10 +54,3 @@ export const updateOrderStatus = async ({
   status: OrderStatus;
 }): Promise<Order> =>
   (await api.put<Order>(`/orders/${orderId}/status`, { status })).data;
-
-function fileNameFromDisposition(value: string | undefined) {
-  if (!value) return null;
-  const encoded = /filename\*=UTF-8''([^;]+)/i.exec(value)?.[1];
-  if (encoded) return decodeURIComponent(encoded);
-  return /filename="?([^";]+)"?/i.exec(value)?.[1] ?? null;
-}

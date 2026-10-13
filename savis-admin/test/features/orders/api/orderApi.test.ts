@@ -1,5 +1,4 @@
 import {
-  getOrderDocument,
   updateOrder,
   updateOrderCustomer,
 } from "@/features/orders/api/orderApi";
@@ -13,23 +12,6 @@ vi.mock("@/shared/api", () => ({
 
 describe("orderApi", () => {
   beforeEach(() => vi.clearAllMocks());
-
-  it("downloads a PDF and keeps the server-provided filename", async () => {
-    const content = new Blob(["pdf"], { type: "application/pdf" });
-    vi.mocked(api.get).mockResolvedValue({
-      data: content,
-      headers: {
-        "content-disposition": 'attachment; filename="facture-ADM-1.pdf"',
-      },
-    });
-
-    const result = await getOrderDocument("order-1", "invoice");
-
-    expect(api.get).toHaveBeenCalledWith("/orders/order-1/documents/invoice", {
-      responseType: "blob",
-    });
-    expect(result).toEqual({ content, fileName: "facture-ADM-1.pdf" });
-  });
 
   it("replaces an administrative order through its detail endpoint", async () => {
     const request = {

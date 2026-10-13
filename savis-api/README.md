@@ -414,7 +414,6 @@ invalid catalog structures and disabled explicit publication return `400`.
 | `PUT`  | `/api/orders/{orderId}`              | Replace a `NEW` administrative order from current catalog selections. |
 | `PATCH` | `/api/orders/{orderId}/customer`     | Correct customer information on a `NEW` imported web order. |
 | `GET`  | `/api/orders/{orderId}/requirements` | Generate current aggregated production-component requirements. |
-| `GET`  | `/api/orders/{orderId}/documents/{quote\|invoice}` | Download a quote or invoice PDF. |
 | `PUT`  | `/api/orders/{orderId}/status`       | Apply a valid lifecycle transition.          |
 
 The import endpoint is the only import trigger. It reads Supabase with the

@@ -132,8 +132,6 @@ export interface OrderAddress {
   postalCode: string | null;
 }
 
-export type OrderDocumentType = "quote" | "invoice";
-
 export interface CreateOrderItemRequest {
   productId: string;
   quantity: number;

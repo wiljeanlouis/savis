@@ -1,6 +1,4 @@
-import { Button } from "@/shared/ui/button";
 import { Card, CardContent } from "@/shared/ui/card";
-import { Spinner } from "@/shared/ui/spinner";
 import {
   Table,
   TableBody,
@@ -9,10 +7,8 @@ import {
   TableHeader,
   TableRow,
 } from "@/shared/ui/table";
-import { Download01Icon } from "@hugeicons/core-free-icons";
-import { HugeiconsIcon } from "@hugeicons/react";
 import { Link } from "react-router";
-import type { OrderDocumentType, OrderSummary } from "../types";
+import type { OrderSummary } from "../types";
 import { formatPhoneForDisplay, phoneHref } from "../model/contactFormat";
 import {
   formatOrderCurrency,
@@ -22,18 +18,7 @@ import {
 import { OrderStatusBadge } from "./OrderStatusBadge";
 import { OrderProductImage } from "./OrderProductImage";
 
-export function OrdersTable({
-  orders,
-  downloadingOrderId,
-  onDownloadDocument,
-}: {
-  orders: OrderSummary[];
-  downloadingOrderId?: string;
-  onDownloadDocument: (
-    orderId: string,
-    documentType: OrderDocumentType,
-  ) => void;
-}) {
+export function OrdersTable({ orders }: { orders: OrderSummary[] }) {
   return (
     <Card>
       <CardContent className="px-0">
@@ -48,9 +33,6 @@ export function OrdersTable({
               <TableHead>Source</TableHead>
               <TableHead>Statut</TableHead>
               <TableHead>Date</TableHead>
-              <TableHead className="w-0 text-right">
-                <span className="sr-only">Documents</span>
-              </TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -84,46 +66,12 @@ export function OrdersTable({
                   <OrderStatusBadge status={order.status} />
                 </TableCell>
                 <TableCell>{formatOrderDate(order.placedAt)}</TableCell>
-                <TableCell className="text-right">
-                  <OrderDocumentMenu
-                    order={order}
-                    isDownloading={downloadingOrderId === order.id}
-                    onDownload={onDownloadDocument}
-                  />
-                </TableCell>
               </TableRow>
             ))}
           </TableBody>
         </Table>
       </CardContent>
     </Card>
-  );
-}
-
-function OrderDocumentMenu({
-  order,
-  isDownloading,
-  onDownload,
-}: {
-  order: OrderSummary;
-  isDownloading: boolean;
-  onDownload: (orderId: string, documentType: OrderDocumentType) => void;
-}) {
-  return (
-    <Button
-      variant="outline"
-      size="sm"
-      disabled={isDownloading}
-      aria-label={`Télécharger la soumission de ${order.orderNumber}`}
-      onClick={() => onDownload(order.id, "quote")}
-    >
-      {isDownloading ? (
-        <Spinner />
-      ) : (
-        <HugeiconsIcon icon={Download01Icon} strokeWidth={2} />
-      )}
-      PDF
-    </Button>
   );
 }
 

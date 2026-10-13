@@ -3,11 +3,7 @@ import { Button } from "@/shared/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/shared/ui/card";
 import { Spinner } from "@/shared/ui/spinner";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/shared/ui/tabs";
-import {
-  Download01Icon,
-  Edit02Icon,
-  Money03Icon,
-} from "@hugeicons/core-free-icons";
+import { Edit02Icon, Money03Icon } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
 import { Link, useBlocker, useNavigate, useParams } from "react-router";
 import { toast } from "sonner";
@@ -24,7 +20,6 @@ import { useOrderEditor } from "../hooks/useOrderEditor";
 import {
   useCreateOrder,
   useOrder,
-  useOrderDocumentDownload,
   useOrderRequirementReport,
   useUpdateOrder,
   useUpdateOrderCustomer,
@@ -35,12 +30,7 @@ import {
   formatOrderAddress,
   formatPhoneForDisplay,
 } from "../model/contactFormat";
-import type {
-  Order,
-  OrderDocumentType,
-  OrderRequirementReport,
-  OrderStatus,
-} from "../types";
+import type { Order, OrderRequirementReport, OrderStatus } from "../types";
 import {
   formatOrderCurrency,
   formatOrderDate,
@@ -63,7 +53,6 @@ function OrderDetailsContent({ orderId }: { orderId: string | undefined }) {
   const updateMutation = useUpdateOrder();
   const customerMutation = useUpdateOrderCustomer();
   const statusMutation = useUpdateOrderStatus();
-  const documents = useOrderDocumentDownload();
   const invoiceCreation = useCreateInvoice();
   const [editMode, setEditMode] = useState<OrderEditMode>(
     isCreating ? "full" : null,
@@ -113,10 +102,6 @@ function OrderDetailsContent({ orderId }: { orderId: string | undefined }) {
         description: problemDetail(error),
       });
     }
-  }
-
-  async function downloadDocument(documentType: OrderDocumentType) {
-    if (orderId) await documents.download(orderId, documentType);
   }
 
   async function createInvoice() {
@@ -280,10 +265,6 @@ function OrderDetailsContent({ orderId }: { orderId: string | undefined }) {
             </>
           ) : order ? (
             <>
-              <DocumentMenu
-                isPending={documents.isPending}
-                onDownload={downloadDocument}
-              />
               {canInvoice ? (
                 <Button
                   type="button"
@@ -377,30 +358,6 @@ function OrderDetailsContent({ orderId }: { orderId: string | undefined }) {
         />
       ) : null}
     </div>
-  );
-}
-
-function DocumentMenu({
-  isPending,
-  onDownload,
-}: {
-  isPending: boolean;
-  onDownload: (documentType: OrderDocumentType) => Promise<void>;
-}) {
-  return (
-    <Button
-      type="button"
-      variant="outline"
-      disabled={isPending}
-      onClick={() => void onDownload("quote")}
-    >
-      {isPending ? (
-        <Spinner />
-      ) : (
-        <HugeiconsIcon icon={Download01Icon} strokeWidth={2} />
-      )}
-      Soumission PDF
-    </Button>
   );
 }
 
