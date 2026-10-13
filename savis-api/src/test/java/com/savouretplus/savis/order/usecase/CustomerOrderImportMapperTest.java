@@ -2,6 +2,7 @@ package com.savouretplus.savis.order.usecase;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import java.time.Instant;
 import java.util.List;
@@ -90,6 +91,16 @@ class CustomerOrderImportMapperTest {
         assertEquals(2, item.choiceAllocations().size());
         assertEquals(12, item.choiceAllocations().stream().mapToInt(value -> value.quantity()).sum());
         assertEquals(6000, item.lineTotalCents());
+    }
+
+    @Test
+    void rejectsAnExternalTotalThatDoesNotMatchItsCapturedLines() {
+        var sourceItem = new PendingCustomerOrder.Item(
+                PRODUCT_ID, "Service", "standard", null, 2, 1200, 1200,
+                null, null, List.of(), List.of(), "service");
+
+        assertThrows(IllegalArgumentException.class,
+                () -> mapper.map(source(sourceItem, 2399), "WEB-00000003", IMPORTED_AT));
     }
 
     private PendingCustomerOrder source(PendingCustomerOrder.Item item, int totalCents) {

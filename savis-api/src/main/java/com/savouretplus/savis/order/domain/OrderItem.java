@@ -43,6 +43,16 @@ public record OrderItem(
         if (basePriceCents < 0 || unitPriceCents < 0 || lineTotalCents < 0) {
             throw new IllegalArgumentException("Les prix d'un item ne peuvent pas être négatifs");
         }
+        int expected;
+        try {
+            expected = Math.multiplyExact(unitPriceCents, quantity);
+        } catch (ArithmeticException exception) {
+            throw new IllegalArgumentException(
+                    "Le total de la ligne de commande dépasse la limite permise", exception);
+        }
+        if (lineTotalCents != expected) {
+            throw new IllegalArgumentException("Le total de la ligne de commande est incohérent");
+        }
         allocationType = allocationType != null ? allocationType : OrderItemAllocationType.NONE;
         choiceSelections = choiceSelections != null ? List.copyOf(choiceSelections) : List.of();
         choiceAllocations = choiceAllocations != null ? List.copyOf(choiceAllocations) : List.of();

@@ -223,16 +223,8 @@ public class OrderService {
             throw new IllegalArgumentException("La commande doit contenir au moins un item");
         }
         List<OrderItem> items = command.items().stream().map(this::createItem).toList();
-        int subtotalCents = items.stream().mapToInt(OrderItem::lineTotalCents).reduce(0, this::addExact);
-        if (command.discountCents() < 0 || command.deliveryFeeCents() < 0) {
-            throw new IllegalArgumentException("Le rabais et les frais de livraison ne peuvent pas être négatifs");
-        }
-        if (command.discountCents() > subtotalCents) {
-            throw new IllegalArgumentException("Le rabais ne peut pas dépasser le sous-total de la commande");
-        }
-        int totalCents = addExact(
-                Math.subtractExact(subtotalCents, command.discountCents()),
-                command.deliveryFeeCents());
+        int totalCents = Order.calculateTotalCents(
+                items, command.discountCents(), command.deliveryFeeCents());
         return new PreparedOrder(items, totalCents);
     }
 
@@ -277,14 +269,6 @@ public class OrderService {
                                 null, value.code(), value.name(), value.quantity(),
                                 value.defaultQuantity(), value.extraPriceCents()))
                         .toList());
-    }
-
-    private int addExact(int left, int right) {
-        try {
-            return Math.addExact(left, right);
-        } catch (ArithmeticException exception) {
-            throw new IllegalArgumentException("Le total de la commande dépasse la limite permise", exception);
-        }
     }
 
     private String blankToNull(String value) {

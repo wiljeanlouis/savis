@@ -83,6 +83,17 @@ class InvoiceServiceTest {
         verify(numbers, times(1)).next();
     }
 
+    @Test
+    void cancellingAnAlreadyCancelledInvoiceIsIdempotent() {
+        Invoice cancelled = draft().cancel(NOW.plusSeconds(60));
+        when(repository.findByPublicIdForUpdate(INVOICE_ID)).thenReturn(Optional.of(cancelled));
+
+        Invoice result = service().cancel(INVOICE_ID);
+
+        assertSame(cancelled, result);
+        verify(repository, never()).save(any());
+    }
+
     private InvoiceService service() {
         return new InvoiceService(repository, numbers, orders, Clock.fixed(NOW, ZoneOffset.UTC));
     }

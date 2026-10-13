@@ -81,7 +81,11 @@ public class InvoiceService {
     /** Cancels a draft or issued invoice without creating a credit note. */
     @Transactional
     public Invoice cancel(UUID invoiceId) {
-        return invoices.save(requireForUpdate(invoiceId).cancel(clock.instant()));
+        Invoice current = requireForUpdate(invoiceId);
+        if (current.status() == InvoiceStatus.CANCELLED) {
+            return current;
+        }
+        return invoices.save(current.cancel(clock.instant()));
     }
 
     private Invoice create(OrderInvoicingApi.OrderSnapshot order) {

@@ -44,10 +44,7 @@ public record Quotation(
         if (items.isEmpty()) {
             throw new IllegalArgumentException("La soumission doit contenir au moins un produit");
         }
-        if (discountCents < 0 || deliveryFeeCents < 0 || totalCents < 0) {
-            throw new IllegalArgumentException("Les montants de la soumission ne peuvent pas être négatifs");
-        }
-        if (totalCents != subtotalCents(items) - discountCents + deliveryFeeCents) {
+        if (totalCents != calculateTotalCents(items, discountCents, deliveryFeeCents)) {
             throw new IllegalArgumentException("Le total de la soumission est incohérent");
         }
         customerAddress = customerAddress == null || customerAddress.isEmpty() ? null : customerAddress;
@@ -56,6 +53,28 @@ public record Quotation(
     /** Returns the captured item subtotal. */
     public int subtotalCents() {
         return subtotalCents(items);
+    }
+
+    /** Calculates an exact total from captured lines and commercial adjustments. */
+    public static int calculateTotalCents(
+            List<QuotationItem> items,
+            int discountCents,
+            int deliveryFeeCents) {
+        if (items == null) {
+            throw new IllegalArgumentException("Les lignes de la soumission sont requises");
+        }
+        int subtotal = subtotalCents(items);
+        if (discountCents < 0 || deliveryFeeCents < 0) {
+            throw new IllegalArgumentException("Les montants de la soumission ne peuvent pas être négatifs");
+        }
+        if (discountCents > subtotal) {
+            throw new IllegalArgumentException("Le rabais ne peut pas dépasser le sous-total de la soumission");
+        }
+        try {
+            return Math.addExact(Math.subtractExact(subtotal, discountCents), deliveryFeeCents);
+        } catch (ArithmeticException exception) {
+            throw new IllegalArgumentException("Le total de la soumission dépasse la limite permise", exception);
+        }
     }
 
     /** Applies a supported quotation status transition. */
@@ -99,7 +118,16 @@ public record Quotation(
     }
 
     private static int subtotalCents(List<QuotationItem> values) {
-        return values.stream().mapToInt(QuotationItem::lineTotalCents).sum();
+        int result = 0;
+        try {
+            for (QuotationItem item : values) {
+                result = Math.addExact(result, item.lineTotalCents());
+            }
+            return result;
+        } catch (ArithmeticException exception) {
+            throw new IllegalArgumentException(
+                    "Le sous-total de la soumission dépasse la limite permise", exception);
+        }
     }
 
     private static void requireText(String value, String message) {

@@ -43,6 +43,11 @@ public class CustomerOrderImportMapper {
         }
 
         List<OrderItem> items = source.items().stream().map(this::mapItem).toList();
+        int expectedTotal = Order.calculateTotalCents(
+                items, source.discountCents(), source.deliveryFeeCents());
+        if (source.totalCents() != expectedTotal) {
+            throw new IllegalArgumentException("Le total de la commande externe est incohérent");
+        }
 
         return new Order(
                 null,

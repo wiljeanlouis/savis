@@ -98,7 +98,42 @@ public record Order(
      * Returns the sum of all captured order-item line totals.
      */
     public int subtotalCents() {
-        return items.stream().mapToInt(OrderItem::lineTotalCents).sum();
+        return subtotalCents(items);
+    }
+
+    /** Calculates an exact total for a newly captured order snapshot. */
+    public static int calculateTotalCents(
+            List<OrderItem> items,
+            int discountCents,
+            int deliveryFeeCents) {
+        if (items == null) {
+            throw new IllegalArgumentException("Les lignes de la commande sont requises");
+        }
+        int subtotal = subtotalCents(items);
+        if (discountCents < 0 || deliveryFeeCents < 0) {
+            throw new IllegalArgumentException("Le rabais et les frais de livraison ne peuvent pas être négatifs");
+        }
+        if (discountCents > subtotal) {
+            throw new IllegalArgumentException("Le rabais ne peut pas dépasser le sous-total de la commande");
+        }
+        try {
+            return Math.addExact(Math.subtractExact(subtotal, discountCents), deliveryFeeCents);
+        } catch (ArithmeticException exception) {
+            throw new IllegalArgumentException("Le total de la commande dépasse la limite permise", exception);
+        }
+    }
+
+    private static int subtotalCents(List<OrderItem> items) {
+        int subtotal = 0;
+        try {
+            for (OrderItem item : items) {
+                subtotal = Math.addExact(subtotal, item.lineTotalCents());
+            }
+            return subtotal;
+        } catch (ArithmeticException exception) {
+            throw new IllegalArgumentException(
+                    "Le sous-total de la commande dépasse la limite permise", exception);
+        }
     }
 
     /**

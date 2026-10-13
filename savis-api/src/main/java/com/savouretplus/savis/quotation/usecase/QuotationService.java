@@ -91,18 +91,15 @@ public class QuotationService {
         if (items.isEmpty()) {
             throw new IllegalArgumentException("Ajoutez au moins un produit à la soumission");
         }
-        int subtotal = items.stream().mapToInt(QuotationItem::lineTotalCents).sum();
-        if (command.discountCents() < 0 || command.deliveryFeeCents() < 0
-                || command.discountCents() > subtotal) {
-            throw new IllegalArgumentException("Les ajustements de la soumission sont invalides");
-        }
+        int total = Quotation.calculateTotalCents(
+                items, command.discountCents(), command.deliveryFeeCents());
         Instant now = clock.instant();
         return new Quotation(
                 id, publicId, number, QuotationStatus.DRAFT,
                 command.customerName(), QuotationContactNormalizer.phone(command.customerPhone()),
                 blank(command.customerEmail()), QuotationContactNormalizer.address(command.customerAddress()),
                 command.validUntil(), blank(command.note()), command.discountCents(), command.deliveryFeeCents(),
-                subtotal - command.discountCents() + command.deliveryFeeCents(),
+                total,
                 createdAt, now, null, null, null, null, items);
     }
 
@@ -111,7 +108,13 @@ public class QuotationService {
             throw new IllegalArgumentException("La quantité doit être supérieure à zéro");
         }
         CatalogOrderingApi.ProductSnapshot product = catalog.snapshot(selection(item));
-        int lineTotal = Math.multiplyExact(product.unitPriceCents(), item.quantity());
+        int lineTotal;
+        try {
+            lineTotal = Math.multiplyExact(product.unitPriceCents(), item.quantity());
+        } catch (ArithmeticException exception) {
+            throw new IllegalArgumentException(
+                    "Le total de la ligne de soumission dépasse la limite permise", exception);
+        }
         return new QuotationItem(
                 null, product.productId(), product.productName(), product.commercialType(), product.productType(),
                 product.imageUrl(), item.quantity(), product.basePriceCents(), product.unitPriceCents(), lineTotal,

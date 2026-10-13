@@ -33,15 +33,32 @@ class QuotationTest {
                 () -> quotation().changeStatus(QuotationStatus.ACCEPTED, NOW.plusSeconds(60)));
     }
 
+    @Test
+    void rejectsIncoherentLineTotalsDiscountsAndArithmeticOverflow() {
+        assertThrows(IllegalArgumentException.class, () -> item(2, 100, 199));
+
+        QuotationItem item = item(1, 100, 100);
+        assertThrows(IllegalArgumentException.class,
+                () -> Quotation.calculateTotalCents(List.of(item), 101, 0));
+        assertThrows(IllegalArgumentException.class, () -> Quotation.calculateTotalCents(
+                List.of(item(1, Integer.MAX_VALUE, Integer.MAX_VALUE), item), 0, 0));
+        assertThrows(IllegalArgumentException.class,
+                () -> item(Integer.MAX_VALUE, 2, 0));
+    }
+
     private Quotation quotation() {
-        QuotationItem item = new QuotationItem(
-                null, UUID.randomUUID(), "Installation", "SERVICE", "STANDARD", null,
-                1, 15000, 15000, 15000, "service", "Service", 1, "NONE",
-                List.of(), List.of(), List.of());
+        QuotationItem item = item(1, 15000, 15000);
         return new Quotation(
                 1L, UUID.randomUUID(), "SOU-00000001", QuotationStatus.DRAFT,
                 "Ada", "+15145550100", "ada@example.com", null,
                 LocalDate.of(2026, 11, 12), null, 0, 0, 15000,
                 NOW, NOW, null, null, null, null, List.of(item));
+    }
+
+    private QuotationItem item(int quantity, int unitPriceCents, int lineTotalCents) {
+        return new QuotationItem(
+                null, UUID.randomUUID(), "Installation", "SERVICE", "STANDARD", null,
+                quantity, unitPriceCents, unitPriceCents, lineTotalCents,
+                "service", "Service", 1, "NONE", List.of(), List.of(), List.of());
     }
 }

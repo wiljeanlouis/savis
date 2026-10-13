@@ -31,11 +31,22 @@ public record QuotationItem(
         if (productId == null || productName == null || productName.isBlank()) {
             throw new IllegalArgumentException("Le produit de la soumission est requis");
         }
-        if (commercialType == null || productType == null || quantity <= 0) {
+        if (commercialType == null || commercialType.isBlank()
+                || productType == null || productType.isBlank() || quantity <= 0) {
             throw new IllegalArgumentException("La nature, la configuration et la quantité sont requises");
         }
         if (basePriceCents < 0 || unitPriceCents < 0 || lineTotalCents < 0) {
             throw new IllegalArgumentException("Les prix de la soumission ne peuvent pas être négatifs");
+        }
+        int expected;
+        try {
+            expected = Math.multiplyExact(unitPriceCents, quantity);
+        } catch (ArithmeticException exception) {
+            throw new IllegalArgumentException(
+                    "Le total de la ligne de soumission dépasse la limite permise", exception);
+        }
+        if (lineTotalCents != expected) {
+            throw new IllegalArgumentException("Le total de la ligne de soumission est incohérent");
         }
         choices = choices != null ? List.copyOf(choices) : List.of();
         allocations = allocations != null ? List.copyOf(allocations) : List.of();
