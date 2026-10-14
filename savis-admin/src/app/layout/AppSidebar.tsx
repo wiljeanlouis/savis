@@ -20,7 +20,6 @@ import {
   PackageIcon,
   GearsFreeIcons,
   ShoppingCart02Icon,
-  Clock03Icon,
 } from "@hugeicons/core-free-icons";
 import { Link } from "react-router";
 import { NavSection } from "./components/NavSection";
@@ -36,38 +35,45 @@ const data = {
     email: "m@example.com",
     avatar: "/avatars/shadcn.jpg",
   },
-  operations: [
+  navigation: [
     {
-      name: "Ventes",
-      url: "/sales/orders",
-      activeUrls: ["/sales", "/quotations", "/orders", "/invoices"],
-      icon: <HugeiconsIcon icon={ShoppingCart02Icon} strokeWidth={2} />,
+      name: "Approvisionnement",
+      icon: <HugeiconsIcon icon={Database01Icon} strokeWidth={2} />,
+      children: [
+        {
+          name: "Offres fournisseurs",
+          url: "/supply-offers",
+        },
+      ],
     },
     {
-      name: "Produits",
-      url: "/catalog-products",
-      icon: <HugeiconsIcon icon={PackageIcon} strokeWidth={2} />,
-    },
-  ],
-  configs: [
-    {
-      name: "Taux horaire",
-      url: "/activity-rates",
-      icon: <HugeiconsIcon icon={Clock03Icon} strokeWidth={2} />,
-    },
-    {
-      name: "BOM",
+      name: "Production",
       icon: <HugeiconsIcon icon={GearsFreeIcons} strokeWidth={2} />,
       children: [
         {
-          name: "Composants",
+          name: "Intrants",
           url: "/bom-components",
         },
         {
           name: "Compositions",
           url: "/boms",
         },
+        {
+          name: "Activités et taux horaires",
+          url: "/activity-rates",
+        },
       ],
+    },
+    {
+      name: "Catalogue",
+      url: "/catalog-products",
+      icon: <HugeiconsIcon icon={PackageIcon} strokeWidth={2} />,
+    },
+    {
+      name: "Ventes",
+      url: "/sales/orders",
+      activeUrls: ["/sales", "/quotations", "/orders", "/invoices"],
+      icon: <HugeiconsIcon icon={ShoppingCart02Icon} strokeWidth={2} />,
     },
   ],
   navSecondary: [
@@ -125,8 +131,7 @@ export const AppSidebar = ({
       </SidebarHeader>
       <SidebarContent>
         <NavMain />
-        <NavSection items={data.operations} />
-        <NavSection title="Configuration" items={data.configs} />
+        <NavSection items={data.navigation} />
         {/* <NavDocuments items={data.documents} />
         <NavSecondary items={data.navSecondary} className="mt-auto" /> */}
       </SidebarContent>

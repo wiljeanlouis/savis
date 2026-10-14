@@ -45,7 +45,7 @@ const router = createBrowserRouter([
               </BreadcrumbItem>
               <BreadcrumbSeparator className="hidden md:block" />
               <BreadcrumbItem>
-                <BreadcrumbPage>Dashboard</BreadcrumbPage>
+                <BreadcrumbPage>Tableau de bord</BreadcrumbPage>
               </BreadcrumbItem>
             </>
           ),
@@ -64,7 +64,7 @@ const router = createBrowserRouter([
               </BreadcrumbItem>
               <BreadcrumbSeparator className="hidden md:block" />
               <BreadcrumbItem>
-                <BreadcrumbPage>Dashboard</BreadcrumbPage>
+                <BreadcrumbPage>Tableau de bord</BreadcrumbPage>
               </BreadcrumbItem>
             </>
           ),
@@ -280,6 +280,12 @@ const router = createBrowserRouter([
                 </BreadcrumbLink>
               </BreadcrumbItem>
               <BreadcrumbSeparator className="hidden md:block" />
+              <BreadcrumbItem className="hidden md:block">
+                <BreadcrumbLink asChild>
+                  <Link to="/catalog-products">Catalogue</Link>
+                </BreadcrumbLink>
+              </BreadcrumbItem>
+              <BreadcrumbSeparator className="hidden md:block" />
               <BreadcrumbItem>
                 <BreadcrumbPage>Produits</BreadcrumbPage>
               </BreadcrumbItem>
@@ -299,8 +305,14 @@ const router = createBrowserRouter([
                 </BreadcrumbLink>
               </BreadcrumbItem>
               <BreadcrumbSeparator className="hidden md:block" />
+              <BreadcrumbItem className="hidden md:block">
+                <BreadcrumbLink asChild>
+                  <Link to="/boms">Production</Link>
+                </BreadcrumbLink>
+              </BreadcrumbItem>
+              <BreadcrumbSeparator className="hidden md:block" />
               <BreadcrumbItem>
-                <BreadcrumbPage>Compositions BOM</BreadcrumbPage>
+                <BreadcrumbPage>Compositions</BreadcrumbPage>
               </BreadcrumbItem>
             </>
           ),
@@ -320,12 +332,18 @@ const router = createBrowserRouter([
               <BreadcrumbSeparator className="hidden md:block" />
               <BreadcrumbItem className="hidden md:block">
                 <BreadcrumbLink asChild>
-                  <Link to="/boms">BOM</Link>
+                  <Link to="/boms">Production</Link>
+                </BreadcrumbLink>
+              </BreadcrumbItem>
+              <BreadcrumbSeparator className="hidden md:block" />
+              <BreadcrumbItem className="hidden md:block">
+                <BreadcrumbLink asChild>
+                  <Link to="/boms">Compositions</Link>
                 </BreadcrumbLink>
               </BreadcrumbItem>
               <BreadcrumbSeparator className="hidden md:block" />
               <BreadcrumbItem>
-                <BreadcrumbPage>Nouveau BOM</BreadcrumbPage>
+                <BreadcrumbPage>Nouvelle composition</BreadcrumbPage>
               </BreadcrumbItem>
             </>
           ),
@@ -343,8 +361,14 @@ const router = createBrowserRouter([
                 </BreadcrumbLink>
               </BreadcrumbItem>
               <BreadcrumbSeparator className="hidden md:block" />
+              <BreadcrumbItem className="hidden md:block">
+                <BreadcrumbLink asChild>
+                  <Link to="/activity-rates">Production</Link>
+                </BreadcrumbLink>
+              </BreadcrumbItem>
+              <BreadcrumbSeparator className="hidden md:block" />
               <BreadcrumbItem>
-                <BreadcrumbPage>Taux horaire</BreadcrumbPage>
+                <BreadcrumbPage>Activités et taux horaires</BreadcrumbPage>
               </BreadcrumbItem>
             </>
           ),
@@ -365,8 +389,14 @@ const router = createBrowserRouter([
                     </BreadcrumbLink>
                   </BreadcrumbItem>
                   <BreadcrumbSeparator className="hidden md:block" />
+                  <BreadcrumbItem className="hidden md:block">
+                    <BreadcrumbLink asChild>
+                      <Link to="/bom-components">Production</Link>
+                    </BreadcrumbLink>
+                  </BreadcrumbItem>
+                  <BreadcrumbSeparator className="hidden md:block" />
                   <BreadcrumbItem>
-                    <BreadcrumbPage>Composants BOM</BreadcrumbPage>
+                    <BreadcrumbPage>Intrants</BreadcrumbPage>
                   </BreadcrumbItem>
                 </>
               ),
@@ -386,7 +416,74 @@ const router = createBrowserRouter([
                   <BreadcrumbSeparator className="hidden md:block" />
                   <BreadcrumbItem className="hidden md:block">
                     <BreadcrumbLink asChild>
-                      <Link to="/bom-components">Composants BOM</Link>
+                      <Link to="/bom-components">Production</Link>
+                    </BreadcrumbLink>
+                  </BreadcrumbItem>
+                  <BreadcrumbSeparator className="hidden md:block" />
+                  <BreadcrumbItem className="hidden md:block">
+                    <BreadcrumbLink asChild>
+                      <Link to="/bom-components">Intrants</Link>
+                    </BreadcrumbLink>
+                  </BreadcrumbItem>
+                  <BreadcrumbSeparator className="hidden md:block" />
+                  <BreadcrumbItem>
+                    <BreadcrumbPage>Tâches de récupération</BreadcrumbPage>
+                  </BreadcrumbItem>
+                </>
+              ),
+            },
+          },
+        ],
+      },
+      {
+        path: "/supply-offers",
+        children: [
+          {
+            index: true,
+            element: <BomComponentsPage supplierOffers />,
+            handle: {
+              breadcrumb: () => (
+                <>
+                  <BreadcrumbItem className="hidden md:block">
+                    <BreadcrumbLink asChild>
+                      <Link to="/">Accueil</Link>
+                    </BreadcrumbLink>
+                  </BreadcrumbItem>
+                  <BreadcrumbSeparator className="hidden md:block" />
+                  <BreadcrumbItem className="hidden md:block">
+                    <BreadcrumbLink asChild>
+                      <Link to="/supply-offers">Approvisionnement</Link>
+                    </BreadcrumbLink>
+                  </BreadcrumbItem>
+                  <BreadcrumbSeparator className="hidden md:block" />
+                  <BreadcrumbItem>
+                    <BreadcrumbPage>Offres fournisseurs</BreadcrumbPage>
+                  </BreadcrumbItem>
+                </>
+              ),
+            },
+          },
+          {
+            path: "tasks",
+            element: <BomComponentTasksPage />,
+            handle: {
+              breadcrumb: () => (
+                <>
+                  <BreadcrumbItem className="hidden md:block">
+                    <BreadcrumbLink asChild>
+                      <Link to="/">Accueil</Link>
+                    </BreadcrumbLink>
+                  </BreadcrumbItem>
+                  <BreadcrumbSeparator className="hidden md:block" />
+                  <BreadcrumbItem className="hidden md:block">
+                    <BreadcrumbLink asChild>
+                      <Link to="/supply-offers">Approvisionnement</Link>
+                    </BreadcrumbLink>
+                  </BreadcrumbItem>
+                  <BreadcrumbSeparator className="hidden md:block" />
+                  <BreadcrumbItem className="hidden md:block">
+                    <BreadcrumbLink asChild>
+                      <Link to="/supply-offers">Offres fournisseurs</Link>
                     </BreadcrumbLink>
                   </BreadcrumbItem>
                   <BreadcrumbSeparator className="hidden md:block" />
@@ -419,12 +516,18 @@ const router = createBrowserRouter([
               <BreadcrumbSeparator className="hidden md:block" />
               <BreadcrumbItem className="hidden md:block">
                 <BreadcrumbLink asChild>
-                  <Link to="/boms">BOM</Link>
+                  <Link to="/boms">Production</Link>
+                </BreadcrumbLink>
+              </BreadcrumbItem>
+              <BreadcrumbSeparator className="hidden md:block" />
+              <BreadcrumbItem className="hidden md:block">
+                <BreadcrumbLink asChild>
+                  <Link to="/boms">Compositions</Link>
                 </BreadcrumbLink>
               </BreadcrumbItem>
               <BreadcrumbSeparator className="hidden md:block" />
               <BreadcrumbItem>
-                <BreadcrumbPage>BOM</BreadcrumbPage>
+                <BreadcrumbPage>Composition</BreadcrumbPage>
               </BreadcrumbItem>
             </>
           ),

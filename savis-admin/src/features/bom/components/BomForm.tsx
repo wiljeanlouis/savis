@@ -71,19 +71,24 @@ export const BomForm = ({ showTitle = true }: BomFormProps) => {
     addActivity();
   };
 
-  const formTitle = form.id ? "Modifier le BOM" : "Ajouter un nouveau BOM";
+  const formTitle = form.id
+    ? "Modifier la composition"
+    : "Ajouter une composition";
 
   if (isSuccess) {
-    toast.success("BOM sauvegardé avec succès !");
+    toast.success("Composition sauvegardée avec succès !");
   }
 
   if (isError) {
     const errorResponse = error as unknown as {
       response: { data?: { detail?: string } };
     };
-    toast.error("Une erreur est survenue lors de la sauvegarde du BOM.", {
-      description: errorResponse.response?.data?.detail,
-    });
+    toast.error(
+      "Une erreur est survenue lors de la sauvegarde de la composition.",
+      {
+        description: errorResponse.response?.data?.detail,
+      },
+    );
   }
 
   const submitForm = async (e: React.SubmitEvent<HTMLFormElement>) => {
@@ -117,7 +122,7 @@ export const BomForm = ({ showTitle = true }: BomFormProps) => {
 
                     <Field>
                       <FieldLabel htmlFor="bom-form-type">
-                        Type de BOM
+                        Type de composition
                       </FieldLabel>
                       <Select
                         value={form.type}
@@ -236,9 +241,9 @@ export const BomForm = ({ showTitle = true }: BomFormProps) => {
             </FieldSet>
 
             <FieldSet>
-              <FieldLegend>Composants BOM</FieldLegend>
+              <FieldLegend>Intrants</FieldLegend>
               <FieldDescription>
-                La liste des composants BOM nécessaires à ce BOM.
+                La liste des intrants nécessaires à cette composition.
               </FieldDescription>
               <FieldGroup>
                 {form.components.map(
@@ -264,7 +269,7 @@ export const BomForm = ({ showTitle = true }: BomFormProps) => {
                   className="w-48"
                   onClick={handleAddComponent}
                 >
-                  Ajouter un composant BOM
+                  Ajouter un intrant
                 </Button>
               </FieldGroup>
             </FieldSet>
@@ -272,7 +277,7 @@ export const BomForm = ({ showTitle = true }: BomFormProps) => {
             <FieldSet>
               <FieldLegend>Activités</FieldLegend>
               <FieldDescription>
-                Les étapes et le temps nécessaires à la production de la BOM.
+                Les étapes et le temps nécessaires à la production.
               </FieldDescription>
               <FieldGroup>
                 {form.activities.map((activity: BomActivity, index: number) => (

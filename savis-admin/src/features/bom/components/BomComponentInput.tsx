@@ -71,7 +71,7 @@ export const BomComponentInput = ({ value, onChange, onRemove }: Props) => {
       <div className="grid grid-cols-3 gap-4 items-start my-1">
         <Field className="col-span-2">
           <Input
-            placeholder="Nom du composant BOM"
+            placeholder="Nom de l'intrant"
             value={value.componentName}
             required
             onChange={(e) =>

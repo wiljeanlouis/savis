@@ -64,7 +64,7 @@ const BomComponentEditForm = ({
   return (
     <DialogContent className="sm:max-w-md">
       <DialogHeader>
-        <DialogTitle>Modifier le composant BOM</DialogTitle>
+        <DialogTitle>Modifier l'intrant</DialogTitle>
         <DialogDescription>{bomComponent.label}</DialogDescription>
       </DialogHeader>
       <div className="grid gap-4">

@@ -79,9 +79,10 @@ export function ActivityRatesPage() {
     <>
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div className="space-y-1">
-          <h1 className="text-2xl font-semibold">Taux horaire</h1>
+          <h1 className="text-2xl font-semibold">Activités et taux horaires</h1>
           <p className="text-sm text-muted-foreground">
-            Coûts horaires globaux utilisés dans le calcul des BOM.
+            Coûts horaires des activités utilisés dans le calcul des
+            compositions.
           </p>
         </div>
         <ActivityRateDialog

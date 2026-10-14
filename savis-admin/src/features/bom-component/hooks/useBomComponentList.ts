@@ -122,7 +122,7 @@ export const useBomComponentList = () => {
     };
 
     toast.error(
-      "Une erreur est survenue lors de la récupération des composants BOM.",
+      "Une erreur est survenue lors de la récupération des intrants.",
       {
         description: errorResponse.response?.data?.detail,
       },
@@ -206,8 +206,8 @@ export const useBomComponentList = () => {
     patchBomComponent.mutate(
       { id: bomComponent.id, payload: { status } },
       {
-        onSuccess: () => toast.success(`Composant BOM ${action}.`),
-        onError: () => toast.error("La mise à jour du composant BOM a échoué."),
+        onSuccess: () => toast.success(`Intrant ${action}.`),
+        onError: () => toast.error("La mise à jour de l'intrant a échoué."),
       },
     );
   };
@@ -226,7 +226,7 @@ export const useBomComponentList = () => {
           },
         });
       } catch {
-        toast.error("La mise à jour du composant BOM a échoué.");
+        toast.error("La mise à jour de l'intrant a échoué.");
         return;
       }
 
@@ -242,13 +242,11 @@ export const useBomComponentList = () => {
         }
         toast.success(
           values.refreshNow
-            ? "Composant BOM mis à jour et refresh lancé."
-            : "Composant BOM mis à jour.",
+            ? "Intrant mis à jour et actualisation lancée."
+            : "Intrant mis à jour.",
         );
       } catch {
-        toast.error(
-          "Le composant BOM est mis à jour, mais le refresh a échoué.",
-        );
+        toast.error("L'intrant est mis à jour, mais l'actualisation a échoué.");
       }
     })();
   };
@@ -282,8 +280,8 @@ export const useBomComponentList = () => {
 
   const handleDelete = (bomComponent: BomComponent) => {
     deleteBomComponent.mutate(bomComponent.id, {
-      onSuccess: () => toast.success("Composant BOM supprimé."),
-      onError: () => toast.error("La suppression du composant BOM a échoué."),
+      onSuccess: () => toast.success("Intrant supprimé."),
+      onError: () => toast.error("La suppression de l'intrant a échoué."),
     });
   };
 

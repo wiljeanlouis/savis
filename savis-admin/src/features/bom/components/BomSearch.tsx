@@ -20,7 +20,7 @@ export const BomSearch = ({
         <Input
           value={searchQuery}
           onChange={(event) => onSearchQueryChange(event.target.value)}
-          placeholder="Rechercher dans les BOM"
+          placeholder="Rechercher dans les compositions"
         />
         <Button variant="outline" type="button" aria-label="Rechercher">
           <HugeiconsIcon icon={Search01Icon} strokeWidth={2} />

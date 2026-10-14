@@ -28,6 +28,7 @@ import type {
 interface BomComponentRetrieveDialogProps {
   isRetrieving: boolean;
   onRetrieve: (values: BomComponentRetrievalValues) => Promise<boolean>;
+  supplierOffers?: boolean;
 }
 
 const initialValues: BomComponentRetrievalValues = {
@@ -40,6 +41,7 @@ const initialValues: BomComponentRetrievalValues = {
 export const BomComponentRetrieveDialog = ({
   isRetrieving,
   onRetrieve,
+  supplierOffers = false,
 }: BomComponentRetrieveDialogProps) => {
   const [open, setOpen] = useState(false);
   const [values, setValues] =
@@ -63,12 +65,20 @@ export const BomComponentRetrieveDialog = ({
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogTrigger asChild>
-        <Button>Récupérer un composant BOM</Button>
+        <Button>
+          {supplierOffers
+            ? "Récupérer une offre fournisseur"
+            : "Récupérer un intrant"}
+        </Button>
       </DialogTrigger>
       <DialogContent className="sm:max-w-md">
         <form onSubmit={handleSubmit}>
           <DialogHeader>
-            <DialogTitle>Récupérer un composant BOM</DialogTitle>
+            <DialogTitle>
+              {supplierOffers
+                ? "Récupérer une offre fournisseur"
+                : "Récupérer un intrant"}
+            </DialogTitle>
             <DialogDescription>
               Indiquez une offre précise à récupérer depuis le site du
               fournisseur.
@@ -131,7 +141,7 @@ export const BomComponentRetrieveDialog = ({
 
             <div className="grid gap-2">
               <Label htmlFor="bom-component-retrieve-name">
-                Nom du composant BOM
+                Nom de l'intrant
               </Label>
               <Input
                 id="bom-component-retrieve-name"
