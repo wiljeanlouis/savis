@@ -27,6 +27,7 @@ import { QuotationDetailsPage } from "@/features/quotations/pages/QuotationDetai
 import { InvoicesPage } from "@/features/invoices/pages/InvoicesPage";
 import { InvoiceDetailsPage } from "@/features/invoices/pages/InvoiceDetailsPage";
 import { SalesLayout } from "@/features/sales/pages/SalesLayout";
+import { SupplyOffersPage } from "@/features/supply-offer/pages/SupplyOffersPage";
 
 const router = createBrowserRouter([
   {
@@ -434,6 +435,31 @@ const router = createBrowserRouter([
             },
           },
         ],
+      },
+      {
+        path: "/supply/offers",
+        element: <SupplyOffersPage />,
+        handle: {
+          breadcrumb: () => (
+            <>
+              <BreadcrumbItem className="hidden md:block">
+                <BreadcrumbLink asChild>
+                  <Link to="/">Accueil</Link>
+                </BreadcrumbLink>
+              </BreadcrumbItem>
+              <BreadcrumbSeparator className="hidden md:block" />
+              <BreadcrumbItem className="hidden md:block">
+                <BreadcrumbLink asChild>
+                  <Link to="/supply/offers">Approvisionnement</Link>
+                </BreadcrumbLink>
+              </BreadcrumbItem>
+              <BreadcrumbSeparator className="hidden md:block" />
+              <BreadcrumbItem>
+                <BreadcrumbPage>Offres fournisseurs</BreadcrumbPage>
+              </BreadcrumbItem>
+            </>
+          ),
+        },
       },
       {
         path: "/supply-offers",
