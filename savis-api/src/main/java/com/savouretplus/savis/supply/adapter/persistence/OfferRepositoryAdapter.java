@@ -68,7 +68,8 @@ public class OfferRepositoryAdapter implements OfferRepository {
     @Override
     public OfferCatalogPage searchCatalog(OfferCatalogQuery query) {
         PageRequest pageRequest = PageRequest.of(query.page(), query.size(), sortFor(query.sort()));
-        Page<OfferEntity> page = jpaRepository.searchCatalog(query.search(), query.status(), pageRequest);
+        String search = query.search() == null ? "" : query.search();
+        Page<OfferEntity> page = jpaRepository.searchCatalog(search, query.status(), pageRequest);
 
         return new OfferCatalogPage(
                 page.getContent().stream().map(this::toDomain).toList(),

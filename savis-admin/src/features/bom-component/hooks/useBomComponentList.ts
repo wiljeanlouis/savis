@@ -122,7 +122,7 @@ export const useBomComponentList = () => {
     };
 
     toast.error(
-      "Une erreur est survenue lors de la récupération des intrants.",
+      "Une erreur est survenue lors de la récupération des offres fournisseurs.",
       {
         description: errorResponse.response?.data?.detail,
       },
@@ -206,8 +206,9 @@ export const useBomComponentList = () => {
     patchBomComponent.mutate(
       { id: bomComponent.id, payload: { status } },
       {
-        onSuccess: () => toast.success(`Intrant ${action}.`),
-        onError: () => toast.error("La mise à jour de l'intrant a échoué."),
+        onSuccess: () => toast.success(`Offre fournisseur ${action}.`),
+        onError: () =>
+          toast.error("La mise à jour de l'offre fournisseur a échoué."),
       },
     );
   };
@@ -226,7 +227,7 @@ export const useBomComponentList = () => {
           },
         });
       } catch {
-        toast.error("La mise à jour de l'intrant a échoué.");
+        toast.error("La mise à jour de l'offre fournisseur a échoué.");
         return;
       }
 
@@ -242,11 +243,13 @@ export const useBomComponentList = () => {
         }
         toast.success(
           values.refreshNow
-            ? "Intrant mis à jour et actualisation lancée."
-            : "Intrant mis à jour.",
+            ? "Offre fournisseur mise à jour et actualisation lancée."
+            : "Offre fournisseur mise à jour.",
         );
       } catch {
-        toast.error("L'intrant est mis à jour, mais l'actualisation a échoué.");
+        toast.error(
+          "L'offre fournisseur est mise à jour, mais l'actualisation a échoué.",
+        );
       }
     })();
   };
@@ -280,8 +283,9 @@ export const useBomComponentList = () => {
 
   const handleDelete = (bomComponent: BomComponent) => {
     deleteBomComponent.mutate(bomComponent.id, {
-      onSuccess: () => toast.success("Intrant supprimé."),
-      onError: () => toast.error("La suppression de l'intrant a échoué."),
+      onSuccess: () => toast.success("Offre fournisseur supprimée."),
+      onError: () =>
+        toast.error("La suppression de l'offre fournisseur a échoué."),
     });
   };
 

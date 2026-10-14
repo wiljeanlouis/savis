@@ -29,6 +29,7 @@ interface NavItem {
     name: string;
     url: string;
     activeUrls?: string[];
+    exact?: boolean;
   }[];
 }
 
@@ -39,13 +40,18 @@ interface Props {
 
 export function NavSection({ title, items }: Props) {
   const { pathname } = useLocation();
-  const isRouteActive = (url: string) =>
-    pathname === url || pathname.startsWith(`${url}/`);
+  const isRouteActive = (url: string, exact = false) =>
+    pathname === url || (!exact && pathname.startsWith(`${url}/`));
   const isChildRouteActive = (
     child: NonNullable<NavItem["children"]>[number],
-  ) => (child.activeUrls ?? [child.url]).some(isRouteActive);
+  ) =>
+    (child.activeUrls ?? [child.url]).some((url) =>
+      isRouteActive(url, child.exact),
+    );
   const isItemRouteActive = (item: NavItem) =>
-    (item.activeUrls ?? (item.url ? [item.url] : [])).some(isRouteActive);
+    (item.activeUrls ?? (item.url ? [item.url] : [])).some((url) =>
+      isRouteActive(url),
+    );
 
   return (
     <SidebarGroup className="group-data-[collapsible=icon]:hidden">

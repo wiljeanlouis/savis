@@ -41,7 +41,7 @@ interface OfferJpaRepository extends JpaRepository<OfferEntity, Long> {
             select offer
             from offers offer
             where (:status is null or offer.status = :status)
-              and (:search is null
+              and (:search = ''
                    or lower(offer.componentName) like lower(concat('%', :search, '%'))
                    or lower(offer.label) like lower(concat('%', :search, '%'))
                    or lower(offer.brand) like lower(concat('%', :search, '%'))

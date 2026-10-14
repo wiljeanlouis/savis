@@ -383,23 +383,7 @@ const router = createBrowserRouter([
             element: <BomComponentsPage />,
             handle: {
               breadcrumb: () => (
-                <>
-                  <BreadcrumbItem className="hidden md:block">
-                    <BreadcrumbLink asChild>
-                      <Link to="/">Accueil</Link>
-                    </BreadcrumbLink>
-                  </BreadcrumbItem>
-                  <BreadcrumbSeparator className="hidden md:block" />
-                  <BreadcrumbItem className="hidden md:block">
-                    <BreadcrumbLink asChild>
-                      <Link to="/bom-components">Production</Link>
-                    </BreadcrumbLink>
-                  </BreadcrumbItem>
-                  <BreadcrumbSeparator className="hidden md:block" />
-                  <BreadcrumbItem>
-                    <BreadcrumbPage>Intrants</BreadcrumbPage>
-                  </BreadcrumbItem>
-                </>
+                <ProcurementBreadcrumb section="Gestion des offres" />
               ),
             },
           },
@@ -408,29 +392,7 @@ const router = createBrowserRouter([
             element: <BomComponentTasksPage />,
             handle: {
               breadcrumb: () => (
-                <>
-                  <BreadcrumbItem className="hidden md:block">
-                    <BreadcrumbLink asChild>
-                      <Link to="/">Accueil</Link>
-                    </BreadcrumbLink>
-                  </BreadcrumbItem>
-                  <BreadcrumbSeparator className="hidden md:block" />
-                  <BreadcrumbItem className="hidden md:block">
-                    <BreadcrumbLink asChild>
-                      <Link to="/bom-components">Production</Link>
-                    </BreadcrumbLink>
-                  </BreadcrumbItem>
-                  <BreadcrumbSeparator className="hidden md:block" />
-                  <BreadcrumbItem className="hidden md:block">
-                    <BreadcrumbLink asChild>
-                      <Link to="/bom-components">Intrants</Link>
-                    </BreadcrumbLink>
-                  </BreadcrumbItem>
-                  <BreadcrumbSeparator className="hidden md:block" />
-                  <BreadcrumbItem>
-                    <BreadcrumbPage>Tâches de récupération</BreadcrumbPage>
-                  </BreadcrumbItem>
-                </>
+                <ProcurementBreadcrumb section="Tâches d'acquisition" />
               ),
             },
           },
@@ -441,23 +403,7 @@ const router = createBrowserRouter([
         element: <SupplyOffersPage />,
         handle: {
           breadcrumb: () => (
-            <>
-              <BreadcrumbItem className="hidden md:block">
-                <BreadcrumbLink asChild>
-                  <Link to="/">Accueil</Link>
-                </BreadcrumbLink>
-              </BreadcrumbItem>
-              <BreadcrumbSeparator className="hidden md:block" />
-              <BreadcrumbItem className="hidden md:block">
-                <BreadcrumbLink asChild>
-                  <Link to="/supply/offers">Approvisionnement</Link>
-                </BreadcrumbLink>
-              </BreadcrumbItem>
-              <BreadcrumbSeparator className="hidden md:block" />
-              <BreadcrumbItem>
-                <BreadcrumbPage>Offres fournisseurs</BreadcrumbPage>
-              </BreadcrumbItem>
-            </>
+            <ProcurementBreadcrumb section="Offres fournisseurs" />
           ),
         },
       },
@@ -514,7 +460,7 @@ const router = createBrowserRouter([
                   </BreadcrumbItem>
                   <BreadcrumbSeparator className="hidden md:block" />
                   <BreadcrumbItem>
-                    <BreadcrumbPage>Tâches de récupération</BreadcrumbPage>
+                    <BreadcrumbPage>Tâches d'acquisition</BreadcrumbPage>
                   </BreadcrumbItem>
                 </>
               ),
@@ -575,6 +521,28 @@ function SalesBreadcrumb({ section }: { section: string }) {
       <BreadcrumbItem className="hidden md:block">
         <BreadcrumbLink asChild>
           <Link to="/sales/orders">Ventes</Link>
+        </BreadcrumbLink>
+      </BreadcrumbItem>
+      <BreadcrumbSeparator className="hidden md:block" />
+      <BreadcrumbItem>
+        <BreadcrumbPage>{section}</BreadcrumbPage>
+      </BreadcrumbItem>
+    </>
+  );
+}
+
+export function ProcurementBreadcrumb({ section }: { section: string }) {
+  return (
+    <>
+      <BreadcrumbItem className="hidden md:block">
+        <BreadcrumbLink asChild>
+          <Link to="/">Accueil</Link>
+        </BreadcrumbLink>
+      </BreadcrumbItem>
+      <BreadcrumbSeparator className="hidden md:block" />
+      <BreadcrumbItem className="hidden md:block">
+        <BreadcrumbLink asChild>
+          <Link to="/supply/offers">Approvisionnement</Link>
         </BreadcrumbLink>
       </BreadcrumbItem>
       <BreadcrumbSeparator className="hidden md:block" />

@@ -19,7 +19,7 @@ import {
   Analytics01Icon,
   PackageIcon,
   GearsFreeIcons,
-  ShoppingCart02Icon,
+  MoneyReceiveCircleIcon,
 } from "@hugeicons/core-free-icons";
 import { Link } from "react-router";
 import { NavSection } from "./components/NavSection";
@@ -42,7 +42,16 @@ const data = {
       children: [
         {
           name: "Offres fournisseurs",
-          url: "/supply-offers",
+          url: "/supply/offers",
+        },
+        {
+          name: "Gestion des offres",
+          url: "/bom-components",
+          exact: true,
+        },
+        {
+          name: "Tâches d'acquisition",
+          url: "/bom-components/tasks",
         },
       ],
     },
@@ -50,10 +59,6 @@ const data = {
       name: "Production",
       icon: <HugeiconsIcon icon={GearsFreeIcons} strokeWidth={2} />,
       children: [
-        {
-          name: "Intrants",
-          url: "/bom-components",
-        },
         {
           name: "Compositions",
           url: "/boms",
@@ -66,14 +71,34 @@ const data = {
     },
     {
       name: "Catalogue",
-      url: "/catalog-products",
       icon: <HugeiconsIcon icon={PackageIcon} strokeWidth={2} />,
+      children: [
+        {
+          name: "Produits",
+          url: "/catalog-products",
+        },
+      ],
     },
     {
       name: "Ventes",
-      url: "/sales/orders",
-      activeUrls: ["/sales", "/quotations", "/orders", "/invoices"],
-      icon: <HugeiconsIcon icon={ShoppingCart02Icon} strokeWidth={2} />,
+      icon: <HugeiconsIcon icon={MoneyReceiveCircleIcon} strokeWidth={2} />,
+      children: [
+        {
+          name: "Soumissions",
+          url: "/sales/quotations",
+          activeUrls: ["/sales/quotations", "/quotations"],
+        },
+        {
+          name: "Commandes",
+          url: "/sales/orders",
+          activeUrls: ["/sales/orders", "/orders"],
+        },
+        {
+          name: "Factures",
+          url: "/sales/invoices",
+          activeUrls: ["/sales/invoices", "/invoices"],
+        },
+      ],
     },
   ],
   navSecondary: [
