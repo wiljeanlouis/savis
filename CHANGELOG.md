@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.10.0](https://github.com/wiljeanlouis/savis/compare/v1.9.0...v1.10.0) (2026-10-14)
+
+
+### Features
+
+* refactor order by adding quotation and invoice ([#146](https://github.com/wiljeanlouis/savis/issues/146)) ([6dc2a87](https://github.com/wiljeanlouis/savis/commit/6dc2a870c621351b37775fe7ae71a91d2280e03a))
+
 ## [1.9.0](https://github.com/wiljeanlouis/savis/compare/v1.8.1...v1.9.0) (2026-10-12)
 
 
