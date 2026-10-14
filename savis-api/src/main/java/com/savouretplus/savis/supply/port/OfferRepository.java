@@ -27,6 +27,11 @@ public interface OfferRepository {
     List<Offer> searchAvailableByComponentName(String componentName);
 
     /**
+     * Searches the persisted offer catalog with database-backed filtering and pagination.
+     */
+    OfferCatalogPage searchCatalog(OfferCatalogQuery query);
+
+    /**
      * Persists the provided aggregate.
      */
     Offer save(Offer offer);

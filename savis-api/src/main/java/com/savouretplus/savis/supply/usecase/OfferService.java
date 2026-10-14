@@ -15,6 +15,8 @@ import com.savouretplus.savis.common.Quantity;
 import com.savouretplus.savis.supply.api.OfferPricing;
 import com.savouretplus.savis.supply.api.SupplyApi;
 import com.savouretplus.savis.supply.domain.Offer;
+import com.savouretplus.savis.supply.port.OfferCatalogPage;
+import com.savouretplus.savis.supply.port.OfferCatalogQuery;
 import com.savouretplus.savis.supply.port.OfferRepository;
 
 import lombok.extern.slf4j.Slf4j;
@@ -51,6 +53,14 @@ public class OfferService implements SupplyApi {
     public List<Offer> searchAvailableOffers(String componentName) {
         log.info("Search available offers for component {}", componentName);
         return repository.searchAvailableByComponentName(componentName);
+    }
+
+    /**
+     * Returns one filtered page of persisted supplier offers.
+     */
+    @Transactional(readOnly = true)
+    public OfferCatalogPage searchOfferCatalog(OfferCatalogQuery query) {
+        return repository.searchCatalog(query);
     }
 
     /**
