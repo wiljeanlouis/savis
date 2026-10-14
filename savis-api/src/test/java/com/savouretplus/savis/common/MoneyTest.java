@@ -30,4 +30,21 @@ public class MoneyTest {
         Assertions.assertEquals(new Money(BigDecimal.valueOf(30.00), "CAD"), result);
     }
 
+    @Test
+    void validatesAndNormalizesCurrencyCodes() {
+        Assertions.assertEquals("CAD", new Money(BigDecimal.ONE, " cad ").currency());
+
+        Assertions.assertThrows(IllegalArgumentException.class, () -> new Money(BigDecimal.ONE, null));
+        Assertions.assertThrows(IllegalArgumentException.class, () -> new Money(BigDecimal.ONE, " "));
+        Assertions.assertThrows(IllegalArgumentException.class, () -> new Money(BigDecimal.ONE, "INVALID"));
+    }
+
+    @Test
+    void rejectsArithmeticBetweenDifferentCurrencies() {
+        Money cad = new Money(BigDecimal.ONE, "CAD");
+        Money usd = new Money(BigDecimal.ONE, "USD");
+
+        Assertions.assertThrows(IllegalArgumentException.class, () -> cad.add(usd));
+    }
+
 }

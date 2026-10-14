@@ -9,6 +9,7 @@ import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.type.SqlTypes;
 
 import com.savouretplus.savis.catalog.domain.AllocationType;
+import com.savouretplus.savis.catalog.domain.CommercialType;
 import com.savouretplus.savis.catalog.domain.ProductCategory;
 import com.savouretplus.savis.catalog.domain.ProductSubcategory;
 import com.savouretplus.savis.catalog.domain.ProductType;
@@ -49,6 +50,9 @@ public class ProductEntity {
     private String name;
     @Column(nullable = false, columnDefinition = "text")
     private String description;
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
+    private CommercialType commercialType;
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     private ProductType productType;

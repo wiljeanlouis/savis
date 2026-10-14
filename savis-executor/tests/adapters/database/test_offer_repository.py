@@ -89,6 +89,30 @@ def test_save_persists_complete_offer() -> None:
     assert entity.offer_type == OfferType.FOOD.value
 
 
+@pytest.mark.parametrize(
+    ("persisted_amount", "supply_amount"),
+    [
+        ("12.99", "12.99"),
+        ("12.9876", "12.99"),
+        ("12.9850", "12.98"),
+        ("12.9950", "13.00"),
+    ],
+)
+def test_read_rounds_prices_explicitly_for_supply(
+    persisted_amount: str,
+    supply_amount: str,
+) -> None:
+    repository, _session_factory = _repository()
+    offer = _offer(price_amount=persisted_amount)
+    repository.save(offer)
+
+    restored = repository.find_by_id(offer.id)  # pyright: ignore[reportArgumentType]
+
+    assert restored is not None
+    assert restored.price is not None
+    assert restored.price.amount == supply_amount
+
+
 def test_delete_removes_offer() -> None:
     repository, _session_factory = _repository()
     offer = _offer()

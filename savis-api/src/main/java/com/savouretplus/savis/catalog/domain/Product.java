@@ -20,6 +20,7 @@ public record Product(
         String slug,
         String name,
         String description,
+        CommercialType commercialType,
         ProductType productType,
         ProductCategory category,
         ProductSubcategory subcategory,
@@ -44,6 +45,7 @@ public record Product(
         requireText(slug, "Le slug du produit est requis");
         requireText(name, "Le nom du produit est requis");
         description = description != null ? description : "";
+        commercialType = commercialType != null ? commercialType : CommercialType.GOODS;
         productType = productType != null ? productType : ProductType.STANDARD;
         if (category == null) {
             throw new IllegalArgumentException("La catégorie du produit est requise");
@@ -176,7 +178,8 @@ public record Product(
      */
     public Product withPublished(boolean value) {
         return new Product(
-                publicId, code, slug, name, description, productType, category, subcategory, productBoms,
+                publicId, code, slug, name, description, commercialType, productType,
+                category, subcategory, productBoms,
                 targetMarginRate, imageUrl, gallery, availabilityNote,
                 available, value, displayOrder, purchaseModes, choiceGroup, ingredientOptions);
     }
@@ -186,7 +189,8 @@ public record Product(
             ProductChoiceGroup group,
             List<ProductIngredientOption> ingredients) {
         return new Product(
-                publicId, code, slug, name, description, productType, category, subcategory, productBoms,
+                publicId, code, slug, name, description, commercialType, productType,
+                category, subcategory, productBoms,
                 targetMarginRate, imageUrl, gallery, availabilityNote,
                 available, published, displayOrder, modes, group, ingredients);
     }

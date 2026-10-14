@@ -3,13 +3,37 @@ import type {
   ProductPurchaseMode,
 } from "@/features/catalog/types";
 import { createUuid } from "@/shared/lib/utils";
-import type { CreateOrderRequest } from "../types";
+import {
+  addSafeCents,
+  dollarsToSafeCents,
+  multiplySafeCents,
+  requireSafeCents,
+} from "@/shared/lib/money";
+import type {
+  CreateOrderRequest,
+  Order,
+  UpdateOrderCustomerRequest,
+} from "../types";
+import {
+  formatPhoneForDisplay,
+  normalizeCanadianPostalCode,
+  normalizePhone,
+} from "./contactFormat";
 
 export interface AdminOrderDraft {
   customerName: string;
   customerPhone: string;
   customerEmail: string;
+  customerAddress: {
+    line1: string;
+    line2: string;
+    city: string;
+    province: string;
+    postalCode: string;
+  };
   note: string;
+  discountCents: number;
+  deliveryFeeCents: number;
   items: AdminOrderItemDraft[];
 }
 
@@ -27,9 +51,73 @@ export const emptyAdminOrderDraft = (): AdminOrderDraft => ({
   customerName: "",
   customerPhone: "",
   customerEmail: "",
+  customerAddress: {
+    line1: "",
+    line2: "",
+    city: "",
+    province: "",
+    postalCode: "",
+  },
   note: "",
+  discountCents: 0,
+  deliveryFeeCents: 0,
   items: [],
 });
+
+export function adminOrderDraftFromOrder(order: Order): AdminOrderDraft {
+  return {
+    customerName: order.customerName,
+    customerPhone: formatPhoneForDisplay(order.customerPhone),
+    customerEmail: order.customerEmail ?? "",
+    customerAddress: {
+      line1: order.customerAddress?.line1 ?? "",
+      line2: order.customerAddress?.line2 ?? "",
+      city: order.customerAddress?.city ?? "",
+      province: order.customerAddress?.province ?? "",
+      postalCode: order.customerAddress?.postalCode ?? "",
+    },
+    note: order.note ?? "",
+    discountCents: order.discountCents,
+    deliveryFeeCents: order.deliveryFeeCents,
+    items: order.items.map((item) => ({
+      key: item.id,
+      productId: item.productId,
+      quantity: item.quantity,
+      purchaseModeCode: item.purchaseModeId ?? "",
+      choiceCode: item.choiceSelections[0]?.choiceId ?? "",
+      allocations: Object.fromEntries(
+        item.choiceAllocations.map((allocation) => [
+          allocation.choiceId,
+          allocation.quantity,
+        ]),
+      ),
+      ingredients: Object.fromEntries(
+        item.ingredientSelections.map((ingredient) => [
+          ingredient.ingredientId,
+          ingredient.quantity,
+        ]),
+      ),
+    })),
+  };
+}
+
+export function buildUpdateOrderCustomerRequest(
+  draft: AdminOrderDraft,
+): UpdateOrderCustomerRequest {
+  if (!draft.customerName.trim()) {
+    throw new Error("Le nom du client est requis.");
+  }
+  if (!draft.customerPhone.trim()) {
+    throw new Error("Le téléphone du client est requis.");
+  }
+  return {
+    customerName: draft.customerName.trim(),
+    customerPhone: normalizePhone(draft.customerPhone),
+    customerEmail: blankToNull(draft.customerEmail),
+    customerAddress: addressOrNull(draft.customerAddress),
+    note: blankToNull(draft.note),
+  };
+}
 
 export function createAdminOrderItem(
   product: CatalogProduct,
@@ -95,12 +183,26 @@ export function buildCreateOrderRequest(
   if (draft.items.length === 0) {
     throw new Error("Ajoutez au moins un produit à la commande.");
   }
+  const subtotalCents = estimateOrderSubtotalCents(draft, products);
+  requireSafeCents(draft.discountCents);
+  requireSafeCents(draft.deliveryFeeCents);
+  if (draft.discountCents < 0 || draft.deliveryFeeCents < 0) {
+    throw new Error(
+      "Le rabais et les frais de livraison doivent être positifs.",
+    );
+  }
+  if (draft.discountCents > subtotalCents) {
+    throw new Error("Le rabais ne peut pas dépasser le sous-total.");
+  }
 
   return {
     customerName: draft.customerName.trim(),
-    customerPhone: draft.customerPhone.trim(),
+    customerPhone: normalizePhone(draft.customerPhone),
     customerEmail: blankToNull(draft.customerEmail),
+    customerAddress: addressOrNull(draft.customerAddress),
     note: blankToNull(draft.note),
+    discountCents: draft.discountCents,
+    deliveryFeeCents: draft.deliveryFeeCents,
     items: draft.items.map((item) => {
       const product = requireProduct(products, item.productId);
       const mode = requireMode(product, item.purchaseModeCode);
@@ -161,6 +263,21 @@ export function estimateOrderTotalCents(
   draft: AdminOrderDraft,
   products: CatalogProduct[],
 ) {
+  const subtotal = estimateOrderSubtotalCents(draft, products);
+  const discountedSubtotal = addSafeCents(
+    subtotal,
+    -requireSafeCents(draft.discountCents),
+  );
+  return addSafeCents(
+    Math.max(0, discountedSubtotal),
+    requireSafeCents(draft.deliveryFeeCents),
+  );
+}
+
+export function estimateOrderSubtotalCents(
+  draft: AdminOrderDraft,
+  products: CatalogProduct[],
+) {
   return draft.items.reduce((total, item) => {
     const product = products.find((value) => value.id === item.productId);
     const mode = product?.purchaseModes.find(
@@ -172,13 +289,21 @@ export function estimateOrderTotalCents(
       .reduce((sum, option) => {
         const selected =
           item.ingredients[option.code] ?? option.defaultQuantity;
-        return (
-          sum +
-          Math.max(0, selected - option.defaultQuantity) *
-            cents(option.extraPrice.amount)
+        return addSafeCents(
+          sum,
+          multiplySafeCents(
+            dollarsToSafeCents(option.extraPrice.amount),
+            Math.max(0, selected - option.defaultQuantity),
+          ),
         );
       }, 0);
-    return total + (cents(mode.price.amount) + extras) * item.quantity;
+    return addSafeCents(
+      total,
+      multiplySafeCents(
+        addSafeCents(dollarsToSafeCents(mode.price.amount), extras),
+        item.quantity,
+      ),
+    );
   }, 0);
 }
 
@@ -217,11 +342,20 @@ function requireMode(product: CatalogProduct, code: string) {
   return mode;
 }
 
-function cents(amount: number) {
-  return Math.round(amount * 100);
-}
-
 function blankToNull(value: string) {
   const trimmed = value.trim();
   return trimmed ? trimmed : null;
+}
+
+function addressOrNull(address: AdminOrderDraft["customerAddress"]) {
+  const normalized = {
+    line1: blankToNull(address.line1),
+    line2: blankToNull(address.line2),
+    city: blankToNull(address.city),
+    province: blankToNull(address.province)?.toUpperCase() ?? null,
+    postalCode: blankToNull(address.postalCode)
+      ? normalizeCanadianPostalCode(address.postalCode)
+      : null,
+  };
+  return Object.values(normalized).some(Boolean) ? normalized : null;
 }

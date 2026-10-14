@@ -13,7 +13,8 @@ import { activeClass } from "../AppSidebar";
 
 export const NavMain = () => {
   const { pathname } = useLocation();
-  const isDashboardActive = pathname.startsWith("/dashboard");
+  const isDashboardActive =
+    pathname === "/" || pathname.startsWith("/dashboard");
 
   return (
     <SidebarGroup>
@@ -21,14 +22,14 @@ export const NavMain = () => {
         <SidebarMenu>
           <SidebarMenuItem className="flex items-center gap-2">
             <SidebarMenuButton
-              tooltip="Dashboard"
+              tooltip="Tableau de bord"
               className={`min-w-8 ${isDashboardActive ? activeClass : ""}`}
               isActive={isDashboardActive}
               asChild
             >
-              <NavLink to="/dashboard" state={{ title: "Dashboard" }}>
+              <NavLink to="/dashboard" state={{ title: "Tableau de bord" }}>
                 <HugeiconsIcon icon={DashboardSquare01Icon} strokeWidth={2} />
-                <span>Dashboard</span>
+                <span>Tableau de bord</span>
               </NavLink>
             </SidebarMenuButton>
             <Button

@@ -86,6 +86,9 @@ export function CatalogProductCard({
           </CardDescription>
           <div className="mt-2 flex flex-wrap gap-2">
             <Badge variant="outline">
+              {product.commercialType === "SERVICE" ? "Service" : "Bien"}
+            </Badge>
+            <Badge variant="outline">
               {productTypeLabel(product.productType)}
             </Badge>
             {!product.available && (

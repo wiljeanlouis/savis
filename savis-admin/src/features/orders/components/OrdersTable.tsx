@@ -9,6 +9,7 @@ import {
 } from "@/shared/ui/table";
 import { Link } from "react-router";
 import type { OrderSummary } from "../types";
+import { formatPhoneForDisplay, phoneHref } from "../model/contactFormat";
 import {
   formatOrderCurrency,
   formatOrderDate,
@@ -52,9 +53,9 @@ export function OrdersTable({ orders }: { orders: OrderSummary[] }) {
                 <TableCell>
                   <a
                     className="hover:underline"
-                    href={`tel:${order.customerPhone}`}
+                    href={`tel:${phoneHref(order.customerPhone)}`}
                   >
-                    {order.customerPhone}
+                    {formatPhoneForDisplay(order.customerPhone)}
                   </a>
                 </TableCell>
                 <TableCell className="font-medium">

@@ -45,7 +45,7 @@ export const BomList = () => {
       response: { data?: { detail?: string } };
     };
     toast.error(
-      "Une erreur est survenue lors de la récupération de la liste de BOM.",
+      "Une erreur est survenue lors de la récupération des compositions.",
       {
         description: errorResponse.response?.data?.detail,
       },
@@ -56,10 +56,9 @@ export const BomList = () => {
     <>
       <div className="space-y-4">
         <div>
-          <h1 className="text-2xl font-semibold">Compositions BOM</h1>
+          <h1 className="text-2xl font-semibold">Compositions</h1>
           <p className="text-sm text-muted-foreground">
-            Tout ce qui rentre dans la fabrication d'un élément vendable. Il
-            peut être une recette, un matériel, etc
+            Définitions de fabrication des biens et services commercialisables.
           </p>
         </div>
 

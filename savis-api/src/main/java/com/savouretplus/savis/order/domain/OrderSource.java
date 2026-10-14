@@ -5,5 +5,6 @@ package com.savouretplus.savis.order.domain;
  */
 public enum OrderSource {
     SAVOURETPLUS_WEB,
-    ADMIN
+    ADMIN,
+    QUOTATION
 }

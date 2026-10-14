@@ -5,7 +5,7 @@ import { MemoryRouter } from "react-router";
 import { describe, expect, it } from "vitest";
 
 describe("OrdersTable", () => {
-  it("renders one stable product preview and the total item count", () => {
+  it("renders one stable product preview and the item count", () => {
     const order: OrderSummary = {
       id: "order-id",
       orderNumber: "ADM-00000001",

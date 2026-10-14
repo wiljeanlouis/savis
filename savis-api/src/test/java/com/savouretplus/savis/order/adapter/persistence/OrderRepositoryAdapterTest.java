@@ -12,10 +12,12 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.dao.InvalidDataAccessApiUsageException;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.savouretplus.savis.order.domain.Order;
+import com.savouretplus.savis.order.domain.OrderAddress;
 import com.savouretplus.savis.order.domain.OrderItem;
 import com.savouretplus.savis.order.domain.OrderItemAllocationType;
 import com.savouretplus.savis.order.domain.OrderItemChoiceAllocation;
@@ -33,6 +35,7 @@ class OrderRepositoryAdapterTest {
     private static final UUID EXTERNAL_ID = UUID.fromString("10000000-0000-4000-8000-000000000001");
 
     @Autowired OrderRepository repository;
+    @Autowired OrderJpaRepository jpaRepository;
 
     @Test
     void persistsTheNormalizedSnapshotAndRejectsADuplicateExternalOrder() {
@@ -43,10 +46,24 @@ class OrderRepositoryAdapterTest {
         assertEquals("Poulet", reloaded.items().getFirst().choiceSelections().getFirst().choiceName());
         assertEquals(6, reloaded.items().getFirst().choiceAllocations().getFirst().quantity());
         assertEquals(1, reloaded.items().getFirst().ingredientSelections().getFirst().defaultQuantity());
+        assertEquals("Drummondville", reloaded.customerAddress().city());
+        assertEquals(150, reloaded.discountCents());
+        assertEquals(300, reloaded.deliveryFeeCents());
 
         assertThrows(
                 DataIntegrityViolationException.class,
                 () -> repository.save(order("WEB-00000002", EXTERNAL_ID)));
+    }
+
+    @Test
+    void rejectsAnIncoherentTotalWhenReconstructingFromPersistence() {
+        Order saved = repository.save(order("WEB-00000003", UUID.randomUUID()));
+        OrderEntity entity = jpaRepository.findByPublicId(saved.publicId()).orElseThrow();
+        entity.setTotalCents(entity.getTotalCents() - 1);
+        jpaRepository.saveAndFlush(entity);
+
+        assertThrows(InvalidDataAccessApiUsageException.class,
+                () -> repository.findByPublicId(saved.publicId()));
     }
 
     private Order order(String number, UUID externalId) {
@@ -60,7 +77,9 @@ class OrderRepositoryAdapterTest {
                 List.of(new OrderItemIngredientSelection(null, "spice", "Épices", 2, 1, 150)));
         return new Order(
                 null, null, number, OrderSource.SAVOURETPLUS_WEB, OrderStatus.NEW,
-                "Ada", "514", null, null, 3150, externalId, now, now,
+                "Ada", "514", null,
+                new OrderAddress("416 rue Lindsay", null, "Drummondville", "QC", "J2B 1G6"),
+                null, 150, 300, 3300, externalId, now, now,
                 null, null, null, null, null, List.of(item), Map.of("source", "savouretplus"));
     }
 }

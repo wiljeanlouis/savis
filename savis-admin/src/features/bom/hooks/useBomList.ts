@@ -33,13 +33,13 @@ export const useBomList = () => {
     try {
       const clonedBom = createBomClone(bom);
       const clonedBomId = await cloneMutation.mutateAsync(clonedBom);
-      toast.success("BOM cloné avec succès.");
+      toast.success("Composition clonée avec succès.");
       await navigate(`/boms/${clonedBomId}`);
     } catch (error) {
       const errorResponse = error as {
         response?: { data?: { detail?: string } };
       };
-      toast.error("Le clonage du BOM a échoué.", {
+      toast.error("Le clonage de la composition a échoué.", {
         description: errorResponse.response?.data?.detail,
       });
     }

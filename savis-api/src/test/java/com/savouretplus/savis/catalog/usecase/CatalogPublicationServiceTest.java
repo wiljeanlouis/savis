@@ -17,6 +17,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import com.savouretplus.savis.catalog.domain.Product;
+import com.savouretplus.savis.catalog.domain.CommercialType;
 import com.savouretplus.savis.catalog.domain.ProductCategory;
 import com.savouretplus.savis.catalog.domain.ProductPurchaseMode;
 import com.savouretplus.savis.catalog.domain.ProductType;
@@ -100,7 +101,8 @@ class CatalogPublicationServiceTest {
 
     private Product product(boolean published) {
         return new Product(
-                UUID.randomUUID(), "pate", "pate", "Pâté", "", ProductType.STANDARD,
+                UUID.randomUUID(), "pate", "pate", "Pâté", "", CommercialType.GOODS,
+                ProductType.STANDARD,
                 ProductCategory.TASTING, null, List.of(), new BigDecimal("0.30"),
                 "/pate.jpg", List.of(), "Disponible", true, published, 0,
                 List.of(new ProductPurchaseMode(

@@ -122,7 +122,7 @@ export const useBomComponentList = () => {
     };
 
     toast.error(
-      "Une erreur est survenue lors de la récupération des composants BOM.",
+      "Une erreur est survenue lors de la récupération des offres fournisseurs.",
       {
         description: errorResponse.response?.data?.detail,
       },
@@ -206,8 +206,9 @@ export const useBomComponentList = () => {
     patchBomComponent.mutate(
       { id: bomComponent.id, payload: { status } },
       {
-        onSuccess: () => toast.success(`Composant BOM ${action}.`),
-        onError: () => toast.error("La mise à jour du composant BOM a échoué."),
+        onSuccess: () => toast.success(`Offre fournisseur ${action}.`),
+        onError: () =>
+          toast.error("La mise à jour de l'offre fournisseur a échoué."),
       },
     );
   };
@@ -226,7 +227,7 @@ export const useBomComponentList = () => {
           },
         });
       } catch {
-        toast.error("La mise à jour du composant BOM a échoué.");
+        toast.error("La mise à jour de l'offre fournisseur a échoué.");
         return;
       }
 
@@ -242,12 +243,12 @@ export const useBomComponentList = () => {
         }
         toast.success(
           values.refreshNow
-            ? "Composant BOM mis à jour et refresh lancé."
-            : "Composant BOM mis à jour.",
+            ? "Offre fournisseur mise à jour et actualisation lancée."
+            : "Offre fournisseur mise à jour.",
         );
       } catch {
         toast.error(
-          "Le composant BOM est mis à jour, mais le refresh a échoué.",
+          "L'offre fournisseur est mise à jour, mais l'actualisation a échoué.",
         );
       }
     })();
@@ -282,8 +283,9 @@ export const useBomComponentList = () => {
 
   const handleDelete = (bomComponent: BomComponent) => {
     deleteBomComponent.mutate(bomComponent.id, {
-      onSuccess: () => toast.success("Composant BOM supprimé."),
-      onError: () => toast.error("La suppression du composant BOM a échoué."),
+      onSuccess: () => toast.success("Offre fournisseur supprimée."),
+      onError: () =>
+        toast.error("La suppression de l'offre fournisseur a échoué."),
     });
   };
 

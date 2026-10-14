@@ -230,6 +230,15 @@ The Catalog slice owns:
 - pricing analysis;
 - Supabase publication.
 
+Commercial nature is independent from product configuration:
+
+- `GOODS` identifies a physical good;
+- `SERVICE` identifies a service sold through the same catalog and order flows.
+
+Both commercial types may reference zero or more BOMs. Equipment rental and
+other inputs used to deliver a service remain internal BOM costs; they are not
+modeled as a third commercial product type.
+
 Supported product types:
 
 - `STANDARD`;
@@ -402,6 +411,8 @@ invalid catalog structures and disabled explicit publication return `400`.
 | `POST` | `/api/orders/import`                 | Manually import orders from the configured inbox. |
 | `GET`  | `/api/orders`                        | List normalized local orders.                |
 | `GET`  | `/api/orders/{orderId}`              | Retrieve one order and its item snapshots.   |
+| `PUT`  | `/api/orders/{orderId}`              | Replace a `NEW` administrative order from current catalog selections. |
+| `PATCH` | `/api/orders/{orderId}/customer`     | Correct customer information on a `NEW` imported web order. |
 | `GET`  | `/api/orders/{orderId}/requirements` | Generate current aggregated production-component requirements. |
 | `PUT`  | `/api/orders/{orderId}/status`       | Apply a valid lifecycle transition.          |
 
@@ -416,6 +427,29 @@ quantities, and configuration codes. The API validates each selection against
 the current Catalog aggregate, calculates authoritative prices, and stores an
 immutable snapshot with source `ADMIN` and initial status `NEW`. Names and
 prices supplied by the browser are never trusted.
+
+The same payload can replace an administrative order while it remains `NEW`.
+Replacement is atomic and rebuilds all item, configuration, image, and price
+snapshots from the current Catalog. Imported web orders and administrative
+orders in any later lifecycle status are rejected with `409 Conflict`.
+
+For a web order that is still `NEW`, the customer name, phone, email, address,
+and note may be corrected through the dedicated customer endpoint. Product
+configuration, quantities, price snapshots, totals, source payload, and source
+identifiers are preserved. Web orders in later statuses are rejected with
+`409 Conflict`.
+
+Administrative orders can also include an optional customer address, a
+non-negative discount, and a non-negative delivery fee. The order total is the
+catalog subtotal minus the discount plus delivery. Taxes are not calculated.
+Customer phones are validated with Canada as the default region and persisted
+in E.164 form. Optional addresses normalize whitespace, uppercase the province,
+and validate Canadian postal codes in `A1A 1A1` form. The same normalization is
+applied to administrative creation and replacement, imported web orders, and
+customer corrections.
+The PDF documents use the persisted price snapshots and adjustments; the
+business coordinates, payment conditions, and 30-day quote validity are
+currently configured as fixed document-template values.
 
 Order-list summaries include the total item count and up to three product image
 previews captured from the immutable order snapshots.

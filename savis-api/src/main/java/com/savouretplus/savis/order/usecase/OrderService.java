@@ -17,6 +17,7 @@ import java.util.UUID;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.savouretplus.savis.order.domain.CustomerContactNormalizer;
 import com.savouretplus.savis.order.domain.Order;
 import com.savouretplus.savis.order.domain.OrderItem;
 import com.savouretplus.savis.order.domain.OrderItemChoiceAllocation;
@@ -51,12 +52,7 @@ public class OrderService {
      * Creates and persists an administrative order from current catalog products.
      */
     public Order create(CreateOrderCommand command) {
-        if (command == null || command.items().isEmpty()) {
-            throw new IllegalArgumentException("La commande doit contenir au moins un item");
-        }
-
-        List<OrderItem> items = command.items().stream().map(this::createItem).toList();
-        int totalCents = items.stream().mapToInt(OrderItem::lineTotalCents).reduce(0, this::addExact);
+        PreparedOrder prepared = prepare(command);
         Instant now = Instant.now(clock);
         Order order = new Order(
                 null,
@@ -65,17 +61,99 @@ public class OrderService {
                 OrderSource.ADMIN,
                 OrderStatus.NEW,
                 command.customerName(),
-                command.customerPhone(),
+                CustomerContactNormalizer.normalizePhone(command.customerPhone()),
                 blankToNull(command.customerEmail()),
+                CustomerContactNormalizer.normalizeAddress(command.customerAddress()),
                 blankToNull(command.note()),
-                totalCents,
+                command.discountCents(),
+                command.deliveryFeeCents(),
+                prepared.totalCents(),
                 null,
                 now,
                 now,
                 null, null, null, null, null,
-                items,
+                prepared.items(),
                 Map.of());
         return repository.save(order);
+    }
+
+    /**
+     * Replaces an editable administrative order using current catalog snapshots.
+     */
+    public Order update(UUID orderId, CreateOrderCommand command) {
+        Order current = get(orderId);
+        if (current.source() != OrderSource.ADMIN) {
+            throw new IllegalStateException("Une commande web ne peut pas être modifiée directement");
+        }
+        if (current.status() != OrderStatus.NEW) {
+            throw new IllegalStateException("Seule une commande au statut NEW peut être modifiée");
+        }
+
+        PreparedOrder prepared = prepare(command);
+        Order changed = new Order(
+                current.id(),
+                current.publicId(),
+                current.orderNumber(),
+                current.source(),
+                current.status(),
+                command.customerName(),
+                CustomerContactNormalizer.normalizePhone(command.customerPhone()),
+                blankToNull(command.customerEmail()),
+                CustomerContactNormalizer.normalizeAddress(command.customerAddress()),
+                blankToNull(command.note()),
+                command.discountCents(),
+                command.deliveryFeeCents(),
+                prepared.totalCents(),
+                current.externalOrderId(),
+                current.placedAt(),
+                current.importedAt(),
+                current.acceptedAt(),
+                current.inPreparationAt(),
+                current.readyAt(),
+                current.completedAt(),
+                current.cancelledAt(),
+                prepared.items(),
+                current.rawPayload());
+        return repository.save(changed);
+    }
+
+    /**
+     * Corrects customer information on a new imported web order without changing its snapshots.
+     */
+    public Order updateWebCustomer(UUID orderId, UpdateOrderCustomerCommand command) {
+        Order current = get(orderId);
+        if (current.source() != OrderSource.SAVOURETPLUS_WEB) {
+            throw new IllegalStateException("Cette correction est réservée aux commandes web");
+        }
+        if (current.status() != OrderStatus.NEW) {
+            throw new IllegalStateException("Seule une commande web au statut NEW peut être corrigée");
+        }
+
+        Order changed = new Order(
+                current.id(),
+                current.publicId(),
+                current.orderNumber(),
+                current.source(),
+                current.status(),
+                command.customerName(),
+                CustomerContactNormalizer.normalizePhone(command.customerPhone()),
+                blankToNull(command.customerEmail()),
+                CustomerContactNormalizer.normalizeAddress(command.customerAddress()),
+                blankToNull(command.note()),
+                current.discountCents(),
+                current.deliveryFeeCents(),
+                current.totalCents(),
+                current.externalOrderId(),
+                current.placedAt(),
+                current.importedAt(),
+                current.acceptedAt(),
+                current.inPreparationAt(),
+                current.readyAt(),
+                current.completedAt(),
+                current.cancelledAt(),
+                current.items(),
+                current.rawPayload());
+        return repository.save(changed);
     }
 
     /**
@@ -140,6 +218,16 @@ public class OrderService {
         return repository.save(changed);
     }
 
+    private PreparedOrder prepare(CreateOrderCommand command) {
+        if (command == null || command.items().isEmpty()) {
+            throw new IllegalArgumentException("La commande doit contenir au moins un item");
+        }
+        List<OrderItem> items = command.items().stream().map(this::createItem).toList();
+        int totalCents = Order.calculateTotalCents(
+                items, command.discountCents(), command.deliveryFeeCents());
+        return new PreparedOrder(items, totalCents);
+    }
+
     private OrderItem createItem(CreateOrderCommand.Item command) {
         if (command == null || command.quantity() <= 0) {
             throw new IllegalArgumentException("La quantité commandée doit être supérieure à zéro");
@@ -181,14 +269,6 @@ public class OrderService {
                                 null, value.code(), value.name(), value.quantity(),
                                 value.defaultQuantity(), value.extraPriceCents()))
                         .toList());
-    }
-
-    private int addExact(int left, int right) {
-        try {
-            return Math.addExact(left, right);
-        } catch (ArithmeticException exception) {
-            throw new IllegalArgumentException("Le total de la commande dépasse la limite permise", exception);
-        }
     }
 
     private String blankToNull(String value) {
@@ -416,6 +496,9 @@ public class OrderService {
         private void warn(String warning) {
             warnings.add(warning);
         }
+    }
+
+    private record PreparedOrder(List<OrderItem> items, int totalCents) {
     }
 
 }

@@ -24,6 +24,9 @@ import com.savouretplus.savis.common.Unit;
 import com.savouretplus.savis.supply.domain.Offer;
 import com.savouretplus.savis.supply.domain.OfferStatus;
 import com.savouretplus.savis.supply.domain.Provider;
+import com.savouretplus.savis.supply.port.OfferCatalogPage;
+import com.savouretplus.savis.supply.port.OfferCatalogQuery;
+import com.savouretplus.savis.supply.port.OfferCatalogSort;
 import com.savouretplus.savis.supply.port.OfferRepository;
 
 @ExtendWith(MockitoExtension.class)
@@ -57,6 +60,34 @@ class OfferServiceTest {
         Assertions.assertEquals(List.of(offer), offers);
         verify(repository).searchAvailableByComponentName("Flour");
         verifyNoMoreInteractions(repository);
+    }
+
+    @Test
+    void searchOfferCatalog_ShouldDelegateValidatedQueryToRepository() {
+        OfferCatalogQuery query = new OfferCatalogQuery(
+                1, 25, " farine ", OfferStatus.AVAILABLE, OfferCatalogSort.LAST_SEEN_DESC);
+        OfferCatalogPage expected = new OfferCatalogPage(List.of(), 0, 0);
+        when(repository.searchCatalog(query)).thenReturn(expected);
+
+        OfferCatalogPage result = offerService.searchOfferCatalog(query);
+
+        Assertions.assertSame(expected, result);
+        Assertions.assertEquals("farine", query.search());
+        verify(repository).searchCatalog(query);
+        verifyNoMoreInteractions(repository);
+    }
+
+    @Test
+    void offerCatalogQuery_ShouldRejectInvalidPagination() {
+        Assertions.assertThrows(IllegalArgumentException.class,
+                () -> new OfferCatalogQuery(-1, 20, null, OfferStatus.AVAILABLE,
+                        OfferCatalogSort.LAST_SEEN_DESC));
+        Assertions.assertThrows(IllegalArgumentException.class,
+                () -> new OfferCatalogQuery(0, 0, null, OfferStatus.AVAILABLE,
+                        OfferCatalogSort.LAST_SEEN_DESC));
+        Assertions.assertThrows(IllegalArgumentException.class,
+                () -> new OfferCatalogQuery(0, 101, null, OfferStatus.AVAILABLE,
+                        OfferCatalogSort.LAST_SEEN_DESC));
     }
 
     @Test

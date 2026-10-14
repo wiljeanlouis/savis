@@ -4,6 +4,9 @@ import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Repository;
 
 import com.savouretplus.savis.common.Money;
@@ -12,6 +15,9 @@ import com.savouretplus.savis.common.Quantity;
 import com.savouretplus.savis.supply.domain.Offer;
 import com.savouretplus.savis.supply.domain.OfferStatus;
 import com.savouretplus.savis.supply.domain.Provider;
+import com.savouretplus.savis.supply.port.OfferCatalogPage;
+import com.savouretplus.savis.supply.port.OfferCatalogQuery;
+import com.savouretplus.savis.supply.port.OfferCatalogSort;
 import com.savouretplus.savis.supply.port.OfferRepository;
 
 import lombok.AllArgsConstructor;
@@ -54,6 +60,21 @@ public class OfferRepositoryAdapter implements OfferRepository {
                 .stream()
                 .map(this::toDomain)
                 .toList();
+    }
+
+    /**
+     * Searches the offer catalog using database-side pagination and controlled sorting.
+     */
+    @Override
+    public OfferCatalogPage searchCatalog(OfferCatalogQuery query) {
+        PageRequest pageRequest = PageRequest.of(query.page(), query.size(), sortFor(query.sort()));
+        String search = query.search() == null ? "" : query.search();
+        Page<OfferEntity> page = jpaRepository.searchCatalog(search, query.status(), pageRequest);
+
+        return new OfferCatalogPage(
+                page.getContent().stream().map(this::toDomain).toList(),
+                page.getTotalElements(),
+                page.getTotalPages());
     }
 
     /**
@@ -142,5 +163,17 @@ public class OfferRepositoryAdapter implements OfferRepository {
                 entity.getIdentifier(),
                 entity.getSite(),
                 entity.getAddress());
+    }
+
+    private Sort sortFor(OfferCatalogSort sort) {
+        Sort.Order primary = switch (sort) {
+            case LAST_SEEN_ASC -> Sort.Order.asc("lastSeen");
+            case LAST_SEEN_DESC -> Sort.Order.desc("lastSeen");
+            case COMPONENT_NAME_ASC -> Sort.Order.asc("componentName").ignoreCase();
+            case COMPONENT_NAME_DESC -> Sort.Order.desc("componentName").ignoreCase();
+            case PRICE_ASC -> Sort.Order.asc("priceAmount");
+            case PRICE_DESC -> Sort.Order.desc("priceAmount");
+        };
+        return Sort.by(primary, Sort.Order.asc("publicId"));
     }
 }

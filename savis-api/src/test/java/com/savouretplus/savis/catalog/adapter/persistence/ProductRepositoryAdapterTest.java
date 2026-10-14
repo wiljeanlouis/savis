@@ -16,6 +16,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import com.savouretplus.savis.catalog.domain.AllocationType;
+import com.savouretplus.savis.catalog.domain.CommercialType;
 import com.savouretplus.savis.catalog.domain.Product;
 import com.savouretplus.savis.catalog.domain.ProductBom;
 import com.savouretplus.savis.catalog.domain.ProductCategory;
@@ -70,7 +71,8 @@ class ProductRepositoryAdapterTest {
         when(repository.save(any(ProductEntity.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
         new ProductRepositoryAdapter(repository).save(new Product(
-                productId, "pate", "pate", "Pâté", "", ProductType.SINGLE_CHOICE,
+                productId, "pate", "pate", "Pâté", "", CommercialType.SERVICE,
+                ProductType.SINGLE_CHOICE,
                 ProductCategory.DECORATION, ProductSubcategory.CENTERPIECE,
                 List.of(new ProductBom(productBomId, bomId, new BigDecimal("1.5"), 0)),
                 new BigDecimal("0.30"),
@@ -92,6 +94,7 @@ class ProductRepositoryAdapterTest {
         assertEquals(10L, entity.getChoiceGroup().getId());
         assertEquals("Nouvelle farce", entity.getChoiceGroup().getLabel());
         assertEquals(new BigDecimal("1.5"), entity.getProductBoms().getFirst().getQuantity());
+        assertEquals(CommercialType.SERVICE, entity.getCommercialType());
         assertEquals(ProductSubcategory.CENTERPIECE, entity.getSubcategory());
     }
 
@@ -103,6 +106,7 @@ class ProductRepositoryAdapterTest {
         entity.setSlug("pate");
         entity.setName("Pâté");
         entity.setDescription("");
+        entity.setCommercialType(CommercialType.GOODS);
         entity.setProductType(ProductType.SINGLE_CHOICE);
         entity.setCategory(ProductCategory.TASTING);
         entity.setTargetMarginRate(new BigDecimal("0.30"));

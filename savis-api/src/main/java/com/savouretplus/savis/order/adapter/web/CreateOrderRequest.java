@@ -3,6 +3,7 @@ package com.savouretplus.savis.order.adapter.web;
 import java.util.List;
 import java.util.UUID;
 
+import com.savouretplus.savis.order.domain.OrderAddress;
 import com.savouretplus.savis.order.usecase.CreateOrderCommand;
 
 import jakarta.validation.Valid;
@@ -14,13 +15,16 @@ import jakarta.validation.constraints.Positive;
 import jakarta.validation.constraints.PositiveOrZero;
 
 /**
- * Represents an administrative order-creation request.
+ * Represents editable administrative order data for creation or replacement.
  */
 public record CreateOrderRequest(
         @NotBlank String customerName,
         @NotBlank String customerPhone,
         @Email String customerEmail,
+        @Valid AddressRequest customerAddress,
         String note,
+        @PositiveOrZero int discountCents,
+        @PositiveOrZero int deliveryFeeCents,
         @NotEmpty List<@Valid ItemRequest> items) {
 
     /**
@@ -31,8 +35,27 @@ public record CreateOrderRequest(
                 customerName,
                 customerPhone,
                 customerEmail,
+                customerAddress == null ? null : customerAddress.toDomain(),
                 note,
+                discountCents,
+                deliveryFeeCents,
                 items.stream().map(ItemRequest::toCommand).toList());
+    }
+
+    /**
+     * Represents an optional structured customer address.
+     */
+    public record AddressRequest(
+            String line1,
+            String line2,
+            String city,
+            String province,
+            String postalCode) {
+
+        private OrderAddress toDomain() {
+            OrderAddress address = new OrderAddress(line1, line2, city, province, postalCode);
+            return address.isEmpty() ? null : address;
+        }
     }
 
     /**

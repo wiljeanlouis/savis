@@ -3,6 +3,7 @@ package com.savouretplus.savis.order.usecase;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 import java.math.BigDecimal;
@@ -21,6 +22,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import com.savouretplus.savis.order.domain.Order;
+import com.savouretplus.savis.order.domain.OrderAddress;
 import com.savouretplus.savis.order.domain.OrderItem;
 import com.savouretplus.savis.order.domain.OrderItemAllocationType;
 import com.savouretplus.savis.order.domain.OrderItemProductType;
@@ -66,7 +68,9 @@ class OrderServiceTest {
                 .thenAnswer(invocation -> invocation.getArgument(0));
         OrderService service = service();
         CreateOrderCommand command = new CreateOrderCommand(
-                "Ada", "514", "ada@example.com", "Livrer à 15 h",
+                "Ada", "514 555-0100", "ada@example.com",
+                new OrderAddress("123 rue Principale", null, "Montréal", "QC", "H1H 1H1"),
+                "Livrer à 15 h", 100, 250,
                 List.of(new CreateOrderCommand.Item(
                         PRODUCT_ID, 3, "unit", "vanilla", List.of(), List.of())));
 
@@ -74,11 +78,99 @@ class OrderServiceTest {
 
         assertEquals(OrderSource.ADMIN, created.source());
         assertEquals(OrderStatus.NEW, created.status());
+        assertEquals("+15145550100", created.customerPhone());
         assertEquals("ADM-00000001", created.orderNumber());
-        assertEquals(1350, created.totalCents());
+        assertEquals(1500, created.totalCents());
+        assertEquals(1350, created.subtotalCents());
+        assertEquals(100, created.discountCents());
+        assertEquals(250, created.deliveryFeeCents());
+        assertEquals("Montréal", created.customerAddress().city());
         assertEquals(NOW, created.placedAt());
         assertEquals("Vanille", created.items().getFirst().choiceSelections().getFirst().choiceName());
         verify(repository).save(created);
+    }
+
+    @Test
+    void replacesANewAdministrativeOrderAndRecalculatesItsSnapshots() {
+        Order initial = administrativeOrder(OrderStatus.NEW);
+        OrderCatalog.ProductSelection selection = new OrderCatalog.ProductSelection(
+                PRODUCT_ID, "unit", "vanilla", List.of(), List.of());
+        when(repository.findByPublicId(ORDER_ID)).thenReturn(Optional.of(initial));
+        when(catalog.snapshot(selection)).thenReturn(new OrderCatalog.ProductSnapshot(
+                PRODUCT_ID,
+                "Cupcake actualisé",
+                OrderItemProductType.SINGLE_CHOICE,
+                "/cupcake-new.jpg",
+                500,
+                500,
+                new OrderCatalog.PurchaseMode("unit", "Unité", 1, OrderItemAllocationType.SINGLE_CHOICE),
+                new OrderCatalog.ChoiceSelection("vanilla", "Vanille", "Saveur"),
+                List.of(),
+                List.of()));
+        when(repository.save(org.mockito.ArgumentMatchers.any(Order.class)))
+                .thenAnswer(invocation -> invocation.getArgument(0));
+        CreateOrderCommand command = new CreateOrderCommand(
+                "Ada modifiée", "438 555-0101", "new@example.com", null,
+                "Nouvelle note", 100, 200,
+                List.of(new CreateOrderCommand.Item(
+                        PRODUCT_ID, 2, "unit", "vanilla", List.of(), List.of())));
+
+        Order updated = service().update(ORDER_ID, command);
+
+        assertEquals(ORDER_ID, updated.publicId());
+        assertEquals("ADM-00000001", updated.orderNumber());
+        assertEquals(OrderSource.ADMIN, updated.source());
+        assertEquals(OrderStatus.NEW, updated.status());
+        assertEquals("Ada modifiée", updated.customerName());
+        assertEquals(1100, updated.totalCents());
+        assertEquals("Cupcake actualisé", updated.items().getFirst().productNameSnapshot());
+        assertEquals(NOW, updated.placedAt());
+        verify(repository).save(updated);
+    }
+
+    @Test
+    void rejectsReplacingAWebOrderOrANonNewAdministrativeOrder() {
+        when(repository.findByPublicId(ORDER_ID))
+                .thenReturn(Optional.of(order(OrderStatus.NEW)))
+                .thenReturn(Optional.of(administrativeOrder(OrderStatus.ACCEPTED)));
+        CreateOrderCommand command = new CreateOrderCommand(
+                "Ada", "514", null, null, List.of());
+
+        assertThrows(IllegalStateException.class, () -> service().update(ORDER_ID, command));
+        assertThrows(IllegalStateException.class, () -> service().update(ORDER_ID, command));
+    }
+
+    @Test
+    void correctsOnlyCustomerInformationOnANewWebOrder() {
+        Order initial = order(OrderStatus.NEW);
+        when(repository.findByPublicId(ORDER_ID)).thenReturn(Optional.of(initial));
+        when(repository.save(org.mockito.ArgumentMatchers.any(Order.class)))
+                .thenAnswer(invocation -> invocation.getArgument(0));
+        UpdateOrderCustomerCommand command = new UpdateOrderCustomerCommand(
+                "Ada corrigée", "438 555-0101", "new@example.com",
+                new OrderAddress("123 rue Principale", null, "Montréal", "QC", "H1H 1H1"),
+                "Téléphoner avant la livraison");
+
+        Order updated = service().updateWebCustomer(ORDER_ID, command);
+
+        assertEquals("Ada corrigée", updated.customerName());
+        assertEquals("Montréal", updated.customerAddress().city());
+        assertEquals(initial.items(), updated.items());
+        assertEquals(initial.totalCents(), updated.totalCents());
+        assertEquals(initial.rawPayload(), updated.rawPayload());
+        verify(repository).save(updated);
+    }
+
+    @Test
+    void rejectsWebCustomerCorrectionForAdministrativeOrAdvancedOrders() {
+        when(repository.findByPublicId(ORDER_ID))
+                .thenReturn(Optional.of(administrativeOrder(OrderStatus.NEW)))
+                .thenReturn(Optional.of(order(OrderStatus.ACCEPTED)));
+        UpdateOrderCustomerCommand command = new UpdateOrderCustomerCommand(
+                "Ada", "514", null, null, null);
+
+        assertThrows(IllegalStateException.class, () -> service().updateWebCustomer(ORDER_ID, command));
+        assertThrows(IllegalStateException.class, () -> service().updateWebCustomer(ORDER_ID, command));
     }
 
     @Test
@@ -177,11 +269,64 @@ class OrderServiceTest {
         assertEquals(null, flour.onHandQuantity());
     }
 
+    @Test
+    void reportsNoProductionRequirementsForAnAdministrativeServiceWithoutBom() {
+        OrderItem serviceItem = new OrderItem(
+                null,
+                UUID.randomUUID(),
+                PRODUCT_ID,
+                "Service d'installation",
+                OrderItemProductType.STANDARD,
+                null,
+                1,
+                15000,
+                15000,
+                15000,
+                "service",
+                "Service",
+                1,
+                OrderItemAllocationType.NONE,
+                null,
+                List.of(),
+                List.of(),
+                List.of());
+        Order order = new Order(
+                1L, ORDER_ID, "ADM-00000001", OrderSource.ADMIN, OrderStatus.NEW,
+                "Ada", "514", null, null, 15000, null, NOW, NOW,
+                null, null, null, null, null, List.of(serviceItem), Map.of());
+        when(repository.findByPublicId(ORDER_ID)).thenReturn(Optional.of(order));
+        when(catalog.bomPlan(org.mockito.ArgumentMatchers.any()))
+                .thenReturn(new OrderCatalog.BomPlan(List.of(), List.of()));
+
+        OrderRequirementReport report = service().requirementReport(ORDER_ID);
+
+        assertEquals(true, report.complete());
+        assertEquals(List.of(), report.requirements());
+        assertEquals(List.of(), report.warnings());
+        verifyNoInteractions(bomRequirements, sourcing);
+    }
+
     private Order order(OrderStatus status) {
         return new Order(
                 1L, ORDER_ID, "WEB-00000001", OrderSource.SAVOURETPLUS_WEB, status,
                 "Ada", "514", null, null, 1200, UUID.randomUUID(), NOW, NOW,
-                null, null, null, null, null, List.of(), Map.of());
+                null, null, null, null, null, List.of(orderItem(1200)), Map.of());
+    }
+
+    private Order administrativeOrder(OrderStatus status) {
+        return new Order(
+                1L, ORDER_ID, "ADM-00000001", OrderSource.ADMIN, status,
+                "Ada", "514", null, null, 1200, null, NOW, NOW,
+                status == OrderStatus.ACCEPTED ? NOW : null,
+                null, null, null, null, List.of(orderItem(1200)), Map.of());
+    }
+
+    private OrderItem orderItem(int unitPriceCents) {
+        return new OrderItem(
+                null, UUID.randomUUID(), PRODUCT_ID, "Cupcake", OrderItemProductType.STANDARD,
+                null, 1, unitPriceCents, unitPriceCents, unitPriceCents,
+                "unit", "Unité", 1, OrderItemAllocationType.NONE, null,
+                List.of(), List.of(), List.of());
     }
 
     private OrderService service() {

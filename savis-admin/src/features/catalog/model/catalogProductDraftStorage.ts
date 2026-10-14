@@ -16,6 +16,7 @@ const loadDraft = (): CatalogProduct | null => {
   };
   return {
     ...draft,
+    commercialType: draft.commercialType ?? "GOODS",
     category: normalizeCategory(draft.category ?? draft.categoryId),
     subcategory: draft.subcategory ?? null,
   };

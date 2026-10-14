@@ -59,8 +59,17 @@ public class OrderEntity {
     @Column(nullable = false)
     private String customerPhone;
     private String customerEmail;
+    private String customerAddressLine1;
+    private String customerAddressLine2;
+    private String customerCity;
+    private String customerProvince;
+    private String customerPostalCode;
     @Column(columnDefinition = "text")
     private String note;
+    @Column(nullable = false)
+    private int discountCents;
+    @Column(nullable = false)
+    private int deliveryFeeCents;
     @Column(nullable = false)
     private int totalCents;
     private UUID externalOrderId;

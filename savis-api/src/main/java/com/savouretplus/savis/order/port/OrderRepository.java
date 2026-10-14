@@ -23,6 +23,11 @@ public interface OrderRepository {
     Optional<Order> findByPublicId(UUID publicId);
 
     /**
+     * Finds and locks an order for a state-changing cross-module operation.
+     */
+    Optional<Order> findByPublicIdForUpdate(UUID publicId);
+
+    /**
      * Returns all persisted orders.
      */
     List<Order> findAll();
@@ -31,4 +36,9 @@ public interface OrderRepository {
      * Reports whether an order has already been imported from an external source.
      */
     boolean existsBySourceAndExternalOrderId(OrderSource source, UUID externalOrderId);
+
+    /**
+     * Finds an order created from the provided source identifier.
+     */
+    Optional<Order> findBySourceAndExternalOrderId(OrderSource source, UUID externalOrderId);
 }

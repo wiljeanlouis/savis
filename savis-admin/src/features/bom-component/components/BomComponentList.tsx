@@ -10,7 +10,13 @@ import { BomComponentRetrieveDialog } from "./BomComponentRetrieveDialog";
 import { Button } from "@/shared/ui/button";
 import { Link } from "react-router";
 
-export const BomComponentList = () => {
+interface BomComponentListProps {
+  supplierOffers?: boolean;
+}
+
+export const BomComponentList = ({
+  supplierOffers = false,
+}: BomComponentListProps) => {
   const {
     data,
     isLoading,
@@ -34,15 +40,18 @@ export const BomComponentList = () => {
     <div className="space-y-4">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-2xl font-semibold">Composants BOM</h1>
+          <h1 className="text-2xl font-semibold">
+            {supplierOffers ? "Offres fournisseurs" : "Gestion des offres"}
+          </h1>
           <p className="text-sm text-muted-foreground">
-            Un composant BOM est un élément utilisé dans la composition d'un
-            BOM.
+            {supplierOffers
+              ? "Offres commerciales disponibles pour approvisionner la production."
+              : "Validez et actualisez les offres fournisseurs utilisées pour les coûts de production."}
           </p>
         </div>
         <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
           <Button variant="outline" asChild>
-            <Link to="tasks">Voir les tâches de récupération</Link>
+            <Link to="tasks">Voir les tâches d'acquisition</Link>
           </Button>
           <BomComponentRetrieveDialog
             isRetrieving={isCreatingTask}
@@ -97,7 +106,7 @@ export const BomComponentList = () => {
                 ))}
               </div>
               <PageNavigator
-                itemName="composant"
+                itemName="offre"
                 totalItems={data.total_items}
                 page={data.page}
                 totalPages={data.total_pages}

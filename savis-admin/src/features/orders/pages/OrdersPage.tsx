@@ -1,20 +1,15 @@
 import { NoData } from "@/shared/components/NoData";
 import { Button } from "@/shared/ui/button";
 import { Spinner } from "@/shared/ui/spinner";
-import { CreateOrderDialog } from "../components/CreateOrderDialog";
+import { Add01Icon } from "@hugeicons/core-free-icons";
+import { HugeiconsIcon } from "@hugeicons/react";
+import { Link } from "react-router";
 import { OrdersTable } from "../components/OrdersTable";
 import { useOrderManagement } from "../hooks/useOrderManagement";
 
 export function OrdersPage() {
-  const {
-    orders,
-    isLoading,
-    isError,
-    isImporting,
-    isCreating,
-    createAdminOrder,
-    retrieveWebOrders,
-  } = useOrderManagement();
+  const { orders, isLoading, isError, isImporting, retrieveWebOrders } =
+    useOrderManagement();
 
   return (
     <div className="space-y-6">
@@ -26,10 +21,12 @@ export function OrdersPage() {
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
-          <CreateOrderDialog
-            isCreating={isCreating}
-            onCreate={createAdminOrder}
-          />
+          <Button asChild variant="outline">
+            <Link to="/orders/new">
+              <HugeiconsIcon icon={Add01Icon} strokeWidth={2} />
+              Nouvelle commande
+            </Link>
+          </Button>
           <Button
             disabled={isImporting}
             onClick={() => void retrieveWebOrders()}

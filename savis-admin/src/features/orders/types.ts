@@ -7,7 +7,7 @@ export type OrderStatus =
   | "CANCELLED"
   | "REJECTED";
 
-export type OrderSource = "SAVOURETPLUS_WEB" | "ADMIN";
+export type OrderSource = "SAVOURETPLUS_WEB" | "ADMIN" | "QUOTATION";
 
 interface OrderBase {
   id: string;
@@ -34,7 +34,11 @@ export interface OrderItemPreview {
 }
 
 export interface Order extends OrderBase {
+  customerAddress: OrderAddress | null;
   note: string | null;
+  subtotalCents: number;
+  discountCents: number;
+  deliveryFeeCents: number;
   externalOrderId: string | null;
   acceptedAt: string | null;
   inPreparationAt: string | null;
@@ -105,8 +109,27 @@ export interface CreateOrderRequest {
   customerName: string;
   customerPhone: string;
   customerEmail: string | null;
+  customerAddress: OrderAddress | null;
   note: string | null;
+  discountCents: number;
+  deliveryFeeCents: number;
   items: CreateOrderItemRequest[];
+}
+
+export interface UpdateOrderCustomerRequest {
+  customerName: string;
+  customerPhone: string;
+  customerEmail: string | null;
+  customerAddress: OrderAddress | null;
+  note: string | null;
+}
+
+export interface OrderAddress {
+  line1: string | null;
+  line2: string | null;
+  city: string | null;
+  province: string | null;
+  postalCode: string | null;
 }
 
 export interface CreateOrderItemRequest {
@@ -180,6 +203,7 @@ export const orderStatusLabels: Record<OrderStatus, string> = {
 export const orderSourceLabels: Record<OrderSource, string> = {
   SAVOURETPLUS_WEB: "SavouretPlus Web",
   ADMIN: "Administration",
+  QUOTATION: "Soumission acceptée",
 };
 
 export const nextOrderStatuses: Record<OrderStatus, OrderStatus[]> = {
@@ -193,10 +217,12 @@ export const nextOrderStatuses: Record<OrderStatus, OrderStatus[]> = {
 };
 
 export const formatOrderCurrency = (cents: number) =>
-  new Intl.NumberFormat("fr-CA", {
-    style: "currency",
-    currency: "CAD",
-  }).format(cents / 100);
+  Number.isSafeInteger(cents)
+    ? new Intl.NumberFormat("fr-CA", {
+        style: "currency",
+        currency: "CAD",
+      }).format(cents / 100)
+    : "Montant invalide";
 
 export const formatOrderDate = (value: string) =>
   new Intl.DateTimeFormat("fr-CA", {

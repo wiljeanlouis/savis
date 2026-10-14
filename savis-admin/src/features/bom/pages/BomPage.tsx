@@ -26,11 +26,11 @@ export const BomPage = () => {
       <DialogContent className="max-h-[calc(100vh-2rem)] overflow-y-auto sm:max-w-6xl">
         <DialogHeader>
           <DialogTitle>
-            {isEditing ? "Modifier le BOM" : "Ajouter un nouveau BOM"}
+            {isEditing ? "Modifier la composition" : "Ajouter une composition"}
           </DialogTitle>
           <DialogDescription>
             Définissez les informations générales, les composants et les
-            activités nécessaires à ce BOM.
+            activités nécessaires à cette composition.
           </DialogDescription>
         </DialogHeader>
         <BomForm showTitle={false} />

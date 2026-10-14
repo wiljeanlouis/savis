@@ -5,6 +5,8 @@ import {
   getOrderRequirementReport,
   getOrders,
   importOrders,
+  updateOrder,
+  updateOrderCustomer,
   updateOrderStatus,
 } from "../api/orderApi";
 
@@ -31,6 +33,28 @@ export const useCreateOrder = () => {
   const client = useQueryClient();
   return useMutation({
     mutationFn: createOrder,
+    onSuccess: async (order) => {
+      client.setQueryData([...ORDERS_QUERY_KEY, order.id], order);
+      await client.invalidateQueries({ queryKey: ORDERS_QUERY_KEY });
+    },
+  });
+};
+
+export const useUpdateOrder = () => {
+  const client = useQueryClient();
+  return useMutation({
+    mutationFn: updateOrder,
+    onSuccess: async (order) => {
+      client.setQueryData([...ORDERS_QUERY_KEY, order.id], order);
+      await client.invalidateQueries({ queryKey: ORDERS_QUERY_KEY });
+    },
+  });
+};
+
+export const useUpdateOrderCustomer = () => {
+  const client = useQueryClient();
+  return useMutation({
+    mutationFn: updateOrderCustomer,
     onSuccess: async (order) => {
       client.setQueryData([...ORDERS_QUERY_KEY, order.id], order);
       await client.invalidateQueries({ queryKey: ORDERS_QUERY_KEY });

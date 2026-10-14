@@ -3,6 +3,8 @@ package com.savouretplus.savis.order.usecase;
 import java.util.List;
 import java.util.UUID;
 
+import com.savouretplus.savis.order.domain.OrderAddress;
+
 /**
  * Describes an administrative order to create from current catalog products.
  */
@@ -10,7 +12,10 @@ public record CreateOrderCommand(
         String customerName,
         String customerPhone,
         String customerEmail,
+        OrderAddress customerAddress,
         String note,
+        int discountCents,
+        int deliveryFeeCents,
         List<Item> items) {
 
     /**
@@ -18,6 +23,18 @@ public record CreateOrderCommand(
      */
     public CreateOrderCommand {
         items = items != null ? List.copyOf(items) : List.of();
+    }
+
+    /**
+     * Creates a command without optional address or price adjustments.
+     */
+    public CreateOrderCommand(
+            String customerName,
+            String customerPhone,
+            String customerEmail,
+            String note,
+            List<Item> items) {
+        this(customerName, customerPhone, customerEmail, null, note, 0, 0, items);
     }
 
     /**

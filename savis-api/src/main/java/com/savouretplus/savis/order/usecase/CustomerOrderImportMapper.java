@@ -7,6 +7,7 @@ import java.util.UUID;
 
 import org.springframework.stereotype.Component;
 
+import com.savouretplus.savis.order.domain.CustomerContactNormalizer;
 import com.savouretplus.savis.order.domain.Order;
 import com.savouretplus.savis.order.domain.OrderItem;
 import com.savouretplus.savis.order.domain.OrderItemAllocationType;
@@ -42,6 +43,11 @@ public class CustomerOrderImportMapper {
         }
 
         List<OrderItem> items = source.items().stream().map(this::mapItem).toList();
+        int expectedTotal = Order.calculateTotalCents(
+                items, source.discountCents(), source.deliveryFeeCents());
+        if (source.totalCents() != expectedTotal) {
+            throw new IllegalArgumentException("Le total de la commande externe est incohérent");
+        }
 
         return new Order(
                 null,
@@ -50,9 +56,12 @@ public class CustomerOrderImportMapper {
                 OrderSource.SAVOURETPLUS_WEB,
                 OrderStatus.NEW,
                 source.customerName(),
-                source.customerPhone(),
+                CustomerContactNormalizer.normalizePhone(source.customerPhone()),
                 blankToNull(source.customerEmail()),
+                CustomerContactNormalizer.normalizeAddress(source.customerAddress()),
                 blankToNull(source.note()),
+                source.discountCents(),
+                source.deliveryFeeCents(),
                 source.totalCents(),
                 source.externalId(),
                 source.placedAt(),

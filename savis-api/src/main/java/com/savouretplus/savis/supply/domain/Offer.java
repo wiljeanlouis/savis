@@ -1,5 +1,6 @@
 package com.savouretplus.savis.supply.domain;
 
+import java.math.RoundingMode;
 import java.time.LocalDateTime;
 import java.util.UUID;
 
@@ -22,6 +23,21 @@ public record Offer(
         Provider provider,
         LocalDateTime lastSeen,
         OfferStatus status) {
+
+    /** Validates supplier prices persisted as amounts billed to the cent. */
+    public Offer {
+        if (price != null) {
+            if (price.amount().signum() < 0) {
+                throw new IllegalArgumentException("Le prix fournisseur ne peut pas être négatif");
+            }
+            try {
+                price.amount().setScale(2, RoundingMode.UNNECESSARY);
+            } catch (ArithmeticException exception) {
+                throw new IllegalArgumentException(
+                        "Le prix fournisseur doit être représentable exactement au cent", exception);
+            }
+        }
+    }
 
     /**
      * Returns a copy of this offer marked as unavailable.

@@ -20,7 +20,10 @@ public record Order(
         String customerName,
         String customerPhone,
         String customerEmail,
+        OrderAddress customerAddress,
         String note,
+        int discountCents,
+        int deliveryFeeCents,
         int totalCents,
         UUID externalOrderId,
         Instant placedAt,
@@ -44,16 +47,90 @@ public record Order(
         if (source == null || status == null || placedAt == null || importedAt == null) {
             throw new IllegalArgumentException("La source, le statut et les dates de commande sont requis");
         }
-        if (source == OrderSource.SAVOURETPLUS_WEB && externalOrderId == null) {
-            throw new IllegalArgumentException("L'identifiant externe d'une commande web est requis");
+        if ((source == OrderSource.SAVOURETPLUS_WEB || source == OrderSource.QUOTATION)
+                && externalOrderId == null) {
+            throw new IllegalArgumentException("L'identifiant d'origine de la commande est requis");
         }
-        if (totalCents < 0) {
-            throw new IllegalArgumentException("Le total de la commande ne peut pas être négatif");
-        }
+        customerAddress = customerAddress == null || customerAddress.isEmpty() ? null : customerAddress;
         items = items != null ? List.copyOf(items) : List.of();
+        if (totalCents != calculateTotalCents(items, discountCents, deliveryFeeCents)) {
+            throw new IllegalArgumentException("Le total de la commande est incohérent");
+        }
         rawPayload = rawPayload != null
                 ? Collections.unmodifiableMap(new LinkedHashMap<>(rawPayload))
                 : Map.of();
+    }
+
+    /**
+     * Creates an order without optional billing adjustments or a customer address.
+     */
+    public Order(
+            Long id,
+            UUID publicId,
+            String orderNumber,
+            OrderSource source,
+            OrderStatus status,
+            String customerName,
+            String customerPhone,
+            String customerEmail,
+            String note,
+            int totalCents,
+            UUID externalOrderId,
+            Instant placedAt,
+            Instant importedAt,
+            Instant acceptedAt,
+            Instant inPreparationAt,
+            Instant readyAt,
+            Instant completedAt,
+            Instant cancelledAt,
+            List<OrderItem> items,
+            Map<String, Object> rawPayload) {
+        this(
+                id, publicId, orderNumber, source, status, customerName, customerPhone, customerEmail,
+                null, note, 0, 0, totalCents, externalOrderId, placedAt, importedAt, acceptedAt,
+                inPreparationAt, readyAt, completedAt, cancelledAt, items, rawPayload);
+    }
+
+    /**
+     * Returns the sum of all captured order-item line totals.
+     */
+    public int subtotalCents() {
+        return subtotalCents(items);
+    }
+
+    /** Calculates an exact total for a newly captured order snapshot. */
+    public static int calculateTotalCents(
+            List<OrderItem> items,
+            int discountCents,
+            int deliveryFeeCents) {
+        if (items == null) {
+            throw new IllegalArgumentException("Les lignes de la commande sont requises");
+        }
+        int subtotal = subtotalCents(items);
+        if (discountCents < 0 || deliveryFeeCents < 0) {
+            throw new IllegalArgumentException("Le rabais et les frais de livraison ne peuvent pas être négatifs");
+        }
+        if (discountCents > subtotal) {
+            throw new IllegalArgumentException("Le rabais ne peut pas dépasser le sous-total de la commande");
+        }
+        try {
+            return Math.addExact(Math.subtractExact(subtotal, discountCents), deliveryFeeCents);
+        } catch (ArithmeticException exception) {
+            throw new IllegalArgumentException("Le total de la commande dépasse la limite permise", exception);
+        }
+    }
+
+    private static int subtotalCents(List<OrderItem> items) {
+        int subtotal = 0;
+        try {
+            for (OrderItem item : items) {
+                subtotal = Math.addExact(subtotal, item.lineTotalCents());
+            }
+            return subtotal;
+        } catch (ArithmeticException exception) {
+            throw new IllegalArgumentException(
+                    "Le sous-total de la commande dépasse la limite permise", exception);
+        }
     }
 
     /**
@@ -73,7 +150,8 @@ public record Order(
 
         return new Order(
                 id, publicId, orderNumber, source, nextStatus, customerName, customerPhone,
-                customerEmail, note, totalCents, externalOrderId, placedAt, importedAt,
+                customerEmail, customerAddress, note, discountCents, deliveryFeeCents, totalCents,
+                externalOrderId, placedAt, importedAt,
                 nextStatus == OrderStatus.ACCEPTED && acceptedAt == null ? changedAt : acceptedAt,
                 nextStatus == OrderStatus.IN_PREPARATION && inPreparationAt == null ? changedAt : inPreparationAt,
                 nextStatus == OrderStatus.READY && readyAt == null ? changedAt : readyAt,
