@@ -20,6 +20,9 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import com.savouretplus.savis.order.domain.Order;
+import com.savouretplus.savis.order.domain.OrderItem;
+import com.savouretplus.savis.order.domain.OrderItemAllocationType;
+import com.savouretplus.savis.order.domain.OrderItemProductType;
 import com.savouretplus.savis.order.domain.OrderSource;
 import com.savouretplus.savis.order.domain.OrderStatus;
 import com.savouretplus.savis.order.port.OrderInbox;
@@ -53,10 +56,14 @@ class ImportOrdersUseCaseTest {
 
     @Test
     void importsAndAcknowledgesANewPendingOrder() {
+        OrderItem item = new OrderItem(
+                null, UUID.randomUUID(), UUID.randomUUID(), "Produit", OrderItemProductType.STANDARD,
+                null, 1, 1200, 1200, 1200, "unit", "Unité", 1,
+                OrderItemAllocationType.NONE, null, List.of(), List.of(), List.of());
         Order mapped = new Order(
                 null, UUID.randomUUID(), "WEB-00000001", OrderSource.SAVOURETPLUS_WEB, OrderStatus.NEW,
                 "Ada", "514", null, null, 1200, EXTERNAL_ID, NOW, NOW,
-                null, null, null, null, null, List.of(), Map.of());
+                null, null, null, null, null, List.of(item), Map.of());
         when(orderNumbers.next(OrderSource.SAVOURETPLUS_WEB)).thenReturn("WEB-00000001");
         when(mapper.map(source, "WEB-00000001", NOW)).thenReturn(mapped);
 

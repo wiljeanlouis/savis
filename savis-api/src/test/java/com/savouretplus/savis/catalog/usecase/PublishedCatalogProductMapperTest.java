@@ -1,6 +1,7 @@
 package com.savouretplus.savis.catalog.usecase;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import java.math.BigDecimal;
 import java.util.List;
@@ -52,5 +53,22 @@ class PublishedCatalogProductMapperTest {
         assertEquals("choice_allocation", result.purchaseModes().getFirst().get("allocation_type"));
         assertEquals(bomId.toString(),
                 ((java.util.Map<?, ?>) ((List<?>) result.choiceGroup().get("options")).getFirst()).get("bom_id"));
+    }
+
+    @Test
+    void rejectsANonCadPriceBeforeSupabasePublication() {
+        Product product = new Product(
+                null, "service", "service", "Service", "",
+                CommercialType.SERVICE, ProductType.STANDARD, ProductCategory.DECORATION,
+                null, List.of(), new BigDecimal("0.35"), "/service.jpg", List.of(),
+                "Disponible", true, true, 1,
+                List.of(new com.savouretplus.savis.catalog.domain.ProductPurchaseMode(
+                        null, "service", "Service", 1,
+                        new Money(new BigDecimal("30.00"), "USD"),
+                        AllocationType.NONE, true, 0)),
+                null, List.of());
+
+        assertThrows(IllegalArgumentException.class,
+                () -> new PublishedCatalogProductMapper().map(product));
     }
 }

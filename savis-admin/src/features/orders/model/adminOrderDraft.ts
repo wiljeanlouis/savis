@@ -3,6 +3,12 @@ import type {
   ProductPurchaseMode,
 } from "@/features/catalog/types";
 import { createUuid } from "@/shared/lib/utils";
+import {
+  addSafeCents,
+  dollarsToSafeCents,
+  multiplySafeCents,
+  requireSafeCents,
+} from "@/shared/lib/money";
 import type {
   CreateOrderRequest,
   Order,
@@ -178,6 +184,8 @@ export function buildCreateOrderRequest(
     throw new Error("Ajoutez au moins un produit à la commande.");
   }
   const subtotalCents = estimateOrderSubtotalCents(draft, products);
+  requireSafeCents(draft.discountCents);
+  requireSafeCents(draft.deliveryFeeCents);
   if (draft.discountCents < 0 || draft.deliveryFeeCents < 0) {
     throw new Error(
       "Le rabais et les frais de livraison doivent être positifs.",
@@ -256,7 +264,14 @@ export function estimateOrderTotalCents(
   products: CatalogProduct[],
 ) {
   const subtotal = estimateOrderSubtotalCents(draft, products);
-  return Math.max(0, subtotal - draft.discountCents) + draft.deliveryFeeCents;
+  const discountedSubtotal = addSafeCents(
+    subtotal,
+    -requireSafeCents(draft.discountCents),
+  );
+  return addSafeCents(
+    Math.max(0, discountedSubtotal),
+    requireSafeCents(draft.deliveryFeeCents),
+  );
 }
 
 export function estimateOrderSubtotalCents(
@@ -274,13 +289,21 @@ export function estimateOrderSubtotalCents(
       .reduce((sum, option) => {
         const selected =
           item.ingredients[option.code] ?? option.defaultQuantity;
-        return (
-          sum +
-          Math.max(0, selected - option.defaultQuantity) *
-            cents(option.extraPrice.amount)
+        return addSafeCents(
+          sum,
+          multiplySafeCents(
+            dollarsToSafeCents(option.extraPrice.amount),
+            Math.max(0, selected - option.defaultQuantity),
+          ),
         );
       }, 0);
-    return total + (cents(mode.price.amount) + extras) * item.quantity;
+    return addSafeCents(
+      total,
+      multiplySafeCents(
+        addSafeCents(dollarsToSafeCents(mode.price.amount), extras),
+        item.quantity,
+      ),
+    );
   }, 0);
 }
 
@@ -317,10 +340,6 @@ function requireMode(product: CatalogProduct, code: string) {
     throw new Error(`Sélectionnez un mode d’achat pour ${product.name}.`);
   }
   return mode;
-}
-
-function cents(amount: number) {
-  return Math.round(amount * 100);
 }
 
 function blankToNull(value: string) {

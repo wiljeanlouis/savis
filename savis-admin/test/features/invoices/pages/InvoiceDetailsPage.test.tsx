@@ -106,4 +106,20 @@ describe("InvoiceDetailsPage", () => {
     await waitFor(() => expect(issue).toHaveBeenCalledWith("invoice-1"));
     expect(window.confirm).toHaveBeenCalled();
   });
+
+  it("does not submit an invoice adjustment outside JavaScript's safe integer range", async () => {
+    const router = createMemoryRouter(
+      [{ path: "/invoices/:invoiceId", element: <InvoiceDetailsPage /> }],
+      { initialEntries: ["/invoices/invoice-1"] },
+    );
+    render(<RouterProvider router={router} />);
+
+    fireEvent.click(screen.getByRole("button", { name: "Modifier" }));
+    fireEvent.change(screen.getByLabelText("Rabais (CAD)"), {
+      target: { value: String(Number.MAX_SAFE_INTEGER) },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Enregistrer" }));
+
+    await waitFor(() => expect(update).not.toHaveBeenCalled());
+  });
 });

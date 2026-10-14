@@ -27,6 +27,17 @@ class OrderTest {
     }
 
     @Test
+    void rejectsAnIncoherentPersistedOrImportedTotal() {
+        OrderItem item = item(1, 100, 100);
+
+        assertThrows(IllegalArgumentException.class, () -> new Order(
+                null, UUID.randomUUID(), "ADM-00000001", OrderSource.ADMIN, OrderStatus.NEW,
+                "Ada", "+15145550100", null, null, null,
+                10, 20, 109, null, NOW, NOW, null, null, null, null, null,
+                List.of(item), Map.of()));
+    }
+
+    @Test
     void allowsCancellationUntilCompletionAndKeepsTerminalStatusesClosed() {
         for (OrderStatus status : List.of(
                 OrderStatus.NEW, OrderStatus.ACCEPTED, OrderStatus.IN_PREPARATION, OrderStatus.READY)) {

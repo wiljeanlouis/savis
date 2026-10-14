@@ -17,6 +17,9 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import com.savouretplus.savis.order.domain.Order;
+import com.savouretplus.savis.order.domain.OrderItem;
+import com.savouretplus.savis.order.domain.OrderItemAllocationType;
+import com.savouretplus.savis.order.domain.OrderItemProductType;
 import com.savouretplus.savis.order.domain.OrderSource;
 import com.savouretplus.savis.order.domain.OrderStatus;
 import com.savouretplus.savis.order.port.OrderRepository;
@@ -51,11 +54,15 @@ class OrderInvoicingServiceTest {
 
     private Order order(OrderStatus status) {
         Instant now = Instant.parse("2026-10-13T12:00:00Z");
+        OrderItem item = new OrderItem(
+                null, UUID.randomUUID(), UUID.randomUUID(), "Service", OrderItemProductType.STANDARD,
+                null, 1, 2400, 2400, 2400, "unit", "Unité", 1,
+                OrderItemAllocationType.NONE, null, List.of(), List.of(), List.of());
         return new Order(
                 1L, ORDER_ID, "ADM-00000001", OrderSource.ADMIN, status,
                 "Ada", "+15145550100", null, null, null, 100, 150, 2450,
                 null, now, now, status == OrderStatus.ACCEPTED ? now : null,
                 null, null, null, status == OrderStatus.CANCELLED ? now : null,
-                List.of(), Map.of());
+                List.of(item), Map.of());
     }
 }

@@ -1,5 +1,6 @@
 package com.savouretplus.savis.catalog.domain;
 
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import java.math.BigDecimal;
@@ -27,6 +28,19 @@ class ProductTest {
                         List.of(new ProductPurchaseMode(
                                 null, "unit", "À l'unité", 1, Money.of(5),
                                 AllocationType.NONE, true, 0))));
+    }
+
+    @Test
+    void commercialPricesMustBeExactlyRepresentableToTheCent() {
+        assertDoesNotThrow(() -> new ProductPurchaseMode(
+                null, "unit", "À l'unité", 1, new Money(new BigDecimal("12.990"), "CAD"),
+                AllocationType.NONE, true, 0));
+        assertThrows(IllegalArgumentException.class, () -> new ProductPurchaseMode(
+                null, "unit", "À l'unité", 1, new Money(new BigDecimal("12.995"), "CAD"),
+                AllocationType.NONE, true, 0));
+        assertThrows(IllegalArgumentException.class, () -> new ProductIngredientOption(
+                null, "extra", "Extra", null, 0, 0, 1,
+                new Money(new BigDecimal("0.001"), "CAD"), true, 0));
     }
 
     private Product product(List<ProductPurchaseMode> purchaseModes) {

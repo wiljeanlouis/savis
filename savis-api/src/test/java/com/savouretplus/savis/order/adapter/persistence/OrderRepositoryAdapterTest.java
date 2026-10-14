@@ -12,6 +12,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.dao.InvalidDataAccessApiUsageException;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -34,6 +35,7 @@ class OrderRepositoryAdapterTest {
     private static final UUID EXTERNAL_ID = UUID.fromString("10000000-0000-4000-8000-000000000001");
 
     @Autowired OrderRepository repository;
+    @Autowired OrderJpaRepository jpaRepository;
 
     @Test
     void persistsTheNormalizedSnapshotAndRejectsADuplicateExternalOrder() {
@@ -51,6 +53,17 @@ class OrderRepositoryAdapterTest {
         assertThrows(
                 DataIntegrityViolationException.class,
                 () -> repository.save(order("WEB-00000002", EXTERNAL_ID)));
+    }
+
+    @Test
+    void rejectsAnIncoherentTotalWhenReconstructingFromPersistence() {
+        Order saved = repository.save(order("WEB-00000003", UUID.randomUUID()));
+        OrderEntity entity = jpaRepository.findByPublicId(saved.publicId()).orElseThrow();
+        entity.setTotalCents(entity.getTotalCents() - 1);
+        jpaRepository.saveAndFlush(entity);
+
+        assertThrows(InvalidDataAccessApiUsageException.class,
+                () -> repository.findByPublicId(saved.publicId()));
     }
 
     private Order order(String number, UUID externalId) {

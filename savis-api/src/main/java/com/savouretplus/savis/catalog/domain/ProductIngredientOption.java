@@ -1,5 +1,6 @@
 package com.savouretplus.savis.catalog.domain;
 
+import java.math.RoundingMode;
 import java.util.UUID;
 
 import com.savouretplus.savis.common.Money;
@@ -33,6 +34,12 @@ public record ProductIngredientOption(
         }
         if (extraPrice == null || extraPrice.amount().signum() < 0) {
             throw new IllegalArgumentException("Le prix supplémentaire est requis et ne peut pas être négatif");
+        }
+        try {
+            extraPrice.amount().setScale(2, RoundingMode.UNNECESSARY);
+        } catch (ArithmeticException exception) {
+            throw new IllegalArgumentException(
+                    "Le prix supplémentaire doit être représentable exactement au cent", exception);
         }
         if (displayOrder < 0) {
             throw new IllegalArgumentException("L'ordre d'affichage ne peut pas être négatif");

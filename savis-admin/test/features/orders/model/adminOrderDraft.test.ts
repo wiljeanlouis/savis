@@ -111,6 +111,31 @@ describe("adminOrderDraft", () => {
     ).toThrow("Ajoutez au moins un produit");
   });
 
+  it("rejects an unsafe browser subtotal instead of displaying a rounded total", () => {
+    const unsafeProduct = {
+      ...product,
+      purchaseModes: [
+        {
+          ...product.purchaseModes[0],
+          price: { amount: Number.MAX_SAFE_INTEGER, currency: "CAD" },
+        },
+      ],
+    };
+    const draft = {
+      ...emptyAdminOrderDraft(),
+      customerName: "Ada",
+      customerPhone: "5145550100",
+      items: [createAdminOrderItem(unsafeProduct)],
+    };
+
+    expect(() => estimateOrderTotalCents(draft, [unsafeProduct])).toThrow(
+      "plage d’entiers sûre",
+    );
+    expect(() => buildCreateOrderRequest(draft, [unsafeProduct])).toThrow(
+      "plage d’entiers sûre",
+    );
+  });
+
   it("restores an editable draft from saved order snapshots", () => {
     const order = {
       id: "order-1",

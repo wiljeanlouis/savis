@@ -51,14 +51,11 @@ public record Order(
                 && externalOrderId == null) {
             throw new IllegalArgumentException("L'identifiant d'origine de la commande est requis");
         }
-        if (totalCents < 0) {
-            throw new IllegalArgumentException("Le total de la commande ne peut pas être négatif");
-        }
-        if (discountCents < 0 || deliveryFeeCents < 0) {
-            throw new IllegalArgumentException("Le rabais et les frais de livraison ne peuvent pas être négatifs");
-        }
         customerAddress = customerAddress == null || customerAddress.isEmpty() ? null : customerAddress;
         items = items != null ? List.copyOf(items) : List.of();
+        if (totalCents != calculateTotalCents(items, discountCents, deliveryFeeCents)) {
+            throw new IllegalArgumentException("Le total de la commande est incohérent");
+        }
         rawPayload = rawPayload != null
                 ? Collections.unmodifiableMap(new LinkedHashMap<>(rawPayload))
                 : Map.of();

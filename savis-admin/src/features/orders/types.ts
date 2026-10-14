@@ -217,10 +217,12 @@ export const nextOrderStatuses: Record<OrderStatus, OrderStatus[]> = {
 };
 
 export const formatOrderCurrency = (cents: number) =>
-  new Intl.NumberFormat("fr-CA", {
-    style: "currency",
-    currency: "CAD",
-  }).format(cents / 100);
+  Number.isSafeInteger(cents)
+    ? new Intl.NumberFormat("fr-CA", {
+        style: "currency",
+        currency: "CAD",
+      }).format(cents / 100)
+    : "Montant invalide";
 
 export const formatOrderDate = (value: string) =>
   new Intl.DateTimeFormat("fr-CA", {

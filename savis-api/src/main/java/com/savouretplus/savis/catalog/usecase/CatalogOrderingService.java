@@ -1,7 +1,6 @@
 package com.savouretplus.savis.catalog.usecase;
 
 import java.math.BigDecimal;
-import java.math.RoundingMode;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -16,8 +15,6 @@ import com.savouretplus.savis.catalog.domain.ProductConfiguration;
 import com.savouretplus.savis.catalog.domain.ProductIngredientOption;
 import com.savouretplus.savis.catalog.domain.ProductPurchaseMode;
 import com.savouretplus.savis.catalog.domain.ProductType;
-import com.savouretplus.savis.common.Money;
-
 import lombok.AllArgsConstructor;
 
 /**
@@ -57,7 +54,7 @@ public class CatalogOrderingService implements CatalogOrderingApi {
                         option.name(),
                         selectedIngredientQuantity(option, configuration),
                         option.defaultQuantity(),
-                        cents(option.extraPrice())))
+                        CatalogCommercialPrice.toCents(option.extraPrice())))
                 .toList();
 
         return new ProductSnapshot(
@@ -66,8 +63,8 @@ public class CatalogOrderingService implements CatalogOrderingApi {
                 product.commercialType().name(),
                 product.productType().name(),
                 product.imageUrl(),
-                cents(mode.price()),
-                cents(product.calculateSalePrice(configuration)),
+                CatalogCommercialPrice.toCents(mode.price()),
+                CatalogCommercialPrice.toCents(product.calculateSalePrice(configuration)),
                 new PurchaseModeSnapshot(
                         mode.code(), mode.label(), mode.quantity(), mode.allocationType().name()),
                 choiceSelection,
@@ -186,7 +183,4 @@ public class CatalogOrderingService implements CatalogOrderingApi {
                 .orElse(option.defaultQuantity());
     }
 
-    private int cents(Money money) {
-        return money.amount().movePointRight(2).setScale(0, RoundingMode.HALF_UP).intValueExact();
-    }
 }

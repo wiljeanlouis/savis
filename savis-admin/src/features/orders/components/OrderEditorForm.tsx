@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
 import type { CatalogProduct } from "@/features/catalog/types";
+import { dollarsToSafeCents } from "@/shared/lib/money";
 import { Button } from "@/shared/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/shared/ui/card";
 import { Input } from "@/shared/ui/input";
@@ -64,6 +65,13 @@ export function OrderEditorForm({
   onRemoveItem,
   documentContext = "commande",
 }: OrderEditorFormProps) {
+  const subtotalCents = safeEstimate(() =>
+    estimateOrderSubtotalCents(draft, products),
+  );
+  const totalCents = safeEstimate(() =>
+    estimateOrderTotalCents(draft, products),
+  );
+
   return (
     <div className="space-y-4">
       <OrderCustomerEditor
@@ -144,10 +152,12 @@ export function OrderEditorForm({
                 step="0.01"
                 value={draft.discountCents / 100}
                 onChange={(event) =>
-                  onDraftChange({
-                    ...draft,
-                    discountCents: cents(Number(event.target.value)),
-                  })
+                  updateAdjustment(
+                    draft,
+                    "discountCents",
+                    Number(event.target.value),
+                    onDraftChange,
+                  )
                 }
               />
             </Field>
@@ -158,29 +168,24 @@ export function OrderEditorForm({
                 step="0.01"
                 value={draft.deliveryFeeCents / 100}
                 onChange={(event) =>
-                  onDraftChange({
-                    ...draft,
-                    deliveryFeeCents: cents(Number(event.target.value)),
-                  })
+                  updateAdjustment(
+                    draft,
+                    "deliveryFeeCents",
+                    Number(event.target.value),
+                    onDraftChange,
+                  )
                 }
               />
             </Field>
             <dl className="space-y-2 sm:col-span-2 sm:ml-auto sm:min-w-80">
-              <MoneyRow
-                label="Sous-total"
-                cents={estimateOrderSubtotalCents(draft, products)}
-              />
+              <MoneyRow label="Sous-total" cents={subtotalCents} />
               {draft.discountCents > 0 ? (
                 <MoneyRow label="Rabais" cents={-draft.discountCents} />
               ) : null}
               {draft.deliveryFeeCents > 0 ? (
                 <MoneyRow label="Livraison" cents={draft.deliveryFeeCents} />
               ) : null}
-              <MoneyRow
-                label="Total estimé"
-                cents={estimateOrderTotalCents(draft, products)}
-                emphasized
-              />
+              <MoneyRow label="Total estimé" cents={totalCents} emphasized />
             </dl>
           </div>
         </CardContent>
@@ -422,8 +427,7 @@ function OrderItemEditor({
             <SelectContent>
               {modes.map((value) => (
                 <SelectItem key={value.code} value={value.code}>
-                  {value.label} —{" "}
-                  {formatOrderCurrency(cents(value.price.amount))}
+                  {value.label} — {formatCatalogPrice(value.price.amount)}
                 </SelectItem>
               ))}
             </SelectContent>
@@ -538,7 +542,7 @@ function MoneyRow({
   emphasized = false,
 }: {
   label: string;
-  cents: number;
+  cents: number | null;
   emphasized?: boolean;
 }) {
   return (
@@ -547,12 +551,33 @@ function MoneyRow({
         {label}
       </dt>
       <dd className={emphasized ? "text-xl font-semibold" : "font-medium"}>
-        {formatOrderCurrency(cents)}
+        {cents === null ? "Montant invalide" : formatOrderCurrency(cents)}
       </dd>
     </div>
   );
 }
 
-function cents(amount: number) {
-  return Math.round(amount * 100);
+function safeEstimate(calculation: () => number): number | null {
+  try {
+    return calculation();
+  } catch {
+    return null;
+  }
+}
+
+function formatCatalogPrice(amount: number) {
+  const cents = safeEstimate(() => dollarsToSafeCents(amount));
+  return cents === null ? "Montant invalide" : formatOrderCurrency(cents);
+}
+
+function updateAdjustment(
+  draft: AdminOrderDraft,
+  field: "discountCents" | "deliveryFeeCents",
+  amount: number,
+  onDraftChange: (draft: AdminOrderDraft) => void,
+) {
+  const cents = safeEstimate(() => dollarsToSafeCents(amount));
+  if (cents !== null) {
+    onDraftChange({ ...draft, [field]: cents });
+  }
 }

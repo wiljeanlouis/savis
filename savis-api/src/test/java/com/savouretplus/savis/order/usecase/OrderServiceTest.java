@@ -310,7 +310,7 @@ class OrderServiceTest {
         return new Order(
                 1L, ORDER_ID, "WEB-00000001", OrderSource.SAVOURETPLUS_WEB, status,
                 "Ada", "514", null, null, 1200, UUID.randomUUID(), NOW, NOW,
-                null, null, null, null, null, List.of(), Map.of());
+                null, null, null, null, null, List.of(orderItem(1200)), Map.of());
     }
 
     private Order administrativeOrder(OrderStatus status) {
@@ -318,7 +318,15 @@ class OrderServiceTest {
                 1L, ORDER_ID, "ADM-00000001", OrderSource.ADMIN, status,
                 "Ada", "514", null, null, 1200, null, NOW, NOW,
                 status == OrderStatus.ACCEPTED ? NOW : null,
-                null, null, null, null, List.of(), Map.of());
+                null, null, null, null, List.of(orderItem(1200)), Map.of());
+    }
+
+    private OrderItem orderItem(int unitPriceCents) {
+        return new OrderItem(
+                null, UUID.randomUUID(), PRODUCT_ID, "Cupcake", OrderItemProductType.STANDARD,
+                null, 1, unitPriceCents, unitPriceCents, unitPriceCents,
+                "unit", "Unité", 1, OrderItemAllocationType.NONE, null,
+                List.of(), List.of(), List.of());
     }
 
     private OrderService service() {
