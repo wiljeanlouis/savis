@@ -208,7 +208,15 @@ export function CatalogProductCard({
         </>
       )}
 
-      <CardFooter className="justify-end gap-2 border-t py-3">
+      <CardFooter className="flex-wrap justify-end gap-2 border-t py-3">
+        <Button
+          type="button"
+          variant="outline"
+          disabled={saving}
+          onClick={() => setIsEditOpen(true)}
+        >
+          Modifier
+        </Button>
         <Button type="button" variant="outline" onClick={onAnalyze}>
           Analyser
         </Button>
@@ -228,9 +236,6 @@ export function CatalogProductCard({
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end">
-            <DropdownMenuItem onSelect={() => setIsEditOpen(true)}>
-              Modifier
-            </DropdownMenuItem>
             {product.published && (
               <DropdownMenuItem
                 variant="destructive"
