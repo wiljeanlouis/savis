@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.11.0](https://github.com/wiljeanlouis/savis/compare/v1.10.0...v1.11.0) (2026-10-15)
+
+
+### Features
+
+* enhance product form and list ([#153](https://github.com/wiljeanlouis/savis/issues/153)) ([318291c](https://github.com/wiljeanlouis/savis/commit/318291c4569579afaafa912833813e61d06f3ab6))
+
 ## [1.10.0](https://github.com/wiljeanlouis/savis/compare/v1.9.0...v1.10.0) (2026-10-14)
 
 
