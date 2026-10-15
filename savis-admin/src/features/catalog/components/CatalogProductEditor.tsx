@@ -1,26 +1,16 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import type { Bom } from "@/features/bom/types";
 import { PictureFrame } from "@/shared/components/PictureFrame";
 import { Button } from "@/shared/ui/button";
 import { Checkbox } from "@/shared/ui/checkbox";
 import { DraftAlert } from "@/shared/components/DraftAlert";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/shared/ui/dialog";
+import { cn } from "@/shared/lib/utils";
 import {
   Field,
   FieldContent,
   FieldDescription,
   FieldGroup,
   FieldLabel,
-  FieldLegend,
-  FieldSet,
 } from "@/shared/ui/field";
 import { Input } from "@/shared/ui/input";
 import {
@@ -49,8 +39,8 @@ import {
   type ProductType,
 } from "../types";
 import {
-  CatalogProductGuideButton,
-  CatalogProductGuidePanel,
+  CatalogProductGuide,
+  type CatalogProductGuideSection,
 } from "./CatalogProductGuideDrawer";
 import {
   clearDraft,
@@ -65,9 +55,9 @@ interface Props {
   boms: Bom[];
   saving: boolean;
   onSave: (product: CatalogProduct) => void | Promise<void>;
-  open?: boolean;
-  onOpenChange?: (open: boolean) => void;
-  hideTrigger?: boolean;
+  onCancel: () => void;
+  onSaved: () => void;
+  onDirtyChange: (dirty: boolean) => void;
 }
 
 const number = (value: string) => Number(value) || 0;
@@ -78,32 +68,30 @@ const textToGallery = (value: string) =>
     .map((item) => item.trim())
     .filter(Boolean);
 
-export function CatalogProductDialog({
+export function CatalogProductEditor({
   product,
   boms,
   saving,
   onSave,
-  open,
-  onOpenChange,
-  hideTrigger = false,
+  onCancel,
+  onSaved,
+  onDirtyChange,
 }: Props) {
   const isEditing = Boolean(product);
-  const initial = () => product ?? loadDraft() ?? emptyCatalogProduct();
-  const [internalOpen, setInternalOpen] = useState(false);
-  const [form, setForm] = useState<CatalogProduct>(initial);
-  const [gallery, setGallery] = useState("");
-  const [guideOpen, setGuideOpen] = useState(false);
+  const [form, setForm] = useState<CatalogProduct>(() =>
+    product ? product : (loadDraft() ?? emptyCatalogProduct()),
+  );
+  const [gallery, setGallery] = useState(() => galleryToText(form.gallery));
+  const [generateCodeFromName, setGenerateCodeFromName] = useState(
+    !product && !form.code,
+  );
+  const [generateSlugFromName, setGenerateSlugFromName] = useState(
+    !product && !form.slug,
+  );
   const [isDirty, setIsDirty] = useState(false);
   const [isDraftAlertOpen, setIsDraftAlertOpen] = useState(false);
-  const isOpen = open ?? internalOpen;
-  const setOpen = onOpenChange ?? setInternalOpen;
-
-  const reset = () => {
-    const next = initial();
-    setForm(next);
-    setGallery(galleryToText(next.gallery));
-    setIsDirty(false);
-  };
+  const [activeSection, setActiveSection] =
+    useState<CatalogProductGuideSection>("product-information");
   const update = <K extends keyof CatalogProduct>(
     key: K,
     value: CatalogProduct[K],
@@ -114,6 +102,17 @@ export function CatalogProductDialog({
 
   const updateGallery = (value: string) => {
     setGallery(value);
+    setIsDirty(true);
+  };
+
+  const updateName = (name: string) => {
+    const identifier = productIdentifier(name);
+    setForm((current) => ({
+      ...current,
+      name,
+      code: generateCodeFromName ? identifier : current.code,
+      slug: generateSlugFromName ? identifier : current.slug,
+    }));
     setIsDirty(true);
   };
 
@@ -132,10 +131,14 @@ export function CatalogProductDialog({
   const availableSubcategories = subcategoriesForCategory(form.category);
 
   useEffect(() => {
-    if (isOpen && !isEditing && isDirty) {
+    onDirtyChange(isDirty);
+  }, [isDirty, onDirtyChange]);
+
+  useEffect(() => {
+    if (!isEditing && isDirty) {
       saveDraft({ ...form, gallery: textToGallery(gallery) });
     }
-  }, [form, gallery, isDirty, isEditing, isOpen]);
+  }, [form, gallery, isDirty, isEditing]);
 
   const save = async (event: React.SubmitEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -146,33 +149,42 @@ export function CatalogProductDialog({
     if (!isEditing) {
       clearDraft();
     }
-    setOpen(false);
+    setIsDirty(false);
+    onSaved();
   };
 
-  const requestOpenChange = (value: boolean) => {
-    if (value) {
-      reset();
-      setOpen(true);
-      return;
-    }
-
-    if (!isEditing && hasDraft()) {
+  const requestCancel = () => {
+    if (!isEditing && (isDirty || hasDraft())) {
+      if (isDirty) {
+        saveDraft({ ...form, gallery: textToGallery(gallery) });
+      }
       setIsDraftAlertOpen(true);
       return;
     }
 
-    setOpen(false);
+    if (
+      isEditing &&
+      isDirty &&
+      !window.confirm("Abandonner les modifications non enregistrées ?")
+    ) {
+      return;
+    }
+
+    onCancel();
   };
 
   const closeAndDeleteDraft = () => {
     clearDraft();
     setIsDraftAlertOpen(false);
-    setOpen(false);
+    setIsDirty(false);
+    onCancel();
   };
 
   const closeAndKeepDraft = () => {
+    saveDraft({ ...form, gallery: textToGallery(gallery) });
     setIsDraftAlertOpen(false);
-    setOpen(false);
+    setIsDirty(false);
+    onCancel();
   };
 
   const showChoices =
@@ -187,66 +199,151 @@ export function CatalogProductDialog({
       mode.quantity <= 0 ||
       mode.price.amount < 0,
   );
+  const navigationItems = useMemo<
+    Array<{ id: CatalogProductGuideSection; label: string }>
+  >(() => {
+    const items: Array<{
+      id: CatalogProductGuideSection;
+      label: string;
+    }> = [
+      { id: "product-information", label: "Informations générales" },
+      { id: "product-classification", label: "Classification" },
+      { id: "product-boms", label: "Compositions" },
+      { id: "product-purchase-modes", label: "Modes d'achat" },
+    ];
+
+    if (showChoices || showIngredients) {
+      items.push({ id: "product-options", label: "Options et Choix" });
+    }
+
+    items.push({ id: "product-availability", label: "Disponibilité" });
+    return items;
+  }, [showChoices, showIngredients]);
+
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      (entries) => {
+        const visibleSection = entries
+          .filter((entry) => entry.isIntersecting)
+          .sort(
+            (left, right) =>
+              left.boundingClientRect.top - right.boundingClientRect.top,
+          )[0];
+
+        if (visibleSection) {
+          setActiveSection(
+            visibleSection.target.id as CatalogProductGuideSection,
+          );
+        }
+      },
+      {
+        rootMargin: "-96px 0px -65% 0px",
+        threshold: 0,
+      },
+    );
+
+    navigationItems.forEach(({ id }) => {
+      const section = document.getElementById(id);
+      if (section) observer.observe(section);
+    });
+
+    return () => observer.disconnect();
+  }, [navigationItems]);
 
   return (
-    <Dialog open={isOpen} onOpenChange={requestOpenChange}>
-      {!hideTrigger && (
-        <DialogTrigger asChild>
-          <Button variant={product ? "outline" : "default"}>
-            {product ? "Modifier" : "Ajouter un produit"}
-          </Button>
-        </DialogTrigger>
-      )}
-      <DialogContent
-        className={`max-h-[92vh] overflow-y-auto transition-[max-width] duration-200 sm:max-w-6xl ${
-          guideOpen ? "xl:max-w-[min(calc(100vw-2rem),88rem)]" : ""
-        }`}
-      >
-        <DialogHeader className="pr-16">
-          <div>
-            <DialogTitle>
-              {product ? "Modifier le produit" : "Nouveau produit"}
-            </DialogTitle>
-            <DialogDescription>
-              Le prix est une décision commerciale. Les BOM servent à mesurer le
-              coût et la marge.
-            </DialogDescription>
+    <>
+      <header>
+        <div>
+          <h1 className="text-2xl font-semibold">
+            {product ? "Modifier le produit" : "Nouveau produit"}
+          </h1>
+          <p className="text-sm text-muted-foreground">
+            Le prix est une décision commerciale. Les compositions servent à
+            mesurer le coût et la marge.
+          </p>
+        </div>
+      </header>
+
+      <div className="grid items-start gap-6 xl:grid-cols-[11rem_minmax(0,1fr)]">
+        <aside className="sticky top-16 z-30 -mx-2 border-b bg-background/95 px-2 backdrop-blur xl:top-20 xl:mx-0 xl:self-start xl:border-b-0 xl:bg-transparent xl:px-0 xl:backdrop-blur-none">
+          <p className="mb-2 hidden text-xs font-medium tracking-wide text-muted-foreground uppercase xl:block">
+            Dans cette page
+          </p>
+          <div className="flex min-w-0 items-center gap-2 xl:block">
+            <nav
+              aria-label="Sections du produit"
+              className="flex min-w-0 flex-1 overflow-x-auto xl:-ml-px xl:flex-col xl:overflow-visible xl:border-l"
+            >
+              {navigationItems.map((item) => (
+                <a
+                  key={item.id}
+                  href={`#${item.id}`}
+                  aria-current={
+                    activeSection === item.id ? "location" : undefined
+                  }
+                  onClick={() => setActiveSection(item.id)}
+                  className={cn(
+                    "border-b-2 border-transparent px-3 py-2 text-xs whitespace-nowrap text-muted-foreground transition-colors hover:bg-muted hover:text-foreground xl:border-b-0 xl:border-l-2",
+                    activeSection === item.id &&
+                      "border-primary bg-primary/10 text-foreground",
+                  )}
+                >
+                  {item.label}
+                </a>
+              ))}
+            </nav>
+            <div className="shrink-0 border-l pl-2 xl:mt-3 xl:border-l-0 xl:pl-0">
+              <CatalogProductGuide
+                section={activeSection}
+                productType={form.productType}
+              />
+            </div>
           </div>
-          <div className="absolute top-2 right-10">
-            <CatalogProductGuideButton
-              open={guideOpen}
-              onOpenChange={setGuideOpen}
-            />
-          </div>
-        </DialogHeader>
-        <div
-          className={
-            guideOpen
-              ? "grid gap-6 xl:grid-cols-[minmax(0,1fr)_380px]"
-              : "grid gap-6"
-          }
-        >
-          <form className="grid gap-6" onSubmit={save}>
-            <FieldSet>
-              <FieldLegend>Infos de base</FieldLegend>
+        </aside>
+
+        <div className="grid min-w-0 gap-6">
+          <form className="grid min-w-0 gap-6" onSubmit={save}>
+            <EditorSection
+              id="product-information"
+              title="Informations générales"
+              description="Nom, identifiants, description et images présentés dans le catalogue."
+            >
               <div className="grid gap-6 xl:grid-cols-[minmax(0,2fr)_minmax(18rem,1fr)]">
-                <FieldGroup className="grid gap-4 md:grid-cols-3">
-                  <TextField
-                    label="Nom"
-                    value={form.name}
-                    onChange={(value) => update("name", value)}
-                  />
+                <FieldGroup className="grid gap-4 md:grid-cols-2">
+                  <div className="md:col-span-2">
+                    <TextField
+                      label="Nom"
+                      value={form.name}
+                      onChange={updateName}
+                    />
+                  </div>
                   <TextField
                     label="Code"
+                    description={
+                      isEditing
+                        ? "Identifiant interne stable du produit."
+                        : "Généré depuis le nom; vous pouvez le modifier."
+                    }
                     value={form.code}
-                    onChange={(value) => update("code", value)}
+                    onChange={(value) => {
+                      setGenerateCodeFromName(false);
+                      update("code", value);
+                    }}
                   />
                   <TextField
                     label="Slug"
+                    description={
+                      isEditing
+                        ? "Identifiant public stable utilisé dans l'URL."
+                        : "Généré depuis le nom; vous pouvez le modifier."
+                    }
                     value={form.slug}
-                    onChange={(value) => update("slug", value)}
+                    onChange={(value) => {
+                      setGenerateSlugFromName(false);
+                      update("slug", value);
+                    }}
                   />
-                  <Field className="md:col-span-3">
+                  <Field className="md:col-span-2">
                     <FieldLabel>Description</FieldLabel>
                     <Textarea
                       value={form.description}
@@ -255,7 +352,7 @@ export function CatalogProductDialog({
                       }
                     />
                   </Field>
-                  <Field className="md:col-span-3">
+                  <Field className="md:col-span-2">
                     <TextField
                       label="Image principale"
                       value={form.imageUrl}
@@ -279,9 +376,13 @@ export function CatalogProductDialog({
                   />
                 </Field>
               </FieldGroup>
-            </FieldSet>
+            </EditorSection>
 
-            <FieldSet>
+            <EditorSection
+              id="product-classification"
+              title="Classification et configuration"
+              description="Catégorie, nature commerciale, configuration et marge cible du produit."
+            >
               <FieldGroup className="grid gap-4 md:grid-cols-3">
                 <Field>
                   <FieldLabel>Catégorie</FieldLabel>
@@ -353,7 +454,7 @@ export function CatalogProductDialog({
                   </Select>
                   <FieldDescription>
                     Distingue ce qui est vendu; les coûts internes restent dans
-                    les BOM.
+                    les compositions.
                   </FieldDescription>
                 </Field>
                 <Field>
@@ -395,10 +496,11 @@ export function CatalogProductDialog({
               </FieldGroup>
 
               <FieldGroup className="grid gap-4 md:grid-cols-3"></FieldGroup>
-            </FieldSet>
+            </EditorSection>
 
             <CollectionSection
-              title="BOM communs"
+              id="product-boms"
+              title="Compositions de base"
               description="Composition toujours incluse dans le coût, peu importe le choix du client."
               onAdd={() =>
                 update("productBoms", [
@@ -416,7 +518,7 @@ export function CatalogProductDialog({
                   key={productBom.id}
                 >
                   <BomField
-                    label="BOM"
+                    label="Composition"
                     value={productBom.bomId}
                     boms={boms}
                     required
@@ -451,6 +553,7 @@ export function CatalogProductDialog({
             </CollectionSection>
 
             <CollectionSection
+              id="product-purchase-modes"
               title="Modes d'achat"
               description="Formats vendus au client : unité, demi-douzaine, douzaine, etc."
               onAdd={() =>
@@ -529,7 +632,8 @@ export function CatalogProductDialog({
 
             {showChoices && (
               <CollectionSection
-                title="Saveurs et choix"
+                id="product-options"
+                title="Options et Choix"
                 description="Options visibles pour les produits à choix unique ou bundles."
                 onAdd={() => {
                   const group = form.choiceGroup ?? {
@@ -586,7 +690,7 @@ export function CatalogProductDialog({
                       onChange={(value) => updateChoice(index, { name: value })}
                     />
                     <BomField
-                      label="BOM"
+                      label="Composition de l'option"
                       value={option.bomId}
                       boms={boms}
                       onChange={(bomId) => updateChoice(index, { bomId })}
@@ -608,7 +712,8 @@ export function CatalogProductDialog({
 
             {showIngredients && (
               <CollectionSection
-                title="Ingrédients et extras"
+                id="product-options"
+                title="Options et Choix"
                 description="Extras personnalisables. Le prix extra s'ajoute au-dessus de la quantité par défaut."
                 onAdd={() =>
                   update("ingredientOptions", [
@@ -637,7 +742,7 @@ export function CatalogProductDialog({
                       }
                     />
                     <BomField
-                      label="BOM extra"
+                      label="Composition de l'extra"
                       value={option.bomId}
                       boms={boms}
                       onChange={(bomId) => updateIngredient(index, { bomId })}
@@ -687,8 +792,11 @@ export function CatalogProductDialog({
               </CollectionSection>
             )}
 
-            <FieldSet>
-              <FieldLegend>Disponibilité</FieldLegend>
+            <EditorSection
+              id="product-availability"
+              title="Disponibilité"
+              description="Visibilité du produit, note client et ordre de présentation."
+            >
               <FieldGroup className="grid gap-4 md:grid-cols-3">
                 <TextField
                   label="Note"
@@ -707,9 +815,12 @@ export function CatalogProductDialog({
                   onChange={(value) => update("available", value)}
                 />
               </FieldGroup>
-            </FieldSet>
+            </EditorSection>
 
-            <DialogFooter>
+            <div className="sticky bottom-3 z-20 flex flex-wrap justify-end gap-2 rounded-xl border bg-background/95 p-3 shadow-lg backdrop-blur">
+              <Button type="button" variant="outline" onClick={requestCancel}>
+                Annuler
+              </Button>
               <Button
                 type="submit"
                 disabled={
@@ -724,18 +835,17 @@ export function CatalogProductDialog({
               >
                 {saving ? "Enregistrement..." : "Enregistrer"}
               </Button>
-            </DialogFooter>
+            </div>
           </form>
-          {guideOpen && <CatalogProductGuidePanel />}
         </div>
-      </DialogContent>
+      </div>
       <DraftAlert
         isOpen={isDraftAlertOpen}
         setIsOpen={setIsDraftAlertOpen}
         onDelete={closeAndDeleteDraft}
         onKeep={closeAndKeepDraft}
       />
-    </Dialog>
+    </>
   );
 
   function updateProductBom(
@@ -787,23 +897,24 @@ export function CatalogProductDialog({
 }
 
 function CollectionSection({
+  id,
   title,
   description,
   onAdd,
   children,
 }: {
+  id: string;
   title: string;
-  description?: string;
+  description: string;
   onAdd: () => void;
   children: React.ReactNode;
 }) {
   return (
-    <FieldSet>
-      <div className="flex items-center justify-between">
-        <div>
-          <FieldLegend>{title}</FieldLegend>
-          {description && <FieldDescription>{description}</FieldDescription>}
-        </div>
+    <EditorSection
+      id={id}
+      title={title}
+      description={description}
+      action={
         <Button
           type="button"
           variant="outline"
@@ -813,11 +924,60 @@ function CollectionSection({
         >
           <HugeiconsIcon icon={Add01Icon} strokeWidth={2} />
         </Button>
-      </div>
+      }
+    >
       <FieldGroup>{children}</FieldGroup>
-    </FieldSet>
+    </EditorSection>
   );
 }
+
+function EditorSection({
+  id,
+  title,
+  description,
+  action,
+  children,
+}: {
+  id: string;
+  title: string;
+  description: string;
+  action?: React.ReactNode;
+  children: React.ReactNode;
+}) {
+  const titleId = `${id}-title`;
+
+  return (
+    <section
+      id={id}
+      aria-labelledby={titleId}
+      className="flex scroll-mt-24 flex-col gap-4 rounded-xl border bg-card p-5"
+    >
+      <header className="flex items-start justify-between gap-4">
+        <div>
+          <h2 id={titleId} className="text-sm font-medium">
+            {title}
+          </h2>
+          <p className="mt-1 text-xs/relaxed leading-normal text-muted-foreground">
+            {description}
+          </p>
+        </div>
+        {action}
+      </header>
+      {children}
+    </section>
+  );
+}
+
+function productIdentifier(name: string) {
+  return name
+    .trim()
+    .toLocaleLowerCase("fr")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "");
+}
+
 function TextField({
   label,
   description,
@@ -957,12 +1117,6 @@ function BomField({
   return (
     <Field>
       <FieldLabel>{label}</FieldLabel>
-      <BomCombobox
-        boms={boms}
-        value={value}
-        required={required}
-        onChange={onChange}
-      />
       <BomCombobox
         boms={boms}
         value={value}

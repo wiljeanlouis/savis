@@ -11,6 +11,7 @@ const SEARCH_DEBOUNCE_MS = 300;
 /** Owns the read-only offer filters and their server-side paged query. */
 export function useSupplyOffers() {
   const [page, setPage] = useState(0);
+  const [pageSize, setPageSize] = useState(DEFAULT_PAGE_SIZE);
   const [search, setSearch] = useState("");
   const [status, setStatus] = useState<SupplyOfferStatusFilter>("AVAILABLE");
   const [sort, setSort] = useState<SupplyOfferSort>("lastSeen,desc");
@@ -22,6 +23,11 @@ export function useSupplyOffers() {
 
   const changeSearch = useCallback((value: string) => {
     setSearch(value);
+    setPage(0);
+  }, []);
+
+  const changePageSize = useCallback((value: number) => {
+    setPageSize(value);
     setPage(0);
   }, []);
 
@@ -40,7 +46,7 @@ export function useSupplyOffers() {
       ...SUPPLY_OFFERS_QUERY_KEY,
       {
         page,
-        size: DEFAULT_PAGE_SIZE,
+        size: pageSize,
         search: debouncedSearch.trim(),
         status,
         sort,
@@ -49,7 +55,7 @@ export function useSupplyOffers() {
     queryFn: () =>
       getSupplyOffers({
         page,
-        size: DEFAULT_PAGE_SIZE,
+        size: pageSize,
         search: debouncedSearch,
         status,
         sort,
@@ -60,11 +66,12 @@ export function useSupplyOffers() {
   return {
     query,
     page,
-    pageSize: DEFAULT_PAGE_SIZE,
+    pageSize,
     search,
     status,
     sort,
     setPage: changePage,
+    setPageSize: changePageSize,
     setSearch: changeSearch,
     setStatus: changeStatus,
     setSort: changeSort,

@@ -94,6 +94,16 @@ describe("useSupplyOffers", () => {
         ),
       { timeout: 1_000 },
     );
+
+    act(() => result.current.setPage(4));
+    act(() => result.current.setPageSize(50));
+    expect(result.current.page).toBe(0);
+    expect(result.current.pageSize).toBe(50);
+    await waitFor(() =>
+      expect(getSupplyOffers).toHaveBeenLastCalledWith(
+        expect.objectContaining({ page: 0, size: 50 }),
+      ),
+    );
   });
 });
 

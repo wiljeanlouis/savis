@@ -1,11 +1,11 @@
 import type { Bom } from "@/features/bom/types";
 import { useState } from "react";
+import { Link } from "react-router";
 import { DeleteAlert } from "@/shared/components/DeleteAlert";
 import { Badge } from "@/shared/ui/badge";
 import { Button } from "@/shared/ui/button";
 import {
   Card,
-  CardAction,
   CardContent,
   CardDescription,
   CardFooter,
@@ -23,18 +23,15 @@ import { HugeiconsIcon } from "@hugeicons/react";
 import { MoreVerticalCircle01Icon } from "@hugeicons/core-free-icons";
 import type { CatalogProduct, ProductPricingAnalysis } from "../types";
 import { productCategories } from "../types";
-import { CatalogProductDialog } from "./CatalogProductDialog";
 
 interface CatalogProductCardProps {
   product: CatalogProduct;
   result?: ProductPricingAnalysis;
   boms: Bom[];
-  saving: boolean;
   publishing: boolean;
   onAnalyze: () => void;
   onPublish: () => void;
   onUnpublish: () => void;
-  onSave: (product: CatalogProduct) => void | Promise<void>;
   onDelete: () => void;
 }
 
@@ -42,15 +39,12 @@ export function CatalogProductCard({
   product,
   result,
   boms,
-  saving,
   publishing,
   onAnalyze,
   onPublish,
   onUnpublish,
-  onSave,
   onDelete,
 }: CatalogProductCardProps) {
-  const [isEditOpen, setIsEditOpen] = useState(false);
   const [isDeleteOpen, setIsDeleteOpen] = useState(false);
   const category = productCategories.find(
     (item) => item.value === product.category,
@@ -63,20 +57,25 @@ export function CatalogProductCard({
         left.label.localeCompare(right.label) ||
         left.code.localeCompare(right.code),
     )[0];
+  const description = product.description.trim();
   const bomName = (bomId: string | null) =>
-    bomId ? (boms.find((bom) => bom.id === bomId)?.name ?? bomId) : "Aucun BOM";
+    bomId
+      ? (boms.find((bom) => bom.id === bomId)?.name ?? bomId)
+      : "Aucune composition";
 
   return (
     <Card className="gap-0 py-0">
-      <CardHeader className="grid min-h-24 grid-cols-[72px_1fr_auto] gap-3 border-b py-4">
+      <CardHeader className="grid min-h-28 grid-cols-[80px_minmax(0,1fr)_auto] gap-4 border-b py-4 sm:min-h-36 sm:grid-cols-[112px_minmax(0,1fr)_auto]">
         <img
           src={product.imageUrl}
-          alt=""
-          className="row-span-2 size-[72px] rounded-md object-cover"
+          alt={`Image de ${product.name}`}
+          className="row-span-2 size-20 rounded-lg object-cover sm:size-28"
         />
         <div className="min-w-0">
           <div className="flex flex-wrap items-center gap-2">
-            <CardTitle className="truncate text-base">{product.name}</CardTitle>
+            <CardTitle className="line-clamp-2 min-w-0 flex-1 text-base">
+              {product.name}
+            </CardTitle>
             <Badge variant={product.published ? "default" : "secondary"}>
               {product.published ? "Publié" : "Brouillon"}
             </Badge>
@@ -84,6 +83,9 @@ export function CatalogProductCard({
           <CardDescription className="mt-1">
             {product.code} · {category?.label ?? "Sans catégorie"}
           </CardDescription>
+          <p className="mt-2 line-clamp-2 min-h-8 text-xs/relaxed text-muted-foreground">
+            {description || <span className="italic">Aucune description</span>}
+          </p>
           <div className="mt-2 flex flex-wrap gap-2">
             <Badge variant="outline">
               {product.commercialType === "SERVICE" ? "Service" : "Bien"}
@@ -96,14 +98,18 @@ export function CatalogProductCard({
             )}
           </div>
         </div>
-        <CardAction>
+        <div
+          role="group"
+          aria-label="Prix principal"
+          className="col-start-3 row-start-1 self-start justify-self-end"
+        >
           <p className="text-right text-lg font-semibold tabular-nums">
             {primaryMode ? money(primaryMode.price.amount) : "-"}
           </p>
           <p className="text-right text-xs text-muted-foreground">
             {primaryMode?.label ?? "Aucun mode actif"}
           </p>
-        </CardAction>
+        </div>
       </CardHeader>
 
       <CardContent className="grid gap-5 py-4 md:grid-cols-2">
@@ -138,7 +144,7 @@ export function CatalogProductCard({
         </section>
 
         <section>
-          <h3 className="mb-2 font-medium">Composition BOM</h3>
+          <h3 className="mb-2 font-medium">Compositions</h3>
           <div className="space-y-2">
             {product.productBoms.map((productBom) => (
               <BomLine
@@ -146,7 +152,7 @@ export function CatalogProductCard({
                   productBom.id ??
                   `${productBom.bomId}-${productBom.displayOrder}`
                 }
-                label={`BOM commun · quantité ${productBom.quantity}`}
+                label={`Composition de base · quantité ${productBom.quantity}`}
                 value={bomName(productBom.bomId)}
               />
             ))}
@@ -169,7 +175,7 @@ export function CatalogProductCard({
             {!product.productBoms.length &&
               !product.choiceGroup?.options.length &&
               !product.ingredientOptions.length && (
-                <MutedValue value="Aucun BOM associé" />
+                <MutedValue value="Aucune composition associée" />
               )}
           </div>
         </section>
@@ -208,7 +214,10 @@ export function CatalogProductCard({
         </>
       )}
 
-      <CardFooter className="justify-end gap-2 border-t py-3">
+      <CardFooter className="flex-wrap justify-end gap-2 border-t py-3">
+        <Button variant="outline" asChild>
+          <Link to={`/catalog-products/${product.id}/edit`}>Modifier</Link>
+        </Button>
         <Button type="button" variant="outline" onClick={onAnalyze}>
           Analyser
         </Button>
@@ -222,15 +231,12 @@ export function CatalogProductCard({
         </Button>
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <Button variant="outline" size="icon" disabled={saving}>
+            <Button variant="outline" size="icon">
               <HugeiconsIcon icon={MoreVerticalCircle01Icon} strokeWidth={2} />
               <span className="sr-only">Actions</span>
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end">
-            <DropdownMenuItem onSelect={() => setIsEditOpen(true)}>
-              Modifier
-            </DropdownMenuItem>
             {product.published && (
               <DropdownMenuItem
                 variant="destructive"
@@ -248,15 +254,6 @@ export function CatalogProductCard({
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
-        <CatalogProductDialog
-          product={product}
-          boms={boms}
-          saving={saving}
-          onSave={onSave}
-          open={isEditOpen}
-          onOpenChange={setIsEditOpen}
-          hideTrigger
-        />
         <DeleteAlert
           item={product.name}
           onDelete={onDelete}

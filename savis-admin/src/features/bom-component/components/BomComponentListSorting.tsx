@@ -7,6 +7,7 @@ import {
   SelectValue,
 } from "@/shared/ui/select";
 import { Button } from "@/shared/ui/button";
+import { Label } from "@/shared/ui/label";
 import { ArrowDown01Icon, ArrowUp01Icon } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
 
@@ -37,8 +38,18 @@ export const BomComponentListSorting = ({
 }: BomComponentListSortingProps) => {
   return (
     <>
+      <Label
+        htmlFor="bom-component-sort"
+        className="whitespace-nowrap text-muted-foreground"
+      >
+        Trier par
+      </Label>
       <Select value={sortBy} onValueChange={handleSortByChange}>
-        <SelectTrigger className="w-44">
+        <SelectTrigger
+          id="bom-component-sort"
+          className="w-44"
+          aria-label="Trier les offres par"
+        >
           <SelectValue />
         </SelectTrigger>
         <SelectContent>

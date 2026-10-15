@@ -2,13 +2,12 @@ export type SupplyOfferStatus = "AVAILABLE" | "UNAVAILABLE";
 
 export type SupplyOfferStatusFilter = SupplyOfferStatus | "ALL";
 
+export type SupplyOfferSortField = "lastSeen" | "componentName" | "price";
+
+export type SupplyOfferSortDirection = "asc" | "desc";
+
 export type SupplyOfferSort =
-  | "lastSeen,desc"
-  | "lastSeen,asc"
-  | "componentName,asc"
-  | "componentName,desc"
-  | "price,asc"
-  | "price,desc";
+  `${SupplyOfferSortField},${SupplyOfferSortDirection}`;
 
 export interface SupplyOfferProvider {
   name: string | null;
@@ -61,11 +60,9 @@ export const supplyOfferStatusLabels: Record<SupplyOfferStatus, string> = {
   UNAVAILABLE: "Indisponible",
 };
 
-export const supplyOfferSortLabels: Record<SupplyOfferSort, string> = {
-  "lastSeen,desc": "Dernière observation : récent",
-  "lastSeen,asc": "Dernière observation : ancien",
-  "componentName,asc": "Composant : A-Z",
-  "componentName,desc": "Composant : Z-A",
-  "price,asc": "Prix du paquet : croissant",
-  "price,desc": "Prix du paquet : décroissant",
-};
+export const supplyOfferSortFieldLabels: Record<SupplyOfferSortField, string> =
+  {
+    lastSeen: "Dernière observation",
+    componentName: "Composant",
+    price: "Prix du paquet",
+  };

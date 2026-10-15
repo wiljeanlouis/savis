@@ -20,6 +20,7 @@ import { BomComponentTasksPage } from "@/features/bom-component/task/pages/BomCo
 import { BomComponentsPage } from "@/features/bom-component/pages/BomComponentsPage";
 import { ActivityRatesPage } from "@/features/activity-rate/pages/ActivityRatesPage";
 import { CatalogProductsPage } from "@/features/catalog/pages/CatalogProductsPage";
+import { CatalogProductEditorPage } from "@/features/catalog/pages/CatalogProductEditorPage";
 import { OrdersPage } from "@/features/orders/pages/OrdersPage";
 import { OrderDetailsPage } from "@/features/orders/pages/OrderDetailsPage";
 import { QuotationsPage } from "@/features/quotations/pages/QuotationsPage";
@@ -295,6 +296,24 @@ const router = createBrowserRouter([
         },
       },
       {
+        path: "/catalog-products/new",
+        element: <CatalogProductEditorPage />,
+        handle: {
+          breadcrumb: () => (
+            <CatalogProductEditorBreadcrumb section="Nouveau produit" />
+          ),
+        },
+      },
+      {
+        path: "/catalog-products/:productId/edit",
+        element: <CatalogProductEditorPage />,
+        handle: {
+          breadcrumb: () => (
+            <CatalogProductEditorBreadcrumb section="Modifier" />
+          ),
+        },
+      },
+      {
         path: "/boms",
         element: <BomsPage />,
         handle: {
@@ -521,6 +540,34 @@ function SalesBreadcrumb({ section }: { section: string }) {
       <BreadcrumbItem className="hidden md:block">
         <BreadcrumbLink asChild>
           <Link to="/sales/orders">Ventes</Link>
+        </BreadcrumbLink>
+      </BreadcrumbItem>
+      <BreadcrumbSeparator className="hidden md:block" />
+      <BreadcrumbItem>
+        <BreadcrumbPage>{section}</BreadcrumbPage>
+      </BreadcrumbItem>
+    </>
+  );
+}
+
+function CatalogProductEditorBreadcrumb({ section }: { section: string }) {
+  return (
+    <>
+      <BreadcrumbItem className="hidden md:block">
+        <BreadcrumbLink asChild>
+          <Link to="/">Accueil</Link>
+        </BreadcrumbLink>
+      </BreadcrumbItem>
+      <BreadcrumbSeparator className="hidden md:block" />
+      <BreadcrumbItem className="hidden md:block">
+        <BreadcrumbLink asChild>
+          <Link to="/catalog-products">Catalogue</Link>
+        </BreadcrumbLink>
+      </BreadcrumbItem>
+      <BreadcrumbSeparator className="hidden md:block" />
+      <BreadcrumbItem className="hidden md:block">
+        <BreadcrumbLink asChild>
+          <Link to="/catalog-products">Produits</Link>
         </BreadcrumbLink>
       </BreadcrumbItem>
       <BreadcrumbSeparator className="hidden md:block" />
