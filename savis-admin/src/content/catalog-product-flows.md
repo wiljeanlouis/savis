@@ -97,7 +97,7 @@ Exemple : un pâté simple vendu à l'unité.
 - Catégorie, au moins un mode d'achat actif, Marge cible (%) et Image principale sont requis. La Sous-catégorie reste optionnelle.
 - Marge cible (%) doit être supérieure ou égale à 0 % et strictement inférieure à 100 %.
 - BOM communs représente la composition commune du produit.
-- Saveurs et choix et Ingrédients et extras ne sont pas utiles pour un produit Standard.
+- Options et Ingrédients et extras ne sont pas utiles pour un produit Standard.
 
 #### Exemple de configuration
 
@@ -126,7 +126,7 @@ Exemple : un pâté avec choix de farce : poulet, bœuf, morue.
 | ---------------------- | ---------------------------------------------------------------------- |
 | Configuration          | Choix unique.                                                          |
 | BOM communs            | BOMs communs à toutes les options, par exemple la pâte ou l'emballage. |
-| Saveurs et choix       | Section qui contient les options disponibles.                          |
+| Options       | Section qui contient les options disponibles.                          |
 | Libellé du groupe      | Nom du choix affiché, par exemple `Farce`.                             |
 | Choix obligatoire      | Cocher si le client doit choisir une option.                           |
 | Code                   | Code unique de l'option, par exemple `poulet`.                         |
@@ -135,7 +135,7 @@ Exemple : un pâté avec choix de farce : poulet, bœuf, morue.
 
 #### Règles à respecter
 
-- Un produit Choix unique doit avoir une section Saveurs et choix.
+- Un produit Choix unique doit avoir une section Options.
 - Si Choix obligatoire est coché, l'analyse de prix doit fournir un choix.
 - Le choix sélectionné doit correspondre à une option active.
 - Les BOMs des options ajoutent le coût de la variante choisie au coût commun du produit.
@@ -170,11 +170,11 @@ Exemple : une boîte de 12 pâtés où le client choisit 6 poulet et 6 bœuf.
 | Quantité               | Nombre d'unités dans ce format, par exemple `12`.           |
 | Prix                   | Prix de vente du format.                                    |
 | Répartition            | `Choix unique` ou `Composition`.                            |
-| Saveurs et choix       | Groupe des options possibles pour le lot.                   |
+| Options       | Groupe des options possibles pour le lot.                   |
 
 #### Règles à respecter
 
-- Un produit Formats composables doit avoir une section Saveurs et choix.
+- Un produit Formats composables doit avoir une section Options.
 - Le Mode d'achat utilisé pour l'analyse doit correspondre à un mode actif.
 - Avec Répartition = Choix unique, un seul choix est appliqué à toute la quantité du mode.
 - Avec Répartition = Composition, la somme des quantités réparties doit être égale à la Quantité du mode d'achat.
@@ -303,6 +303,6 @@ Points importants :
 | Ordre                   | Ordre d'affichage. Plus petit signifie plus haut dans la liste.                                      |
 | Modes d'achat           | Formats de vente avec prix et quantité.                                                              |
 | Répartition             | Règle de choix pour un mode d'achat : aucune, choix unique ou composition.                           |
-| Saveurs et choix        | Groupe de choix affiché au client.                                                                   |
+| Options        | Groupe de choix affiché au client.                                                                   |
 | Ingrédients et extras   | Ingrédients ou extras personnalisables.                                                              |
 | Configuration d'analyse | Sélection temporaire utilisée pour analyser un prix ; ce n'est pas encore un panier ou une commande. |

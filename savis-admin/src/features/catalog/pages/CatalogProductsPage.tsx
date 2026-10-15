@@ -1,8 +1,9 @@
 import { NoData } from "@/shared/components/NoData";
+import { Button } from "@/shared/ui/button";
 import { Spinner } from "@/shared/ui/spinner";
-import { CatalogProductDialog } from "../components/CatalogProductDialog";
 import { CatalogProductCard } from "../components/CatalogProductCard";
 import { useCatalogProductManagement } from "../hooks/useCatalogProductManagement";
+import { Link } from "react-router";
 
 export function CatalogProductsPage() {
   const {
@@ -10,9 +11,7 @@ export function CatalogProductsPage() {
     boms,
     analysis,
     isLoading,
-    isSaving,
     isPublishing,
-    saveProduct,
     deleteProduct,
     publishProduct,
     unpublishProduct,
@@ -28,13 +27,9 @@ export function CatalogProductsPage() {
             Prix, configurations et analyse de rentabilité.
           </p>
         </div>
-        <div className="flex gap-2">
-          <CatalogProductDialog
-            boms={boms}
-            saving={isSaving}
-            onSave={saveProduct}
-          />
-        </div>
+        <Button asChild>
+          <Link to="/catalog-products/new">Ajouter un produit</Link>
+        </Button>
       </div>
 
       {isLoading ? (
@@ -51,12 +46,10 @@ export function CatalogProductsPage() {
               product={product}
               result={product.id ? analysis[product.id] : undefined}
               boms={boms}
-              saving={isSaving}
               publishing={isPublishing}
               onAnalyze={() => runAnalysis(product)}
               onPublish={() => publishProduct(product)}
               onUnpublish={() => unpublishProduct(product)}
-              onSave={saveProduct}
               onDelete={() => deleteProduct(product.id)}
             />
           ))}

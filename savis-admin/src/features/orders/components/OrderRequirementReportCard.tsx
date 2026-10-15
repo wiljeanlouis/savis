@@ -38,8 +38,8 @@ export function OrderRequirementReportCard({
           <div>
             <CardTitle>Besoins de production</CardTitle>
             <p className="mt-1 text-sm text-muted-foreground">
-              Composants agrégés selon la commande et les BOM actuels. Le stock
-              disponible n’est pas déduit.
+              Composants agrégés selon la commande et les compositions
+              actuelles. Le stock disponible n’est pas déduit.
             </p>
           </div>
           {report ? (
