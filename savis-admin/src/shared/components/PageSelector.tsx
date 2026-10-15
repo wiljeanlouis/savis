@@ -22,7 +22,11 @@ export const PageSelector = ({ pageSize, onPageChange }: PageSelectorProps) => {
         value={`${pageSize}`}
         onValueChange={(value) => onPageChange(Number(value))}
       >
-        <SelectTrigger size="sm" className="w-20">
+        <SelectTrigger
+          size="sm"
+          className="w-20"
+          aria-label="Résultats par page"
+        >
           <SelectValue />
         </SelectTrigger>
         <SelectContent side="top">

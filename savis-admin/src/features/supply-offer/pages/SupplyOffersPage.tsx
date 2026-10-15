@@ -1,5 +1,9 @@
 import { useState } from "react";
+import { PageNavigator } from "@/shared/components/PageNavigator";
+import { PageSelector } from "@/shared/components/PageSelector";
 import { Button } from "@/shared/ui/button";
+import { ButtonGroup } from "@/shared/ui/button-group";
+import { Field } from "@/shared/ui/field";
 import { Input } from "@/shared/ui/input";
 import { Label } from "@/shared/ui/label";
 import {
@@ -10,21 +14,19 @@ import {
   SelectValue,
 } from "@/shared/ui/select";
 import { Spinner } from "@/shared/ui/spinner";
-import {
-  ArrowLeft01Icon,
-  ArrowRight01Icon,
-  Search01Icon,
-} from "@hugeicons/core-free-icons";
+import { Search01Icon } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
 import { SupplyOfferDetailsDialog } from "../components/SupplyOfferDetailsDialog";
+import { SupplyOfferListSorting } from "../components/SupplyOfferListSorting";
 import { SupplyOffersTable } from "../components/SupplyOffersTable";
 import { useSupplyOffers } from "../hooks/useSupplyOffers";
 import type {
   SupplyOffer,
   SupplyOfferSort,
+  SupplyOfferSortDirection,
+  SupplyOfferSortField,
   SupplyOfferStatusFilter,
 } from "../types";
-import { supplyOfferSortLabels } from "../types";
 
 const statusOptions: Array<{
   value: SupplyOfferStatusFilter;
@@ -35,19 +37,17 @@ const statusOptions: Array<{
   { value: "ALL", label: "Toutes" },
 ];
 
-const sortOptions = Object.entries(supplyOfferSortLabels) as Array<
-  [SupplyOfferSort, string]
->;
-
 /** Read-only consultation page for offers persisted by Supply. */
 export function SupplyOffersPage() {
   const {
     query,
     page,
+    pageSize,
     search,
     status,
     sort,
     setPage,
+    setPageSize,
     setSearch,
     setStatus,
     setSort,
@@ -55,6 +55,19 @@ export function SupplyOffersPage() {
   const [selectedOffer, setSelectedOffer] = useState<SupplyOffer | null>(null);
   const result = query.data;
   const offers = result?.content ?? [];
+  const [sortBy, sortDirection] = sort.split(",") as [
+    SupplyOfferSortField,
+    SupplyOfferSortDirection,
+  ];
+
+  const changeSortBy = (value: SupplyOfferSortField) => {
+    setSort(`${value},${sortDirection}` as SupplyOfferSort);
+  };
+
+  const toggleSortDirection = () => {
+    const nextDirection = sortDirection === "asc" ? "desc" : "asc";
+    setSort(`${sortBy},${nextDirection}` as SupplyOfferSort);
+  };
 
   return (
     <div className="space-y-6">
@@ -68,35 +81,40 @@ export function SupplyOffersPage() {
 
       <section
         aria-label="Filtres des offres"
-        className="grid gap-3 rounded-xl border bg-card p-4 md:grid-cols-[minmax(14rem,1fr)_13rem_17rem]"
+        className="flex flex-col gap-3 sm:flex-row sm:items-center"
       >
-        <div className="grid gap-1.5">
-          <Label htmlFor="supply-offer-search">Recherche</Label>
-          <div className="relative">
-            <HugeiconsIcon
-              icon={Search01Icon}
-              strokeWidth={2}
-              className="pointer-events-none absolute top-1/2 left-2.5 size-4 -translate-y-1/2 text-muted-foreground"
-            />
+        <Field className="flex-1">
+          <ButtonGroup className="w-full">
             <Input
               id="supply-offer-search"
-              className="pl-8"
               value={search}
-              placeholder="Composant, produit, marque ou fournisseur"
+              placeholder="Rechercher dans les offres fournisseurs"
               onChange={(event) => setSearch(event.target.value)}
             />
-          </div>
-        </div>
+            <Button variant="outline" type="button" aria-label="Rechercher">
+              <HugeiconsIcon icon={Search01Icon} strokeWidth={2} />
+            </Button>
+          </ButtonGroup>
+        </Field>
 
-        <div className="grid gap-1.5">
-          <Label htmlFor="supply-offer-status">Statut</Label>
+        <div className="flex w-full items-center gap-2 sm:w-auto">
+          <Label
+            htmlFor="supply-offer-status"
+            className="whitespace-nowrap text-muted-foreground"
+          >
+            Filtrer par statut
+          </Label>
           <Select
             value={status}
             onValueChange={(value) =>
               setStatus(value as SupplyOfferStatusFilter)
             }
           >
-            <SelectTrigger id="supply-offer-status" className="w-full">
+            <SelectTrigger
+              id="supply-offer-status"
+              className="flex-1 sm:w-48 sm:flex-none"
+              aria-label="Filtrer par statut"
+            >
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -108,37 +126,25 @@ export function SupplyOffersPage() {
             </SelectContent>
           </Select>
         </div>
-
-        <div className="grid gap-1.5">
-          <Label htmlFor="supply-offer-sort">Tri</Label>
-          <Select
-            value={sort}
-            onValueChange={(value) => setSort(value as SupplyOfferSort)}
-          >
-            <SelectTrigger id="supply-offer-sort" className="w-full">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {sortOptions.map(([value, label]) => (
-                <SelectItem key={value} value={value}>
-                  {label}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
       </section>
 
-      <div className="flex flex-wrap items-center justify-between gap-2 text-sm">
-        <p aria-live="polite">
-          <strong>{result?.totalElements ?? 0}</strong>{" "}
-          {(result?.totalElements ?? 0) > 1
-            ? "offres trouvées"
-            : "offre trouvée"}
-        </p>
-        {query.isFetching && !query.isPending ? (
-          <span className="text-muted-foreground">Actualisation…</span>
-        ) : null}
+      <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+        <div className="flex flex-wrap items-center gap-2">
+          <SupplyOfferListSorting
+            sortBy={sortBy}
+            sortDirection={sortDirection}
+            onSortByChange={changeSortBy}
+            onToggleSortDirection={toggleSortDirection}
+          />
+          {query.isFetching && !query.isPending ? (
+            <span className="text-sm text-muted-foreground">
+              Actualisation…
+            </span>
+          ) : null}
+        </div>
+        <div className="flex items-center gap-2">
+          <PageSelector pageSize={pageSize} onPageChange={setPageSize} />
+        </div>
       </div>
 
       {query.isPending ? (
@@ -169,35 +175,14 @@ export function SupplyOffersPage() {
       ) : (
         <>
           <SupplyOffersTable offers={offers} onViewDetails={setSelectedOffer} />
-          <nav
-            aria-label="Pagination des offres"
-            className="flex flex-col items-center justify-between gap-3 sm:flex-row"
-          >
-            <p className="text-sm text-muted-foreground">
-              Page {page + 1} sur {result?.totalPages ?? 1} ·{" "}
-              {result?.totalElements ?? 0} résultat(s)
-            </p>
-            <div className="flex gap-2">
-              <Button
-                type="button"
-                variant="outline"
-                disabled={page === 0}
-                onClick={() => setPage(page - 1)}
-              >
-                <HugeiconsIcon icon={ArrowLeft01Icon} strokeWidth={2} />
-                Précédente
-              </Button>
-              <Button
-                type="button"
-                variant="outline"
-                disabled={!result || page + 1 >= result.totalPages}
-                onClick={() => setPage(page + 1)}
-              >
-                Suivante
-                <HugeiconsIcon icon={ArrowRight01Icon} strokeWidth={2} />
-              </Button>
-            </div>
-          </nav>
+          <PageNavigator
+            itemName="offre"
+            totalItems={result?.totalElements ?? 0}
+            page={page + 1}
+            totalPages={result?.totalPages ?? 0}
+            goToPreviousPage={() => setPage(page - 1)}
+            goToNextPage={() => setPage(page + 1)}
+          />
         </>
       )}
 
