@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
+import { getApiErrorMessage } from "@/shared/api/apiError";
 import { useGetBomComponentSearchTermFacets } from "./useBomComponentApi";
 
 interface UseBomComponentSearchTermFacetsParams {
@@ -19,14 +20,10 @@ export const useBomComponentSearchTermFacets = ({
       return;
     }
 
-    const errorResponse = error as unknown as {
-      response?: { data?: { detail?: string } };
-    };
-
     toast.error(
       "Une erreur est survenue lors de la récupération des facettes.",
       {
-        description: errorResponse.response?.data?.detail,
+        description: getApiErrorMessage(error),
       },
     );
   }, [error, isError]);

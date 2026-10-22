@@ -1,4 +1,5 @@
 import { NoData } from "@/shared/components/NoData";
+import { ApiErrorAlert } from "@/shared/components/ApiErrorAlert";
 import { Button } from "@/shared/ui/button";
 import { Spinner } from "@/shared/ui/spinner";
 import { CatalogProductCard } from "../components/CatalogProductCard";
@@ -11,6 +12,8 @@ export function CatalogProductsPage() {
     boms,
     analysis,
     isLoading,
+    isError,
+    error,
     isPublishing,
     deleteProduct,
     publishProduct,
@@ -36,6 +39,11 @@ export function CatalogProductsPage() {
         <div className="flex min-h-64 items-center justify-center">
           <Spinner />
         </div>
+      ) : isError ? (
+        <ApiErrorAlert
+          title="Impossible de charger les produits."
+          error={error}
+        />
       ) : products.length === 0 ? (
         <NoData />
       ) : (

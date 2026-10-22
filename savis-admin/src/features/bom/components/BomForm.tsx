@@ -15,6 +15,7 @@ import {
 import { Textarea } from "@/shared/ui/textarea";
 import { PictureFrame } from "@/shared/components/PictureFrame";
 import { toast } from "sonner";
+import { getApiErrorMessage } from "@/shared/api/apiError";
 import { DraftAlert } from "../../../shared/components/DraftAlert";
 import { Spinner } from "@/shared/ui/spinner";
 import {
@@ -80,13 +81,10 @@ export const BomForm = ({ showTitle = true }: BomFormProps) => {
   }
 
   if (isError) {
-    const errorResponse = error as unknown as {
-      response: { data?: { detail?: string } };
-    };
     toast.error(
       "Une erreur est survenue lors de la sauvegarde de la composition.",
       {
-        description: errorResponse.response?.data?.detail,
+        description: getApiErrorMessage(error),
       },
     );
   }

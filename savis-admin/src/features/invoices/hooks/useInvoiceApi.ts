@@ -1,5 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { openPdfInNewTab } from "@/shared/lib/openPdfInNewTab";
+import { getApiErrorMessageAsync } from "@/shared/api/apiError";
 import { toast } from "sonner";
 import {
   cancelInvoice,
@@ -58,8 +59,10 @@ export const useInvoiceDocumentPreview = () => {
           description: "Autorisez les fenêtres contextuelles pour SAVIS.",
         });
       }
-    } catch {
-      toast.error("Impossible de générer la facture PDF.");
+    } catch (error) {
+      toast.error("Impossible de générer la facture PDF.", {
+        description: await getApiErrorMessageAsync(error),
+      });
     }
   };
   return {

@@ -1,4 +1,5 @@
 import { NoData } from "@/shared/components/NoData";
+import { ApiErrorAlert } from "@/shared/components/ApiErrorAlert";
 import { Button } from "@/shared/ui/button";
 import { Spinner } from "@/shared/ui/spinner";
 import { Add01Icon } from "@hugeicons/core-free-icons";
@@ -8,7 +9,7 @@ import { OrdersTable } from "../components/OrdersTable";
 import { useOrderManagement } from "../hooks/useOrderManagement";
 
 export function OrdersPage() {
-  const { orders, isLoading, isError, isImporting, retrieveWebOrders } =
+  const { orders, isLoading, isError, error, isImporting, retrieveWebOrders } =
     useOrderManagement();
 
   return (
@@ -41,9 +42,10 @@ export function OrdersPage() {
           <Spinner />
         </div>
       ) : isError ? (
-        <p className="rounded-lg border border-destructive/30 bg-destructive/10 p-4 text-destructive">
-          Impossible de charger les commandes.
-        </p>
+        <ApiErrorAlert
+          title="Impossible de charger les commandes."
+          error={error}
+        />
       ) : orders.length === 0 ? (
         <NoData />
       ) : (

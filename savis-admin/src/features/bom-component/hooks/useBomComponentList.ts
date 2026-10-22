@@ -1,6 +1,7 @@
 import { useEffect, useMemo } from "react";
 import { useSearchParams } from "react-router";
 import { toast } from "sonner";
+import { getApiErrorMessage } from "@/shared/api/apiError";
 import { useCreateBomComponentTask } from "@/features/bom-component/task/hooks/useBomComponentTaskApi";
 import type {
   BomComponent,
@@ -117,14 +118,10 @@ export const useBomComponentList = () => {
       return;
     }
 
-    const errorResponse = error as unknown as {
-      response?: { data?: { detail?: string } };
-    };
-
     toast.error(
       "Une erreur est survenue lors de la récupération des offres fournisseurs.",
       {
-        description: errorResponse.response?.data?.detail,
+        description: getApiErrorMessage(error),
       },
     );
   }, [error, isError]);
@@ -207,8 +204,10 @@ export const useBomComponentList = () => {
       { id: bomComponent.id, payload: { status } },
       {
         onSuccess: () => toast.success(`Offre fournisseur ${action}.`),
-        onError: () =>
-          toast.error("La mise à jour de l'offre fournisseur a échoué."),
+        onError: (error) =>
+          toast.error("La mise à jour de l'offre fournisseur a échoué.", {
+            description: getApiErrorMessage(error),
+          }),
       },
     );
   };
@@ -226,8 +225,10 @@ export const useBomComponentList = () => {
             refresh_frequency_hours: values.refreshFrequencyHours,
           },
         });
-      } catch {
-        toast.error("La mise à jour de l'offre fournisseur a échoué.");
+      } catch (error) {
+        toast.error("La mise à jour de l'offre fournisseur a échoué.", {
+          description: getApiErrorMessage(error),
+        });
         return;
       }
 
@@ -246,9 +247,10 @@ export const useBomComponentList = () => {
             ? "Offre fournisseur mise à jour et actualisation lancée."
             : "Offre fournisseur mise à jour.",
         );
-      } catch {
+      } catch (error) {
         toast.error(
           "L'offre fournisseur est mise à jour, mais l'actualisation a échoué.",
+          { description: getApiErrorMessage(error) },
         );
       }
     })();
@@ -273,9 +275,10 @@ export const useBomComponentList = () => {
       });
       toast.success(`Récupération lancée pour « ${searchTerm} ».`);
       return true;
-    } catch {
+    } catch (error) {
       toast.error(
         `Impossible de lancer la récupération pour « ${searchTerm} ».`,
+        { description: getApiErrorMessage(error) },
       );
       return false;
     }
@@ -284,8 +287,10 @@ export const useBomComponentList = () => {
   const handleDelete = (bomComponent: BomComponent) => {
     deleteBomComponent.mutate(bomComponent.id, {
       onSuccess: () => toast.success("Offre fournisseur supprimée."),
-      onError: () =>
-        toast.error("La suppression de l'offre fournisseur a échoué."),
+      onError: (error) =>
+        toast.error("La suppression de l'offre fournisseur a échoué.", {
+          description: getApiErrorMessage(error),
+        }),
     });
   };
 
