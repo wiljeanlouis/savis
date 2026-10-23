@@ -844,7 +844,7 @@ sequenceDiagram
   participant PgApi as savis_api
 
   Customer->>Storefront: Submit order
-  Storefront->>Supabase: INSERT raw order (pending)
+  Storefront->>Supabase: RPC receive_customer_order (pending request)
   Supabase->>Notify: Database webhook on INSERT
   Notify-->>Admin: Administrative email notification
   Admin->>Orders: POST /api/orders/import
