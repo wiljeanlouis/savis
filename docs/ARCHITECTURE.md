@@ -823,7 +823,7 @@ sequenceDiagram
 ```
 
 The public projection includes the product category and the optional
-subcategory public code (`balloon-arch`, `centerpiece`, `birthday`, or
+subcategory public code (`decorative-arch`, `centerpiece`, `birthday`, or
 `wedding`). It excludes common `productBoms`, internal costs, target-margin
 data, diagnostics, and recommended prices. Publishing one product that is no
 longer marked `published` removes its public projection. The current HTTP

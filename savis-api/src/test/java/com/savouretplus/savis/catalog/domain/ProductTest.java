@@ -24,7 +24,7 @@ class ProductTest {
     @Test
     void rejectsSubcategoryFromAnotherProductCategory() {
         assertThrows(IllegalArgumentException.class,
-                () -> product(ProductCategory.TASTING, ProductSubcategory.BALLOON_ARCH,
+                () -> product(ProductCategory.TASTING, ProductSubcategory.DECORATIVE_ARCH,
                         List.of(new ProductPurchaseMode(
                                 null, "unit", "À l'unité", 1, Money.of(5),
                                 AllocationType.NONE, true, 0))));

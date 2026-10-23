@@ -13,9 +13,9 @@ class SupabasePublishedCatalogProductRequestTest {
 
     @Test
     void includesThePublicSubcategoryCode() {
-        PublishedCatalogProduct product = product("balloon-arch");
+        PublishedCatalogProduct product = product("decorative-arch");
 
-        assertEquals("balloon-arch",
+        assertEquals("decorative-arch",
                 SupabasePublishedCatalogProductRequest.from(product).subcategory());
         assertEquals("service",
                 SupabasePublishedCatalogProductRequest.from(product).commercialType());
