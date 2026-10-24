@@ -1,4 +1,5 @@
 import { NoData } from "@/shared/components/NoData";
+import { getApiErrorMessage } from "@/shared/api/apiError";
 import { DataTable } from "@/shared/components/DataTable";
 import { Badge } from "@/shared/ui/badge";
 import { Spinner } from "@/shared/ui/spinner";
@@ -129,11 +130,8 @@ export const BomComponentTaskList = () => {
       return;
     }
 
-    const errorResponse = error as unknown as {
-      response?: { data?: { detail?: string } };
-    };
     toast.error("Une erreur est survenue lors de la récupération des tâches.", {
-      description: errorResponse.response?.data?.detail,
+      description: getApiErrorMessage(error),
     });
   }, [error, isError]);
 

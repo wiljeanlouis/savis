@@ -15,6 +15,7 @@ import {
 import { Textarea } from "@/shared/ui/textarea";
 import { PictureFrame } from "@/shared/components/PictureFrame";
 import { toast } from "sonner";
+import { getApiErrorMessage } from "@/shared/api/apiError";
 import { DraftAlert } from "../../../shared/components/DraftAlert";
 import { Spinner } from "@/shared/ui/spinner";
 import {
@@ -80,13 +81,10 @@ export const BomForm = ({ showTitle = true }: BomFormProps) => {
   }
 
   if (isError) {
-    const errorResponse = error as unknown as {
-      response: { data?: { detail?: string } };
-    };
     toast.error(
       "Une erreur est survenue lors de la sauvegarde de la composition.",
       {
-        description: errorResponse.response?.data?.detail,
+        description: getApiErrorMessage(error),
       },
     );
   }
@@ -111,7 +109,7 @@ export const BomForm = ({ showTitle = true }: BomFormProps) => {
                       <FieldLabel htmlFor="bom-form-name">Nom</FieldLabel>
                       <Input
                         id="bom-form-name"
-                        placeholder="Boeuf bourgignon, Arche de ballons, Sac d'emballage 10'', etc"
+                        placeholder="Boeuf bourgignon, Arche décorative, Sac d'emballage 10'', etc"
                         value={form.name}
                         onChange={(e) => {
                           updateField("name", e.target.value);
@@ -148,7 +146,7 @@ export const BomForm = ({ showTitle = true }: BomFormProps) => {
                     </FieldLabel>
                     <Input
                       id="bom-form-description"
-                      placeholder="Une recette à base de viande de boeuf, Un arche fait de ballon de taille 8'', Sac d'emballage 10'' "
+                      placeholder="Une recette à base de viande de boeuf, Une arche décorative faite de ballons de taille 8'', Sac d'emballage 10'' "
                       value={form.description}
                       onChange={(e) => {
                         updateField("description", e.target.value);

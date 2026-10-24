@@ -337,7 +337,7 @@ The initial public mappings are:
 
 | API value | Public code | Parent category |
 | --- | --- | --- |
-| `BALLOON_ARCH` | `balloon-arch` | `DECORATION` |
+| `DECORATIVE_ARCH` | `decorative-arch` | `DECORATION` |
 | `CENTERPIECE` | `centerpiece` | `DECORATION` |
 | `BIRTHDAY` | `birthday` | `DECORATION` |
 | `WEDDING` | `wedding` | `DECORATION` |

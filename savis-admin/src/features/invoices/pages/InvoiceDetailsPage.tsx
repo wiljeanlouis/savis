@@ -1,9 +1,11 @@
 import { OrderItemsDetails } from "@/features/orders/components/OrderItemsDetails";
+import { ApiErrorAlert } from "@/shared/components/ApiErrorAlert";
 import {
   formatOrderAddress,
   formatPhoneForDisplay,
 } from "@/features/orders/model/contactFormat";
 import { formatOrderCurrency, formatOrderDate } from "@/features/orders/types";
+import { getApiErrorMessage } from "@/shared/api/apiError";
 import { dollarsToSafeCents } from "@/shared/lib/money";
 import { Button } from "@/shared/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/shared/ui/card";
@@ -56,9 +58,10 @@ export function InvoiceDetailsPage() {
   if (query.isPending) return <CenteredSpinner />;
   if (query.isError || !invoice) {
     return (
-      <p className="rounded-lg border border-destructive/30 bg-destructive/10 p-4 text-destructive">
-        Impossible de charger la facture.
-      </p>
+      <ApiErrorAlert
+        title="Impossible de charger la facture."
+        error={query.error}
+      />
     );
   }
   const currentInvoice = invoice;
@@ -92,7 +95,7 @@ export function InvoiceDetailsPage() {
       toast.success("Facture brouillon enregistrée.");
     } catch (error) {
       toast.error("Impossible d’enregistrer la facture.", {
-        description: problemDetail(error),
+        description: getApiErrorMessage(error),
       });
     }
   }
@@ -109,7 +112,7 @@ export function InvoiceDetailsPage() {
       toast.success("Facture émise.");
     } catch (error) {
       toast.error("Impossible d’émettre la facture.", {
-        description: problemDetail(error),
+        description: getApiErrorMessage(error),
       });
     }
   }
@@ -127,7 +130,7 @@ export function InvoiceDetailsPage() {
       toast.success("Facture annulée.");
     } catch (error) {
       toast.error("Impossible d’annuler la facture.", {
-        description: problemDetail(error),
+        description: getApiErrorMessage(error),
       });
     }
   }
@@ -529,6 +532,3 @@ const emptyAddressToNull = (
   address && Object.values(address).some((value) => value?.trim())
     ? address
     : null;
-const problemDetail = (error: unknown) =>
-  (error as { response?: { data?: { detail?: string } } }).response?.data
-    ?.detail;

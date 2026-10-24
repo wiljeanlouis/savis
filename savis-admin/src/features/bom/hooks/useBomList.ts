@@ -1,4 +1,5 @@
 import type { Bom } from "../types";
+import { getApiErrorMessage } from "@/shared/api/apiError";
 import { useNavigate } from "react-router";
 import { toast } from "sonner";
 import { useDeleteBom, useGetBoms, usePostBom } from "./useBomApi";
@@ -36,11 +37,8 @@ export const useBomList = () => {
       toast.success("Composition clonée avec succès.");
       await navigate(`/boms/${clonedBomId}`);
     } catch (error) {
-      const errorResponse = error as {
-        response?: { data?: { detail?: string } };
-      };
       toast.error("Le clonage de la composition a échoué.", {
-        description: errorResponse.response?.data?.detail,
+        description: getApiErrorMessage(error),
       });
     }
   };

@@ -1,4 +1,6 @@
 import { useEffect, useRef, useState, type FormEvent } from "react";
+import { getApiErrorMessage } from "@/shared/api/apiError";
+import { ApiErrorAlert } from "@/shared/components/ApiErrorAlert";
 import { Button } from "@/shared/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/shared/ui/card";
 import { Spinner } from "@/shared/ui/spinner";
@@ -99,7 +101,7 @@ function OrderDetailsContent({ orderId }: { orderId: string | undefined }) {
       toast.success("Statut de la commande mis à jour.");
     } catch (error) {
       toast.error("Impossible de changer le statut.", {
-        description: problemDetail(error),
+        description: getApiErrorMessage(error),
       });
     }
   }
@@ -112,7 +114,7 @@ function OrderDetailsContent({ orderId }: { orderId: string | undefined }) {
       navigate(`/invoices/${invoice.id}`);
     } catch (error) {
       toast.error("Impossible de créer la facture.", {
-        description: problemDetail(error),
+        description: getApiErrorMessage(error),
       });
     }
   }
@@ -144,7 +146,7 @@ function OrderDetailsContent({ orderId }: { orderId: string | undefined }) {
         toast.success("Commande mise à jour.");
       }
     } catch (error) {
-      const detail = message(error);
+      const detail = getApiErrorMessage(error);
       setEditorError(detail);
       toast.error(
         isCreating
@@ -193,7 +195,10 @@ function OrderDetailsContent({ orderId }: { orderId: string | undefined }) {
   if (!isCreating && (orderQuery.isError || !orderQuery.data)) {
     return (
       <div className="space-y-4">
-        <p className="text-destructive">Commande introuvable.</p>
+        <ApiErrorAlert
+          title="Impossible de charger la commande."
+          error={orderQuery.error}
+        />
         <Button asChild variant="outline">
           <Link to="/sales/orders">Retour aux commandes</Link>
         </Button>
@@ -489,19 +494,5 @@ function Amount({
         {formatOrderCurrency(cents)}
       </dd>
     </div>
-  );
-}
-
-function problemDetail(error: unknown) {
-  return (error as { response?: { data?: { detail?: string } } }).response?.data
-    ?.detail;
-}
-
-function message(error: unknown) {
-  return (
-    problemDetail(error) ??
-    (error instanceof Error
-      ? error.message
-      : "Une erreur inattendue est survenue.")
   );
 }

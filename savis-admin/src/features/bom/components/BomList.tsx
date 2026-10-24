@@ -1,4 +1,5 @@
 import { BomCard } from "./BomCard";
+import { getApiErrorMessage } from "@/shared/api/apiError";
 import { useBomList } from "../hooks/useBomList";
 import { Spinner } from "@/shared/ui/spinner";
 import { toast } from "sonner";
@@ -41,13 +42,10 @@ export const BomList = () => {
   }, [boms, searchQuery]);
 
   if (isError) {
-    const errorResponse = error as unknown as {
-      response: { data?: { detail?: string } };
-    };
     toast.error(
       "Une erreur est survenue lors de la récupération des compositions.",
       {
-        description: errorResponse.response?.data?.detail,
+        description: getApiErrorMessage(error),
       },
     );
   }

@@ -18,7 +18,7 @@ Le principe général est simple :
 Préparez ces éléments avant d'ouvrir le formulaire produit :
 
 - Les taux horaires des activités. C'est la première étape, car les activités des BOMs utilisent ces taux pour calculer correctement le coût de fabrication.
-- Les composants (offres fournisseurs) qui serviront à construire les BOMs. Ces offres sont nécessaires pour calculer le coût des BOMs. Ces composants peuvent être: farine, sucre ou beurre pour une recette de gâteau ; ballons, ruban ou structure pour une arche de ballons.
+- Les composants (offres fournisseurs) qui serviront à construire les BOMs. Ces offres sont nécessaires pour calculer le coût des BOMs. Ces composants peuvent être: farine, sucre ou beurre pour une recette de gâteau ; ballons, ruban ou structure pour une arche décorative.
 - Si le bien ou le service a des coûts internes à suivre, un ou plusieurs BOMs avec composants, activités et rendement. Un BOM peut représenter une recette, une composition, un assemblage, du travail ou du matériel loué pour réaliser un service.
 - Savoir dans quelle catégorie ranger le produit et, si nécessaire, dans quelle sous-catégorie.
 - Une idée claire du prix de vente, de la marge cible et du format vendu.
@@ -48,7 +48,7 @@ Sous-catégories actuellement disponibles pour Décoration :
 
 | Valeur SAVIS    | Libellé dans le formulaire | Code envoyé à la vitrine |
 | --------------- | -------------------------- | ------------------------ |
-| `BALLOON_ARCH`  | Arche de ballon            | `balloon-arch`           |
+| `DECORATIVE_ARCH` | Arche décorative          | `decorative-arch`        |
 | `CENTERPIECE`   | Centre de table            | `centerpiece`             |
 | `BIRTHDAY`      | Anniversaire               | `birthday`                |
 | `WEDDING`       | Mariage                    | `wedding`                 |

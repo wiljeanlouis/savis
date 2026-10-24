@@ -823,7 +823,7 @@ sequenceDiagram
 ```
 
 The public projection includes the product category and the optional
-subcategory public code (`balloon-arch`, `centerpiece`, `birthday`, or
+subcategory public code (`decorative-arch`, `centerpiece`, `birthday`, or
 `wedding`). It excludes common `productBoms`, internal costs, target-margin
 data, diagnostics, and recommended prices. Publishing one product that is no
 longer marked `published` removes its public projection. The current HTTP
@@ -844,7 +844,7 @@ sequenceDiagram
   participant PgApi as savis_api
 
   Customer->>Storefront: Submit order
-  Storefront->>Supabase: INSERT raw order (pending)
+  Storefront->>Supabase: RPC receive_customer_order (pending request)
   Supabase->>Notify: Database webhook on INSERT
   Notify-->>Admin: Administrative email notification
   Admin->>Orders: POST /api/orders/import

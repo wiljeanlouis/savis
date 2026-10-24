@@ -2,6 +2,7 @@ import { useState } from "react";
 import { PageNavigator } from "@/shared/components/PageNavigator";
 import { PageSelector } from "@/shared/components/PageSelector";
 import { Button } from "@/shared/ui/button";
+import { ApiErrorAlert } from "@/shared/components/ApiErrorAlert";
 import { ButtonGroup } from "@/shared/ui/button-group";
 import { Field } from "@/shared/ui/field";
 import { Input } from "@/shared/ui/input";
@@ -155,11 +156,10 @@ export function SupplyOffersPage() {
           <Spinner />
         </div>
       ) : query.isError ? (
-        <div
-          role="alert"
-          className="flex min-h-40 flex-col items-center justify-center gap-3 rounded-xl border border-destructive/30 bg-destructive/10 p-6 text-center text-destructive"
+        <ApiErrorAlert
+          title="Impossible de charger les offres fournisseurs."
+          error={query.error}
         >
-          <p>Impossible de charger les offres fournisseurs.</p>
           <Button
             type="button"
             variant="outline"
@@ -167,7 +167,7 @@ export function SupplyOffersPage() {
           >
             Réessayer
           </Button>
-        </div>
+        </ApiErrorAlert>
       ) : offers.length === 0 ? (
         <div className="flex min-h-40 items-center justify-center rounded-xl border border-dashed p-6 text-center text-muted-foreground">
           Aucune offre ne correspond aux filtres sélectionnés.

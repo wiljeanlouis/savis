@@ -15,6 +15,8 @@ describe("CatalogProductsPage", () => {
       boms: [],
       analysis: {},
       isLoading: false,
+      isError: false,
+      error: null,
       isSaving: false,
       isPublishing: false,
       saveProduct: vi.fn(),

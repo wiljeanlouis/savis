@@ -200,7 +200,7 @@ Categories are selected from the fixed catalog values `TASTING` and
 The optional subcategory selector is filtered by the selected category.
 Decoration currently exposes:
 
-- `BALLOON_ARCH` — Arche de ballon;
+- `DECORATIVE_ARCH` — Arche décorative;
 - `CENTERPIECE` — Centre de table;
 - `BIRTHDAY` — Anniversaire;
 - `WEDDING` — Mariage.

@@ -1,7 +1,7 @@
 import { useState } from "react";
-import axios from "axios";
 import { toast } from "sonner";
 import { useGetBoms } from "@/features/bom/hooks/useBomApi";
+import { getApiErrorMessage } from "@/shared/api/apiError";
 import {
   useAnalyzeProductPricing,
   useAnalyzeWorstCasePricing,
@@ -31,9 +31,11 @@ export function useCatalogProductManagement() {
     try {
       await saveProduct.mutateAsync(product);
       toast.success("Produit sauvegardé.");
-    } catch {
-      toast.error("Impossible de sauvegarder le produit.");
-      throw new Error("Unable to save catalog product");
+    } catch (error) {
+      toast.error("Impossible de sauvegarder le produit.", {
+        description: getApiErrorMessage(error),
+      });
+      throw error;
     }
   };
 
@@ -41,7 +43,12 @@ export function useCatalogProductManagement() {
     if (!productId) {
       return;
     }
-    deleteProductMutation.mutate(productId);
+    deleteProductMutation.mutate(productId, {
+      onError: (error) =>
+        toast.error("Impossible de supprimer le produit.", {
+          description: getApiErrorMessage(error),
+        }),
+    });
   };
 
   const publishProduct = (product: CatalogProduct) => {
@@ -51,7 +58,10 @@ export function useCatalogProductManagement() {
 
     publishProductMutation.mutate(product.id, {
       onSuccess: () => toast.success("Produit publié vers SavouretPlus."),
-      onError: (error) => toast.error(publicationErrorMessage(error)),
+      onError: (error) =>
+        toast.error("La publication vers Supabase a échoué.", {
+          description: getApiErrorMessage(error),
+        }),
     });
   };
 
@@ -62,7 +72,10 @@ export function useCatalogProductManagement() {
 
     unpublishProductMutation.mutate(product.id, {
       onSuccess: () => toast.success("Produit retiré de SavouretPlus."),
-      onError: (error) => toast.error(publicationErrorMessage(error)),
+      onError: (error) =>
+        toast.error("Le retrait de Supabase a échoué.", {
+          description: getApiErrorMessage(error),
+        }),
     });
   };
 
@@ -95,7 +108,10 @@ export function useCatalogProductManagement() {
     mutation.mutate(variables as never, {
       onSuccess: (result) =>
         setAnalysis((current) => ({ ...current, [product.id!]: result })),
-      onError: () => toast.error("L’analyse de rentabilité a échoué."),
+      onError: (error) =>
+        toast.error("L’analyse de rentabilité a échoué.", {
+          description: getApiErrorMessage(error),
+        }),
     });
   };
 
@@ -104,6 +120,8 @@ export function useCatalogProductManagement() {
     boms: bomsQuery.data ?? [],
     analysis,
     isLoading: productsQuery.isPending || bomsQuery.isPending,
+    isError: productsQuery.isError || bomsQuery.isError,
+    error: productsQuery.error ?? bomsQuery.error,
     isSaving: saveProduct.isPending,
     isPublishing:
       publishProductMutation.isPending || unpublishProductMutation.isPending,
@@ -124,13 +142,4 @@ function defaultPurchaseMode(product: CatalogProduct) {
         left.label.localeCompare(right.label) ||
         left.code.localeCompare(right.code),
     )[0];
-}
-
-function publicationErrorMessage(error: unknown) {
-  if (axios.isAxiosError<{ detail?: string }>(error)) {
-    return (
-      error.response?.data?.detail ?? "La publication vers Supabase a échoué."
-    );
-  }
-  return "La publication vers Supabase a échoué.";
 }

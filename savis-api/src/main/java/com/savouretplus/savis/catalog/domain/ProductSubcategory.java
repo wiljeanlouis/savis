@@ -4,7 +4,7 @@ package com.savouretplus.savis.catalog.domain;
  * Optional product grouping associated with a parent catalog category.
  */
 public enum ProductSubcategory {
-    BALLOON_ARCH("balloon-arch", "Arche de ballon", ProductCategory.DECORATION),
+    DECORATIVE_ARCH("decorative-arch", "Arche décorative", ProductCategory.DECORATION),
     CENTERPIECE("centerpiece", "Centre de table", ProductCategory.DECORATION),
     BIRTHDAY("birthday", "Anniversaire", ProductCategory.DECORATION),
     WEDDING("wedding", "Mariage", ProductCategory.DECORATION);

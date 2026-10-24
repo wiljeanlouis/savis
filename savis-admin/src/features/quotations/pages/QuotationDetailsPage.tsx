@@ -1,4 +1,5 @@
 import { useState, type FormEvent } from "react";
+import { ApiErrorAlert } from "@/shared/components/ApiErrorAlert";
 import { OrderEditorForm } from "@/features/orders/components/OrderEditorForm";
 import { OrderItemsDetails } from "@/features/orders/components/OrderItemsDetails";
 import {
@@ -6,6 +7,7 @@ import {
   formatPhoneForDisplay,
 } from "@/features/orders/model/contactFormat";
 import { formatOrderCurrency, formatOrderDate } from "@/features/orders/types";
+import { getApiErrorMessage } from "@/shared/api/apiError";
 import { Button } from "@/shared/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/shared/ui/card";
 import { Input } from "@/shared/ui/input";
@@ -68,9 +70,10 @@ function QuotationDetailsContent({ quotationId }: { quotationId?: string }) {
   if (!isCreating && query.isPending) return <CenteredSpinner />;
   if (!isCreating && (query.isError || !quotation)) {
     return (
-      <p className="rounded-lg border border-destructive/30 bg-destructive/10 p-4 text-destructive">
-        Impossible de charger la soumission.
-      </p>
+      <ApiErrorAlert
+        title="Impossible de charger la soumission."
+        error={query.error}
+      />
     );
   }
 
@@ -95,7 +98,7 @@ function QuotationDetailsContent({ quotationId }: { quotationId?: string }) {
         void navigate(`/quotations/${saved.id}`, { replace: true });
       }
     } catch (cause) {
-      setError(message(cause));
+      setError(getApiErrorMessage(cause));
     }
   }
 
@@ -104,7 +107,9 @@ function QuotationDetailsContent({ quotationId }: { quotationId?: string }) {
       await statusMutation.mutateAsync({ quotationId: quotationId!, status });
       toast.success("Statut de la soumission mis à jour.");
     } catch (cause) {
-      toast.error(message(cause));
+      toast.error("Impossible de changer le statut de la soumission.", {
+        description: getApiErrorMessage(cause),
+      });
     }
   }
 
@@ -114,7 +119,9 @@ function QuotationDetailsContent({ quotationId }: { quotationId?: string }) {
       toast.success("Commande créée à partir de la soumission acceptée.");
       void navigate(`/orders/${result.orderId}`);
     } catch (cause) {
-      toast.error(message(cause));
+      toast.error("Impossible de convertir la soumission en commande.", {
+        description: getApiErrorMessage(cause),
+      });
     }
   }
 
@@ -421,15 +428,5 @@ function Amount({
         {formatOrderCurrency(cents)}
       </dd>
     </div>
-  );
-}
-
-function message(error: unknown) {
-  return (
-    (error as { response?: { data?: { detail?: string } } }).response?.data
-      ?.detail ??
-    (error instanceof Error
-      ? error.message
-      : "Une erreur inattendue est survenue.")
   );
 }

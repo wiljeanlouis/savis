@@ -176,15 +176,17 @@ describe("useCatalogProductManagement", () => {
 
   it("shows an error toast and rejects when saving fails", async () => {
     const { saveMutateAsync } = setupApiMocks();
-    saveMutateAsync.mockRejectedValue(new Error("API error"));
+    const apiError = {
+      response: { data: { detail: "Le code du produit existe déjà." } },
+    };
+    saveMutateAsync.mockRejectedValue(apiError);
     const { result } = renderHook(() => useCatalogProductManagement());
 
-    await expect(result.current.saveProduct(product)).rejects.toThrow(
-      "Unable to save catalog product",
-    );
+    await expect(result.current.saveProduct(product)).rejects.toBe(apiError);
 
     expect(toast.error).toHaveBeenCalledWith(
       "Impossible de sauvegarder le produit.",
+      { description: "Le code du produit existe déjà." },
     );
   });
 
@@ -198,7 +200,10 @@ describe("useCatalogProductManagement", () => {
     });
 
     expect(deleteMutate).toHaveBeenCalledTimes(1);
-    expect(deleteMutate).toHaveBeenCalledWith("product-1");
+    expect(deleteMutate).toHaveBeenCalledWith(
+      "product-1",
+      expect.objectContaining({ onError: expect.any(Function) }),
+    );
   });
 
   it("publishes a product and delegates success handling to the mutation callbacks", () => {

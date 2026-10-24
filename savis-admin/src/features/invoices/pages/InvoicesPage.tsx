@@ -1,4 +1,5 @@
 import { NoData } from "@/shared/components/NoData";
+import { ApiErrorAlert } from "@/shared/components/ApiErrorAlert";
 import {
   Select,
   SelectContent,
@@ -59,9 +60,10 @@ export function InvoicesPage() {
           <Spinner />
         </div>
       ) : query.isError ? (
-        <p className="rounded-lg border border-destructive/30 bg-destructive/10 p-4 text-destructive">
-          Impossible de charger les factures.
-        </p>
+        <ApiErrorAlert
+          title="Impossible de charger les factures."
+          error={query.error}
+        />
       ) : invoices.length === 0 ? (
         <NoData />
       ) : (
