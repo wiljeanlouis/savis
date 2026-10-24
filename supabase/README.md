@@ -45,3 +45,16 @@ in `savis-api`:
 
 The Edge Function and email-provider integration are intentionally outside this
 repository for the MVP.
+
+## Public event quote reception
+
+`public.submit_quote_request(payload jsonb)` receives generic or catalog-backed
+event quote requests, including one mixed Catering + Decoration request without
+Organisation. It validates published offering snapshots and uses a private,
+transaction-safe idempotency ledger. Public roles can execute the RPC but
+cannot read or write the inbox tables directly.
+
+This boundary does not price, accept, or import a commercial quotation into
+SAVIS. The payload contract, retry rules, coordinated rollout and known SAVIS
+import limitation are documented in
+`../docs/integration/mixed-event-quote-request-rpc.md`.
