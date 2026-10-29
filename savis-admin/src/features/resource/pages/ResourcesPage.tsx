@@ -1,3 +1,4 @@
+import { ResourceOffersDialog } from "../components/ResourceOffersDialog";
 import { useState } from "react";
 import { useSearchParams } from "react-router";
 import { toast } from "sonner";
@@ -27,6 +28,9 @@ export function ResourcesPage() {
   const rawPage = Number(params.get("page") ?? 0);
   const page = Number.isInteger(rawPage) && rawPage >= 0 ? rawPage : 0;
   const { list, save, changeStatus } = useResources(search, page);
+  const [offersResource, setOffersResource] = useState<MaterialResource | null>(
+    null,
+  );
   const [editor, setEditor] = useState<MaterialResource | "new" | null>(null);
   const saveValues = async (values: ResourceValues) => {
     try {
@@ -52,6 +56,12 @@ export function ResourcesPage() {
         </div>
         <Button onClick={() => setEditor("new")}>Nouvelle ressource</Button>
       </header>
+      {offersResource && (
+        <ResourceOffersDialog
+          resource={offersResource}
+          onClose={() => setOffersResource(null)}
+        />
+      )}
       {editor && (
         <ResourceEditorDialog
           key={editor === "new" ? "new" : editor.id}
@@ -112,6 +122,12 @@ export function ResourcesPage() {
                         onClick={() => setEditor(resource)}
                       >
                         Modifier
+                      </Button>
+                      <Button
+                        variant="outline"
+                        onClick={() => setOffersResource(resource)}
+                      >
+                        Offres
                       </Button>
                       <Button
                         variant="ghost"

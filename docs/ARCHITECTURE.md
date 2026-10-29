@@ -314,6 +314,7 @@ flowchart TB
   SupplyWeb --> SupplyUse --> SupplyDomain
   SupplyUse --> SupplyApi
   SupplyUse --> SupplyAdapters
+  SupplyUse -->|ResourceCatalogApi| ResourceApi
 
   CatalogWeb --> CatalogUse --> CatalogDomain
   CatalogUse --> CatalogPorts --> CatalogAdapters
@@ -341,8 +342,9 @@ flowchart TB
 - BOM consumes offer prices through `SupplyApi`.
 - Each BOM component references Resource by public UUID through `ResourceCatalogApi`;
   BOM never accesses Resource persistence. Resource deactivation does not remove
-  historical BOM lines. Existing component names remain temporary Supply lookup
-  snapshots while Supply's offer contracts are name-based.
+  historical BOM lines. Component names remain display/acquisition snapshots;
+  BOM valuation retrieves available offers by resource UUID in a batch. Explicit
+  selections must belong to the component resource or produce a blocking diagnostic.
 - Flyway V12 shares one Resource UUID per normalized legacy component name
   (trimmed, whitespace collapsed, case ignored), after checking unit dimensions.
   Existing Resource ambiguity or incompatible units abort atomically. BOM quantity,
@@ -1195,3 +1197,12 @@ Flyway runs as part of API startup before API readiness succeeds.
 - Quote requests exist in Supabase but are not yet managed by a SAVIS business
   module. Failed order inbox rows currently require manual review and reset to
   `pending` before retry.
+
+## Supply resource association
+
+Supply offers reference Resource by UUID. Admin supports manual offer creation,
+explicit association from offer details, and resource offer consultation. BOM and
+Catalog cost valuation use resource UUIDs and batched offer reads; foreign selected
+offers produce a blocking diagnostic. Executor messages remain compatible and
+discoveries await operator association. See [phase 2.3 migration and validation](SUPPLY_RESOURCE_MIGRATION.md)
+for V13 preflight, unresolved offers, HTTP contracts and verification.

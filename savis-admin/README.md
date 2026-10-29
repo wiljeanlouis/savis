@@ -653,3 +653,12 @@ dedicated frontend tests.
 - The frontend relies on backend validation for business invariants.
 - SAVIS Admin does not connect directly to PostgreSQL, RabbitMQ, provider
   websites, or Supabase.
+
+## Supply resource association
+
+Supply offers reference Resource by UUID. Admin supports manual offer creation,
+explicit association from offer details, and resource offer consultation. BOM and
+Catalog cost valuation use resource UUIDs and batched offer reads; foreign selected
+offers produce a blocking diagnostic. Executor messages remain compatible and
+discoveries await operator association. See [phase 2.3 migration and validation](../docs/SUPPLY_RESOURCE_MIGRATION.md)
+for V13 preflight, unresolved offers, HTTP contracts and verification.

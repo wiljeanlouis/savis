@@ -34,12 +34,10 @@ export const useDeleteBom = () => {
   });
 };
 
-export const useSearchAvailableOffers = (componentName: string) => {
-  const trimmedComponentName = componentName.trim();
-
+export const useSearchAvailableOffers = (resourceId?: string | null) => {
   return useQuery({
-    queryKey: [...AVAILABLE_OFFERS_QUERY_KEY, trimmedComponentName],
-    queryFn: () => searchAvailableOffers(trimmedComponentName),
-    enabled: trimmedComponentName.length >= 2,
+    queryKey: [...AVAILABLE_OFFERS_QUERY_KEY, resourceId],
+    queryFn: () => searchAvailableOffers(resourceId!),
+    enabled: Boolean(resourceId),
   });
 };

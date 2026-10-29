@@ -1,3 +1,4 @@
+import { ManualOfferDialog } from "../components/ManualOfferDialog";
 import { useState } from "react";
 import { PageNavigator } from "@/shared/components/PageNavigator";
 import { PageSelector } from "@/shared/components/PageSelector";
@@ -53,6 +54,7 @@ export function SupplyOffersPage() {
     setStatus,
     setSort,
   } = useSupplyOffers();
+  const [creating, setCreating] = useState(false);
   const [selectedOffer, setSelectedOffer] = useState<SupplyOffer | null>(null);
   const result = query.data;
   const offers = result?.content ?? [];
@@ -78,7 +80,9 @@ export function SupplyOffersPage() {
           Offres enregistrées dans Supply et disponibles pour le calcul des
           coûts de production.
         </p>
+        <Button onClick={() => setCreating(true)}>Nouvelle offre</Button>
       </header>
+      {creating && <ManualOfferDialog onClose={() => setCreating(false)} />}
 
       <section
         aria-label="Filtres des offres"

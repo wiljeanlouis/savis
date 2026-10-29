@@ -20,7 +20,14 @@ public record OfferPricing(
         String imageUrl,
         String supplierName,
         LocalDateTime observedAt,
-        String availability) {
+        String availability,
+        UUID resourceId) {
+    public OfferPricing(UUID publicId, String brand, String label, Money price, Quantity packageSize,
+            String componentName, String imageUrl, String supplierName, LocalDateTime observedAt,
+            String availability) {
+        this(publicId, brand, label, price, packageSize, componentName, imageUrl, supplierName,
+                observedAt, availability, null);
+    }
 
     /**
      * Creates pricing data when only the historical pricing fields are available.
@@ -57,6 +64,6 @@ public record OfferPricing(
                 offer.imageUrl(),
                 offer.provider() != null ? offer.provider().name() : null,
                 offer.lastSeen(),
-                offer.status() != null ? offer.status().name() : "UNKNOWN");
+                offer.status() != null ? offer.status().name() : "UNKNOWN", offer.resourceId());
     }
 }

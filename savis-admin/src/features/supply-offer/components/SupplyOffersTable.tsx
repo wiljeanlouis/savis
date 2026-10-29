@@ -39,7 +39,8 @@ export function SupplyOffersTable({
                 <span className="sr-only">Image</span>
               </TableHead>
               <TableHead>Produit</TableHead>
-              <TableHead>Composant</TableHead>
+              <TableHead>Terme de recherche</TableHead>
+              <TableHead>Ressource</TableHead>
               <TableHead>Fournisseur</TableHead>
               <TableHead>Prix du paquet</TableHead>
               <TableHead>Format</TableHead>
@@ -70,6 +71,12 @@ export function SupplyOffersTable({
                     </span>
                   </TableCell>
                   <TableCell>{offer.componentName}</TableCell>
+                  <TableCell
+                    className="max-w-40 truncate"
+                    title={offer.resourceId ?? undefined}
+                  >
+                    {offer.resourceId ?? "À associer"}
+                  </TableCell>
                   <TableCell>
                     {offer.provider?.name ?? offer.provider?.identifier ?? "—"}
                   </TableCell>

@@ -128,6 +128,7 @@ function mockPageState(
 }
 
 const offer = {
+  resourceId: null,
   id: "offer-1",
   componentName: "Farine",
   label: "Farine tout usage",

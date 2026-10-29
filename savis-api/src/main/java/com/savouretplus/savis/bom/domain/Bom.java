@@ -115,7 +115,7 @@ public class Bom {
                 .map(component -> new ComponentPriceRequest(
                         component.componentName(),
                         component.quantity(),
-                        component.selectedOfferId()))
+                        component.selectedOfferId(), component.resourceId()))
                 .toList();
     }
 

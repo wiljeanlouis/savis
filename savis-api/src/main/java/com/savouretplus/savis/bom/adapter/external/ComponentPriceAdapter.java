@@ -1,16 +1,5 @@
 package com.savouretplus.savis.bom.adapter.external;
 
-import java.math.BigDecimal;
-import java.math.RoundingMode;
-import java.util.ArrayList;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-import java.util.UUID;
-
-import org.springframework.stereotype.Component;
-
 import com.savouretplus.savis.bom.domain.BomCost.Diagnostic;
 import com.savouretplus.savis.bom.domain.BomCost.Source;
 import com.savouretplus.savis.bom.port.ComponentPrice;
@@ -18,10 +7,21 @@ import com.savouretplus.savis.bom.port.ComponentPricePort;
 import com.savouretplus.savis.bom.port.ComponentPriceRequest;
 import com.savouretplus.savis.supply.api.OfferPricing;
 import com.savouretplus.savis.supply.api.SupplyApi;
-
+import java.math.BigDecimal;
+import java.math.RoundingMode;
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Optional;
+import java.util.UUID;
+import java.util.stream.Collectors;
 import lombok.AllArgsConstructor;
+import org.springframework.stereotype.Component;
 
-record CheapestOfferKey(String componentName, String baseUnit) {}
+record CheapestOfferKey(UUID resourceId, String baseUnit) {}
 
 /** Preserves selection and batching; technical exceptions intentionally propagate. */
 @Component
@@ -39,20 +39,32 @@ class ComponentPriceAdapter implements ComponentPricePort {
         Map<ComponentPriceRequest, ComponentPrice> prices = new LinkedHashMap<>();
         Map<UUID, Optional<OfferPricing>> selectedCache = new LinkedHashMap<>();
         Map<CheapestOfferKey, Optional<OfferPricing>> cheapestCache = new LinkedHashMap<>();
+        var resourceIds = requests.stream().map(ComponentPriceRequest::resourceId)
+                .filter(Objects::nonNull).collect(Collectors.toSet());
+        var offerIds = requests.stream().map(ComponentPriceRequest::selectedOfferId)
+                .filter(Objects::nonNull).collect(Collectors.toSet());
+        var candidates = supplyApi.getPricingCandidates(resourceIds, offerIds);
         for (ComponentPriceRequest request : requests.stream().distinct().toList()) {
             List<Diagnostic> diagnostics = new ArrayList<>();
             Optional<OfferPricing> offer = Optional.empty();
             if (request.selectedOfferId() != null) {
-                offer = selectedCache.computeIfAbsent(request.selectedOfferId(), supplyApi::getOfferPricing);
+                offer = selectedCache.computeIfAbsent(request.selectedOfferId(), id -> candidates.stream().filter(o -> id.equals(o.publicId())).findFirst());
                 if (offer.isEmpty()) {
                     diagnostics.add(diagnostic(request, "SELECTED_OFFER_NOT_FOUND",
                             "Offre sélectionnée introuvable; recherche de l'offre compatible la moins chère", false));
                 }
             }
             if (offer.isEmpty()) {
-                CheapestOfferKey key = new CheapestOfferKey(request.componentName(), request.quantity().unit().baseUnit());
+                CheapestOfferKey key = new CheapestOfferKey(request.resourceId(), request.quantity().unit().baseUnit());
                 offer = cheapestCache.computeIfAbsent(key,
-                        ignored -> supplyApi.getCheapestOfferPricing(request.componentName(), request.quantity()));
+                        ignored -> candidates.stream()
+                                .filter(o -> request.resourceId() != null && request.resourceId().equals(o.resourceId()))
+                                .filter(o -> "AVAILABLE".equals(o.availability()) && o.price() != null
+                                        && o.packageSize() != null && o.packageSize().unit() != null
+                                        && Double.isFinite(o.packageSize().value()) && o.packageSize().value() > 0
+                                        && request.quantity().isCompatibleWith(o.packageSize()))
+                                .min(Comparator.comparing(o -> o.price().amount().divide(
+                                        o.packageSize().baseValue(), 10, RoundingMode.HALF_UP))));
             }
             if (offer.isEmpty()) {
                 diagnostics.add(diagnostic(request, "OFFER_NOT_FOUND",
@@ -70,6 +82,10 @@ class ComponentPriceAdapter implements ComponentPricePort {
             List<Diagnostic> diagnostics) {
         Source source = new Source(request.selectedOfferId(), offer.publicId(), offer.observedAt(),
                 offer.price(), offer.packageSize());
+        if (request.resourceId() == null || !request.resourceId().equals(offer.resourceId())) {
+            diagnostics.add(diagnostic(request, "OFFER_RESOURCE_MISMATCH",
+                    "L'offre sélectionnée n'appartient pas à la ressource du composant", true));
+        }
         // Existing behavior: a resolved selected offer remains the reference even when unavailable.
         if ("UNAVAILABLE".equals(offer.availability())) {
             diagnostics.add(diagnostic(request, "SELECTED_OFFER_UNAVAILABLE",

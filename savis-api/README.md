@@ -177,15 +177,15 @@ A known zero is valid; absent prices and rates are never inferred to be zero.
 
 For each component, the BOM slice:
 
-1. uses its selected offer when that UUID resolves;
-2. otherwise searches for the cheapest available compatible offer, retaining a
+1. uses its selected offer when that UUID resolves and belongs to its resource;
+2. otherwise searches for the cheapest available compatible offer of the same resource, retaining a
    `SELECTED_OFFER_NOT_FOUND` warning when a selected UUID no longer resolves;
 3. prorates the package price to the requested component quantity.
 
 A resolved selected offer marked unavailable retains its last observed price,
 with a non-blocking `SELECTED_OFFER_UNAVAILABLE` warning and **no automatic
 fallback**. This preserves the previous selection policy. A selected offer with
-missing price, invalid package, or incompatible units produces a missing line,
+missing price, invalid package, incompatible units, or another resource produces a missing line,
 without switching supplier silently. If no usable fallback exists, `OFFER_NOT_FOUND`
 explains that no available compatible priced package was found. Unexpected
 technical failures propagate as errors, rather than incomplete valuations.
@@ -238,8 +238,8 @@ SAVIS Executor decides whether a new acquisition task is necessary.
 
 Each saved BOM component now carries a `resourceId` UUID, a quantity/unit, and
 an optional selected offer UUID. The component row also keeps its resource name
-as a temporary display and Supply lookup snapshot; pricing formulas, selected
-offer handling, and name-based Supply contracts are unchanged. BOM checks that
+as a display/acquisition snapshot. BOM pricing uses the resource UUID, with a
+batched Supply lookup and strict selected-offer resource validation. BOM checks that
 new references point to active resources and that units share the same base
 unit (for example, `kg` and `g`). A component already attached to an inactive
 resource remains readable and can be saved without changing that reference.
@@ -317,7 +317,7 @@ and published.
 An offer includes:
 
 - public and provider product identifiers;
-- component search term;
+- component search term (acquisition metadata) and optional resource UUID;
 - label, brand, image, and product URL;
 - price and package size;
 - provider identity;
@@ -329,7 +329,9 @@ Incoming offers are reconciled first by public UUID, then by
 offer unavailable instead of deleting it.
 
 Automatic cheapest-offer searches expose only available offers; direct UUID lookup also exposes unavailable selected references with their availability. Searches are
-case-insensitive and ordered by package price.
+case-insensitive and ordered by package price on the legacy name-search endpoint.
+BOM pricing uses batched resource UUID lookup and compares normalized base-unit
+prices. Supply validates manual associations using ResourceCatalogApi.
 
 ### Catalog
 
@@ -663,9 +665,9 @@ Only one rate can exist for each activity type.
 | `PATCH` | `/api/resources/{id}/status` | Activate/deactivate a resource. |
 
 New BOM components must include `resourceId`. `componentName` remains a
-compatibility snapshot for name-based Supply search; new or reselected resources
+display/acquisition compatibility snapshot; new or reselected resources
 use the current Resource name, while an unchanged historical component keeps
-its snapshot so existing price lookup semantics remain stable. Admin displays
+its snapshot for acquisition traceability. Pricing uses the resource UUID. Admin displays
 the current Resource name and can identify inactive references. `id` is
 returned and accepted for each BOM line to preserve component row identities
 during edits.
@@ -684,7 +686,10 @@ during edits.
 
 | Method | Path                                      | Purpose                                      |
 | ------ | ----------------------------------------- | -------------------------------------------- |
-| `GET`  | `/api/supply/offers?componentName={name}` | Search available offers for a BOM component. |
+| `GET`  | `/api/supply/offers?componentName={name}` | Legacy name-based available-offer search. |
+| `POST` | `/api/supply/offers` | Create a manual offer with a validated resource. |
+| `PUT` | `/api/supply/offers/{id}/resource` | Validate or change the resource association. |
+| `GET` | `/api/supply/offers/resource/{resourceId}` | Resource offers; optional `availableOnly=true`. |
 
 ### Product Endpoints
 
@@ -985,3 +990,12 @@ Useful targeted checks:
 - Bulk catalog publication does not yet reconcile newly unpublished Supabase
   rows.
 - No authentication or authorization layer is currently present.
+
+## Supply resource association
+
+Supply offers reference Resource by UUID. Admin supports manual offer creation,
+explicit association from offer details, and resource offer consultation. BOM and
+Catalog cost valuation use resource UUIDs and batched offer reads; foreign selected
+offers produce a blocking diagnostic. Executor messages remain compatible and
+discoveries await operator association. See [phase 2.3 migration and validation](../docs/SUPPLY_RESOURCE_MIGRATION.md)
+for V13 preflight, unresolved offers, HTTP contracts and verification.

@@ -66,7 +66,7 @@ export const BomComponentInput = ({ value, onChange, onRemove }: Props) => {
     ? unitChoices.filter((unit) => unit.base === referenceUnitBase)
     : unitChoices;
   const { data: offers = [], isFetching } = useSearchAvailableOffers(
-    value.componentName,
+    value.resourceId,
   );
 
   const selectedOffer = offers.find(

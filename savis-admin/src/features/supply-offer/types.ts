@@ -27,6 +27,7 @@ export interface SupplyOfferPackageSize {
 
 export interface SupplyOffer {
   id: string;
+  resourceId: string | null;
   componentName: string;
   label: string | null;
   brand: string | null;
