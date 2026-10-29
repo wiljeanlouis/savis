@@ -15,7 +15,6 @@ import com.savouretplus.savis.bom.api.BomPricingApi;
 import com.savouretplus.savis.bom.api.BomRequirementsApi;
 import com.savouretplus.savis.bom.domain.ActivityRate;
 import com.savouretplus.savis.bom.domain.ActivityType;
-import com.savouretplus.savis.bom.domain.ComponentNeededEvent;
 import com.savouretplus.savis.bom.domain.Bom;
 import com.savouretplus.savis.bom.domain.BomCost;
 import com.savouretplus.savis.bom.domain.BomComponent;
@@ -24,7 +23,6 @@ import com.savouretplus.savis.resource.api.ResourceCatalogApi;
 import com.savouretplus.savis.resource.api.ResourceCatalogApi.ResourceReference;
 import com.savouretplus.savis.bom.port.ActivityRateRepositoryPort;
 import com.savouretplus.savis.bom.port.BomRepositoryPort;
-import com.savouretplus.savis.bom.port.ComponentNeededEventPort;
 import com.savouretplus.savis.bom.port.ComponentPricePort;
 
 import jakarta.transaction.Transactional;
@@ -41,24 +39,22 @@ public class BomService implements BomPricingApi, BomRequirementsApi {
     private final BomRepositoryPort repository;
     private final ComponentPricePort priceCalculator;
     private final ActivityRateRepositoryPort activityRateRepository;
-    private final ComponentNeededEventPort componentNeededEventPublisher;
     private final ResourceCatalogApi resourceCatalogApi;
 
     @Autowired
     public BomService(BomRepositoryPort repository, ComponentPricePort priceCalculator,
-            ActivityRateRepositoryPort activityRateRepository, ComponentNeededEventPort componentNeededEventPublisher,
+            ActivityRateRepositoryPort activityRateRepository,
             ResourceCatalogApi resourceCatalogApi) {
         this.repository = repository;
         this.priceCalculator = priceCalculator;
         this.activityRateRepository = activityRateRepository;
-        this.componentNeededEventPublisher = componentNeededEventPublisher;
         this.resourceCatalogApi = resourceCatalogApi;
     }
 
     /** Keeps isolated pricing tests independent from the Resource module. */
     public BomService(BomRepositoryPort repository, ComponentPricePort priceCalculator,
-            ActivityRateRepositoryPort activityRateRepository, ComponentNeededEventPort componentNeededEventPublisher) {
-        this(repository, priceCalculator, activityRateRepository, componentNeededEventPublisher, null);
+            ActivityRateRepositoryPort activityRateRepository) {
+        this(repository, priceCalculator, activityRateRepository, null);
     }
 
     /**
@@ -70,7 +66,6 @@ public class BomService implements BomPricingApi, BomRequirementsApi {
         Bom resolvedBom = resolveResourcesForSave(bomId, bom);
 
         repository.save(resolvedBom);
-        publishComponentNeededEvents(resolvedBom);
 
         return resolvedBom.getPublicId();
     }
@@ -205,16 +200,6 @@ public class BomService implements BomPricingApi, BomRequirementsApi {
                 .collect(Collectors.toMap(
                         ActivityRate::activityType,
                         ActivityRate::hourlyRate));
-    }
-
-    private void publishComponentNeededEvents(Bom bom) {
-        bom.getComponents().forEach(component -> {
-            if (component.selectedOfferId() == null) {
-                componentNeededEventPublisher
-                        .publish(ComponentNeededEvent.of(component.componentName(), bom.getType()));
-
-            }
-        });
     }
 
 }

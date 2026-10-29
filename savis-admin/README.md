@@ -662,3 +662,8 @@ Catalog cost valuation use resource UUIDs and batched offer reads; foreign selec
 offers produce a blocking diagnostic. Executor messages remain compatible and
 discoveries await operator association. See [phase 2.3 migration and validation](../docs/SUPPLY_RESOURCE_MIGRATION.md)
 for V13 preflight, unresolved offers, HTTP contracts and verification.
+
+BOM saving and cost consultation do not trigger acquisition. The editor reads
+existing Supply offers by Resource UUID and keeps missing-price diagnostics.
+“Enregistrer” persists the BOM and reloads its valuation. Acquisition remains a
+separate explicit action in the offer retrieval workflow (`POST /api/tasks`).

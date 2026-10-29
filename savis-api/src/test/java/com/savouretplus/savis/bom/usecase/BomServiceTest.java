@@ -28,7 +28,6 @@ import com.savouretplus.savis.bom.domain.Minute;
 import com.savouretplus.savis.bom.domain.Yield;
 import com.savouretplus.savis.bom.port.ActivityRateRepositoryPort;
 import com.savouretplus.savis.bom.port.BomRepositoryPort;
-import com.savouretplus.savis.bom.port.ComponentNeededEventPort;
 import com.savouretplus.savis.bom.port.ComponentPricePort;
 import com.savouretplus.savis.bom.port.ComponentPriceRequest;
 import com.savouretplus.savis.common.Money;
@@ -46,9 +45,6 @@ class BomServiceTest {
 
     @Mock
     ActivityRateRepositoryPort activityRateRepository;
-
-    @Mock
-    ComponentNeededEventPort componentNeededEventPublisher;
 
     @InjectMocks
     BomService bomService;
@@ -79,7 +75,7 @@ class BomServiceTest {
         Assertions.assertEquals("CAD", total.currency());
         verify(priceCalculator).getPrices(bom.componentPriceRequests());
         verify(activityRateRepository).findAll();
-        verifyNoMoreInteractions(repository, priceCalculator, activityRateRepository, componentNeededEventPublisher);
+        verifyNoMoreInteractions(repository, priceCalculator, activityRateRepository);
     }
 
     @Test
@@ -105,7 +101,7 @@ class BomServiceTest {
         verify(repository).findByPublicId(publicId);
         verify(priceCalculator).getPrices(List.of());
         verify(activityRateRepository).findAll();
-        verifyNoMoreInteractions(repository, priceCalculator, activityRateRepository, componentNeededEventPublisher);
+        verifyNoMoreInteractions(repository, priceCalculator, activityRateRepository);
     }
 
     @Test

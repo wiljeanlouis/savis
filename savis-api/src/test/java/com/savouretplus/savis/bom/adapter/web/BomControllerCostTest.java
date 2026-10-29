@@ -48,8 +48,7 @@ class BomControllerCostTest {
         var repository = mock(BomRepositoryPort.class);
         var prices = mock(ComponentPricePort.class);
         var rates = mock(ActivityRateRepositoryPort.class);
-        var events = mock(ComponentNeededEventPort.class);
-        var service = new BomService(repository, prices, rates, events);
+        var service = new BomService(repository, prices, rates);
         UUID id = UUID.randomUUID();
         var bom = new Bom(id, "Gâteau", "Description", "image.jpg", "Mélanger", BomType.FOOD,
                 List.of(), List.of(new Activity(null, ActivityType.COOK, Minute.of(40), 1)), null);
@@ -71,7 +70,7 @@ class BomControllerCostTest {
 
         verify(repository).findAll();
         verifyNoMoreInteractions(repository);
-        verifyNoInteractions(prices, rates, events);
+        verifyNoInteractions(prices, rates);
     }
 
 }

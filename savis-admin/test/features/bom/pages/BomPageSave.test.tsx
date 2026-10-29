@@ -1,7 +1,7 @@
 import { BomPage } from "@/features/bom/pages/BomPage";
 import { getBom } from "@/features/bom/api/bomApi";
 import type { Bom } from "@/features/bom/types";
-import { api } from "@/shared/api";
+import { api, executorApi } from "@/shared/api";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { act, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
@@ -19,11 +19,15 @@ beforeEach(() => {
       disconnect = vi.fn();
     },
   );
+  vi.spyOn(executorApi, "post").mockRejectedValue(
+    new Error("Unexpected acquisition"),
+  );
   vi.spyOn(toast, "success").mockReturnValue("success");
   vi.spyOn(toast, "error").mockReturnValue("error");
 });
 
 afterEach(() => {
+  expect(executorApi.post).not.toHaveBeenCalled();
   vi.restoreAllMocks();
   vi.unstubAllGlobals();
 });
@@ -96,6 +100,7 @@ describe("BOM save and stay", () => {
       updated.name,
     );
     expect(screen.getByRole("button", { name: "Enregistrer" })).toBeEnabled();
+    expect(post).toHaveBeenCalledTimes(1);
     expect(post).toHaveBeenCalledWith(
       "/boms",
       expect.objectContaining({

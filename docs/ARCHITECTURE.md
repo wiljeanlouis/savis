@@ -269,7 +269,7 @@ flowchart TB
       BomWeb["Web adapters<br/>BomController<br/>ActivityRateController"]
       BomUse["Use cases<br/>BomService<br/>ActivityRateService"]
       BomDomain["Domain<br/>Bom, BomComponent, Activity<br/>Yield, ActivityRate"]
-      BomPorts["Ports and public API<br/>Repositories<br/>ComponentPricePort<br/>ComponentNeededEventPort<br/>BomPricingApi"]
+      BomPorts["Ports and public API<br/>Repositories<br/>ComponentPricePort<br/>BomPricingApi"]
       BomAdapters["Adapters<br/>JPA<br/>Modulith event publisher<br/>Supply pricing"]
     end
 
@@ -585,42 +585,21 @@ Manual retrieval is the preferred acquisition path when the operator knows the
 exact provider product URL. It is more precise and avoids broad provider search
 results.
 
-### BOM Creation and Automatic Offer Collection
+### BOM Save and Cost Consultation
 
-```mermaid
-sequenceDiagram
-  participant Admin as SAVIS Admin
-  participant Bom as API BOM module
-  participant Outbox as Modulith event_publication
-  participant Rabbit as RabbitMQ
-  participant Executor as Executor subscriber
-  participant PgExec as savis_executor
-  participant Worker as Celery worker
-  participant Provider as Provider website
-  participant Supply as API Supply module
+BOM creation, replacement and component changes validate Resource UUIDs, status
+and units, then persist the aggregate and resource name snapshots. They publish
+no acquisition event and enqueue no Executor task. Resource creation only
+persists business data; association validates an existing reference.
 
-  Admin->>Bom: Save BOM
-  Bom->>Bom: Persist aggregate
-  loop each component
-    Bom->>Outbox: Publish ComponentNeededEvent
-    Outbox->>Rabbit: Externalize ComponentNeededMessage
-  end
-  Rabbit->>Executor: savis.offer.requests
-  Executor->>PgExec: Persist GET_OFFERS task
-  Executor->>Rabbit: Enqueue Celery task
-  Rabbit->>Worker: Deliver task
-  Worker->>Provider: Search through Chrome CDP
-  Worker->>PgExec: Reconcile NEW offers
-  Worker->>PgExec: Mark task COMPLETED
-  Admin->>Executor: Review offer
-  Admin->>Executor: Mark offer VALID
-  Executor->>Rabbit: savis.offer.results
-  Rabbit->>Supply: Upsert available offer
-```
+Admin posts the BOM to `POST /api/boms`, then reloads `GET /api/boms/{id}`.
+Cost consultation batch-reads existing Supply offers by Resource UUID, retaining
+selected offers or choosing the cheapest compatible existing offer. Missing
+prices produce diagnostics and do not block saving.
 
-Automatic collection is a secondary coverage mechanism for BOM components
-without a known product URL. It is skipped when all configured providers
-already have offers for the requested search term and type.
+Explicit acquisition via Executor `POST /api/tasks` and independent scheduled
+refresh remain available. The RabbitMQ request contract is retained for
+compatibility; BOM saves no longer produce requests.
 
 ### Review, Invalidate, and Delete an Offer
 
@@ -990,7 +969,7 @@ on-hand stock.
 | -------------------------- | ---------------------------------------------------------------------------------------------- |
 | Activity rates             | Should rate changes be versioned or effective-dated for historical cost reproducibility?       |
 | Manual offer retrieval     | Should operators be able to cancel, retry, or resume a failed task from the Admin?             |
-| Automatic offer collection | Should duplicate component events have an explicit idempotency key or acquisition window?      |
+| Explicit offer collection | Acquisition is independent of BOM saving and pricing. |
 | Offer review               | Should review transitions record the operator, reason, and audit timestamp?                    |
 | Scheduled refresh          | Should per-provider schedules and concurrency limits be configurable independently?            |
 | Retry and scheduling       | Should failed integration messages use a dead-letter queue and an operator replay workflow?    |
@@ -1040,7 +1019,7 @@ forward-only.
 
 | Queue                       | Producer       | Consumer                | Purpose                                   |
 | --------------------------- | -------------- | ----------------------- | ----------------------------------------- |
-| `savis.offer.requests`      | API BOM module | Executor API subscriber | Request offer acquisition                 |
+| `savis.offer.requests`      | Retained API event adapter (unused by saves) | Executor API subscriber | Compatible acquisition request contract |
 | `savis.offer.results`       | Executor       | API Supply module       | Publish valid or refreshed offers         |
 | `savis.offer.invalidations` | Executor       | API Supply module       | Remove an offer from pricing availability |
 

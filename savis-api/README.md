@@ -29,7 +29,7 @@ PostgreSQL, and publishes a customer-facing catalog projection to Supabase.
 
 - Manage generic technical BOMs, components, activities, and yields.
 - Calculate BOM costs from provider offers and global activity rates.
-- Request offer acquisition for BOM component names.
+- Value BOM components using existing Supply offers.
 - Consume valid offer results and invalidations from SAVIS Executor.
 - Expose available offers for BOM component selection.
 - Manage product categories and sellable catalog products.
@@ -230,9 +230,12 @@ Catalog pricing, along with the activity-rate read for each BOM calculation.
 
 #### Component Acquisition
 
-After a BOM is saved, the BOM slice publishes one component-needed message per
-component. The payload contains the normalized component name and BOM type.
-SAVIS Executor decides whether a new acquisition task is necessary.
+BOM creation, replacement and component changes validate Resource references and
+persist the aggregate only. They publish no acquisition events and enqueue no
+scraping, even without offers. Cost reads use existing Supply offers only,
+preserving selected offers, cheapest-compatible fallback and missing-price
+diagnostics. Acquisition remains an explicit Executor task action or independent
+scheduled maintenance.
 
 ### Resource-backed BOM Components
 
@@ -741,7 +744,7 @@ conversion.
 
 Queue: `savis.offer.requests`
 
-Published after a BOM save:
+Retained request contract; BOM saves no longer publish it:
 
 ```json
 {
