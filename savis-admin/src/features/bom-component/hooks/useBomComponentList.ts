@@ -23,9 +23,11 @@ interface BomComponentListState {
   sortBy: string;
   sortDirection: SortDirection;
   searchTerm?: string;
+  status: BomComponentStatus | "ALL";
 }
 
 const initialListState: BomComponentListState = {
+  status: "NEW",
   page: 1,
   pageSize: 20,
   sortBy: "last_retrieved_at",
@@ -60,9 +62,26 @@ const parseListState = (
       searchParams.get("size"),
       initialListState.pageSize,
     ),
-    sortBy: searchParams.get("sort_by") ?? initialListState.sortBy,
+    sortBy: [
+      "last_retrieved_at",
+      "label",
+      "brand",
+      "price",
+      "package_size",
+      "provider",
+      "search_term",
+      "status",
+      "next_refresh_at",
+    ].includes(searchParams.get("sort_by") ?? "")
+      ? searchParams.get("sort_by")!
+      : initialListState.sortBy,
     sortDirection: parseSortDirection(searchParams.get("sort_direction")),
     searchTerm,
+    status: ["NEW", "VALID", "REJECTED", "ALL"].includes(
+      searchParams.get("status") ?? "",
+    )
+      ? (searchParams.get("status") as BomComponentStatus | "ALL")
+      : "NEW",
   };
 };
 
@@ -77,6 +96,7 @@ const createSearchParamsFromListState = (
   nextSearchParams.set("sort_by", listState.sortBy);
   nextSearchParams.set("sort_direction", listState.sortDirection);
   nextSearchParams.delete("type");
+  nextSearchParams.set("status", listState.status);
 
   if (listState.searchTerm) {
     nextSearchParams.set("search_term", listState.searchTerm);
@@ -91,13 +111,15 @@ export const useBomComponentList = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   const listState = useMemo(() => parseListState(searchParams), [searchParams]);
 
-  const { data, isPending, isError, error } = useGetBomComponents(
-    listState.page,
-    listState.pageSize,
-    listState.sortBy,
-    listState.sortDirection,
-    listState.searchTerm,
-  );
+  const { data, isPending, isError, error, refetch, isFetching } =
+    useGetBomComponents(
+      listState.page,
+      listState.pageSize,
+      listState.sortBy,
+      listState.sortDirection,
+      listState.searchTerm,
+      listState.status === "ALL" ? undefined : listState.status,
+    );
   const patchBomComponent = usePatchBomComponent();
   const deleteBomComponent = useDeleteBomComponent();
   const createTask = useCreateBomComponentTask();
@@ -141,6 +163,23 @@ export const useBomComponentList = () => {
         currentSearchParams,
       );
     });
+  };
+
+  useEffect(() => {
+    if (data && data.page > Math.max(1, data.total_pages)) {
+      setSearchParams(
+        (current) => {
+          const next = new URLSearchParams(current);
+          next.set("page", String(Math.max(1, data.total_pages)));
+          return next;
+        },
+        { replace: true },
+      );
+    }
+  }, [data, setSearchParams]);
+
+  const handleStatusChange = (status: BomComponentStatus | "ALL") => {
+    updateListState((current) => ({ ...current, page: 1, status }));
   };
 
   const handlePageSizeChange = (size: number) => {
@@ -296,6 +335,11 @@ export const useBomComponentList = () => {
 
   return {
     data,
+    isError,
+    error,
+    refetch,
+    isFetching,
+    handleStatusChange,
     isLoading: isPending,
     isCreatingTask: createTask.isPending,
     isPatching: patchBomComponent.isPending || createTask.isPending,

@@ -41,14 +41,15 @@ const data = {
       icon: <HugeiconsIcon icon={Database01Icon} strokeWidth={2} />,
       children: [
         {
-          name: "Offres fournisseurs",
-          url: "/supply/offers",
-        },
-        {
-          name: "Gestion des offres",
+          name: "À valider",
           url: "/bom-components",
           exact: true,
         },
+        {
+          name: "Offres fournisseurs",
+          url: "/supply/offers",
+        },
+
         {
           name: "Tâches d'acquisition",
           url: "/bom-components/tasks",

@@ -1002,3 +1002,14 @@ Catalog cost valuation use resource UUIDs and batched offer reads; foreign selec
 offers produce a blocking diagnostic. Executor messages remain compatible and
 discoveries await operator association. See [phase 2.3 migration and validation](../docs/SUPPLY_RESOURCE_MIGRATION.md)
 for V13 preflight, unresolved offers, HTTP contracts and verification.
+
+### Batched Resource names for procurement
+
+`GET /api/resources/batch?ids=<uuid>,<uuid>` resolves between 1 and 100 resource
+identifiers in a single repository query. Duplicates are collapsed, unknown
+identifiers are omitted, and active and inactive resources can be returned.
+The response is a JSON array using the existing Resource response fields.
+Malformed identifiers and requests outside the bound return HTTP 400. Admin uses
+this read-only endpoint for resource labels on the current Supply catalog page;
+no full catalog loading or per-row lookup is required. Supply review, acquisition
+and RabbitMQ contracts are unchanged.

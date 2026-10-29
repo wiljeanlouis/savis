@@ -427,9 +427,7 @@ const router = createBrowserRouter([
             index: true,
             element: <BomComponentsPage />,
             handle: {
-              breadcrumb: () => (
-                <ProcurementBreadcrumb section="Gestion des offres" />
-              ),
+              breadcrumb: () => <ProcurementBreadcrumb section="À valider" />,
             },
           },
           {
@@ -457,7 +455,7 @@ const router = createBrowserRouter([
         children: [
           {
             index: true,
-            element: <BomComponentsPage supplierOffers />,
+            element: <Navigate to="/supply/offers" replace />,
             handle: {
               breadcrumb: () => (
                 <>

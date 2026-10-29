@@ -1,6 +1,9 @@
 package com.savouretplus.savis.resource.usecase;
 
+import java.util.Optional;
 import java.util.Locale;
+import java.util.List;
+import java.util.Objects;
 import java.util.UUID;
 import org.springframework.stereotype.Service;
 import jakarta.transaction.Transactional;
@@ -24,12 +27,19 @@ public class ResourceService implements ResourceCatalogApi {
         return repository.save(Resource.create(name, description, category, unit));
     }
 
+    public List<Resource> findByIds(List<UUID> ids) {
+        if (ids == null || ids.isEmpty() || ids.size() > 100 || ids.stream().anyMatch(Objects::isNull)) {
+            throw new IllegalArgumentException("Entre 1 et 100 identifiants de ressources sont requis");
+        }
+        return repository.findByPublicIds(ids.stream().distinct().toList());
+    }
+
     public Resource get(UUID id) {
         return repository.findByPublicId(id).orElseThrow(() -> new ResourceNotFoundException(id));
     }
 
     @Override
-    public java.util.Optional<ResourceReference> findReference(UUID publicId) {
+    public Optional<ResourceReference> findReference(UUID publicId) {
         return repository.findByPublicId(publicId).map(resource -> new ResourceReference(
                 resource.publicId(), resource.name(), resource.category().name(),
                 resource.referenceUnit() == null ? null : resource.referenceUnit().getSymbole(),

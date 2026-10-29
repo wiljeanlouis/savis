@@ -25,3 +25,9 @@ export const setResourceStatus = async ({
   status,
 }: Pick<MaterialResource, "id" | "status">): Promise<MaterialResource> =>
   (await api.patch(`/resources/${id}/status`, { status })).data;
+
+/** Resolve only the resources referenced by the current offer page. */
+export const getResourcesByIds = async (
+  ids: string[],
+): Promise<MaterialResource[]> =>
+  (await api.get("/resources/batch", { params: { ids: ids.join(",") } })).data;

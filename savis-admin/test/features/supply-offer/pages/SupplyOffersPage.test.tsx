@@ -1,15 +1,48 @@
+import { getResourcesByIds } from "@/features/resource/api/resourceApi";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { useSupplyOffers } from "@/features/supply-offer/hooks/useSupplyOffers";
 import { SupplyOffersPage } from "@/features/supply-offer/pages/SupplyOffersPage";
-import { render, screen } from "@testing-library/react";
+import { render as baseRender, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
+
+vi.mock("@/features/resource/api/resourceApi", () => ({
+  getResourcesByIds: vi.fn(),
+}));
 
 vi.mock("@/features/supply-offer/hooks/useSupplyOffers", () => ({
   useSupplyOffers: vi.fn(),
 }));
 
+const render = (ui: React.ReactNode) =>
+  baseRender(
+    <QueryClientProvider client={new QueryClient()}>{ui}</QueryClientProvider>,
+  );
+
 describe("SupplyOffersPage", () => {
   beforeEach(() => vi.clearAllMocks());
+
+  it("resolves shared resource names with a single bounded read for the offer page", async () => {
+    vi.mocked(getResourcesByIds).mockResolvedValue([
+      { id: "resource-1", name: "Farine de blé" },
+    ] as never);
+    mockPageState({
+      data: {
+        content: [
+          { ...offer, resourceId: "resource-1" },
+          { ...offer, id: "offer-second", resourceId: "resource-1" },
+        ],
+        page: 0,
+        size: 20,
+        totalElements: 2,
+        totalPages: 1,
+      },
+    });
+    render(<SupplyOffersPage />);
+    expect(await screen.findAllByText("Farine de blé")).toHaveLength(2);
+    expect(getResourcesByIds).toHaveBeenCalledExactlyOnceWith(["resource-1"]);
+    expect(screen.queryByText("resource-1")).not.toBeInTheDocument();
+  });
 
   it("renders the loading state", () => {
     mockPageState({ isPending: true });

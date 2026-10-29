@@ -26,6 +26,10 @@ public class ResourceController {
         return new PageResponse(result.content().stream().map(ResourceResponse::from).toList(), result.totalElements(), result.page(), result.size(), result.totalPages());
     }
 
+    @GetMapping("/batch") public List<ResourceResponse> batch(@RequestParam List<UUID> ids) {
+        return service.findByIds(ids).stream().map(ResourceResponse::from).toList();
+    }
+
     @GetMapping("/{id}") public ResourceResponse get(@PathVariable UUID id) { return ResourceResponse.from(service.get(id)); }
 
     @PostMapping public ResponseEntity<ResourceResponse> create(@Valid @RequestBody ResourceRequest request) {

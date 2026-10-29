@@ -27,6 +27,18 @@ const offer: SupplyOffer = {
 };
 
 describe("SupplyOffersTable", () => {
+  it("displays resolved resource names without exposing UUIDs", () => {
+    render(
+      <SupplyOffersTable
+        offers={[{ ...offer, resourceId: "resource-uuid" }]}
+        resourceNames={{ "resource-uuid": "Farine de blé" }}
+        onViewDetails={vi.fn()}
+      />,
+    );
+    expect(screen.getByText("Farine de blé")).toBeInTheDocument();
+    expect(screen.queryByText("resource-uuid")).not.toBeInTheDocument();
+  });
+
   it("shows nullable values safely and provides a failed-image placeholder", () => {
     const nullableOffer: SupplyOffer = {
       ...offer,

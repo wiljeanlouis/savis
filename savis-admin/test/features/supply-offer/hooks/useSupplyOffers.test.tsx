@@ -1,3 +1,4 @@
+import { MemoryRouter } from "react-router";
 import {
   SUPPLY_OFFERS_QUERY_KEY,
   useSupplyOffers,
@@ -116,7 +117,9 @@ function createQueryClient() {
 function queryWrapper(client: QueryClient) {
   return function QueryWrapper({ children }: { children: ReactNode }) {
     return (
-      <QueryClientProvider client={client}>{children}</QueryClientProvider>
+      <MemoryRouter>
+        <QueryClientProvider client={client}>{children}</QueryClientProvider>
+      </MemoryRouter>
     );
   };
 }

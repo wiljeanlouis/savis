@@ -1185,3 +1185,20 @@ Catalog cost valuation use resource UUIDs and batched offer reads; foreign selec
 offers produce a blocking diagnostic. Executor messages remain compatible and
 discoveries await operator association. See [phase 2.3 migration and validation](SUPPLY_RESOURCE_MIGRATION.md)
 for V13 preflight, unresolved offers, HTTP contracts and verification.
+
+### Procurement review UI and resource labels
+
+The procurement workspace keeps Executor review (`/bom-components`), Supply
+consultation (`/supply/offers`), and acquisition tasks separate. Review defaults
+to `NEW`; accepting or rejecting uses the existing Executor PATCH and messaging
+workflow. Executor supports exact search-term filtering, not free-text product
+search or provider filtering. Task filtering supports status and type only.
+
+The current Supply catalog returns resource UUIDs without names. Existing
+Resource endpoints expose paginated search or individual reads, so they cannot
+resolve an arbitrary page of offers without N+1 calls or loading the full catalog.
+A bounded read-only `GET /api/resources/batch?ids=<uuid>,<uuid>` resolves up to
+100 distinct resource identifiers in one repository query. Admin requests
+only identifiers on the current Supply page. Missing references display an
+explicit unavailable-name label; unassociated offers display “Non associée”.
+This adds no persistence, module dependency, or synchronization process.

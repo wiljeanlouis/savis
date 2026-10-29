@@ -1,7 +1,11 @@
 package com.savouretplus.savis.resource.adapter.persistence;
 
+import java.util.ArrayList;
+import jakarta.persistence.criteria.Predicate;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.List;
+import java.util.Collection;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.jpa.domain.Specification;
@@ -22,6 +26,10 @@ public class ResourceRepositoryAdapter implements ResourceRepository {
         return repository.findByPublicId(id).map(this::toDomain);
     }
 
+    @Override public List<Resource> findByPublicIds(Collection<UUID> ids) {
+        return repository.findByPublicIdIn(ids).stream().map(this::toDomain).toList();
+    }
+
     @Override public Resource save(Resource resource) {
         var entity = repository.findByPublicId(resource.publicId()).orElseGet(ResourceEntity::new);
         entity.setPublicId(resource.publicId());
@@ -35,7 +43,7 @@ public class ResourceRepositoryAdapter implements ResourceRepository {
 
     @Override public ResourcePage search(String term, ResourceCategory category, ResourceStatus status, int page, int size) {
         Specification<ResourceEntity> specification = (root, query, builder) -> {
-            var predicates = new java.util.ArrayList<jakarta.persistence.criteria.Predicate>();
+            var predicates = new ArrayList<Predicate>();
             if (!term.isEmpty()) {
                 // User search is literal: SQL wildcard characters must not broaden matches.
                 String pattern = "%" + term.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_") + "%";
@@ -44,7 +52,7 @@ public class ResourceRepositoryAdapter implements ResourceRepository {
             }
             if (category != null) predicates.add(builder.equal(root.get("category"), category));
             if (status != null) predicates.add(builder.equal(root.get("status"), status));
-            return builder.and(predicates.toArray(jakarta.persistence.criteria.Predicate[]::new));
+            return builder.and(predicates.toArray(Predicate[]::new));
         };
         var result = repository.findAll(specification, PageRequest.of(page, size, Sort.by("name", "publicId")));
         return new ResourcePage(result.getContent().stream().map(this::toDomain).toList(), result.getTotalElements(), page, size);

@@ -667,3 +667,32 @@ BOM saving and cost consultation do not trigger acquisition. The editor reads
 existing Supply offers by Resource UUID and keeps missing-price diagnostics.
 “Enregistrer” persists the BOM and reloads its valuation. Acquisition remains a
 separate explicit action in the offer retrieval workflow (`POST /api/tasks`).
+
+## Procurement review workspace
+
+Approvisionnement contains **À valider** (`/bom-components`), **Offres
+fournisseurs** (`/supply/offers`), and **Tâches d'acquisition**
+(`/bom-components/tasks`). The legacy `/supply-offers` entry redirects to Supply.
+Review uses a compact list and a selected-offer detail panel; small screens open
+the detail at full width with a return button. The default status is `NEW`;
+`VALID`, `REJECTED`, and all statuses remain accessible. Status, exact search
+term, sorting and pagination are URL state. Successful review/deletion refreshes
+Executor lists and term counters, selects the next visible offer and returns to
+the preceding page when the last row of a page disappears. No Supply write is
+performed by review.
+
+Retrieval by provider URL, editing review status and refresh frequency, immediate
+refresh scheduling, validation, rejection/invalidation, supplier links and
+confirmed deletion remain available. Supply retains manual creation, resource
+association and offer detail consultation. Its search, availability, sorting and
+pagination now also use URL state. Resource names are resolved for the current
+page using one bounded `GET /resources/batch?ids=…`, never one request per row.
+Task monitoring retains its table and sorting/pagination, adds the existing
+server-side status/type filters, an explicit refresh button and retryable errors.
+
+API limits: Executor exposes exact term filtering and searchable term facets,
+not product-wide free-text search or provider filtering. Supply catalog exposes
+text search and availability filtering, not resource/provider filters. Executor
+has no resource association field; association remains in Supply details. Tasks
+have no text-search endpoint. No client-only filtering of a paginated subset is
+used to simulate these unsupported filters.

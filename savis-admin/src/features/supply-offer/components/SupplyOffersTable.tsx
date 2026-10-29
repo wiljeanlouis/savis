@@ -21,25 +21,28 @@ import { SupplyOfferStatusBadge } from "./SupplyOfferStatusBadge";
 
 interface SupplyOffersTableProps {
   offers: SupplyOffer[];
+  resourceNames?: Record<string, string>;
+  resourcesLoading?: boolean;
   onViewDetails: (offer: SupplyOffer) => void;
 }
 
 /** Read-only table of persisted supplier offers. */
 export function SupplyOffersTable({
   offers,
+  resourceNames = {},
+  resourcesLoading = false,
   onViewDetails,
 }: SupplyOffersTableProps) {
   return (
     <Card>
       <CardContent className="px-0">
-        <Table className="min-w-280">
+        <Table className="min-w-240">
           <TableHeader>
             <TableRow>
               <TableHead className="w-16">
                 <span className="sr-only">Image</span>
               </TableHead>
               <TableHead>Produit</TableHead>
-              <TableHead>Terme de recherche</TableHead>
               <TableHead>Ressource</TableHead>
               <TableHead>Fournisseur</TableHead>
               <TableHead>Prix du paquet</TableHead>
@@ -69,13 +72,15 @@ export function SupplyOffersTable({
                     <span className="block max-w-56 truncate text-muted-foreground">
                       {offer.brand ?? "Marque non renseignée"}
                     </span>
+                    <span className="block max-w-56 truncate text-xs text-muted-foreground">
+                      {offer.componentName}
+                    </span>
                   </TableCell>
-                  <TableCell>{offer.componentName}</TableCell>
-                  <TableCell
-                    className="max-w-40 truncate"
-                    title={offer.resourceId ?? undefined}
-                  >
-                    {offer.resourceId ?? "À associer"}
+                  <TableCell className="max-w-40 truncate">
+                    {offer.resourceId
+                      ? (resourceNames[offer.resourceId] ??
+                        (resourcesLoading ? "Chargement…" : "Nom indisponible"))
+                      : "Non associée"}
                   </TableCell>
                   <TableCell>
                     {offer.provider?.name ?? offer.provider?.identifier ?? "—"}

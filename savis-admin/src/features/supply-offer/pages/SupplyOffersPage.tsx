@@ -1,3 +1,5 @@
+import { useQuery } from "@tanstack/react-query";
+import { getResourcesByIds } from "@/features/resource/api/resourceApi";
 import { ManualOfferDialog } from "../components/ManualOfferDialog";
 import { useState } from "react";
 import { PageNavigator } from "@/shared/components/PageNavigator";
@@ -58,6 +60,19 @@ export function SupplyOffersPage() {
   const [selectedOffer, setSelectedOffer] = useState<SupplyOffer | null>(null);
   const result = query.data;
   const offers = result?.content ?? [];
+  const resourceIds = [
+    ...new Set(
+      offers.flatMap((offer) => (offer.resourceId ? [offer.resourceId] : [])),
+    ),
+  ].sort();
+  const resources = useQuery({
+    queryKey: ["resources", "batch", resourceIds],
+    queryFn: () => getResourcesByIds(resourceIds),
+    enabled: resourceIds.length > 0,
+  });
+  const resourceNames = Object.fromEntries(
+    (resources.data ?? []).map((resource) => [resource.id, resource.name]),
+  );
   const [sortBy, sortDirection] = sort.split(",") as [
     SupplyOfferSortField,
     SupplyOfferSortDirection,
@@ -74,12 +89,14 @@ export function SupplyOffersPage() {
 
   return (
     <div className="space-y-6">
-      <header>
-        <h1 className="text-2xl font-semibold">Offres fournisseurs</h1>
-        <p className="text-sm text-muted-foreground">
-          Offres enregistrées dans Supply et disponibles pour le calcul des
-          coûts de production.
-        </p>
+      <header className="flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <h1 className="text-2xl font-semibold">Offres fournisseurs</h1>
+          <p className="text-sm text-muted-foreground">
+            Offres enregistrées dans Supply et disponibles pour le calcul des
+            coûts de production.
+          </p>
+        </div>
         <Button onClick={() => setCreating(true)}>Nouvelle offre</Button>
       </header>
       {creating && <ManualOfferDialog onClose={() => setCreating(false)} />}
@@ -93,6 +110,7 @@ export function SupplyOffersPage() {
             <Input
               id="supply-offer-search"
               value={search}
+              aria-label="Rechercher dans les offres fournisseurs"
               placeholder="Rechercher dans les offres fournisseurs"
               onChange={(event) => setSearch(event.target.value)}
             />
@@ -178,7 +196,25 @@ export function SupplyOffersPage() {
         </div>
       ) : (
         <>
-          <SupplyOffersTable offers={offers} onViewDetails={setSelectedOffer} />
+          {resources.isError && (
+            <ApiErrorAlert
+              title="Impossible de charger les noms des ressources."
+              error={resources.error}
+            >
+              <Button
+                variant="outline"
+                onClick={() => void resources.refetch()}
+              >
+                Réessayer
+              </Button>
+            </ApiErrorAlert>
+          )}
+          <SupplyOffersTable
+            offers={offers}
+            resourceNames={resourceNames}
+            resourcesLoading={resourceIds.length > 0 && resources.isPending}
+            onViewDetails={setSelectedOffer}
+          />
           <PageNavigator
             itemName="offre"
             totalItems={result?.totalElements ?? 0}

@@ -1,4 +1,12 @@
-import { NoData } from "@/shared/components/NoData";
+import { ApiErrorAlert } from "@/shared/components/ApiErrorAlert";
+import { Button } from "@/shared/ui/button";
+import {
+  Select,
+  SelectTrigger,
+  SelectValue,
+  SelectContent,
+  SelectItem,
+} from "@/shared/ui/select";
 import { getApiErrorMessage } from "@/shared/api/apiError";
 import { DataTable } from "@/shared/components/DataTable";
 import { Badge } from "@/shared/ui/badge";
@@ -11,7 +19,7 @@ import type {
 import { useEffect, useMemo } from "react";
 import { useSearchParams } from "react-router";
 import { toast } from "sonner";
-import type { SavisTask, SavisTaskStatus } from "../types";
+import type { SavisTask, SavisTaskStatus, SavisTaskType } from "../types";
 import { useGetBomComponentTasks } from "../hooks/useBomComponentTaskApi";
 
 const statusVariant: Record<
@@ -108,6 +116,14 @@ const columns: ColumnDef<SavisTask>[] = [
 
 export const BomComponentTaskList = () => {
   const [searchParams, setSearchParams] = useSearchParams();
+  const rawStatus = searchParams.get("status") ?? "ALL";
+  const status = Object.hasOwn(statusLabel, rawStatus)
+    ? (rawStatus as SavisTaskStatus)
+    : undefined;
+  const rawType = searchParams.get("type") ?? "ALL";
+  const type = Object.hasOwn(taskTypeLabel, rawType)
+    ? (rawType as SavisTaskType)
+    : undefined;
   const page = parsePositiveInteger(searchParams.get("page"), 1);
   const pageSize = parsePositiveInteger(searchParams.get("size"), 20);
   const sortBy = searchParams.get("sort_by") ?? "created_at";
@@ -118,11 +134,13 @@ export const BomComponentTaskList = () => {
     [sortBy, sortDirection],
   );
   const currentSort = sorting[0];
-  const { data, isPending, isError, error } = useGetBomComponentTasks(
+  const { data, isPending, isError, error, refetch } = useGetBomComponentTasks(
     page,
     pageSize,
     currentSort?.id,
     currentSort ? (currentSort.desc ? "desc" : "asc") : undefined,
+    status,
+    type,
   );
 
   useEffect(() => {
@@ -162,34 +180,92 @@ export const BomComponentTaskList = () => {
     });
   };
 
-  if (isPending) {
-    return (
-      <div className="flex h-full items-center justify-center">
-        <Spinner />
-      </div>
-    );
-  }
-
-  if (!data?.items.length) {
-    return <NoData />;
-  }
-
   return (
-    <>
-      <DataTable
-        columns={columns}
-        data={data.items}
-        page={data.page}
-        pageSize={data.size}
-        totalPages={data.total_pages}
-        sorting={sorting}
-        onPageChange={(nextPage) => updateSearchParams({ page: `${nextPage}` })}
-        onPageSizeChange={handlePageSizeChange}
-        onSortingChange={handleSortingChange}
-      />
-      <p className="text-xs text-muted-foreground">
-        {data.total_items} tâche{data.total_items > 1 ? "s" : ""}
-      </p>
-    </>
+    <div className="space-y-4">
+      <section
+        aria-label="Filtres des tâches"
+        className="flex flex-wrap gap-3 rounded-xl border p-3"
+      >
+        <Select
+          value={status ?? "ALL"}
+          onValueChange={(value) =>
+            updateSearchParams({ status: value, page: "1" })
+          }
+        >
+          <SelectTrigger className="w-48" aria-label="Statut des tâches">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="ALL">Tous les statuts</SelectItem>
+            {Object.entries(statusLabel).map(([value, label]) => (
+              <SelectItem key={value} value={value}>
+                {label}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        <Select
+          value={type ?? "ALL"}
+          onValueChange={(value) =>
+            updateSearchParams({ type: value, page: "1" })
+          }
+        >
+          <SelectTrigger className="w-48" aria-label="Type de tâche">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="ALL">Tous les types</SelectItem>
+            {Object.entries(taskTypeLabel).map(([value, label]) => (
+              <SelectItem key={value} value={value}>
+                {label}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        <Button variant="outline" onClick={() => void refetch()}>
+          Actualiser
+        </Button>
+      </section>
+      {isPending ? (
+        <div
+          className="flex min-h-64 items-center justify-center"
+          aria-label="Chargement des tâches"
+        >
+          <Spinner />
+        </div>
+      ) : isError ? (
+        <ApiErrorAlert
+          title="Impossible de charger les tâches d'acquisition."
+          error={error}
+        >
+          <Button variant="outline" onClick={() => void refetch()}>
+            Réessayer
+          </Button>
+        </ApiErrorAlert>
+      ) : !data?.items.length ? (
+        <div className="rounded-xl border border-dashed p-10 text-center text-muted-foreground">
+          Aucune tâche ne correspond aux filtres sélectionnés.
+        </div>
+      ) : (
+        <>
+          <DataTable
+            columns={columns}
+            data={data.items}
+            page={data.page}
+            pageSize={data.size}
+            totalPages={data.total_pages}
+            sorting={sorting}
+            onPageChange={(nextPage) =>
+              updateSearchParams({ page: `${nextPage}` })
+            }
+            onPageSizeChange={handlePageSizeChange}
+            onSortingChange={handleSortingChange}
+          />
+          <p className="text-xs text-muted-foreground">
+            {data.total_items} tâche{data.total_items > 1 ? "s" : ""}
+          </p>
+        </>
+      )}
+    </div>
   );
 };
