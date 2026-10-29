@@ -39,11 +39,11 @@ describe("AppSidebar", () => {
     ).toHaveAttribute("href", "/supply/offers");
     expect(screen.getByRole("link", { name: "À valider" })).toHaveAttribute(
       "href",
-      "/bom-components",
+      "/offers",
     );
     expect(
       screen.getByRole("link", { name: "Tâches d'acquisition" }),
-    ).toHaveAttribute("href", "/bom-components/tasks");
+    ).toHaveAttribute("href", "/offers/tasks");
 
     fireEvent.click(screen.getByRole("button", { name: /Production/ }));
     expect(screen.getByRole("link", { name: "Compositions" })).toHaveAttribute(
@@ -132,7 +132,7 @@ describe("AppSidebar", () => {
   });
 
   it("keeps management and acquisition tasks mutually exclusive", () => {
-    renderSidebar("/bom-components/tasks");
+    renderSidebar("/offers/tasks");
 
     expect(screen.getByRole("link", { name: "À valider" })).toHaveAttribute(
       "data-active",
@@ -147,7 +147,7 @@ describe("AppSidebar", () => {
   });
 
   it("highlights offer management only on its own route", () => {
-    renderSidebar("/bom-components");
+    renderSidebar("/offers");
 
     expect(screen.getByRole("link", { name: "À valider" })).toHaveAttribute(
       "data-active",

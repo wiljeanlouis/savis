@@ -42,7 +42,7 @@ const data = {
       children: [
         {
           name: "À valider",
-          url: "/bom-components",
+          url: "/offers",
           exact: true,
         },
         {
@@ -52,7 +52,7 @@ const data = {
 
         {
           name: "Tâches d'acquisition",
-          url: "/bom-components/tasks",
+          url: "/offers/tasks",
         },
       ],
     },

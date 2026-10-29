@@ -34,7 +34,7 @@ export function SupplyOffersTable({
   onViewDetails,
 }: SupplyOffersTableProps) {
   return (
-    <Card>
+    <Card className="py-0">
       <CardContent className="px-0">
         <Table className="min-w-240">
           <TableHeader>

@@ -52,9 +52,10 @@ The frontend does not own business rules or persistence:
 | New order         | `/orders/new`           | SAVIS API       | Creates an administrative order in the unified order editor.                              |
 | Order detail      | `/orders/:orderId`      | SAVIS API       | Displays an order and edits administrative orders that are still `NEW`.                   |
 | Products          | `/catalog-products`     | SAVIS API       | Manages sellable products, categories, BOM references, pricing analysis, and publication. |
+| Product analysis | `/catalog-products/:productId/analysis` | SAVIS API | Read-only profitability workspace and purchase-mode comparison. |
 | BOM compositions  | `/boms`                 | SAVIS API       | Lists, searches, creates, edits, prices, and deletes technical BOMs.                      |
-| BOM components    | `/bom-components`       | SAVIS Executor  | Reviews and manages acquired provider offers used as BOM components.                      |
-| Acquisition tasks | `/bom-components/tasks` | SAVIS Executor  | Inspects offer collection and refresh tasks.                                              |
+| BOM components    | `/offers`       | SAVIS Executor  | Reviews and manages acquired provider offers used as BOM components.                      |
+| Acquisition tasks | `/offers/tasks` | SAVIS Executor  | Inspects offer collection and refresh tasks.                                              |
 | Activity rates    | `/activity-rates`       | SAVIS API       | Configures global hourly rates used in BOM activity costs.                                |
 
 The interface is currently presented in French.
@@ -63,6 +64,15 @@ On the Resources page, “Nouvelle ressource” and “Modifier” open a modal 
 Saving closes the modal after success and refreshes the list; errors preserve
 the entered values. Cancelling closes the modal without saving. The header shows
 the “Accueil / Production / Ressources matérielles” breadcrumb.
+The list follows the supplier-offer layout: search and status controls, a framed
+table with compact actions, loading and retryable error states, and shared
+pagination controls. Search, active/inactive status, page and page size (10, 20,
+30 or 50) live in URL parameters and are passed to the existing resource API;
+changing search, status or page size resets to the first page. Creation, editing,
+activation and associated-offer consultation retain their existing workflows.
+Acquisition tasks use the same framed table, page-size selector and pagination
+layout, retaining server sorting and URL filters. Shared table headers have a
+muted gray background across pages.
 
 ## Business Flows
 
@@ -173,7 +183,7 @@ executor directly for this selection workflow.
 
 ### Acquire and Review BOM Components
 
-The `/bom-components` page calls SAVIS Executor directly and displays offers
+The `/offers` page calls SAVIS Executor directly and displays offers
 of every supported type:
 
 - `FOOD`;
@@ -208,7 +218,7 @@ src/features/bom-component/task/
   types.ts
 ```
 
-The `/bom-components/tasks` page displays:
+The `/offers/tasks` page displays:
 
 - task type: `GET_OFFER`, `GET_OFFERS`, or `REFRESH_OFFER`;
 - status: `IN_PROGRESS`, `COMPLETED`, or `FAILED`;
@@ -410,7 +420,7 @@ The application uses React Router's data router through
 - BOM creation and editing use `/boms/add` and `/boms/:id`, rendered as an
   always-open dialog above the shared layout.
 - `/boms/:id` uses a route loader to fetch the selected BOM.
-- `/bom-components/tasks` is a nested child route of `/bom-components`.
+- `/offers/tasks` is a nested child route of `/offers`.
 - `/sales/quotations`, `/sales/orders`, and `/sales/invoices` share the Sales
   workspace; `/sales` opens the order tab by default.
 - `/orders/:orderId`, `/quotations/:quotationId`, and `/invoices/:invoiceId`
@@ -643,8 +653,8 @@ Run a single file:
 npm test -- --run test/features/bom/hooks/useBomForm.test.ts
 ```
 
-Catalog, activity-rate, routing, and dashboard behavior do not yet have
-dedicated frontend tests.
+Catalog profitability has dedicated workspace tests, alongside the existing
+catalog API, product editor, card, and routing tests.
 
 ## Current Boundaries
 
@@ -670,9 +680,9 @@ separate explicit action in the offer retrieval workflow (`POST /api/tasks`).
 
 ## Procurement review workspace
 
-Approvisionnement contains **À valider** (`/bom-components`), **Offres
+Approvisionnement contains **À valider** (`/offers`), **Offres
 fournisseurs** (`/supply/offers`), and **Tâches d'acquisition**
-(`/bom-components/tasks`). The legacy `/supply-offers` entry redirects to Supply.
+(`/offers/tasks`). The legacy `/supply-offers` entry redirects to Supply.
 Review uses a compact list and a selected-offer detail panel; small screens open
 the detail at full width with a return button. The default status is `NEW`;
 `VALID`, `REJECTED`, and all statuses remain accessible. Status, exact search
@@ -696,3 +706,127 @@ text search and availability filtering, not resource/provider filters. Executor
 has no resource association field; association remains in Supply details. Tasks
 have no text-search endpoint. No client-only filtering of a paginated subset is
 used to simulate these unsupported filters.
+
+## Product profitability workspace
+
+“Analyser” opens `/catalog-products/:productId/analysis`, a read-only workspace
+with product identity, publication state, mode selection (stored in the URL), four
+financial indicators, cost/margin distribution, composition references, mode
+comparison, optional choice comparison, and calculation quality. Compact KPI
+grids include completeness, the configured margin objective and the recommended
+price. Mode comparison uses a seven-column table, with labeled stacked cells on
+mobile; the mode button in each row updates the existing selector and URL. The
+selected row is highlighted. Choice comparison reuses this table at an equivalent
+mode. Edits remain in Catalog and BOM editors.
+
+The existing `GET /catalog/products/{id}`, `POST /catalog/products/{id}/pricing-analysis`
+and `GET /catalog/products/{id}/worst-case-pricing` contracts supply all financial
+results. A single cached, unpriced `GET /boms` resolves names and yields; there are
+no per-BOM valuation requests. Each active purchase mode has its own cached
+server analysis; the UI never multiplies one mode's costs to estimate another.
+Independent choice comparisons are requested only after “Comparer les choix”.
+
+Calculation quality reuses that same BOM list to resolve diagnostic `bomId`
+and `missingBomIds` to business names. `missingBomIds` includes existing BOMs
+with incomplete costs; it does not mean those BOMs are absent. Known references
+are labeled “Composition incomplète : <nom>”, with the original source, message
+and blocking status retained. Unknown references (or `BOM_NOT_FOUND`) show
+“Composition introuvable” with a secondary UUID. Loading or failed name reads
+remain distinct from missing references and never hide diagnostics. No additional
+name or valuation requests are issued.
+
+Base `productBoms` are cumulative. Only actual active choice options expose a
+selector and equivalent-mode comparison. Allocated bundles explicitly show the
+backend worst case, not an invented allocation or interchangeable base BOMs.
+Ingredient customization uses recorded default quantities. Optional ingredient
+and allocation editors are outside this read-only workspace.
+
+“Coût de revient estimé” uses `cost`, not `unitCost`. The backend ratio is
+`(salePrice - cost) / salePrice`, labeled “Marge sur vente”; the monetary margin
+is the difference between the returned price and full cost. Incomplete results
+suppress margins and recommendations, retain the known subtotal, and distinguish
+blocking diagnostics from warnings. Unknown values remain “Non déterminable”,
+while known zero values are displayed. Losses use separate amounts instead of a
+stacked positive-share bar. The breakdown includes only total cost and margin:
+Catalog does not expose per-BOM contributions or component/activity category
+amounts, so the workspace does not reconstruct those calculations. Composition
+links open the BOM's own valuation, which is not the product contribution.
+
+The existing model has no mode-specific packaging association. Existing backend
+rules remain authoritative, including shared base quantities and yield division.
+Adding contribution amounts, category subtotals, or the selected composition of a
+worst-case result would require an explicit extension of the Catalog analysis
+response; none is introduced here.
+
+`test/features/catalog/pages/CatalogProductAnalysisPage.test.tsx` covers financial
+presentation, modes, cumulative bases, actual choices, worst-case bundles,
+diagnostics, missing values, losses, known zeros, empty states, errors, navigation,
+and generic decoration products. Its pâté and balloon-arch fixtures are synthetic;
+validation against actual operational products requires a running SAVIS API.
+
+## Catalog product consultation
+
+`/catalog-products` uses the procurement review workspace conventions: compact
+selectable rows on the left (40%) and a permanent product detail panel on the
+right (60%) from the `lg` breakpoint. Smaller screens show the list first;
+selecting a product opens a full-width detail view with “Retour à la liste”.
+Focus moves to the detail on mobile and returns to the selected row on return.
+The panel scrolls independently and keeps its action footer available.
+
+Rows show a thumbnail or neutral placeholder, name, category, distinct linked
+BOM count, publication status, and the lowest active purchase-mode price (“Dès”
+when several modes are active). The detail includes the full description, all
+sale modes including inactive ones, and complete BOM names, explicitly separating
+common bases, choices and ingredients. Missing images, prices, modes and BOM
+associations have explicit fallback text.
+
+Search (name/code/description, accent-insensitive), category, publication,
+availability, name sorting, page size, page and explicit selection use URL search
+parameters. Filtering and pagination operate on the complete existing Catalog
+list response, not on a server-paginated subset. Changing selection preserves
+list state and performs no extra detail, BOM or pricing requests. Refreshed data
+preserves an explicit selected product, including when its sorted page changes;
+removing it falls back to the first product on the remaining valid page. Changing
+filters resets the page and selection. The cached unpriced BOM list resolves names.
+
+Creation, editing, publication/republication, withdrawal from SavouretPlus and
+confirmed deletion retain their existing hooks and API operations. “Analyser”
+links to the existing `/catalog-products/:productId/analysis` page. The consultation
+page does not trigger or embed pricing calculations. No backend contract,
+business model or schema is changed.
+
+The product page tests cover selection and refresh, mode and BOM display, search,
+filters, pagination, existing actions, URL state, responsive visibility conventions,
+and loading, empty and error states. Responsive tests verify layout classes and
+list/detail behavior; they do not replace visual verification in a real browser.
+
+Product detail links to analysis and editing carry a local `returnTo` URL with
+the list search, filters, sorting, page size, page and selected product. “Retour
+aux produits” and editor cancellation/success restore that context, including
+after an analysis mode change or reload. Direct analysis/editor links without
+context return to the catalog with that product selected. External return URLs
+are ignored.
+
+The product detail panel uses a fixed header and action footer around one
+keyboard-focusable, independently scrollable content region. Its available height
+is measured from its actual viewport position, following the procurement review
+panel convention, and refreshed on window resize and scroll. This keeps actions
+outside the scrolling content on desktop and in the mobile detail view. Compact
+sale-mode rows align prices; composition rows show their actual role (common
+base, choice, ingredient), full BOM name, configured quantities and ingredient
+supplement separately. Supplements are displayed as supplied, without recalculating
+pricing rules. A compact contained image preserves varying aspect ratios; long
+descriptions remain complete and wrap inside the scroll region. URL selection,
+list filters, return navigation and Catalog mutations are unchanged.
+
+The analysis header uses compact product identity and selectors, and explicitly
+identifies the conservative worst-case assumption for allocated bundles. Cost and
+margin use matching colored legend markers, amounts and proportions; losses and
+incomplete or zero-price analyses retain separate explanatory amounts rather than
+a misleading bar. Composition rows identify common bases, selected/evaluated
+choices and default ingredients, with associated quantity, yield and an accessible
+link to the BOM valuation. Individual financial contributions remain unavailable
+in the Catalog response and are not reconstructed. A summary link opens the
+existing detailed quality section. The Catalog and Products breadcrumbs in
+analysis/editing use the same validated return destination as “Retour aux produits”,
+preserving selection, list page and filters.

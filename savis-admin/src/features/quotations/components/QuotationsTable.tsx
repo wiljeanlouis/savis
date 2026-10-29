@@ -31,7 +31,7 @@ export function QuotationsTable({
   onOpen: (quotationId: string) => void;
 }) {
   return (
-    <Card>
+    <Card className="py-0">
       <CardContent className="px-0">
         <Table>
           <TableHeader>

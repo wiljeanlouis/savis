@@ -40,7 +40,6 @@ export function CatalogProductCard({
   result,
   boms,
   publishing,
-  onAnalyze,
   onPublish,
   onUnpublish,
   onDelete,
@@ -187,8 +186,8 @@ export function CatalogProductCard({
         <Button variant="outline" asChild>
           <Link to={`/catalog-products/${product.id}/edit`}>Modifier</Link>
         </Button>
-        <Button type="button" variant="outline" onClick={onAnalyze}>
-          Analyser
+        <Button variant="outline" asChild>
+          <Link to={`/catalog-products/${product.id}/analysis`}>Analyser</Link>
         </Button>
         <Button
           type="button"

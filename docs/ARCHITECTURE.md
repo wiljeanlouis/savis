@@ -1188,7 +1188,7 @@ for V13 preflight, unresolved offers, HTTP contracts and verification.
 
 ### Procurement review UI and resource labels
 
-The procurement workspace keeps Executor review (`/bom-components`), Supply
+The procurement workspace keeps Executor review (`/offers`), Supply
 consultation (`/supply/offers`), and acquisition tasks separate. Review defaults
 to `NEW`; accepting or rejecting uses the existing Executor PATCH and messaging
 workflow. Executor supports exact search-term filtering, not free-text product
@@ -1202,3 +1202,33 @@ A bounded read-only `GET /api/resources/batch?ids=<uuid>,<uuid>` resolves up to
 only identifiers on the current Supply page. Missing references display an
 explicit unavailable-name label; unassociated offers display “Non associée”.
 This adds no persistence, module dependency, or synchronization process.
+
+### Catalog profitability presentation
+
+Admin exposes a dedicated read-only product analysis route. Catalog remains the
+sole financial calculator, through its existing configuration and worst-case
+analysis endpoints. TanStack Query caches each analyzed mode/configuration and
+invalidates these entries with the catalog product query prefix on product
+mutations. BOM names and yields come from one unpriced list read; no BOM pricing
+fan-out or frontend yield/contribution calculation is introduced. The analysis
+contract exposes aggregate costs and diagnostics, not per-BOM contributions;
+Admin explicitly identifies this presentation limit. Base BOM references remain
+cumulative, choice options remain alternatives, and allocated bundles retain
+Catalog's worst-case semantics. No service boundary, schema, or pricing formula
+changes are involved.
+
+Calculation quality resolves Catalog diagnostic `bomId` using the same cached
+unpriced BOM list as composition details. `BomPricingAdapter` attaches the public
+BOM UUID requested by Catalog; diagnostic `source` remains the component/activity
+label. `missingBomIds` records incomplete valuation, including existing BOMs,
+and must not be interpreted as a list of nonexistent references. Admin retains
+the original diagnostic and blocking status, displays known BOM names, and
+distinguishes unresolved references from unavailable name reads. No API contract,
+financial calculation or additional request is required.
+
+Catalog consultation at `/catalog-products` uses a master-detail presentation.
+Admin filters, sorts and paginates the complete existing Catalog list in memory;
+URL parameters preserve list state and explicit selection. Selection reuses the
+loaded product and unpriced BOM list without issuing detail or pricing requests.
+Editing and publication retain their existing Catalog operations, and analysis
+navigates to the dedicated profitability route above. No service contracts change.

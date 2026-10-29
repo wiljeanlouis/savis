@@ -55,7 +55,7 @@ export const BomComponentList = () => {
         </div>
         <div className="flex flex-wrap gap-2">
           <Button variant="outline" asChild>
-            <Link to="/bom-components/tasks">Tâches d'acquisition</Link>
+            <Link to="/offers/tasks">Tâches d'acquisition</Link>
           </Button>
           <BomComponentRetrieveDialog
             isRetrieving={list.isCreatingTask}

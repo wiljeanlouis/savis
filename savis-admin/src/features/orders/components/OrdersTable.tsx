@@ -20,7 +20,7 @@ import { OrderProductImage } from "./OrderProductImage";
 
 export function OrdersTable({ orders }: { orders: OrderSummary[] }) {
   return (
-    <Card>
+    <Card className="py-0">
       <CardContent className="px-0">
         <Table>
           <TableHeader>

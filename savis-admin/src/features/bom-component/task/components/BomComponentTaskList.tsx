@@ -9,6 +9,9 @@ import {
 } from "@/shared/ui/select";
 import { getApiErrorMessage } from "@/shared/api/apiError";
 import { DataTable } from "@/shared/components/DataTable";
+import { PageNavigator } from "@/shared/components/PageNavigator";
+import { PageSelector } from "@/shared/components/PageSelector";
+import { Label } from "@/shared/ui/label";
 import { Badge } from "@/shared/ui/badge";
 import { Spinner } from "@/shared/ui/spinner";
 import type {
@@ -181,51 +184,83 @@ export const BomComponentTaskList = () => {
   };
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-6">
       <section
         aria-label="Filtres des tâches"
-        className="flex flex-wrap gap-3 rounded-xl border p-3"
+        className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center"
       >
-        <Select
-          value={status ?? "ALL"}
-          onValueChange={(value) =>
-            updateSearchParams({ status: value, page: "1" })
-          }
-        >
-          <SelectTrigger className="w-48" aria-label="Statut des tâches">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="ALL">Tous les statuts</SelectItem>
-            {Object.entries(statusLabel).map(([value, label]) => (
-              <SelectItem key={value} value={value}>
-                {label}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-        <Select
-          value={type ?? "ALL"}
-          onValueChange={(value) =>
-            updateSearchParams({ type: value, page: "1" })
-          }
-        >
-          <SelectTrigger className="w-48" aria-label="Type de tâche">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="ALL">Tous les types</SelectItem>
-            {Object.entries(taskTypeLabel).map(([value, label]) => (
-              <SelectItem key={value} value={value}>
-                {label}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-        <Button variant="outline" onClick={() => void refetch()}>
+        <div className="flex items-center gap-2">
+          <Label
+            htmlFor="task-status"
+            className="whitespace-nowrap text-muted-foreground"
+          >
+            Filtrer par statut
+          </Label>
+          <Select
+            value={status ?? "ALL"}
+            onValueChange={(value) =>
+              updateSearchParams({ status: value, page: "1" })
+            }
+          >
+            <SelectTrigger
+              id="task-status"
+              className="flex-1 sm:w-48 sm:flex-none"
+              aria-label="Statut des tâches"
+            >
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="ALL">Tous les statuts</SelectItem>
+              {Object.entries(statusLabel).map(([value, label]) => (
+                <SelectItem key={value} value={value}>
+                  {label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+        <div className="flex items-center gap-2">
+          <Label
+            htmlFor="task-type"
+            className="whitespace-nowrap text-muted-foreground"
+          >
+            Type de tâche
+          </Label>
+          <Select
+            value={type ?? "ALL"}
+            onValueChange={(value) =>
+              updateSearchParams({ type: value, page: "1" })
+            }
+          >
+            <SelectTrigger
+              id="task-type"
+              className="flex-1 sm:w-48 sm:flex-none"
+              aria-label="Type de tâche"
+            >
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="ALL">Tous les types</SelectItem>
+              {Object.entries(taskTypeLabel).map(([value, label]) => (
+                <SelectItem key={value} value={value}>
+                  {label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+      </section>
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <Button variant="outline" size="sm" onClick={() => void refetch()}>
           Actualiser
         </Button>
-      </section>
+        <div className="flex items-center gap-2">
+          <PageSelector
+            pageSize={pageSize}
+            onPageChange={handlePageSizeChange}
+          />
+        </div>
+      </div>
       {isPending ? (
         <div
           className="flex min-h-64 items-center justify-center"
@@ -249,6 +284,7 @@ export const BomComponentTaskList = () => {
       ) : (
         <>
           <DataTable
+            showPagination={false}
             columns={columns}
             data={data.items}
             page={data.page}
@@ -261,9 +297,18 @@ export const BomComponentTaskList = () => {
             onPageSizeChange={handlePageSizeChange}
             onSortingChange={handleSortingChange}
           />
-          <p className="text-xs text-muted-foreground">
-            {data.total_items} tâche{data.total_items > 1 ? "s" : ""}
-          </p>
+          <PageNavigator
+            itemName="tâche"
+            totalItems={data.total_items}
+            page={data.page}
+            totalPages={data.total_pages}
+            goToPreviousPage={() =>
+              updateSearchParams({ page: String(data.page - 1) })
+            }
+            goToNextPage={() =>
+              updateSearchParams({ page: String(data.page + 1) })
+            }
+          />
         </>
       )}
     </div>

@@ -4,30 +4,40 @@ import { useSearchParams } from "react-router";
 import { toast } from "sonner";
 import { getApiErrorMessage } from "@/shared/api/apiError";
 import { Button } from "@/shared/ui/button";
-import { Input } from "@/shared/ui/input";
-import { Badge } from "@/shared/ui/badge";
-import {
-  Table,
-  TableHeader,
-  TableBody,
-  TableRow,
-  TableHead,
-  TableCell,
-} from "@/shared/ui/table";
+import { PageNavigator } from "@/shared/components/PageNavigator";
+import { PageSelector } from "@/shared/components/PageSelector";
+import { ApiErrorAlert } from "@/shared/components/ApiErrorAlert";
+import { Spinner } from "@/shared/ui/spinner";
+import { ResourcesTable } from "../components/ResourcesTable";
+import { ResourceListFilters } from "../components/ResourceListFilters";
 import { useResources } from "../hooks/useResources";
 import { ResourceEditorDialog } from "../components/ResourceEditorDialog";
-import {
-  resourceCategories,
-  type MaterialResource,
-  type ResourceValues,
-} from "../types";
+import { type MaterialResource, type ResourceValues } from "../types";
 
 export function ResourcesPage() {
   const [params, setParams] = useSearchParams();
   const search = params.get("search") ?? "";
   const rawPage = Number(params.get("page") ?? 0);
   const page = Number.isInteger(rawPage) && rawPage >= 0 ? rawPage : 0;
-  const { list, save, changeStatus } = useResources(search, page);
+  const status =
+    params.get("status") === "ACTIVE" || params.get("status") === "INACTIVE"
+      ? (params.get("status") as MaterialResource["status"])
+      : undefined;
+  const rawSize = Number(params.get("size") ?? 20);
+  const pageSize = [10, 20, 30, 50].includes(rawSize) ? rawSize : 20;
+  const { list, save, changeStatus } = useResources(
+    search,
+    page,
+    status,
+    pageSize,
+  );
+  const updateParam = (key: string, value: string) => {
+    const next = new URLSearchParams(params);
+    if (value) next.set(key, value);
+    else next.delete(key);
+    if (key !== "page") next.delete("page");
+    setParams(next, { replace: key === "search" });
+  };
   const [offersResource, setOffersResource] = useState<MaterialResource | null>(
     null,
   );
@@ -46,7 +56,7 @@ export function ResourcesPage() {
   };
   return (
     <div className="space-y-6">
-      <header className="flex flex-wrap items-start justify-between gap-3">
+      <header className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h1 className="text-2xl font-semibold">Ressources matérielles</h1>
           <p className="text-sm text-muted-foreground">
@@ -71,123 +81,72 @@ export function ResourcesPage() {
           onCancel={() => setEditor(null)}
         />
       )}
-      <Input
-        aria-label="Rechercher les ressources"
-        placeholder="Rechercher par nom ou description"
-        maxLength={160}
-        value={search}
-        onChange={(event) => {
-          const next = new URLSearchParams(params);
-          next.set("search", event.target.value);
-          next.delete("page");
-          setParams(next, { replace: true });
-        }}
+      <ResourceListFilters
+        search={search}
+        status={status}
+        onSearchChange={(value) => updateParam("search", value)}
+        onStatusChange={(value) => updateParam("status", value)}
       />
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <span className="text-sm text-muted-foreground">
+          {list.isFetching && !list.isPending
+            ? "Actualisation…"
+            : "Référentiel des ressources"}
+        </span>
+        <div className="flex items-center gap-2">
+          <PageSelector
+            pageSize={pageSize}
+            onPageChange={(size) => updateParam("size", String(size))}
+          />
+        </div>
+      </div>
       {list.isPending ? (
-        <p role="status">Chargement des ressources…</p>
+        <div
+          role="status"
+          aria-label="Chargement des ressources"
+          className="flex min-h-64 items-center justify-center"
+        >
+          <Spinner />
+        </div>
       ) : list.isError ? (
-        <p role="alert">{getApiErrorMessage(list.error)}</p>
+        <ApiErrorAlert
+          title="Impossible de charger les ressources."
+          error={list.error}
+        >
+          <Button variant="outline" onClick={() => void list.refetch()}>
+            Réessayer
+          </Button>
+        </ApiErrorAlert>
+      ) : list.data.content.length === 0 ? (
+        <div className="flex min-h-40 items-center justify-center rounded-xl border border-dashed p-6 text-center text-muted-foreground">
+          Aucune ressource ne correspond aux filtres sélectionnés.
+        </div>
       ) : (
         <>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Ressource</TableHead>
-                <TableHead>Catégorie</TableHead>
-                <TableHead>Unité</TableHead>
-                <TableHead>Statut</TableHead>
-                <TableHead>Actions</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {list.data.content.map((resource) => (
-                <TableRow key={resource.id}>
-                  <TableCell className="whitespace-normal">
-                    <strong>{resource.name}</strong>
-                    <p className="text-muted-foreground">
-                      {resource.description}
-                    </p>
-                  </TableCell>
-                  <TableCell>{resourceCategories[resource.category]}</TableCell>
-                  <TableCell>{resource.referenceUnit ?? "—"}</TableCell>
-                  <TableCell>
-                    <Badge variant="outline">
-                      {resource.status === "ACTIVE" ? "Active" : "Inactive"}
-                    </Badge>
-                  </TableCell>
-                  <TableCell>
-                    <div className="flex gap-2">
-                      <Button
-                        variant="outline"
-                        onClick={() => setEditor(resource)}
-                      >
-                        Modifier
-                      </Button>
-                      <Button
-                        variant="outline"
-                        onClick={() => setOffersResource(resource)}
-                      >
-                        Offres
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        disabled={changeStatus.isPending}
-                        onClick={() =>
-                          changeStatus.mutate(
-                            {
-                              id: resource.id,
-                              status:
-                                resource.status === "ACTIVE"
-                                  ? "INACTIVE"
-                                  : "ACTIVE",
-                            },
-                            {
-                              onError: (error) =>
-                                toast.error(getApiErrorMessage(error)),
-                            },
-                          )
-                        }
-                      >
-                        {resource.status === "ACTIVE"
-                          ? "Désactiver"
-                          : "Activer"}
-                      </Button>
-                    </div>
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-          {list.data.content.length === 0 && <p>Aucune ressource trouvée.</p>}
-          <nav
-            aria-label="Pagination des ressources"
-            className="flex items-center justify-end gap-3"
-          >
-            <Button
-              variant="outline"
-              disabled={page === 0}
-              onClick={() => {
-                const next = new URLSearchParams(params);
-                next.set("page", String(page - 1));
-                setParams(next);
-              }}
-            >
-              Précédent
-            </Button>
-            <span className="text-sm">
-              Page {page + 1} / {Math.max(1, list.data.totalPages)}
-            </span>
-            <Button
-              variant="outline"
-              disabled={page + 1 >= list.data.totalPages}
-              onClick={() => {
-                const next = new URLSearchParams(params);
-                next.set("page", String(page + 1));
-                setParams(next);
-              }}
-            >
-              Suivant
-            </Button>
+          <ResourcesTable
+            resources={list.data.content}
+            changingStatus={changeStatus.isPending}
+            onEdit={setEditor}
+            onOffers={setOffersResource}
+            onChangeStatus={(resource) =>
+              changeStatus.mutate(
+                {
+                  id: resource.id,
+                  status: resource.status === "ACTIVE" ? "INACTIVE" : "ACTIVE",
+                },
+                { onError: (error) => toast.error(getApiErrorMessage(error)) },
+              )
+            }
+          />
+          <nav aria-label="Pagination des ressources">
+            <PageNavigator
+              itemName="ressource"
+              totalItems={list.data.totalElements}
+              page={page + 1}
+              totalPages={list.data.totalPages}
+              goToPreviousPage={() => updateParam("page", String(page - 1))}
+              goToNextPage={() => updateParam("page", String(page + 1))}
+            />
           </nav>
         </>
       )}

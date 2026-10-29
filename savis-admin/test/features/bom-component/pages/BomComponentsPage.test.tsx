@@ -65,7 +65,7 @@ beforeAll(() =>
 );
 afterAll(() => Reflect.deleteProperty(HTMLElement.prototype, "scrollIntoView"));
 let offers: BomComponent[];
-function mount(entry = "/bom-components") {
+function mount(entry = "/offers") {
   return render(
     <MemoryRouter initialEntries={[entry]}>
       <QueryClientProvider
@@ -203,7 +203,7 @@ describe("Procurement review", () => {
     "reads the %s filter from the URL",
     async (status) => {
       offers[0].status = status;
-      mount(`/bom-components?status=${status}`);
+      mount(`/offers?status=${status}`);
       await screen.findByRole("button", { name: "Consulter Farine 1" });
       expect(getBomComponents).toHaveBeenLastCalledWith(
         expect.objectContaining({ status }),
@@ -227,7 +227,7 @@ describe("Procurement review", () => {
     await screen.findByRole("button", { name: "Consulter Farine 2" });
     expect(
       screen.getByRole("link", { name: "Tâches d'acquisition" }),
-    ).toHaveAttribute("href", "/bom-components/tasks");
+    ).toHaveAttribute("href", "/offers/tasks");
     expect(
       screen.getByRole("button", { name: /Récupérer/i }),
     ).toBeInTheDocument();

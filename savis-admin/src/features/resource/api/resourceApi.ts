@@ -4,8 +4,9 @@ export const listResources = async (
   search: string,
   page: number,
   status?: "ACTIVE" | "INACTIVE",
+  size = 20,
 ): Promise<ResourcePage> =>
-  (await api.get("/resources", { params: { search, page, size: 20, status } }))
+  (await api.get("/resources", { params: { search, page, size, status } }))
     .data;
 export const getResource = async (id: string): Promise<MaterialResource> =>
   (await api.get(`/resources/${id}`)).data;

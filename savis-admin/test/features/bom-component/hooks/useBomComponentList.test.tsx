@@ -57,7 +57,7 @@ const mutateDelete = vi.fn();
 describe("useBomComponentList", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    window.history.pushState({}, "", "/bom-components");
+    window.history.pushState({}, "", "/offers");
 
     mockUseGetBomComponents.mockReturnValue({
       data: bomComponentsPage,
@@ -85,7 +85,7 @@ describe("useBomComponentList", () => {
     window.history.pushState(
       {},
       "",
-      "/bom-components?page=3&size=50&sort_by=price&sort_direction=asc&search_term=lait&type=FOOD",
+      "/offers?page=3&size=50&sort_by=price&sort_direction=asc&search_term=lait&type=FOOD",
     );
 
     const { result } = renderHook(() => useBomComponentList(), {
@@ -118,7 +118,7 @@ describe("useBomComponentList", () => {
     window.history.pushState(
       {},
       "",
-      "/bom-components?page=-2&size=abc&sort_direction=sideways&type=FOOD",
+      "/offers?page=-2&size=abc&sort_direction=sideways&type=FOOD",
     );
 
     const { result } = renderHook(() => useBomComponentList(), {
@@ -149,7 +149,7 @@ describe("useBomComponentList", () => {
     window.history.pushState(
       {},
       "",
-      "/bom-components?page=4&size=30&sort_by=brand&sort_direction=asc",
+      "/offers?page=4&size=30&sort_by=brand&sort_direction=asc",
     );
 
     const { result } = renderHook(() => useBomComponentList(), {
@@ -202,7 +202,7 @@ describe("useBomComponentList", () => {
   });
 
   it("resets the page when changing review status and scopes the server query", async () => {
-    window.history.pushState({}, "", "/bom-components?page=4");
+    window.history.pushState({}, "", "/offers?page=4");
     const { result } = renderHook(() => useBomComponentList(), {
       wrapper: Wrapper,
     });
@@ -222,7 +222,7 @@ describe("useBomComponentList", () => {
   });
 
   it("returns to the preceding page after its last matching offer disappears", async () => {
-    window.history.pushState({}, "", "/bom-components?page=2");
+    window.history.pushState({}, "", "/offers?page=2");
     mockUseGetBomComponents.mockReturnValue({
       data: { ...bomComponentsPage, page: 2, total_pages: 1 },
       isPending: false,
