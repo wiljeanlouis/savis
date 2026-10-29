@@ -63,6 +63,25 @@ The interface is currently presented in French.
 
 ### Manage Technical BOMs
 
+BOM cards show only the complete total or incomplete known subtotal and a compact
+completeness indicator, alongside the image, name, description and yield.
+The “Analyse des coûts” link opens the existing `/boms/:id#bom-cost` editor section;
+no new route is required. It shows the saved yield, valid cost per output unit,
+component/activity breakdown, individual lines and French diagnostics. Offer IDs,
+observation timestamps, package prices/sizes and precise rates are retained in
+expandable provenance details. Missing costs remain distinct from known zeros.
+The editor's valuation describes the saved version; draft changes are not priced
+until saved and reloaded. An explicitly configured zero remains a known cost.
+
+The `/api/boms/{id}/price` response is now a detailed valuation rather than bare
+Money. List/detail BOMs expose it as `costing`; `price` is null when incomplete.
+Catalog analyses distinguish the known subtotal from nullable full/unit costs,
+and suppress margins and recommendations when incomplete. Source warnings,
+including the retained price of an unavailable selected offer, remain visible.
+`complete` covers the current component/activity model, not future equipment or
+energy costs. The current COOK duration and calculation are unchanged.
+
+
 The BOM area manages generic technical compositions. A BOM can represent a
 recipe, packaging, utensils, decoration, an activity-backed resource, or
 another reusable composition.
@@ -70,7 +89,8 @@ another reusable composition.
 Users can:
 
 - list and search BOMs by name, description, instructions, or component name;
-- create or edit a BOM in a route-driven dialog;
+- create or edit a BOM on a dedicated page with section navigation and sticky
+  save/cancel actions;
 - define general information, image, instructions, and yield;
 - add components with quantity and unit;
 - select an optional available provider offer for each component;
@@ -83,8 +103,29 @@ Preparation and cooking activities are provided by default. Additional
 activities can use preparation, cooking, assembly, packaging, installation,
 delivery, cleanup, or custom types.
 
+The editor groups general information, production and yield, components, and
+activities into separate sections, following the catalog product editor layout.
+When editing, “Analyse des coûts” displays the saved version’s valuation and
+uses its saved yield unit, even while the production fields are being edited.
+
 New unsaved BOMs are stored in browser `localStorage` under the `bom-draft`
 key. Closing a form with a draft lets the user keep or discard it.
+
+#### Display precision
+
+The API adds component and activity costs using `BigDecimal` without rounding
+them to cents. Component quantity ratios and activity hours use scale 10 with
+`HALF_UP`; multiplying by prices/rates and adding those amounts retains that
+precision. Admin formats each received amount independently with `Intl.NumberFormat`
+(`fr-CA`, currency precision, normally two decimals for CAD). It never rebuilds
+the total from displayed subtotals. For example, 5.246 + 17.166666667 = 22.412666667
+is displayed as 5.25 + 17.17 alongside a total of 22.41. This is a display-rounding
+difference, not an adjustment to the backend calculation. A note and expandable
+“Précision des montants” explain it and expose the numeric precision received.
+Without the original API payload, these example raw values cannot be attributed
+to a particular screenshot. JavaScript JSON numbers retain browser numeric
+precision, not arbitrary decimal precision. Cost per output unit is a display-only
+ratio of the complete backend total to the positive, finite saved yield.
 
 ### Select Offers for BOM Components
 
@@ -546,7 +587,9 @@ Compose exposes Nginx through the host bind and port configured by
 The current Vitest suite covers:
 
 - BOM draft storage;
-- BOM form behavior;
+- BOM full-page editing, section navigation, saving and draft cancellation;
+- compact BOM card valuation, actions and analysis links;
+- complete, incomplete and zero costs, diagnostics, provenance and display rounding;
 - BOM component retrieval dialog;
 - BOM component list state and actions;
 - BOM component search-term facets.

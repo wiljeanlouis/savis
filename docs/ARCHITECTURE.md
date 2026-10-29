@@ -522,7 +522,9 @@ sequenceDiagram
 Activities store only their type and duration. Rates are global and are read
 when a BOM is priced, so a configuration change affects subsequent
 calculations without modifying existing BOM activities. A missing rate
-currently contributes zero.
+produces a missing activity line with a blocking diagnostic. An explicitly
+configured zero rate is known. COOK semantics remain unchanged and may represent
+elapsed oven time; separating equipment from labor belongs to the future phase.
 
 ### Manual Offer Retrieval
 
@@ -780,7 +782,27 @@ sequenceDiagram
 ```
 
 Pricing recommendations are advisory and never mutate sale prices. Missing or
-non-calculable BOM references produce an `INCOMPLETE` result.
+non-calculable BOM references and internal missing BOM cost lines produce an
+`INCOMPLETE` result. The public BOM valuation includes component/activity lines,
+known subtotals, source diagnostics and nullable complete total. Catalog maps
+that DTO through its own port; no internal BOM model crosses the boundary.
+Incomplete analyses expose a known subtotal but no total/unit cost, margin or
+recommendation. Unexpected technical failures propagate instead of becoming
+missing-BOM diagnostics.
+
+Admin keeps BOM list cards compact and links to “Analyse des coûts” in the
+existing composition editor. That section shows the saved valuation, grouped
+component/activity lines and diagnostics; identifiers and timestamps remain in
+secondary provenance disclosures. Backend `BigDecimal` subtotals are summed
+before display rounding. Admin formats each amount independently and preserves
+the received total, with a precision note explaining possible cent differences.
+This presentation does not change cost formulas, rate ownership or COOK semantics.
+
+Selected supplier references retain the existing deterministic policy: a resolved
+unavailable offer uses its last observed price with a warning; only an unresolved
+selected UUID falls back to the cheapest usable compatible offer. No RabbitMQ or
+Executor contract changes are involved. Calculation responses include the prices
+and rates used but are not historical persisted snapshots.
 
 ### Catalog Publication
 

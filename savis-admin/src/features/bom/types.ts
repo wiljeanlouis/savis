@@ -56,6 +56,43 @@ export interface BomPrice {
   currency: string;
 }
 
+export interface BomCostDiagnostic {
+  code: string;
+  source: string;
+  message: string;
+  blocking: boolean;
+}
+
+export interface BomCostLine {
+  label: string;
+  status: "KNOWN" | "MISSING" | "NOT_APPLICABLE";
+  amount: BomPrice | null;
+  quantity: number;
+  unit: string;
+  hourlyRate: BomPrice | null;
+  source: {
+    selectedOfferId: string | null;
+    usedOfferId: string | null;
+    observedAt: string | null;
+    packagePrice: BomPrice | null;
+    packageQuantity: number | null;
+    packageUnit: string | null;
+  } | null;
+  diagnostics: BomCostDiagnostic[];
+}
+
+export interface BomCosting {
+  totalCost: BomPrice | null;
+  yieldQuantity: number;
+  knownSubtotal: BomPrice;
+  componentSubtotal: BomPrice;
+  activitySubtotal: BomPrice;
+  complete: boolean;
+  components: BomCostLine[];
+  activities: BomCostLine[];
+  diagnostics: BomCostDiagnostic[];
+}
+
 export interface Bom {
   id: string | null;
   name: string;
@@ -67,4 +104,5 @@ export interface Bom {
   activities: BomActivity[];
   yield: BomYield;
   price?: BomPrice | null;
+  costing?: BomCosting | null;
 }

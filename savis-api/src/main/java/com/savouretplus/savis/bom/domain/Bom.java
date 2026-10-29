@@ -1,5 +1,6 @@
 package com.savouretplus.savis.bom.domain;
 
+import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -9,7 +10,7 @@ import java.util.UUID;
 import com.savouretplus.savis.common.Money;
 import com.savouretplus.savis.common.Quantity;
 import com.savouretplus.savis.common.Unit;
-import com.savouretplus.savis.bom.port.ComponentPricePort;
+import com.savouretplus.savis.bom.port.ComponentPrice;
 import com.savouretplus.savis.bom.port.ComponentPriceRequest;
 
 import lombok.EqualsAndHashCode;
@@ -107,13 +108,6 @@ public class Bom {
     }
 
     /**
-     * Calculates the total cost for this BOM.
-     */
-    public Money calculateTotal(ComponentPricePort calculator) {
-        return calculateTotal(calculator.getPrices(componentPriceRequests()));
-    }
-
-    /**
      * Builds the component price requests needed to price this BOM.
      */
     public List<ComponentPriceRequest> componentPriceRequests() {
@@ -125,37 +119,25 @@ public class Bom {
                 .toList();
     }
 
-    /**
-     * Calculates the total cost for this BOM.
-     */
-    public Money calculateTotal(Map<ComponentPriceRequest, Money> componentPrices) {
-        return calculateComponentTotal(componentPrices);
+    /** Calculates every existing cost line; absent inputs remain explicit. */
+    public BomCost calculateCost(Map<ComponentPriceRequest, ComponentPrice> prices,
+            Map<ActivityType, Money> rates) {
+        List<BomCost.Line> componentLines = componentPriceRequests().stream().map(request -> {
+            ComponentPrice price = prices.get(request);
+            if (price == null) {
+                price = new ComponentPrice(null, null, List.of(new BomCost.Diagnostic(
+                        "COMPONENT_PRICE_MISSING", request.componentName(),
+                        "Valorisation absente pour " + request.componentName(), true)));
+            }
+            return new BomCost.Line(request.componentName(),
+                    price.amount() == null ? BomCost.Status.MISSING : BomCost.Status.KNOWN,
+                    price.amount(), BigDecimal.valueOf(request.quantity().value()),
+                    request.quantity().unit().getSymbole(), null, price.source(), price.diagnostics());
+        }).toList();
+        BigDecimal output = BigDecimal.valueOf(getYield().quantity().value());
+        return new BomCost(componentLines,
+                activities.stream().map(activity -> activity.costLine(rates.get(activity.type()))).toList(),
+                output, output.signum() > 0 ? List.of() : List.of(new BomCost.Diagnostic(
+                        "INVALID_YIELD", name, "Le rendement doit être supérieur à zéro", true)));
     }
-
-    /**
-     * Calculates the total cost for this BOM.
-     */
-    public Money calculateTotal(
-            Map<ComponentPriceRequest, Money> componentPrices,
-            Map<ActivityType, Money> activityRates) {
-        return calculateComponentTotal(componentPrices)
-                .add(calculateActivityTotal(activityRates));
-    }
-
-    private Money calculateComponentTotal(Map<ComponentPriceRequest, Money> componentPrices) {
-        return componentPriceRequests().stream()
-                .map(request -> componentPrices.getOrDefault(request, Money.ZERO))
-                .reduce(Money.ZERO, Money::add);
-    }
-
-    private Money calculateActivityTotal(Map<ActivityType, Money> activityRates) {
-        if (activityRates == null) {
-            return Money.ZERO;
-        }
-
-        return activities.stream()
-                .map(activity -> activity.calculateCost(activityRates.get(activity.type())))
-                .reduce(Money.ZERO, Money::add);
-    }
-
 }

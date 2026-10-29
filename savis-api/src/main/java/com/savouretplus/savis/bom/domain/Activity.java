@@ -2,11 +2,12 @@ package com.savouretplus.savis.bom.domain;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.util.List;
 
 import com.savouretplus.savis.common.Money;
 
 /**
- * Represents a production activity that contributes labor cost to a BOM.
+ * Represents a timed production activity. COOK may currently describe elapsed oven time.
  */
 public record Activity(
         Long id,
@@ -24,11 +25,11 @@ public record Activity(
     }
 
     /**
-     * Calculates the labor cost for this activity from an hourly rate.
+     * Calculates the activity cost using the existing duration and hourly-rate formula.
      */
     public Money calculateCost(Money hourlyRate) {
         if (hourlyRate == null) {
-            return Money.ZERO;
+            throw new IllegalArgumentException("Le taux horaire est requis");
         }
 
         BigDecimal hours = BigDecimal.valueOf(minutes.value())
@@ -36,4 +37,15 @@ public record Activity(
 
         return hourlyRate.multiply(hours);
     }
+    /** Keeps the existing minutes / 60 formula, including the current COOK semantics. */
+    public BomCost.Line costLine(Money hourlyRate) {
+        return new BomCost.Line(type.name(),
+                hourlyRate == null ? BomCost.Status.MISSING : BomCost.Status.KNOWN,
+                hourlyRate == null ? null : calculateCost(hourlyRate),
+                BigDecimal.valueOf(minutes.value()), "min", hourlyRate, null,
+                hourlyRate == null ? List.of(new BomCost.Diagnostic(
+                        "ACTIVITY_RATE_MISSING", type.name(),
+                        "Taux horaire absent pour l'activité " + type.name(), true)) : List.of());
+    }
+
 }

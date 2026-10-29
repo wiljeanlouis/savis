@@ -14,7 +14,9 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.savouretplus.savis.bom.usecase.BomService;
-import com.savouretplus.savis.common.Money;
+import com.savouretplus.savis.bom.api.BomPricingApi.BomPricing;
+import com.savouretplus.savis.bom.domain.BomCost;
+import com.savouretplus.savis.bom.usecase.BomPricingMapper;
 
 import jakarta.validation.Valid;
 import lombok.AllArgsConstructor;
@@ -50,7 +52,8 @@ public class BomController {
     public ResponseEntity<BomDto> getBom(@PathVariable UUID bomId) {
         log.info("Received request to get bom: {}", bomId);
 
-        BomDto response = BomDto.from(bomService.getBom(bomId));
+        var bom = bomService.getBom(bomId);
+        BomDto response = BomDto.from(bom, BomPricingMapper.from(bomService.calculateTotalCost(bom)));
 
         return ResponseEntity.ok(response);
     }
@@ -59,10 +62,10 @@ public class BomController {
      * Returns the bom price.
      */
     @GetMapping("/{bomId}/price")
-    public ResponseEntity<Money> getBomPrice(@PathVariable UUID bomId) {
+    public ResponseEntity<BomPricing> getBomPrice(@PathVariable UUID bomId) {
         log.info("Received request to get bom price: {}", bomId);
 
-        return ResponseEntity.ok(bomService.calculateTotalCost(bomId));
+        return ResponseEntity.ok(BomPricingMapper.from(bomService.calculateTotalCost(bomId)));
     }
 
     /**
@@ -84,11 +87,11 @@ public class BomController {
         log.info("Received request to list boms");
 
         var boms = bomService.listBoms();
-        Map<UUID, Money> pricesByBomId = bomService.calculateTotalCosts(boms);
+        Map<UUID, BomCost> pricesByBomId = bomService.calculateTotalCosts(boms);
 
         List<BomDto> responses = boms
                 .stream()
-                .map(bom -> BomDto.from(bom, pricesByBomId.getOrDefault(bom.getPublicId(), Money.ZERO)))
+                .map(bom -> BomDto.from(bom, BomPricingMapper.from(pricesByBomId.get(bom.getPublicId()))))
                 .toList();
 
         return ResponseEntity.ok(responses);

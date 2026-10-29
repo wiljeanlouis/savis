@@ -16,6 +16,8 @@ import com.savouretplus.savis.bom.domain.ActivityRate;
 import com.savouretplus.savis.bom.domain.ActivityType;
 import com.savouretplus.savis.bom.domain.ComponentNeededEvent;
 import com.savouretplus.savis.bom.domain.Bom;
+import com.savouretplus.savis.bom.domain.BomCost;
+import com.savouretplus.savis.bom.port.ComponentPrice;
 import com.savouretplus.savis.bom.port.ActivityRateRepositoryPort;
 import com.savouretplus.savis.bom.port.BomRepositoryPort;
 import com.savouretplus.savis.bom.port.ComponentNeededEventPort;
@@ -78,7 +80,7 @@ public class BomService implements BomPricingApi, BomRequirementsApi {
     /**
      * Calculates the total cost for a BOM.
      */
-    public Money calculateTotalCost(UUID bomId) {
+    public BomCost calculateTotalCost(UUID bomId) {
         Bom bom = getBom(bomId);
         /**
          * Calculates the total cost for the supplied bill of materials or identifier.
@@ -89,8 +91,8 @@ public class BomService implements BomPricingApi, BomRequirementsApi {
     /**
      * Calculates the total cost for a BOM.
      */
-    public Money calculateTotalCost(Bom bom) {
-        return bom.calculateTotal(
+    public BomCost calculateTotalCost(Bom bom) {
+        return bom.calculateCost(
                 priceCalculator.getPrices(bom.componentPriceRequests()),
                 activityRatesByType());
     }
@@ -98,19 +100,19 @@ public class BomService implements BomPricingApi, BomRequirementsApi {
     /**
      * Calculates total costs for several BOMs in one pass.
      */
-    public Map<UUID, Money> calculateTotalCosts(List<Bom> boms) {
+    public Map<UUID, BomCost> calculateTotalCosts(List<Bom> boms) {
         List<ComponentPriceRequest> requests = boms.stream()
                 .flatMap(bom -> bom.componentPriceRequests().stream())
                 .distinct()
                 .toList();
 
-        Map<ComponentPriceRequest, Money> componentPrices = priceCalculator.getPrices(requests);
+        Map<ComponentPriceRequest, ComponentPrice> componentPrices = priceCalculator.getPrices(requests);
         Map<ActivityType, Money> activityRates = activityRatesByType();
 
         return boms.stream()
                 .collect(Collectors.toMap(
                         Bom::getPublicId,
-                        bom -> bom.calculateTotal(componentPrices, activityRates)));
+                        bom -> bom.calculateCost(componentPrices, activityRates)));
     }
 
     /**
@@ -126,10 +128,11 @@ public class BomService implements BomPricingApi, BomRequirementsApi {
      */
     @Override
     public BomPricing getBomPricing(UUID bomId) {
-        Bom bom = getBom(bomId);
-        return new BomPricing(
-                calculateTotalCost(bom),
-                BigDecimal.valueOf(bom.getYield().quantity().value()));
+        return repository.findByPublicId(bomId)
+                .map(bom -> BomPricingMapper.from(calculateTotalCost(bom)))
+                .orElseGet(() -> new BomPricing(null, null, Money.ZERO, Money.ZERO, Money.ZERO,
+                        false, List.of(), List.of(), List.of(new BomPricingApi.Diagnostic(
+                                "BOM_NOT_FOUND", String.valueOf(bomId), "Composition introuvable", true))));
     }
 
     /**

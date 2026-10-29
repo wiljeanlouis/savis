@@ -97,6 +97,8 @@ const pricingResult: ProductPricingAnalysis = {
   status: "GOOD",
   complete: true,
   missingBomIds: [],
+  knownSubtotal: { amount: 5, currency: "CAD" },
+  diagnostics: [],
 };
 
 const setupApiMocks = () => {

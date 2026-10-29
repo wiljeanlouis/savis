@@ -153,6 +153,17 @@ class OfferServiceTest {
         verifyNoMoreInteractions(repository);
     }
 
+    @Test
+    void cheapestOfferIgnoresInvalidPackagesWithoutFailingTheCalculation() {
+        var candidates = java.util.stream.Stream.of(
+                new Quantity(0, Unit.GRAM), new Quantity(Double.NaN, Unit.GRAM),
+                new Quantity(Double.POSITIVE_INFINITY, Unit.GRAM), new Quantity(1, null))
+                .map(size -> offer(UUID.randomUUID(), "invalid", "provider-a", "Flour", Money.of(1), size))
+                .toList();
+        when(repository.searchAvailableByComponentName("Flour")).thenReturn(candidates);
+        Assertions.assertTrue(offerService.getCheapestOfferPricing("Flour", new Quantity(1, Unit.GRAM)).isEmpty());
+    }
+
     private static Offer offer(UUID publicId, String externalId, String providerIdentifier, String componentName, double price) {
         return offer(publicId, externalId, providerIdentifier, componentName, Money.of(price), new Quantity(1, Unit.KILOGRAM));
     }

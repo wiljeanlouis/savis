@@ -135,7 +135,9 @@ public class OfferService implements SupplyApi {
     private boolean hasPricedPackage(Offer offer) {
         return offer.price() != null
                 && offer.packageSize() != null
-                && offer.packageSize().baseValue().compareTo(BigDecimal.ZERO) > 0;
+                && offer.packageSize().unit() != null
+                && Double.isFinite(offer.packageSize().value())
+                && offer.packageSize().value() > 0;
     }
 
 }

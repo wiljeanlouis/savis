@@ -22,6 +22,7 @@ import com.savouretplus.savis.bom.domain.Activity;
 import com.savouretplus.savis.bom.domain.ActivityRate;
 import com.savouretplus.savis.bom.domain.ActivityType;
 import com.savouretplus.savis.bom.domain.Bom;
+import com.savouretplus.savis.bom.port.ComponentPrice;
 import com.savouretplus.savis.bom.domain.BomType;
 import com.savouretplus.savis.bom.domain.Minute;
 import com.savouretplus.savis.bom.domain.Yield;
@@ -66,13 +67,13 @@ class BomServiceTest {
                 null);
         bom.addComponent("Flour", 200, Unit.GRAM, UUID.fromString("59960a6c-9491-473a-87e9-3244396096d6"));
 
-        Map<ComponentPriceRequest, Money> componentPrices = new LinkedHashMap<>();
-        componentPrices.put(bom.componentPriceRequests().get(0), Money.of(5));
+        Map<ComponentPriceRequest, ComponentPrice> componentPrices = new LinkedHashMap<>();
+        componentPrices.put(bom.componentPriceRequests().get(0), new ComponentPrice(Money.of(5), null, List.of()));
         when(priceCalculator.getPrices(bom.componentPriceRequests())).thenReturn(componentPrices);
         when(activityRateRepository.findAll())
                 .thenReturn(List.of(new ActivityRate(1L, ActivityType.PREP, Money.of(60))));
 
-        Money total = bomService.calculateTotalCost(bom);
+        Money total = bomService.calculateTotalCost(bom).totalCost();
 
         Assertions.assertEquals(0, total.amount().compareTo(Money.of(35).amount()));
         Assertions.assertEquals("CAD", total.currency());
@@ -98,7 +99,7 @@ class BomServiceTest {
         when(priceCalculator.getPrices(List.of())).thenReturn(Map.of());
         when(activityRateRepository.findAll()).thenReturn(List.of());
 
-        Money total = bomService.calculateTotalCost(publicId);
+        Money total = bomService.calculateTotalCost(publicId).totalCost();
 
         Assertions.assertEquals(Money.ZERO, total);
         verify(repository).findByPublicId(publicId);
@@ -135,4 +136,33 @@ class BomServiceTest {
         Assertions.assertEquals(Unit.GRAM, requirements.components().getFirst().unit());
         Assertions.assertEquals(offerId, requirements.components().getFirst().selectedOfferId());
     }
+    @Test
+    void batchPricingSharesComponentRequestsAndActivityRateRead() {
+        var first = new Bom(null, "A", "", "", "", BomType.FOOD, List.of(), List.of(), null);
+        var second = new Bom(null, "B", "", "", "", BomType.FOOD, List.of(), List.of(), null);
+        first.addComponent("Farine", 100, Unit.GRAM, null);
+        second.addComponent("Farine", 100, Unit.GRAM, null);
+        var requests = first.componentPriceRequests();
+        when(priceCalculator.getPrices(requests)).thenReturn(Map.of(requests.getFirst(),
+                new ComponentPrice(Money.of(2), null, List.of())));
+        when(activityRateRepository.findAll()).thenReturn(List.of());
+        var result = bomService.calculateTotalCosts(List.of(first, second));
+        Assertions.assertEquals(2, result.size());
+        Assertions.assertEquals(Money.of(2), result.get(first.getPublicId()).totalCost());
+        verify(priceCalculator).getPrices(requests);
+        verify(activityRateRepository).findAll();
+        verifyNoMoreInteractions(priceCalculator, activityRateRepository);
+    }
+
+    @Test
+    void publicPricingRepresentsMissingBomExplicitly() {
+        UUID id = UUID.randomUUID();
+        when(repository.findByPublicId(id)).thenReturn(Optional.empty());
+        var result = bomService.getBomPricing(id);
+        Assertions.assertFalse(result.complete());
+        Assertions.assertNull(result.totalCost());
+        Assertions.assertEquals("BOM_NOT_FOUND", result.diagnostics().getFirst().code());
+        verifyNoMoreInteractions(priceCalculator, activityRateRepository);
+    }
+
 }

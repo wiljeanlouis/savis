@@ -161,33 +161,53 @@ Supported activity types:
 
 #### BOM Cost
 
+BOM costing covers the existing component and activity scope only. Each line has
+an explicit `KNOWN`, `MISSING`, or explicitly justified `NOT_APPLICABLE` status.
+A known zero is valid; absent prices and rates are never inferred to be zero.
+
 For each component, the BOM slice:
 
-1. uses its selected offer when that UUID still resolves;
-2. otherwise searches for the cheapest available offer with a compatible unit;
-3. prorates the package price to the requested component quantity;
-4. returns zero when no priced compatible offer is available.
+1. uses its selected offer when that UUID resolves;
+2. otherwise searches for the cheapest available compatible offer, retaining a
+   `SELECTED_OFFER_NOT_FOUND` warning when a selected UUID no longer resolves;
+3. prorates the package price to the requested component quantity.
 
-Component cost:
-
-```text
-offer price * requested base quantity / package base quantity
-```
-
-Activity cost:
-
-```text
-minutes / 60 * global hourly rate
-```
-
-Total BOM cost:
+A resolved selected offer marked unavailable retains its last observed price,
+with a non-blocking `SELECTED_OFFER_UNAVAILABLE` warning and **no automatic
+fallback**. This preserves the previous selection policy. A selected offer with
+missing price, invalid package, or incompatible units produces a missing line,
+without switching supplier silently. If no usable fallback exists, `OFFER_NOT_FOUND`
+explains that no available compatible priced package was found. Unexpected
+technical failures propagate as errors, rather than incomplete valuations.
 
 ```text
-sum(component costs) + sum(activity costs)
+component consumption cost = package price * requested base quantity / package base quantity
+activity cost = minutes / 60 * global hourly rate
+known subtotal = sum of known component and activity costs
 ```
 
-Missing activity rates contribute zero. BOM list responses include the
-calculated total price; the dedicated price endpoint recalculates one BOM.
+Consumption cost is not the budget for purchasing whole packages. Source data
+include the selected and used offer UUIDs, observation date, package price and
+size. Activity lines include the duration and hourly rate used. These are current
+calculation responses, not persisted historical snapshots.
+
+Missing activity rates produce `ACTIVITY_RATE_MISSING`; an explicitly configured
+zero rate remains known. Activity semantics and the existing formula are
+unchanged: **COOK may currently describe elapsed oven time, not human labor**.
+Separating labor, equipment and energy is deferred to the Resource/equipment phase.
+
+`GET /api/boms/{id}/price` now returns a structured `BomPricing` object, replacing
+the former bare `Money` response. It contains `knownSubtotal`, `componentSubtotal`,
+`activitySubtotal`, `components`, `activities`, `diagnostics`, `yieldQuantity`,
+`complete`, and nullable `totalCost`. Each line carries its own diagnostics;
+aggregate diagnostics retain their source and blocking/non-blocking distinction.
+A non-positive yield produces `INVALID_YIELD`, preserves the known batch subtotal,
+and prevents a complete valuation usable by Catalog.
+
+BOM list and detail responses include the same result in `costing`; the legacy
+`price` field contains only a complete total and is null for an incomplete BOM.
+The public `BomPricingApi` carries this information without exposing internal
+BOM objects. Batch list pricing still shares component lookups and one rate read.
 
 #### Component Acquisition
 
@@ -214,7 +234,7 @@ Incoming offers are reconciled first by public UUID, then by
 `(externalId, provider.identifier)`. An invalidation marks the corresponding
 offer unavailable instead of deleting it.
 
-Only available offers are exposed to BOM workflows. Searches are
+Automatic cheapest-offer searches expose only available offers; direct UUID lookup also exposes unavailable selected references with their availability. Searches are
 case-insensitive and ordered by package price.
 
 ### Catalog
@@ -298,7 +318,8 @@ The conservative bundle analysis adds the common cost to the most expensive
 active choice BOM multiplied by the selected mode quantity.
 
 An analysis becomes `INCOMPLETE` when a required BOM UUID is absent, no longer
-resolves, has no valid cost, or has a non-positive yield. This also covers a
+resolves, contains a missing component price or activity rate, has no valid cost,
+or has a non-positive yield. This also covers a
 common `ProductBom` deleted after product save. Missing UUIDs are returned when
 known.
 
@@ -308,7 +329,8 @@ Pricing analysis returns:
 
 - analyzed quantity;
 - selected sale price;
-- total and unit cost;
+- `knownSubtotal`, plus nullable complete total `cost` and unit cost `unitCost`;
+- source diagnostics propagated from BOM, including non-blocking warnings;
 - actual and target margin;
 - recommended price;
 - completeness and missing BOM UUIDs;
@@ -324,7 +346,15 @@ Recommended price:
 cost / (1 - target margin)
 ```
 
-It is rounded upward to the next CAD 0.25. The recommendation is advisory and
+Incomplete analyses expose their known subtotal and diagnostics, but return null
+for `cost`, `unitCost`, `actualMarginRate`, and `recommendedPrice`. Known BOM
+subtotals are scaled by valid yields; an invalid yield cannot be used to convert
+a batch subtotal into a product subtotal. For a worst-case bundle with an
+incomplete candidate, the retained subtotal covers common BOMs only: no candidate
+is asserted to be the maximum. A missing optional reference remains a business
+diagnostic; unexpected technical exceptions are not caught as missing BOMs.
+
+The recommendation is rounded upward to the next CAD 0.25. The recommendation is advisory and
 never changes a product or purchase-mode sale price.
 
 #### Product Categories and Subcategories
@@ -477,7 +507,7 @@ Actuator health endpoints:
 | -------- | ------------------------- | ----------------------------------------------- |
 | `GET`    | `/api/boms`               | List BOMs with calculated prices.               |
 | `GET`    | `/api/boms/{bomId}`       | Retrieve one BOM.                               |
-| `GET`    | `/api/boms/{bomId}/price` | Calculate one BOM total cost.                   |
+| `GET`    | `/api/boms/{bomId}/price` | Return detailed BOM valuation and completeness.                   |
 | `POST`   | `/api/boms`               | Create or replace a BOM using the payload UUID. |
 | `DELETE` | `/api/boms/{bomId}`       | Delete one BOM.                                 |
 

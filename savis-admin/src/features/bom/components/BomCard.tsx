@@ -6,6 +6,8 @@ import {
   CardHeader,
   CardTitle,
 } from "@/shared/ui/card";
+import { formatBomQuantity } from "../model/bomCostPresentation";
+import { BomCostSummary } from "./BomCostSummary";
 import type { Bom } from "../types";
 import { Link } from "react-router";
 import { DeleteAlert } from "@/shared/components/DeleteAlert";
@@ -19,17 +21,6 @@ import {
 import { MoreVerticalCircle01Icon } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
 import { useState } from "react";
-
-const formatPrice = (amount: number, currency: string) => {
-  return new Intl.NumberFormat("fr-CA", {
-    style: "currency",
-    currency,
-  }).format(amount);
-};
-
-const formatYield = (quantity: number, unit: string) => {
-  return `${quantity} ${unit}${quantity > 1 ? "s" : ""}`;
-};
 
 interface BomCardProps {
   bom: Bom;
@@ -45,20 +36,16 @@ export const BomCard = ({
   isCloning = false,
 }: BomCardProps) => {
   const [isDeleteOpen, setIsDeleteOpen] = useState(false);
-  const { id, name, description, imageUrl, price, yield: bomYield } = bom;
+  const { id, name, description, imageUrl, yield: bomYield } = bom;
 
   const link = id ? `/boms/${id}` : "";
-  const priceLabel = price ? formatPrice(price.amount, price.currency) : "-";
   const yieldLabel = bomYield
-    ? formatYield(bomYield.quantity, bomYield.unit)
-    : "-";
+    ? formatBomQuantity(bomYield.quantity, bomYield.unit)
+    : "—";
 
   return (
     <Card className="relative mx-auto w-full max-w-sm pt-0 flex flex-col justify-between">
       <div className="absolute inset-0 z-30 aspect-video bg-black/35" />
-      <Badge variant="secondary" className="absolute top-2 right-2 z-40">
-        {priceLabel}
-      </Badge>
       <img
         src={imageUrl}
         alt={name}
@@ -66,14 +53,23 @@ export const BomCard = ({
       />
 
       <CardHeader>
-        <CardTitle>{name}</CardTitle>
-        <CardDescription>{description}</CardDescription>
+        <CardTitle className="line-clamp-2">{name}</CardTitle>
+        <CardDescription className="line-clamp-2">
+          {description}
+        </CardDescription>
         <div className="flex flex-wrap gap-2">
           <Badge variant="outline">{yieldLabel}</Badge>
         </div>
       </CardHeader>
 
-      <CardFooter className="flex justify-end gap-2">
+      <div className="px-6 pb-4">
+        <BomCostSummary costing={bom.costing} />
+      </div>
+
+      <CardFooter className="flex flex-wrap justify-end gap-2">
+        <Button variant="ghost" size="sm" asChild>
+          <Link to={`${link}#bom-cost`}>Analyse des coûts</Link>
+        </Button>
         <Button variant="outline" asChild>
           <Link to={link}>Modifier</Link>
         </Button>
