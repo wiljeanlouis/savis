@@ -1,6 +1,7 @@
 import { BomPage } from "@/features/bom/pages/BomPage";
 import { usePostBom } from "@/features/bom/hooks/useBomApi";
 import type { Bom } from "@/features/bom/types";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { render, screen, within, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { createMemoryRouter, RouterProvider } from "react-router";
@@ -35,7 +36,14 @@ function renderPage(data: Bom | null = null, hash = "") {
     ],
     { initialEntries: ["/boms", `${path}${hash}`], initialIndex: 1 },
   );
-  render(<RouterProvider router={router} />);
+  const client = new QueryClient({
+    defaultOptions: { queries: { retry: false } },
+  });
+  render(
+    <QueryClientProvider client={client}>
+      <RouterProvider router={router} />
+    </QueryClientProvider>,
+  );
   return router;
 }
 
@@ -74,7 +82,7 @@ describe("BomPage", () => {
     for (const title of [
       "Informations générales",
       "Production et rendement",
-      "Intrants",
+      "Ressources",
       "Activités",
     ]) {
       const section = screen.getByRole("region", { name: title });
@@ -86,11 +94,12 @@ describe("BomPage", () => {
       screen.queryByRole("region", { name: "Analyse des coûts" }),
     ).not.toBeInTheDocument();
     await userEvent.click(
-      screen.getByRole("button", { name: "Ajouter un intrant" }),
+      screen.getByRole("button", { name: "Ajouter une ressource" }),
     );
     expect(
-      screen.getByRole("region", { name: "Intrants" }).querySelectorAll("input")
-        .length,
+      screen
+        .getByRole("region", { name: "Ressources" })
+        .querySelectorAll("input").length,
     ).toBeGreaterThan(0);
     await userEvent.click(
       screen.getByRole("button", { name: "Ajouter autre activité" }),

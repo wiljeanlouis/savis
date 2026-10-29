@@ -175,10 +175,16 @@ record YieldDto(
  * DTO value used to exchange BOM component data.
  */
 record BomComponentDto(
+        Long id,
+        @NotNull UUID resourceId,
         @NotBlank String componentName,
         @NotNull double quantity,
         @NotBlank String unit,
         UUID selectedOfferId) {
+
+    BomComponentDto(String componentName, double quantity, String unit, UUID selectedOfferId) {
+        this(null, null, componentName, quantity, unit, selectedOfferId);
+    }
 
     /**
      * Resolves the unit symbol to the domain enum.
@@ -191,7 +197,7 @@ record BomComponentDto(
      * Converts this DTO into its domain representation.
      */
     public BomComponent toDomain() {
-        return new BomComponent(null, componentName, new Quantity(quantity, unitEnum()), selectedOfferId);
+        return new BomComponent(id, resourceId, componentName, new Quantity(quantity, unitEnum()), selectedOfferId);
     }
 
     /**
@@ -199,7 +205,9 @@ record BomComponentDto(
      */
     public static BomComponentDto from(BomComponent componentRequirement) {
         return new BomComponentDto(
-                componentRequirement.componentName(),
+                componentRequirement.id(),
+                componentRequirement.resourceId(),
+                componentRequirement.resourceName(),
                 componentRequirement.quantity().value(),
                 componentRequirement.quantity().unit().getSymbole(),
                 componentRequirement.selectedOfferId());

@@ -22,8 +22,8 @@ export function BomComponentsSection({
   return (
     <EditorSection
       id="bom-components"
-      title="Intrants"
-      description="La liste des intrants nécessaires à cette composition."
+      title="Ressources"
+      description="La liste des ressources nécessaires à cette composition."
     >
       <FieldGroup>
         {components.map((component: BomComponent, index: number) => (
@@ -44,7 +44,7 @@ export function BomComponentsSection({
           className="w-48"
           onClick={addComponent}
         >
-          Ajouter un intrant
+          Ajouter une ressource
         </Button>
       </FieldGroup>
     </EditorSection>

@@ -268,9 +268,17 @@ flowchart TB
     subgraph Bom["BOM module"]
       BomWeb["Web adapters<br/>BomController<br/>ActivityRateController"]
       BomUse["Use cases<br/>BomService<br/>ActivityRateService"]
-      BomDomain["Domain<br/>Bom, Component, Activity<br/>Yield, ActivityRate"]
+      BomDomain["Domain<br/>Bom, BomComponent, Activity<br/>Yield, ActivityRate"]
       BomPorts["Ports and public API<br/>Repositories<br/>ComponentPricePort<br/>ComponentNeededEventPort<br/>BomPricingApi"]
       BomAdapters["Adapters<br/>JPA<br/>Modulith event publisher<br/>Supply pricing"]
+    end
+
+    subgraph Resource["Resource module"]
+      ResourceWeb["Web adapter<br/>ResourceController"]
+      ResourceUse["Use case<br/>ResourceService"]
+      ResourceDomain["Domain<br/>Resource, category, status"]
+      ResourceApi["Public API<br/>ResourceCatalogApi"]
+      ResourcePersistence["Adapter<br/>JPA"]
     end
 
     subgraph Supply["Supply module"]
@@ -314,6 +322,10 @@ flowchart TB
   OrderUse --> OrderPorts --> OrderAdapters
 
   BomAdapters -->|SupplyApi| SupplyUse
+  BomUse -->|ResourceCatalogApi| ResourceApi
+  ResourceWeb --> ResourceUse --> ResourceDomain
+  ResourceUse --> ResourceApi
+  ResourceUse --> ResourcePersistence
   CatalogAdapters -->|BomPricingApi| BomUse
   OrderAdapters -->|CatalogOrderingApi| CatalogUse
   OrderAdapters -->|BomRequirementsApi| BomUse
@@ -327,6 +339,14 @@ flowchart TB
 ### Module Boundaries
 
 - BOM consumes offer prices through `SupplyApi`.
+- Each BOM component references Resource by public UUID through `ResourceCatalogApi`;
+  BOM never accesses Resource persistence. Resource deactivation does not remove
+  historical BOM lines. Existing component names remain temporary Supply lookup
+  snapshots while Supply's offer contracts are name-based.
+- Flyway V12 shares one Resource UUID per normalized legacy component name
+  (trimmed, whitespace collapsed, case ignored), after checking unit dimensions.
+  Existing Resource ambiguity or incompatible units abort atomically. BOM quantity,
+  selected offer, name snapshot and pricing inputs remain unchanged.
 - Catalog consumes BOM cost and yield through `BomPricingApi`.
 - Order consumes validated product snapshots through `CatalogOrderingApi` when
   an administrator creates an order, and consumes public Catalog, BOM, and

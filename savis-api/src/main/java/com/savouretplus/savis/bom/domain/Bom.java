@@ -94,7 +94,7 @@ public class Bom {
      * Adds a material component to this BOM.
      */
     public void addComponent(String name, double value, Unit unit, UUID selectedOfferId) {
-        if (components.stream().anyMatch(i -> i.componentName().equals(name.toLowerCase()))) {
+        if (components.stream().anyMatch(i -> i.componentName().equalsIgnoreCase(name))) {
             throw new IllegalStateException("Component already exists in the bom");
         }
         this.components.add(new BomComponent(null, name, new Quantity(value, unit), selectedOfferId));

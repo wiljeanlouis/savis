@@ -14,7 +14,7 @@ import {
   TableCell,
 } from "@/shared/ui/table";
 import { useResources } from "../hooks/useResources";
-import { ResourceEditor } from "../components/ResourceEditor";
+import { ResourceEditorDialog } from "../components/ResourceEditorDialog";
 import {
   resourceCategories,
   type MaterialResource,
@@ -53,7 +53,7 @@ export function ResourcesPage() {
         <Button onClick={() => setEditor("new")}>Nouvelle ressource</Button>
       </header>
       {editor && (
-        <ResourceEditor
+        <ResourceEditorDialog
           key={editor === "new" ? "new" : editor.id}
           resource={editor === "new" ? undefined : editor}
           saving={save.isPending}

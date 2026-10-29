@@ -7,7 +7,7 @@ export function BomEditorNavigation({ showCost }: { showCost: boolean }) {
     const sections = [
       { id: "bom-information", label: "Informations générales" },
       { id: "bom-production", label: "Production et rendement" },
-      { id: "bom-components", label: "Intrants" },
+      { id: "bom-components", label: "Ressources" },
       { id: "bom-activities", label: "Activités" },
     ];
     if (showCost) sections.push({ id: "bom-cost", label: "Analyse des coûts" });

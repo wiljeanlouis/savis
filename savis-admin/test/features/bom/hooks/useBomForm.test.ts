@@ -184,6 +184,7 @@ describe("useBomForm", () => {
 
       expect(result.current.form.components).toHaveLength(1);
       expect(result.current.form.components[0]).toEqual({
+        resourceId: null,
         componentName: "",
         quantity: 0,
         unit: "",
@@ -193,6 +194,7 @@ describe("useBomForm", () => {
         expect.objectContaining({
           components: [
             {
+              resourceId: null,
               componentName: "",
               quantity: 0,
               unit: "",

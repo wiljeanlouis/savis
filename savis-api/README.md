@@ -75,7 +75,7 @@ slices with domain, use-case, port, and adapter packages:
 ```text
 src/main/java/com/savouretplus/savis/
 |-- bom/
-|   |-- api/                    # Public BOM pricing interface
+|   |-- api/                    # Public pricing and requirements interfaces
 |   |-- domain/
 |   |-- usecase/
 |   |-- port/
@@ -85,6 +85,14 @@ src/main/java/com/savouretplus/savis/
 |   |   |-- messaging/
 |   |   `-- external/
 |   `-- config/
+|-- resource/
+|   |-- api/                    # Public ResourceCatalogApi reference view
+|   |-- domain/
+|   |-- usecase/
+|   |-- port/
+|   `-- adapter/
+|       |-- web/
+|       `-- persistence/
 |-- supply/
 |   |-- api/                    # Public offer pricing interface
 |   |-- domain/
@@ -116,6 +124,8 @@ The slices collaborate through explicit public contracts:
   through local ports to generate production-requirement reports.
 - Catalog stores BOM UUIDs as values and does not access BOM entities or
   repositories.
+- BOM validates component resource UUIDs through `ResourceCatalogApi`; the API
+  exposes an immutable reference view and never exposes Resource persistence.
 
 `SavisApiModularityTests` uses Spring Modulith to verify module boundaries and
 generate documentation snippets.
@@ -223,6 +233,81 @@ Catalog pricing, along with the activity-rate read for each BOM calculation.
 After a BOM is saved, the BOM slice publishes one component-needed message per
 component. The payload contains the normalized component name and BOM type.
 SAVIS Executor decides whether a new acquisition task is necessary.
+
+### Resource-backed BOM Components
+
+Each saved BOM component now carries a `resourceId` UUID, a quantity/unit, and
+an optional selected offer UUID. The component row also keeps its resource name
+as a temporary display and Supply lookup snapshot; pricing formulas, selected
+offer handling, and name-based Supply contracts are unchanged. BOM checks that
+new references point to active resources and that units share the same base
+unit (for example, `kg` and `g`). A component already attached to an inactive
+resource remains readable and can be saved without changing that reference.
+
+Flyway V12 groups legacy components by trimmed name with consecutive whitespace
+collapsed and case ignored. It performs no synonym, accent or approximate matching.
+Mass (`g`/`kg`) and volume (`ml`/`l`) are compatible within their dimension;
+`piece` and legacy `portion` each form separate dimensions. Unknown units, blank
+names and incompatible dimensions abort with the normalized name and component IDs.
+A portion maps only to a Resource with no physical reference unit.
+
+One existing resource with the same normalized name and compatible dimension is
+reused without changing its UUID or metadata (including status). Multiple matches
+or incompatible existing units abort with the matching UUIDs for explicit review.
+Otherwise one resource is created with a deterministic UUID derived from the name,
+and a base reference unit (`GRAM`, `MILLILITER`, `PIECE`, or null for portions).
+All-material groups use `DECORATION_MATERIAL`; other physical groups use
+`INGREDIENT`. Portions use `DECORATION_MATERIAL`. Names over 160 characters abort.
+Component IDs, original names, quantities, units and selected offers stay unchanged;
+no quantities are converted and pricing continues to use the original snapshots.
+
+V12 was replaced during development with the user's confirmation that no retained
+database has received it. Do not use Flyway repair to conceal a checksum mismatch
+on another environment: stop and prepare a reviewed forward migration instead.
+For production, back up the database, validate data and run the complete Flyway
+chain on a restored staging copy first. Apply with application writers stopped.
+A preflight failure rolls back the entire migration; correct the reported source
+data explicitly and retry. Flyway history prevents replay after success.
+No reset, deletion or automatic consolidation of pre-existing resources occurs.
+
+Real PostgreSQL migration tests (use an isolated empty database, never business data):
+
+```bash
+docker run --rm -d --name savis-bom-migration-test \
+  -e POSTGRES_PASSWORD=postgres -p 127.0.0.1:55439:5432 postgres:18.3-alpine
+BOM_MIGRATION_TEST_URL=jdbc:postgresql://127.0.0.1:55439/postgres \
+  ./mvnw -Dtest=BomResourceMigrationTest test
+docker stop savis-bom-migration-test
+```
+
+Wait for PostgreSQL readiness before running Maven. The tests roll back each fixture
+and its DDL. Run these tests explicitly against an isolated PostgreSQL database;
+without the environment variable they are skipped, including in CI.
+
+Post-migration integrity checks:
+
+```sql
+select count(*) as components_without_resource
+from savis_api.bom_components where resource_id is null;
+
+select count(*) as broken_resource_references
+from savis_api.bom_components component
+left join savis_api.resources resource on resource.public_id = component.resource_id
+where resource.public_id is null;
+
+-- Expected: no rows (multiple resources referenced for one component name).
+select lower(trim(regexp_replace(component_name, '[[:space:]]+', ' ', 'g'))) as normalized_name,
+       count(distinct resource_id) as resource_count,
+       array_agg(distinct resource_id) as resource_ids
+from savis_api.bom_components
+group by 1 having count(distinct resource_id) > 1;
+
+-- Also inspect duplicate names anywhere in the independent Resource catalog.
+select lower(trim(regexp_replace(name, '[[:space:]]+', ' ', 'g'))) as normalized_name,
+       count(*) as resource_count, array_agg(public_id order by public_id) as resource_ids
+from savis_api.resources
+group by 1 having count(*) > 1;
+```
 
 ### Supply
 
@@ -514,7 +599,7 @@ Actuator health endpoints:
 
 | Method   | Path                      | Purpose                                         |
 | -------- | ------------------------- | ----------------------------------------------- |
-| `GET`    | `/api/boms`               | List BOMs with calculated prices.               |
+| `GET`    | `/api/boms`               | List BOMs without calculating costs.            |
 | `GET`    | `/api/boms/{bomId}`       | Retrieve one BOM.                               |
 | `GET`    | `/api/boms/{bomId}/price` | Return detailed BOM valuation and completeness.                   |
 | `POST`   | `/api/boms`               | Create or replace a BOM using the payload UUID. |
@@ -532,6 +617,8 @@ Example:
   "type": "FOOD",
   "components": [
     {
+      "id": null,
+      "resourceId": "c84c583c-2608-4ef0-aad3-16a87eb418c4",
       "componentName": "farine",
       "quantity": 500,
       "unit": "g",
@@ -564,6 +651,24 @@ Example:
 | `DELETE` | `/api/activity-rates/{activityType}` | Delete one rate.       |
 
 Only one rate can exist for each activity type.
+
+### Resource Endpoints
+
+| Method | Path | Purpose |
+| --- | --- | --- |
+| `GET` | `/api/resources?search=&category=&status=&page=&size=` | Search/paginate resources. |
+| `GET` | `/api/resources/{id}` | Retrieve a resource, including inactive historical references. |
+| `POST` | `/api/resources` | Create a resource. |
+| `PUT` | `/api/resources/{id}` | Update resource definition. |
+| `PATCH` | `/api/resources/{id}/status` | Activate/deactivate a resource. |
+
+New BOM components must include `resourceId`. `componentName` remains a
+compatibility snapshot for name-based Supply search; new or reselected resources
+use the current Resource name, while an unchanged historical component keeps
+its snapshot so existing price lookup semantics remain stable. Admin displays
+the current Resource name and can identify inactive references. `id` is
+returned and accepted for each BOM line to preserve component row identities
+during edits.
 
 ```json
 {

@@ -40,9 +40,23 @@ const router = createBrowserRouter([
         element: <ResourcesPage />,
         handle: {
           breadcrumb: () => (
-            <BreadcrumbItem>
-              <BreadcrumbPage>Ressources matérielles</BreadcrumbPage>
-            </BreadcrumbItem>
+            <>
+              <BreadcrumbItem className="hidden md:block">
+                <BreadcrumbLink asChild>
+                  <Link to="/">Accueil</Link>
+                </BreadcrumbLink>
+              </BreadcrumbItem>
+              <BreadcrumbSeparator className="hidden md:block" />
+              <BreadcrumbItem className="hidden md:block">
+                <BreadcrumbLink asChild>
+                  <Link to="/boms">Production</Link>
+                </BreadcrumbLink>
+              </BreadcrumbItem>
+              <BreadcrumbSeparator className="hidden md:block" />
+              <BreadcrumbItem>
+                <BreadcrumbPage>Ressources matérielles</BreadcrumbPage>
+              </BreadcrumbItem>
+            </>
           ),
         },
       },

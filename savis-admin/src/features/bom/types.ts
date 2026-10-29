@@ -1,4 +1,6 @@
 export interface BomComponent {
+  id?: number | null;
+  resourceId?: string | null;
   componentName: string;
   quantity: number;
   unit: string;

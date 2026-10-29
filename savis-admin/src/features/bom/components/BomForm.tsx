@@ -68,7 +68,7 @@ export const BomForm = ({
       <header>
         <h1 className="text-2xl font-semibold">{formTitle}</h1>
         <p className="text-sm text-muted-foreground">
-          Définissez les informations générales, les intrants et les activités
+          Définissez les informations générales, les ressources et les activités
           nécessaires à cette composition.
         </p>
       </header>

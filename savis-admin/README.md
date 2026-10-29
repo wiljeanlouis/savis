@@ -59,6 +59,11 @@ The frontend does not own business rules or persistence:
 
 The interface is currently presented in French.
 
+On the Resources page, “Nouvelle ressource” and “Modifier” open a modal editor.
+Saving closes the modal after success and refreshes the list; errors preserve
+the entered values. Cancelling closes the modal without saving. The header shows
+the “Accueil / Production / Ressources matérielles” breadcrumb.
+
 ## Business Flows
 
 ### Manage Technical BOMs
@@ -110,7 +115,9 @@ Users can:
 - create or edit a BOM on a dedicated page with section navigation and sticky
   save/cancel actions;
 - define general information, image, instructions, and yield;
-- add components with quantity and unit;
+- search and select an active material resource, then enter its quantity and
+  compatible unit; already referenced inactive resources remain visible for
+  historical BOMs;
 - select an optional available provider offer for each component;
 - add sequenced production activities and their duration;
 - inspect the cost returned by SAVIS API;

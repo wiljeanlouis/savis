@@ -89,7 +89,13 @@ export const useBomForm = () => {
       ...prev,
       components: [
         ...prev.components,
-        { componentName: "", quantity: 0, unit: "", selectedOfferId: null },
+        {
+          resourceId: null,
+          componentName: "",
+          quantity: 0,
+          unit: "",
+          selectedOfferId: null,
+        },
       ],
     }));
     setIsDirty(true);

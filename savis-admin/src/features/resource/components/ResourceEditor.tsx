@@ -31,7 +31,7 @@ export function ResourceEditor({
     category !== "EQUIPMENT" && category !== "DECORATION_MATERIAL";
   return (
     <form
-      className="grid gap-4 rounded-xl border p-5"
+      className="grid gap-4"
       onSubmit={(event) => {
         event.preventDefault();
         void onSave({
@@ -42,9 +42,6 @@ export function ResourceEditor({
         });
       }}
     >
-      <h2 className="font-semibold">
-        {resource ? "Modifier la ressource" : "Nouvelle ressource"}
-      </h2>
       <Field>
         <FieldLabel htmlFor="resource-name">Nom</FieldLabel>
         <Input

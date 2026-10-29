@@ -6,6 +6,7 @@ import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
+import jakarta.persistence.Column;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.ToString;
@@ -23,6 +24,9 @@ public class BomComponentEntity {
     private Long id;
 
     private String componentName;
+
+    @Column(name = "resource_id", nullable = false)
+    private UUID resourceId;
 
     private double quantity;
 

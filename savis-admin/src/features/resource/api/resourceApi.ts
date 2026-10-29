@@ -3,8 +3,12 @@ import type { MaterialResource, ResourcePage, ResourceValues } from "../types";
 export const listResources = async (
   search: string,
   page: number,
+  status?: "ACTIVE" | "INACTIVE",
 ): Promise<ResourcePage> =>
-  (await api.get("/resources", { params: { search, page, size: 20 } })).data;
+  (await api.get("/resources", { params: { search, page, size: 20, status } }))
+    .data;
+export const getResource = async (id: string): Promise<MaterialResource> =>
+  (await api.get(`/resources/${id}`)).data;
 export const saveResource = async ({
   id,
   values,

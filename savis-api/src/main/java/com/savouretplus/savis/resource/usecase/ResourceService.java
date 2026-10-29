@@ -11,11 +11,13 @@ import com.savouretplus.savis.resource.domain.ResourceCategory;
 import com.savouretplus.savis.resource.domain.ResourceStatus;
 import com.savouretplus.savis.resource.port.ResourcePage;
 import com.savouretplus.savis.resource.port.ResourceRepository;
+import com.savouretplus.savis.resource.api.ResourceCatalogApi;
+import com.savouretplus.savis.resource.api.ResourceCatalogApi.ResourceReference;
 
 @Service
 @Transactional
 @AllArgsConstructor
-public class ResourceService {
+public class ResourceService implements ResourceCatalogApi {
     private final ResourceRepository repository;
 
     public Resource create(String name, String description, ResourceCategory category, Unit unit) {
@@ -24,6 +26,14 @@ public class ResourceService {
 
     public Resource get(UUID id) {
         return repository.findByPublicId(id).orElseThrow(() -> new ResourceNotFoundException(id));
+    }
+
+    @Override
+    public java.util.Optional<ResourceReference> findReference(UUID publicId) {
+        return repository.findByPublicId(publicId).map(resource -> new ResourceReference(
+                resource.publicId(), resource.name(), resource.category().name(),
+                resource.referenceUnit() == null ? null : resource.referenceUnit().getSymbole(),
+                resource.status().name()));
     }
 
     public Resource update(UUID id, String name, String description, ResourceCategory category, Unit unit) {

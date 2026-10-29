@@ -64,7 +64,7 @@ class BomControllerCostTest {
                 .andExpect(jsonPath("$[0].description").value("Description"))
                 .andExpect(jsonPath("$[0].imageUrl").value("image.jpg"))
                 .andExpect(jsonPath("$[0].yield.quantity").value(1))
-                .andExpect(jsonPath("$[0].components[0].componentName").value("farine"))
+                .andExpect(jsonPath("$[0].components[0].componentName").value("Farine"))
                 .andExpect(jsonPath("$[0].activities[0].type").value("COOK"))
                 .andExpect(jsonPath("$[0].price").value(nullValue()))
                 .andExpect(jsonPath("$[0].costing").value(nullValue()));
