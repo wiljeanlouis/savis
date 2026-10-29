@@ -1,3 +1,4 @@
+import { ResourcesPage } from "@/features/resource/pages/ResourcesPage";
 import {
   createBrowserRouter,
   Link,
@@ -34,6 +35,17 @@ const router = createBrowserRouter([
   {
     element: <MainLayout />,
     children: [
+      {
+        path: "/resources",
+        element: <ResourcesPage />,
+        handle: {
+          breadcrumb: () => (
+            <BreadcrumbItem>
+              <BreadcrumbPage>Ressources matérielles</BreadcrumbPage>
+            </BreadcrumbItem>
+          ),
+        },
+      },
       {
         path: "/",
         element: <DashboardPage />,

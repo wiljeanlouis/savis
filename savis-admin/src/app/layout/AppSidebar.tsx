@@ -60,6 +60,10 @@ const data = {
       icon: <HugeiconsIcon icon={GearsFreeIcons} strokeWidth={2} />,
       children: [
         {
+          name: "Ressources matérielles",
+          url: "/resources",
+        },
+        {
           name: "Compositions",
           url: "/boms",
         },
