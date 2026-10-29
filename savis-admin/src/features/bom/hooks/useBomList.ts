@@ -49,6 +49,7 @@ export const useBomList = () => {
     isLoading: useQuery.isPending,
     isError: useQuery.isError,
     error: useQuery.error,
+    refetch: useQuery.refetch,
     deleteBom: deleteBom,
     cloneBom,
     isCloning: cloneMutation.isPending,

@@ -78,9 +78,27 @@ muted gray background across pages.
 
 ### Manage Technical BOMs
 
-The `/boms` list is an unpriced consultation and navigation view. Cards show
-only image, name, description and yield, with editing, cloning and deletion
-actions. Opening or searching the list never requests a BOM detail or valuation.
+The `/boms` workspace uses compact selectable rows (40%) and a permanent
+consultation panel (60%) on desktop. Smaller screens open the selected detail
+at full width with a return button and focus restoration. Search (including
+instructions and component names), composition type (food/material), yield unit,
+activity type (including no activity), component presence, name sorting, page size,
+page and explicit selection are URL state. Filter changes reset page and selection;
+resetting filters preserves page size and unrelated URL parameters. Unit options
+come from all loaded BOMs, not the filtered page. No additional requests or
+valuations are needed for filtering. Filtering and pagination operate on the
+complete existing unpriced list response.
+
+Only the selected BOM loads `GET /boms/{id}`, through a TanStack Query cache.
+The panel shows saved yield, material resources, ordered activities, instructions,
+and the existing cost overview. Complete costs and known subtotals remain distinct;
+blocking diagnostics and component/activity subtotals come from the backend.
+No per-row valuations or frontend cost engine are introduced. Missing and broken
+images use a neutral placeholder. A separate action footer remains visible around
+the independently scrollable content. Editing, detailed cost analysis (`#bom-cost`),
+cloning and confirmed deletion retain their existing workflows; saving invalidates
+both the list and selected-detail cache. The current component contract references
+material Resources, not nested BOMs, so the view does not invent sub-compositions.
 
 The existing `/boms/:id` editor includes an “Analyse des coûts” section. Its route
 loader makes one `GET /boms/{id}` request including the saved valuation; there is
@@ -634,7 +652,8 @@ The current Vitest suite covers:
 
 - BOM draft storage;
 - BOM full-page editing, section navigation, saving and draft cancellation;
-- unpriced BOM list loading, search, actions and navigation to detailed analysis;
+- BOM master-detail loading, URL search/selection, cached valuations, image fallbacks,
+  responsive visibility, actions and navigation to detailed analysis;
 - list cache reuse and invalidation after BOM saves/deletions;
 - complete, incomplete and zero costs, diagnostics, provenance and display rounding;
 - BOM component retrieval dialog;

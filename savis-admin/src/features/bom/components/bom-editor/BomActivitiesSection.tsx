@@ -30,7 +30,6 @@ export function BomActivitiesSection({
           <ActivityInput
             key={activity.id ?? keys[index]}
             value={activity}
-            canRemove={index > 1}
             onChange={(val) => {
               updateActivity(index, val);
             }}

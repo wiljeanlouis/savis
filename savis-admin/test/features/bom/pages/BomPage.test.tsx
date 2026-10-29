@@ -113,6 +113,7 @@ describe("BomPage", () => {
 
   it("loads saved fields and submits edits from the page", async () => {
     const router = renderPage(bom);
+    const user = userEvent.setup();
     const name = await screen.findByRole("textbox", {
       name: "Nom",
     });
@@ -126,9 +127,9 @@ describe("BomPage", () => {
     expect(
       screen.getByRole("region", { name: "Analyse des coûts" }),
     ).toBeVisible();
-    await userEvent.clear(name);
-    await userEvent.type(name, "Composition modifiée");
-    await userEvent.click(screen.getByRole("button", { name: "Enregistrer" }));
+    await user.clear(name);
+    await user.paste("Composition modifiée");
+    await user.click(screen.getByRole("button", { name: "Enregistrer" }));
     await waitFor(() =>
       expect(usePostBom().mutateAsync).toHaveBeenCalledWith(
         expect.objectContaining({

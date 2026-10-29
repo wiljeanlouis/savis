@@ -150,10 +150,6 @@ export const useBomForm = () => {
   };
 
   const removeActivity = (index: number) => {
-    if (index < 2) {
-      return;
-    }
-
     setForm((prev) => ({
       ...prev,
       activities: prev.activities

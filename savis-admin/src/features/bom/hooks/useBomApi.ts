@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { createBom, deleteBom, getBoms } from "../api/bomApi";
+import { createBom, deleteBom, getBom, getBoms } from "../api/bomApi";
 import { searchAvailableOffers } from "../api/supplyOfferApi";
 
 const BOMS_QUERY_KEY = ["boms"];
@@ -41,3 +41,11 @@ export const useSearchAvailableOffers = (resourceId?: string | null) => {
     enabled: Boolean(resourceId),
   });
 };
+
+export const useGetBom = (id?: string) =>
+  useQuery({
+    queryKey: [...BOMS_QUERY_KEY, "detail", id],
+    queryFn: () => getBom(id!),
+    staleTime: 60_000,
+    enabled: Boolean(id),
+  });

@@ -3,12 +3,21 @@ import { getBom } from "@/features/bom/api/bomApi";
 import type { Bom } from "@/features/bom/types";
 import { api, executorApi } from "@/shared/api";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { act, render, screen, waitFor } from "@testing-library/react";
+import {
+  act,
+  cleanup,
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+} from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { createMemoryRouter, RouterProvider } from "react-router";
 import { toast } from "sonner";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { bom, costing, missingCosting } from "../fixtures/costing";
+
+const editors: Array<() => void> = [];
 
 beforeEach(() => {
   localStorage.clear();
@@ -27,6 +36,8 @@ beforeEach(() => {
 });
 
 afterEach(() => {
+  cleanup();
+  for (const dispose of editors.splice(0)) dispose();
   expect(executorApi.post).not.toHaveBeenCalled();
   vi.restoreAllMocks();
   vi.unstubAllGlobals();
@@ -48,6 +59,10 @@ function renderEditor(path: string) {
     ],
     { initialEntries: ["/boms", path], initialIndex: 1 },
   );
+  editors.push(() => {
+    router.dispose();
+    client.clear();
+  });
   render(
     <QueryClientProvider client={client}>
       <RouterProvider router={router} />
@@ -74,15 +89,14 @@ describe("BOM save and stay", () => {
       .mockResolvedValueOnce({ data: initial })
       .mockReturnValueOnce(refresh);
     const post = vi.spyOn(api, "post").mockResolvedValue({ data: bom.id });
-    const { router, client } = renderEditor(`/boms/${bom.id}`);
+    const { router } = renderEditor(`/boms/${bom.id}`);
     const user = userEvent.setup();
     const name = await screen.findByRole("textbox", { name: "Nom" });
     expect(screen.getByText("Coût incomplet")).toBeVisible();
     await user.clear(name);
-    await user.type(name, updated.name);
+    await user.paste(updated.name);
     const quantity = screen.getByRole("spinbutton", { name: "Rendement" });
-    await user.clear(quantity);
-    await user.type(quantity, "8");
+    fireEvent.change(quantity, { target: { value: "8" } });
     await user.click(screen.getByRole("button", { name: "Enregistrer" }));
     await waitFor(() => expect(get).toHaveBeenCalledTimes(2));
     expect(
@@ -99,7 +113,9 @@ describe("BOM save and stay", () => {
     expect(screen.getByRole("textbox", { name: "Nom" })).toHaveValue(
       updated.name,
     );
-    expect(screen.getByRole("button", { name: "Enregistrer" })).toBeEnabled();
+    await waitFor(() =>
+      expect(screen.getByRole("button", { name: "Enregistrer" })).toBeEnabled(),
+    );
     expect(post).toHaveBeenCalledTimes(1);
     expect(post).toHaveBeenCalledWith(
       "/boms",
@@ -113,12 +129,9 @@ describe("BOM save and stay", () => {
       `/boms/${bom.id}`,
       `/boms/${bom.id}`,
     ]);
-    await user.type(
-      screen.getByRole("textbox", { name: "Description" }),
-      " suite",
-    );
+    await user.click(screen.getByRole("textbox", { name: "Description" }));
+    await user.paste(" suite");
     expect(toast.success).toHaveBeenCalledOnce();
-    client.clear();
   });
 
   it("opens the newly saved composition, clears its draft and uses its id for subsequent saves", async () => {
@@ -131,20 +144,14 @@ describe("BOM save and stay", () => {
     };
     const get = vi.spyOn(api, "get").mockResolvedValue({ data: saved });
     const post = vi.spyOn(api, "post").mockResolvedValue({ data: saved.id });
-    const { router, client } = renderEditor("/boms/add");
+    const { router } = renderEditor("/boms/add");
     const user = userEvent.setup();
-    await user.type(
-      await screen.findByRole("textbox", { name: "Nom" }),
-      saved.name,
-    );
-    await user.type(
-      screen.getByRole("textbox", { name: "Description" }),
-      saved.description,
-    );
-    await user.type(
-      screen.getByRole("textbox", { name: "Image" }),
-      saved.imageUrl,
-    );
+    await user.click(await screen.findByRole("textbox", { name: "Nom" }));
+    await user.paste(saved.name);
+    await user.click(screen.getByRole("textbox", { name: "Description" }));
+    await user.paste(saved.description);
+    await user.click(screen.getByRole("textbox", { name: "Image" }));
+    await user.paste(saved.imageUrl);
     expect(get).not.toHaveBeenCalled();
     await user.click(screen.getByRole("button", { name: "Enregistrer" }));
     expect(
@@ -166,16 +173,16 @@ describe("BOM save and stay", () => {
       await router.navigate(-1);
     });
     expect(router.state.location.pathname).toBe("/boms");
-    client.clear();
   });
 
   it("preserves entered values and stays on detail when saving fails without reloading costs", async () => {
     const get = vi.spyOn(api, "get").mockResolvedValue({ data: bom });
     vi.spyOn(api, "post").mockRejectedValue(new Error("Service indisponible"));
-    const { router, client } = renderEditor(`/boms/${bom.id}`);
+    const { router } = renderEditor(`/boms/${bom.id}`);
     const user = userEvent.setup();
     const name = await screen.findByRole("textbox", { name: "Nom" });
-    await user.type(name, " modifiée");
+    await user.clear(name);
+    await user.paste(`${bom.name} modifiée`);
     await user.click(screen.getByRole("button", { name: "Enregistrer" }));
     await waitFor(() => expect(toast.error).toHaveBeenCalledOnce());
     expect(toast.success).not.toHaveBeenCalled();
@@ -183,6 +190,5 @@ describe("BOM save and stay", () => {
     expect(name).toHaveValue(`${bom.name} modifiée`);
     expect(get).toHaveBeenCalledOnce();
     expect(screen.getByRole("button", { name: "Enregistrer" })).toBeEnabled();
-    client.clear();
   });
 });
