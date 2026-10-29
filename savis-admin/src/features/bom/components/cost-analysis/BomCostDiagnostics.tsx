@@ -1,50 +1,45 @@
-import { Badge } from "@/shared/ui/badge";
 import { costActivityLabel } from "../../model/bomCostPresentation";
 import type { BomCostDiagnostic } from "../../types";
 
 export function BomCostDiagnostics({
   diagnostics,
-  complete,
+  includeReferences = false,
 }: {
   diagnostics: BomCostDiagnostic[];
-  complete: boolean;
+  includeReferences?: boolean;
 }) {
-  if (diagnostics.length === 0 && complete) return null;
+  if (diagnostics.length === 0) return null;
   return (
     <section
       aria-label="Diagnostics de coût"
-      className="space-y-3 rounded-lg border border-amber-600/30 bg-amber-500/5 p-4"
+      className="space-y-2 border-l-2 border-amber-600/40 pl-3 text-xs"
     >
-      <h3 className="text-sm font-medium">
-        {complete ? "Points à vérifier" : "Pourquoi le coût est incomplet"}
-      </h3>
-      {!complete && (
-        <p className="text-sm">
-          Le sous-total couvre uniquement les coûts connus. Un coût manquant
-          n’est pas un coût nul.
-        </p>
-      )}
-      <ul className="space-y-3 text-sm">
+      <h3 className="font-medium">Points à vérifier</h3>
+      <ul className="space-y-2">
         {diagnostics.map((issue) => (
-          <li key={JSON.stringify(issue)} className="space-y-1">
-            <p>
-              <Badge variant="outline">
-                {issue.blocking ? "Bloquant" : "À vérifier"}
-              </Badge>{" "}
-              <strong>{costActivityLabel(issue.source)}</strong>
-            </p>
-            <p className="break-words">{issue.message}</p>
-            <details className="text-xs text-muted-foreground">
-              <summary className="cursor-pointer">
-                Référence du diagnostic
-              </summary>
-              <p className="mt-1 break-all">
-                {issue.code} · {issue.source}
-              </p>
-            </details>
+          <li key={JSON.stringify(issue)} className="break-words">
+            <span className="font-medium">
+              {costActivityLabel(issue.source)}
+            </span>{" "}
+            : {issue.message}
           </li>
         ))}
       </ul>
+      {includeReferences && (
+        <details className="text-muted-foreground">
+          <summary className="cursor-pointer">
+            Références des diagnostics
+          </summary>
+          <ul className="mt-2 space-y-1 break-words [overflow-wrap:anywhere]">
+            {diagnostics.map((issue) => (
+              <li key={JSON.stringify(issue)}>
+                {issue.code} · {issue.source} ·{" "}
+                {issue.blocking ? "Bloquant" : "Non bloquant"}
+              </li>
+            ))}
+          </ul>
+        </details>
+      )}
     </section>
   );
 }

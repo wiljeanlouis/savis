@@ -21,19 +21,18 @@ function renderCard(costing = bom.costing) {
 }
 
 describe("BomCard", () => {
-  it("keeps only the compact valuation and links to editing and analysis", () => {
+  it("shows composition information and editing without cost information", () => {
     const { container } = renderCard();
     expect(screen.getByRole("img", { name: bom.name })).toBeVisible();
     expect(screen.getByText(bom.description)).toBeVisible();
     expect(screen.getByText("4 portion")).toBeVisible();
-    expect(screen.getByText("Coût total")).toBeVisible();
+    expect(
+      screen.queryByText(/coût|sous-total|analyse/i),
+    ).not.toBeInTheDocument();
     expect(screen.getByRole("link", { name: "Modifier" })).toHaveAttribute(
       "href",
       "/boms/bom-1",
     );
-    expect(
-      screen.getByRole("link", { name: "Analyse des coûts" }),
-    ).toHaveAttribute("href", "/boms/bom-1#bom-cost");
     expect(container.querySelector("details")).toBeNull();
     expect(container).not.toHaveTextContent(
       bom.costing!.components[0].source!.usedOfferId!,
@@ -44,10 +43,11 @@ describe("BomCard", () => {
     expect(screen.queryByText("Farine")).not.toBeInTheDocument();
   });
 
-  it("does not expand for missing costs or diagnostics", () => {
+  it("does not show costs even when a cached BOM contains an incomplete valuation", () => {
     const { container } = renderCard(missingCosting);
-    expect(screen.getByText("Coût incomplet")).toBeVisible();
-    expect(screen.getByText("Sous-total connu")).toBeVisible();
+    expect(
+      screen.queryByText(/coût|sous-total|analyse/i),
+    ).not.toBeInTheDocument();
     expect(screen.queryByText("Taux horaire absent")).not.toBeInTheDocument();
     expect(container.querySelector("details")).toBeNull();
   });

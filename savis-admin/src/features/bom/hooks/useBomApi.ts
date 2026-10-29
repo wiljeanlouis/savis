@@ -9,6 +9,8 @@ export const useGetBoms = () => {
   return useQuery({
     queryKey: BOMS_QUERY_KEY,
     queryFn: getBoms,
+    // Reuse the unpriced list during navigation; mutations explicitly invalidate it.
+    staleTime: 60_000,
   });
 };
 

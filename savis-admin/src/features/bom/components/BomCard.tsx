@@ -7,7 +7,6 @@ import {
   CardTitle,
 } from "@/shared/ui/card";
 import { formatBomQuantity } from "../model/bomCostPresentation";
-import { BomCostSummary } from "./BomCostSummary";
 import type { Bom } from "../types";
 import { Link } from "react-router";
 import { DeleteAlert } from "@/shared/components/DeleteAlert";
@@ -62,14 +61,7 @@ export const BomCard = ({
         </div>
       </CardHeader>
 
-      <div className="px-6 pb-4">
-        <BomCostSummary costing={bom.costing} />
-      </div>
-
       <CardFooter className="flex flex-wrap justify-end gap-2">
-        <Button variant="ghost" size="sm" asChild>
-          <Link to={`${link}#bom-cost`}>Analyse des coûts</Link>
-        </Button>
         <Button variant="outline" asChild>
           <Link to={link}>Modifier</Link>
         </Button>

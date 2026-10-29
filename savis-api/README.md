@@ -204,10 +204,19 @@ aggregate diagnostics retain their source and blocking/non-blocking distinction.
 A non-positive yield produces `INVALID_YIELD`, preserves the known batch subtotal,
 and prevents a complete valuation usable by Catalog.
 
-BOM list and detail responses include the same result in `costing`; the legacy
-`price` field contains only a complete total and is null for an incomplete BOM.
-The public `BomPricingApi` carries this information without exposing internal
-BOM objects. Batch list pricing still shares component lookups and one rate read.
+`GET /api/boms` returns composition data only: it does not consult supplier
+prices or activity rates, and does not calculate costs. The existing `price` and
+`costing` DTO fields remain null for compatibility. Components and activities
+remain available for search, cloning and Catalog's BOM selectors.
+
+`GET /api/boms/{id}` includes the detailed result in `costing`; the legacy `price`
+field contains only a complete total and is null for an incomplete BOM.
+`GET /api/boms/{id}/price` remains available for explicit cost analysis.
+The public `BomPricingApi` continues to serve Catalog without exposing internal
+BOM objects. The former multi-BOM list calculation has been removed because the
+list was its only consumer. Per-BOM `ComponentPricePort.getPrices` batching,
+request deduplication and supplier lookup caches remain active for detail and
+Catalog pricing, along with the activity-rate read for each BOM calculation.
 
 #### Component Acquisition
 

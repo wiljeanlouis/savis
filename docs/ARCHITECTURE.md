@@ -790,10 +790,17 @@ Incomplete analyses expose a known subtotal but no total/unit cost, margin or
 recommendation. Unexpected technical failures propagate instead of becoming
 missing-BOM diagnostics.
 
-Admin keeps BOM list cards compact and links to “Analyse des coûts” in the
-existing composition editor. That section shows the saved valuation, grouped
-component/activity lines and diagnostics; identifiers and timestamps remain in
-secondary provenance disclosures. Backend `BigDecimal` subtotals are summed
+The BOM list (`GET /api/boms`) returns composition data without invoking pricing,
+supplier prices or activity rates; `price` and `costing` remain null. Admin list
+cards contain no cost information. Its unpriced list cache (`["boms"]`) is fresh
+for 60 seconds and invalidated after saves/clones/deletions. The detail route
+loads `GET /api/boms/{id}` on entry and revalidates after a successful save,
+including the saved valuation for “Analyse des coûts”. Saving stays on detail;
+creation replaces the creation route with the new composition's detail route. The explicit `GET /api/boms/{id}/price` endpoint and the public
+`BomPricingApi` used by Catalog are preserved. Multi-BOM list pricing was removed;
+per-BOM component batching and supplier lookup caching remain used by detail and
+Catalog. The analysis shows grouped component/activity lines and diagnostics;
+identifiers and timestamps remain in secondary provenance disclosures. Backend `BigDecimal` subtotals are summed
 before display rounding. Admin formats each amount independently and preserves
 the received total, with a precision note explaining possible cent differences.
 This presentation does not change cost formulas, rate ownership or COOK semantics.

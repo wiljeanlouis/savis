@@ -1,4 +1,4 @@
-import type { BomPrice } from "../types";
+import type { BomCosting, BomCostLine, BomPrice } from "../types";
 
 export function formatBomMoney(
   value: BomPrice | null | undefined,
@@ -8,7 +8,8 @@ export function formatBomMoney(
   return new Intl.NumberFormat("fr-CA", {
     style: "currency",
     currency: value.currency,
-    ...(precise ? { maximumFractionDigits: 20 } : {}),
+    minimumFractionDigits: 2,
+    maximumFractionDigits: precise ? 20 : 2,
   }).format(value.amount);
 }
 
@@ -28,3 +29,49 @@ const activityLabels: Record<string, string> = {
 
 export const costActivityLabel = (label: string) =>
   activityLabels[label] ?? label;
+
+/** Presentation groups shared by the breakdown and table; no new cost categories are calculated. */
+export interface BomCostCategory {
+  id: string;
+  label: string;
+  subtotal: BomPrice;
+  lines: BomCostLine[];
+  activities?: boolean;
+  color: string;
+}
+
+export function bomCostCategories(costing: BomCosting): BomCostCategory[] {
+  return [
+    {
+      id: "components",
+      label: "Composants",
+      subtotal: costing.componentSubtotal,
+      lines: costing.components,
+      color: "bg-primary",
+    },
+    {
+      id: "activities",
+      label: "Activités",
+      subtotal: costing.activitySubtotal,
+      lines: costing.activities,
+      activities: true,
+      color: "bg-teal-500",
+    },
+  ];
+}
+
+export function costLineIssue(line: BomCostLine): string | null {
+  const labels: Record<string, string> = {
+    ACTIVITY_RATE_MISSING: "Taux horaire absent",
+    SELECTED_OFFER_UNAVAILABLE: "Offre indisponible",
+    INCOMPATIBLE_UNITS: "Unité incompatible",
+    OFFER_PRICE_MISSING: "Prix absent",
+    INVALID_PACKAGE: "Conditionnement invalide",
+    OFFER_NOT_FOUND: "Offre introuvable",
+  };
+  const diagnostic =
+    line.diagnostics.find((issue) => issue.blocking) ?? line.diagnostics[0];
+  if (diagnostic && labels[diagnostic.code]) return labels[diagnostic.code];
+  if (line.status === "MISSING") return "Coût manquant";
+  return diagnostic ? "À vérifier" : null;
+}

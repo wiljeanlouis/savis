@@ -1,7 +1,6 @@
 package com.savouretplus.savis.bom.adapter.web;
 
 import java.util.List;
-import java.util.Map;
 import java.util.UUID;
 
 import org.springframework.http.ResponseEntity;
@@ -15,7 +14,6 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.savouretplus.savis.bom.usecase.BomService;
 import com.savouretplus.savis.bom.api.BomPricingApi.BomPricing;
-import com.savouretplus.savis.bom.domain.BomCost;
 import com.savouretplus.savis.bom.usecase.BomPricingMapper;
 
 import jakarta.validation.Valid;
@@ -87,11 +85,10 @@ public class BomController {
         log.info("Received request to list boms");
 
         var boms = bomService.listBoms();
-        Map<UUID, BomCost> pricesByBomId = bomService.calculateTotalCosts(boms);
 
         List<BomDto> responses = boms
                 .stream()
-                .map(bom -> BomDto.from(bom, BomPricingMapper.from(pricesByBomId.get(bom.getPublicId()))))
+                .map(BomDto::from)
                 .toList();
 
         return ResponseEntity.ok(responses);

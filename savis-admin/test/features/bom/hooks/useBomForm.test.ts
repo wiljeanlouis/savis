@@ -8,7 +8,7 @@ import {
 } from "@/features/bom/model/bomDraftStorage";
 import type { Bom } from "@/features/bom/types";
 import { act, renderHook } from "@testing-library/react";
-import { useLoaderData, useNavigate } from "react-router";
+import { useLoaderData, useNavigate, useRevalidator } from "react-router";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const mockBom: Bom = {
@@ -29,8 +29,11 @@ const mockBom: Bom = {
   yield: { quantity: 1, unit: "PORTION" },
 };
 
+const mutateAsync = vi.fn();
+const revalidate = vi.fn();
+
 const mockMutation = {
-  mutateAsync: vi.fn(),
+  mutateAsync,
   isPending: false,
   isError: false,
   isSuccess: false,
@@ -39,6 +42,7 @@ const mockMutation = {
 vi.mock("react-router", () => ({
   useLoaderData: vi.fn(),
   useNavigate: vi.fn(),
+  useRevalidator: vi.fn(),
 }));
 
 vi.mock("@/features/bom/hooks/useBomApi", () => ({
@@ -56,6 +60,9 @@ describe("useBomForm", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     localStorage.clear();
+    mutateAsync.mockReset().mockResolvedValue("saved-bom");
+    revalidate.mockReset().mockResolvedValue(undefined);
+    vi.mocked(useRevalidator).mockReturnValue({ revalidate, state: "idle" });
   });
 
   describe("initialization", () => {
@@ -332,7 +339,7 @@ describe("useBomForm", () => {
       expect(clearDraft).toHaveBeenCalled();
     });
 
-    it("should navigate back after form submission", async () => {
+    it("should open the created composition and replace the creation history entry", async () => {
       const mockNavigate = vi.fn();
       vi.mocked(useLoaderData).mockReturnValue(null);
       vi.mocked(usePostBom).mockReturnValue(mockMutation);
@@ -348,7 +355,25 @@ describe("useBomForm", () => {
         await result.current.submit();
       });
 
-      expect(mockNavigate).toHaveBeenCalledWith(-1);
+      expect(mockNavigate).toHaveBeenCalledWith("/boms/saved-bom", {
+        replace: true,
+        preventScrollReset: true,
+      });
+      expect(revalidate).not.toHaveBeenCalled();
+    });
+
+    it("should stay on the existing composition and refresh its saved costs", async () => {
+      const navigate = vi.fn();
+      vi.mocked(useLoaderData).mockReturnValue(mockBom);
+      vi.mocked(usePostBom).mockReturnValue(mockMutation);
+      vi.mocked(useNavigate).mockReturnValue(navigate);
+      const { result } = renderHook(() => useBomForm());
+      await act(async () => {
+        await result.current.submit();
+      });
+      expect(revalidate).toHaveBeenCalledOnce();
+      expect(navigate).not.toHaveBeenCalled();
+      expect(clearDraft).not.toHaveBeenCalled();
     });
 
     it("should not clear draft if form submission fails", async () => {
@@ -371,6 +396,8 @@ describe("useBomForm", () => {
       });
 
       expect(clearDraft).not.toHaveBeenCalled();
+      expect(mockNavigate).not.toHaveBeenCalled();
+      expect(revalidate).not.toHaveBeenCalled();
     });
   });
 

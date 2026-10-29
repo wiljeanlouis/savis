@@ -63,18 +63,36 @@ The interface is currently presented in French.
 
 ### Manage Technical BOMs
 
-BOM cards show only the complete total or incomplete known subtotal and a compact
-completeness indicator, alongside the image, name, description and yield.
-The “Analyse des coûts” link opens the existing `/boms/:id#bom-cost` editor section;
-no new route is required. It shows the saved yield, valid cost per output unit,
-component/activity breakdown, individual lines and French diagnostics. Offer IDs,
-observation timestamps, package prices/sizes and precise rates are retained in
-expandable provenance details. Missing costs remain distinct from known zeros.
-The editor's valuation describes the saved version; draft changes are not priced
-until saved and reloaded. An explicitly configured zero remains a known cost.
+The `/boms` list is an unpriced consultation and navigation view. Cards show
+only image, name, description and yield, with editing, cloning and deletion
+actions. Opening or searching the list never requests a BOM detail or valuation.
+
+The existing `/boms/:id` editor includes an “Analyse des coûts” section. Its route
+loader makes one `GET /boms/{id}` request including the saved valuation; there is
+no additional per-card or `/price` request. The section shows the saved yield,
+valid cost per output unit and a compact category distribution bar. A three-column
+table groups components and activities with their known subtotals. Known lines
+show no repeated status badges; problematic lines show concise indicators. The
+post name is a keyboard-accessible button opening the existing shadcn Sheet
+panel for price/rate provenance and diagnostics. Closing the panel restores focus
+to that button. Offer IDs, full observation timestamps and received monetary
+precision remain in secondary “Informations techniques” disclosures inside the
+panel. Missing costs remain distinct from known zeros. Categories share a
+presentation structure for the distribution and table without adding future
+cost types.
+
+“Enregistrer” keeps the user on the composition and reloads the saved valuation
+through the detail route loader. Creating a composition replaces the creation
+history entry with `/boms/{id}`, so subsequent saves update the same composition.
+The save action remains disabled until the save and detail refresh finish, and
+shows one confirmation per successful save. Failed saves preserve the entered
+values and the draft. The editor's valuation describes the saved version; draft
+changes are not priced until saved. An explicitly configured zero remains a
+known cost.
 
 The `/api/boms/{id}/price` response is now a detailed valuation rather than bare
-Money. List/detail BOMs expose it as `costing`; `price` is null when incomplete.
+Money. Detail BOMs expose it as `costing`; `price` is null when incomplete.
+List responses keep `price` and `costing` null without running pricing.
 Catalog analyses distinguish the known subtotal from nullable full/unit costs,
 and suppress margins and recommendations when incomplete. Source warnings,
 including the retained price of an unavailable selected offer, remain visible.
@@ -117,11 +135,14 @@ The API adds component and activity costs using `BigDecimal` without rounding
 them to cents. Component quantity ratios and activity hours use scale 10 with
 `HALF_UP`; multiplying by prices/rates and adding those amounts retains that
 precision. Admin formats each received amount independently with `Intl.NumberFormat`
-(`fr-CA`, currency precision, normally two decimals for CAD). It never rebuilds
+(`fr-CA`, two decimal places with the received currency). It never rebuilds
 the total from displayed subtotals. For example, 5.246 + 17.166666667 = 22.412666667
 is displayed as 5.25 + 17.17 alongside a total of 22.41. This is a display-rounding
-difference, not an adjustment to the backend calculation. A note and expandable
-“Précision des montants” explain it and expose the numeric precision received.
+difference, not an adjustment to the backend calculation. A short note explains
+possible differences; the main view contains no “Précision des montants” section.
+Only the individual post panel exposes received precision in its technical
+disclosure. Category proportions use unrounded category/known subtotal amounts;
+zero known totals display no percentages rather than invalid ratios.
 Without the original API payload, these example raw values cannot be attributed
 to a particular screenshot. JavaScript JSON numbers retain browser numeric
 precision, not arbitrary decimal precision. Cost per output unit is a display-only
@@ -411,6 +432,14 @@ Examples:
 - `["orders"]`;
 - `["catalog-categories"]`.
 
+The `["boms"]` cache contains the unpriced list, also used by Catalog's BOM
+selectors. It is fresh for 60 seconds to avoid repeated list requests during
+navigation. Successful saves (including clones) and deletions invalidate this
+key immediately. Detail valuations are loaded by the React Router detail loader
+and never stored in the list cache; reopening a detail fetches its current cost.
+Catalog pricing analyses still use their dedicated API operations, independently
+of the selector list.
+
 ### URL State
 
 BOM component and acquisition-task pagination and sorting use URL search
@@ -588,7 +617,8 @@ The current Vitest suite covers:
 
 - BOM draft storage;
 - BOM full-page editing, section navigation, saving and draft cancellation;
-- compact BOM card valuation, actions and analysis links;
+- unpriced BOM list loading, search, actions and navigation to detailed analysis;
+- list cache reuse and invalidation after BOM saves/deletions;
 - complete, incomplete and zero costs, diagnostics, provenance and display rounding;
 - BOM component retrieval dialog;
 - BOM component list state and actions;

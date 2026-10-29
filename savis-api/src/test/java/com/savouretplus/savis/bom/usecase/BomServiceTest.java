@@ -137,24 +137,6 @@ class BomServiceTest {
         Assertions.assertEquals(offerId, requirements.components().getFirst().selectedOfferId());
     }
     @Test
-    void batchPricingSharesComponentRequestsAndActivityRateRead() {
-        var first = new Bom(null, "A", "", "", "", BomType.FOOD, List.of(), List.of(), null);
-        var second = new Bom(null, "B", "", "", "", BomType.FOOD, List.of(), List.of(), null);
-        first.addComponent("Farine", 100, Unit.GRAM, null);
-        second.addComponent("Farine", 100, Unit.GRAM, null);
-        var requests = first.componentPriceRequests();
-        when(priceCalculator.getPrices(requests)).thenReturn(Map.of(requests.getFirst(),
-                new ComponentPrice(Money.of(2), null, List.of())));
-        when(activityRateRepository.findAll()).thenReturn(List.of());
-        var result = bomService.calculateTotalCosts(List.of(first, second));
-        Assertions.assertEquals(2, result.size());
-        Assertions.assertEquals(Money.of(2), result.get(first.getPublicId()).totalCost());
-        verify(priceCalculator).getPrices(requests);
-        verify(activityRateRepository).findAll();
-        verifyNoMoreInteractions(priceCalculator, activityRateRepository);
-    }
-
-    @Test
     void publicPricingRepresentsMissingBomExplicitly() {
         UUID id = UUID.randomUUID();
         when(repository.findByPublicId(id)).thenReturn(Optional.empty());

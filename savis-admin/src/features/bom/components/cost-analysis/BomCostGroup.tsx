@@ -1,26 +1,32 @@
 import { Badge } from "@/shared/ui/badge";
+import { Button } from "@/shared/ui/button";
+import { TableBody, TableCell, TableHead, TableRow } from "@/shared/ui/table";
 import {
   costActivityLabel,
+  costLineIssue,
   formatBomMoney,
   formatBomQuantity,
+  type BomCostCategory,
 } from "../../model/bomCostPresentation";
-import type { BomCostLine, BomPrice } from "../../types";
-import { BomCostProvenance } from "./BomCostProvenance";
+import type { BomCostLine } from "../../types";
 
 export function BomCostGroup({
-  title,
-  lines,
-  subtotal,
-  activities = false,
+  category,
+  onInspect,
+  selectedLine,
+  dialogId,
 }: {
-  title: string;
-  lines: BomCostLine[];
-  subtotal: BomPrice;
-  activities?: boolean;
+  category: BomCostCategory;
+  onInspect: (
+    line: BomCostLine,
+    label: string,
+    trigger: HTMLButtonElement,
+  ) => void;
+  selectedLine?: BomCostLine;
+  dialogId: string;
 }) {
-  // Identical activities are valid; keep their keys distinct without using array positions.
   const occurrences = new Map<string, number>();
-  const rows = lines.map((line) => {
+  const rows = category.lines.map((line) => {
     const identity = JSON.stringify(line);
     const occurrence = occurrences.get(identity) ?? 0;
     occurrences.set(identity, occurrence + 1);
@@ -28,57 +34,71 @@ export function BomCostGroup({
   });
 
   return (
-    <section aria-label={title} className="min-w-0 rounded-lg border">
-      <header className="flex flex-wrap items-baseline justify-between gap-2 border-b bg-muted/40 px-4 py-3">
-        <h3 className="text-sm font-medium">{title}</h3>
-        <p className="text-xs text-muted-foreground">
-          Sous-total connu :{" "}
-          <strong className="text-foreground tabular-nums">
-            {formatBomMoney(subtotal)}
-          </strong>
-        </p>
-      </header>
-      {rows.length === 0 ? (
-        <p className="p-4 text-sm text-muted-foreground">Aucun poste.</p>
-      ) : (
-        <ul className="divide-y">
-          {rows.map(({ line, key }) => {
-            const label = activities
-              ? costActivityLabel(line.label)
-              : line.label;
-            return (
-              <li
-                key={key}
-                className="grid min-w-0 gap-3 p-4 md:grid-cols-[minmax(0,1fr)_minmax(0,1.4fr)]"
+    <TableBody aria-label={category.label}>
+      <TableRow className="bg-muted/50 hover:bg-muted/50">
+        <TableHead scope="rowgroup" colSpan={2} className="h-9">
+          {category.label}{" "}
+          <span className="ml-1 font-normal text-muted-foreground">
+            · sous-total connu
+          </span>
+        </TableHead>
+        <TableCell className="text-right font-medium tabular-nums">
+          {formatBomMoney(category.subtotal)}
+        </TableCell>
+      </TableRow>
+      {rows.map(({ line, key }) => {
+        const label = category.activities
+          ? costActivityLabel(line.label)
+          : line.label;
+        const issue = costLineIssue(line);
+        return (
+          <TableRow key={key}>
+            <TableCell className="max-w-0 whitespace-normal">
+              <Button
+                type="button"
+                variant="link"
+                className="h-auto max-w-full justify-start px-0 py-1 text-left whitespace-normal"
+                aria-label={`Détails du poste : ${label}`}
+                aria-haspopup="dialog"
+                aria-expanded={selectedLine === line}
+                aria-controls={dialogId}
+                onClick={(event) => onInspect(line, label, event.currentTarget)}
               >
-                <div className="min-w-0 space-y-2">
-                  <p className="text-sm font-medium break-words">{label}</p>
-                  <p className="text-xs text-muted-foreground">
-                    {formatBomQuantity(line.quantity, line.unit)}
-                  </p>
-                  <div className="flex flex-wrap items-center gap-2">
-                    <strong className="text-sm tabular-nums">
-                      {line.status === "KNOWN"
-                        ? formatBomMoney(line.amount)
-                        : "—"}
-                    </strong>
-                    <Badge variant="outline">
-                      {line.status === "MISSING"
-                        ? "Coût manquant"
-                        : line.status === "NOT_APPLICABLE"
-                          ? "Sans objet"
-                          : line.amount?.amount === 0
-                            ? "Coût connu · nul"
-                            : "Coût connu"}
-                    </Badge>
-                  </div>
+                {label}
+              </Button>
+              {issue && (
+                <div>
+                  <Badge
+                    variant="outline"
+                    className="max-w-full border-amber-600/30 text-left whitespace-normal text-amber-800 dark:text-amber-300"
+                  >
+                    {issue}
+                  </Badge>
                 </div>
-                <BomCostProvenance line={line} label={label} />
-              </li>
-            );
-          })}
-        </ul>
+              )}
+            </TableCell>
+            <TableCell className="whitespace-normal text-muted-foreground">
+              {formatBomQuantity(line.quantity, line.unit)}
+            </TableCell>
+            <TableCell className="text-right tabular-nums">
+              {line.status === "KNOWN" ? (
+                formatBomMoney(line.amount)
+              ) : line.status === "NOT_APPLICABLE" ? (
+                <span className="text-muted-foreground">Sans objet</span>
+              ) : (
+                <span aria-label="Coût inconnu">—</span>
+              )}
+            </TableCell>
+          </TableRow>
+        );
+      })}
+      {rows.length === 0 && (
+        <TableRow>
+          <TableCell colSpan={3} className="text-muted-foreground">
+            Aucun poste.
+          </TableCell>
+        </TableRow>
       )}
-    </section>
+    </TableBody>
   );
 }

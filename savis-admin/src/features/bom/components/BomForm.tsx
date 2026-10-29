@@ -2,8 +2,6 @@ import { useState } from "react";
 import { useBomForm } from "../hooks/useBomForm";
 import type { BomCosting } from "../types";
 import { Button } from "@/shared/ui/button";
-import { toast } from "sonner";
-import { getApiErrorMessage } from "@/shared/api/apiError";
 import { DraftAlert } from "@/shared/components/DraftAlert";
 import { Spinner } from "@/shared/ui/spinner";
 import { createUuid } from "@/shared/lib/utils";
@@ -38,9 +36,6 @@ export const BomForm = ({
     isDraftAlertOpen,
     setIsDraftAlertOpen,
     isLoading,
-    isSuccess,
-    isError,
-    error,
   } = useBomForm();
   const [componentKeys, setComponentKeys] = useState(() =>
     form.components.map(() => createUuid()),
@@ -62,19 +57,6 @@ export const BomForm = ({
   const formTitle = form.id
     ? "Modifier la composition"
     : "Ajouter une composition";
-
-  if (isSuccess) {
-    toast.success("Composition sauvegardée avec succès !");
-  }
-
-  if (isError) {
-    toast.error(
-      "Une erreur est survenue lors de la sauvegarde de la composition.",
-      {
-        description: getApiErrorMessage(error),
-      },
-    );
-  }
 
   const submitForm = async (e: React.SubmitEvent<HTMLFormElement>) => {
     e.preventDefault();

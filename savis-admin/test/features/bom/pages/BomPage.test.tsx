@@ -49,7 +49,7 @@ beforeEach(() => {
     },
   );
   vi.mocked(usePostBom).mockReturnValue({
-    mutateAsync: vi.fn().mockResolvedValue(bom),
+    mutateAsync: vi.fn().mockResolvedValue(bom.id),
     isPending: false,
     isSuccess: false,
     isError: false,
@@ -129,10 +129,12 @@ describe("BomPage", () => {
         }),
       ),
     );
-    await waitFor(() => expect(router.state.location.pathname).toBe("/boms"));
+    await waitFor(() =>
+      expect(router.state.location.pathname).toBe(`/boms/${bom.id}`),
+    );
   });
 
-  it("opens the cost section directly from a card link", async () => {
+  it("opens the cost section from a direct link", async () => {
     const scrollIntoView = vi.fn();
     const original = Object.getOwnPropertyDescriptor(
       Element.prototype,
