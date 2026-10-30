@@ -8,6 +8,8 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/shared/ui/dropdown-menu";
+import { MoreVerticalCircle01Icon } from "@hugeicons/core-free-icons";
+import { HugeiconsIcon } from "@hugeicons/react";
 import {
   catalogListReturnTo,
   catalogProductWorkspaceLink,
@@ -32,7 +34,7 @@ export function CatalogProductDetailActions({
   return (
     <footer
       aria-label="Actions du produit"
-      className="flex shrink-0 flex-wrap items-center gap-2 border-t bg-card px-5 py-3"
+      className="flex shrink-0 flex-wrap items-center justify-end gap-2 border-t bg-card px-3 py-2.5"
     >
       <Button variant="outline" asChild>
         <Link to={catalogProductWorkspaceLink(product.id!, "edit", returnTo)}>
@@ -51,7 +53,10 @@ export function CatalogProductDetailActions({
       </Button>
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
-          <Button variant="outline">Actions</Button>
+          <Button variant="outline" size="icon">
+            <HugeiconsIcon icon={MoreVerticalCircle01Icon} strokeWidth={2} />
+            <span className="sr-only">Actions</span>
+          </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end">
           {product.published && (

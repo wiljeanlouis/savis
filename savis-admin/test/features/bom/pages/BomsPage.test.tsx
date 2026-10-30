@@ -67,7 +67,11 @@ it("loads the full table without requesting individual costs", async () => {
   expect(
     await screen.findByRole("table", { name: "Liste des compositions" }),
   ).toBeVisible();
-  expect(screen.getAllByRole("columnheader")).toHaveLength(7);
+  expect(screen.getAllByRole("columnheader")).toHaveLength(6);
+  expect(screen.getByRole("columnheader", { name: "Rendement" })).toBeVisible();
+  expect(
+    screen.queryByRole("columnheader", { name: "Unité de rendement" }),
+  ).toBeNull();
   expect(screen.queryByRole("dialog")).toBeNull();
   expect(get.mock.calls.map(([url]) => url)).toEqual(["/boms"]);
 });
@@ -211,6 +215,24 @@ it("sorts before pagination and retains the original filters on close", async ()
   expect(router.state.location.search).toContain("sort=name-desc");
 });
 
+it("keeps the useful yield-unit filter and combines quantity and unit in Rendement", async () => {
+  const { router } = setup();
+  await screen.findByRole("table", { name: "Liste des compositions" });
+
+  await userEvent.click(screen.getByRole("button", { name: "Filtres" }));
+  await userEvent.click(
+    screen.getByRole("combobox", { name: "Unité de rendement" }),
+  );
+  await userEvent.click(screen.getByRole("option", { name: "piece" }));
+
+  expect(router.state.location.search).toContain("unit=piece");
+  expect(screen.getAllByRole("row")).toHaveLength(2);
+  expect(screen.getAllByRole("row")[1]).toHaveTextContent(
+    "Structure de 3 arches",
+  );
+  expect(screen.getAllByRole("row")[1]).toHaveTextContent("3 piece");
+});
+
 it("removes the retired component filter from old links and keeps useful filters in a popover", async () => {
   const { router } = setup(
     "/boms?components=WITH&unit=unknown&sort=name-desc&size=20&custom=keep",
@@ -225,8 +247,8 @@ it("removes the retired component filter from old links and keeps useful filters
   await userEvent.click(screen.getByRole("button", { name: "Filtres" }));
   expect(screen.getByRole("combobox", { name: "Activité" })).toBeVisible();
   expect(
-    screen.queryByRole("combobox", { name: "Unité de rendement" }),
-  ).toBeNull();
+    screen.getByRole("combobox", { name: "Unité de rendement" }),
+  ).toBeVisible();
   expect(screen.queryByRole("combobox", { name: "Composants" })).toBeNull();
   expect(screen.queryByRole("button", { name: /Plus de filtres/ })).toBeNull();
   await userEvent.click(

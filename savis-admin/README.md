@@ -70,6 +70,8 @@ pagination controls. Search, active/inactive status, page and page size (10, 20,
 30 or 50) live in URL parameters and are passed to the existing resource API;
 changing search, status or page size resets to the first page. Creation, editing,
 activation and associated-offer consultation retain their existing workflows.
+Associated offers open in the shared right-side detail drawer used by BOM and
+catalog product details.
 Acquisition tasks use the same framed table, page-size selector and pagination
 layout, retaining server sorting and URL filters. Shared table headers have a
 muted gray background across pages.
@@ -821,14 +823,15 @@ search/filter primitives. Search instructions sit inside the input, followed by 
 magnifying-glass button that focuses it; an accessible name remains available.
 The Products and BOM toolbar shows only search and “Filtres”, with a count of
 active filters (excluding search and sorting). A right-aligned popover opens below
-the button: publication/category for Products, type/activity for BOMs. Labels sit
+the button: publication/category for Products, type/yield unit/activity for BOMs. Labels sit
 beside selectors, changes apply immediately, Escape and outside clicks dismiss
 the panel, and keyboard dismissal restores focus. The panel fits the mobile
 viewport and scrolls if needed. “Effacer les filtres” clears these filters and
 resets page/selection, retaining search, sorting, page size and unrelated URL
-parameters. Retired Product `availability` and BOM `unit`/`components` parameters
-are removed from old links and no longer restrict results. Availability and yield
-units remain visible in details/table data. Resources uses the same popover for status and category, with category sent
+parameters. Retired Product `availability` and BOM `components` parameters are
+removed from old links and no longer restrict results. The useful BOM yield-unit
+filter remains available; quantity and unit appear together in the “Rendement”
+column and in details. Resources uses the same popover for status and category, with category sent
 to the existing server filter before pagination. Clearing filters retains search
 and page size. Sorting remains in table headers.
 

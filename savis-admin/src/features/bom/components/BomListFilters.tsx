@@ -19,12 +19,14 @@ export function BomListFilters({
   params,
   update,
   reset,
+  yieldUnits,
 }: {
   params: URLSearchParams;
   update: (key: string, value: string) => void;
   reset: () => void;
+  yieldUnits: string[];
 }) {
-  const count = ["type", "activity"].filter((key) => {
+  const count = ["type", "activity", "unit"].filter((key) => {
     const value = params.get(key);
     return value && value !== "ALL";
   }).length;
@@ -56,6 +58,16 @@ export function BomListFilters({
           ]}
         />
 
+        <ListSelectFilter
+          inPanel
+          label="Unité de rendement"
+          value={params.get("unit") ?? "ALL"}
+          onChange={(value) => update("unit", value)}
+          options={[
+            ["ALL", "Toutes les unités"],
+            ...yieldUnits.map((unit) => [unit, unit] as [string, string]),
+          ]}
+        />
         <ListSelectFilter
           inPanel
           label="Activité"

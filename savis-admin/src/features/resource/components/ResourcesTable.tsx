@@ -1,10 +1,10 @@
 import { Button } from "@/shared/ui/button";
-import { Edit02Icon } from "@hugeicons/core-free-icons";
+import { Edit02Icon, Files02Icon } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
 import { Spinner } from "@/shared/ui/spinner";
 import { Switch } from "@/shared/ui/switch";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/shared/ui/tooltip";
-import type { ColumnDef } from "@tanstack/react-table";
+import type { ColumnDef, SortingState } from "@tanstack/react-table";
 import { DataTable } from "@/shared/components/DataTable";
 import {
   resourceCategories,
@@ -66,7 +66,7 @@ const columns: ColumnDef<MaterialResource>[] = [
         .meta as ResourceTableMeta;
       return (
         <div className="whitespace-nowrap">
-          <div className="flex items-center gap-2">
+          <div className="flex items-center justify-center gap-2">
             <Switch
               checked={resource.status === "ACTIVE"}
               disabled={changingStatus}
@@ -99,6 +99,7 @@ const columns: ColumnDef<MaterialResource>[] = [
               variant="outline"
               onClick={() => onOffers(resource)}
             >
+              <HugeiconsIcon icon={Files02Icon} strokeWidth={2} />
               Offres
             </Button>
             <Tooltip>
@@ -147,6 +148,7 @@ export function ResourcesTable({
       columns={columns}
       data={resources}
       sorting={sorting}
+      columnAlignments={{ status: "center" }}
       onSortingChange={(updater) => {
         const next = typeof updater === "function" ? updater(sorting) : updater;
         if (next[0])

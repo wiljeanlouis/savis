@@ -1,6 +1,8 @@
 import { useId, type ReactNode } from "react";
 import { Button } from "@/shared/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@/shared/ui/popover";
+import { Filter } from "@hugeicons/core-free-icons";
+import { HugeiconsIcon } from "@hugeicons/react";
 
 export function ListFilterPopover({
   label,
@@ -18,6 +20,7 @@ export function ListFilterPopover({
     <Popover>
       <PopoverTrigger asChild>
         <Button variant="outline" type="button">
+          <HugeiconsIcon icon={Filter} strokeWidth={2} />
           Filtres{count > 0 ? ` · ${count}` : ""}
         </Button>
       </PopoverTrigger>

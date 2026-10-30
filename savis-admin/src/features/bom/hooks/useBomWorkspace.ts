@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useMemo } from "react";
 import { useSearchParams } from "react-router";
 import type { Bom } from "../types";
 const normalize = (s: string) =>
@@ -8,6 +8,15 @@ const normalize = (s: string) =>
     .toLowerCase();
 export function useBomWorkspace(boms?: Bom[]) {
   const [params, setParams] = useSearchParams();
+  const yieldUnits = useMemo(
+    () =>
+      [
+        ...new Set(
+          (boms ?? []).map((bom) => bom.yield.unit).filter((unit) => unit),
+        ),
+      ].sort((a, b) => a.localeCompare(b, "fr")),
+    [boms],
+  );
   const search = params.get("search") ?? "";
   const size = [10, 20, 30, 50].includes(Number(params.get("size")))
     ? Number(params.get("size"))
@@ -26,8 +35,10 @@ export function useBomWorkspace(boms?: Bom[]) {
     .filter((bom) => {
       const type = params.get("type");
       const activity = params.get("activity");
+      const unit = params.get("unit");
       return (
         (!type || type === "ALL" || bom.type === type) &&
+        (!unit || bom.yield.unit === unit) &&
         (!activity ||
           activity === "ALL" ||
           (activity === "NONE"
@@ -52,17 +63,19 @@ export function useBomWorkspace(boms?: Bom[]) {
       return order * comparison || (a.id ?? "").localeCompare(b.id ?? "");
     });
   useEffect(() => {
-    if (!params.has("components") && !params.has("unit")) return;
+    const unit = params.get("unit");
+    const invalidUnit = boms && unit && !yieldUnits.includes(unit);
+    if (!params.has("components") && !invalidUnit) return;
     setParams(
       (previous) => {
         const next = new URLSearchParams(previous);
         next.delete("components");
-        next.delete("unit");
+        if (invalidUnit) next.delete("unit");
         return next;
       },
       { replace: true },
     );
-  }, [params, setParams]);
+  }, [boms, params, setParams, yieldUnits]);
   useEffect(() => {
     const selectedId = params.get("selected");
     if (!boms || !selectedId || filtered.some((bom) => bom.id === selectedId))
@@ -108,8 +121,8 @@ export function useBomWorkspace(boms?: Bom[]) {
       const next = new URLSearchParams(previous);
       for (const key of [
         "type",
-        "unit",
         "activity",
+        "unit",
         "components",
         "page",
         "selected",
@@ -122,6 +135,7 @@ export function useBomWorkspace(boms?: Bom[]) {
     reset,
     params,
     search,
+    yieldUnits,
     size,
     filtered,
     totalPages,

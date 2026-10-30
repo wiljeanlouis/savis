@@ -85,7 +85,15 @@ describe("Compact product detail panel", () => {
     expect(header).toHaveClass("shrink-0");
     expect(header).not.toHaveClass("overflow-y-auto");
     expect(panel).toContainElement(footer);
-    expect(footer).toHaveClass("shrink-0", "bg-card", "border-t");
+    expect(footer).toHaveClass(
+      "shrink-0",
+      "bg-card",
+      "border-t",
+      "justify-end",
+    );
+    expect(within(footer).getByRole("button", { name: "Actions" })).toHaveClass(
+      "size-7",
+    );
     expect(
       within(footer).getByRole("link", { name: "Analyser" }),
     ).toBeInTheDocument();

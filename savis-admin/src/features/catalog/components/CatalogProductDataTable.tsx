@@ -4,6 +4,8 @@ import { Button } from "@/shared/ui/button";
 import { CatalogProductImage } from "./CatalogProductImage";
 import type { CatalogProduct } from "../types";
 import { productCategories } from "../types";
+import { ViewIcon } from "@hugeicons/core-free-icons";
+import { HugeiconsIcon } from "@hugeicons/react";
 import {
   startingPrice,
   productMoney,
@@ -101,6 +103,7 @@ const columns: ColumnDef<CatalogProduct>[] = [
             data-selected={product.id === selectedId}
             onClick={() => product.id && onSelect(product.id)}
           >
+            <HugeiconsIcon icon={ViewIcon} strokeWidth={2} />
             Détails
           </Button>
         </>
@@ -135,6 +138,11 @@ export function CatalogProductDataTable({
       ariaLabel="Liste des produits"
       showPagination={false}
       sorting={sorting}
+      columnAlignments={{
+        price: "right",
+        modes: "right",
+        compositions: "right",
+      }}
       meta={{ selectedId, onSelect }}
       getRowId={(row) => row.id!}
       isRowSelected={(row) => row.id === selectedId}

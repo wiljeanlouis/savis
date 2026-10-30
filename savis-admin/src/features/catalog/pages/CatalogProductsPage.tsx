@@ -12,6 +12,8 @@ import { CatalogProductDetails } from "../components/CatalogProductDetails";
 import { CatalogProductListFilters } from "../components/CatalogProductListFilters";
 import { useCatalogProductManagement } from "../hooks/useCatalogProductManagement";
 import { useCatalogProductList } from "../hooks/useCatalogProductList";
+import { HugeiconsIcon } from "@hugeicons/react";
+import { Add01Icon } from "@hugeicons/core-free-icons";
 
 export function CatalogProductsPage() {
   const management = useCatalogProductManagement();
@@ -29,7 +31,8 @@ export function CatalogProductsPage() {
             Consultez vos produits, leurs modes de vente et leurs compositions.
           </p>
         </div>
-        <Button asChild>
+        <Button>
+          <HugeiconsIcon icon={Add01Icon} strokeWidth={2} />
           <Link to="/catalog-products/new">Nouveau produit</Link>
         </Button>
       </header>

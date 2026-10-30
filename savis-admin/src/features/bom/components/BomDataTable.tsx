@@ -4,6 +4,8 @@ import { Button } from "@/shared/ui/button";
 import type { Bom } from "../types";
 import { BomImage } from "./BomImage";
 import { formatBomQuantity } from "../model/bomCostPresentation";
+import { ViewIcon } from "@hugeicons/core-free-icons";
+import { HugeiconsIcon } from "@hugeicons/react";
 type DetailsMeta = {
   selectedId?: string | null;
   onSelect: (id: string) => void;
@@ -34,15 +36,6 @@ const columns: ColumnDef<Bom>[] = [
     cell: ({ row }) => {
       const b = row.original;
       return <>{b.type === "FOOD" ? "Alimentaire" : "Matériel"}</>;
-    },
-  },
-  {
-    id: "unit",
-    accessorFn: (row) => row.yield.unit,
-    header: "Unité de rendement",
-    cell: ({ row }) => {
-      const b = row.original;
-      return <>{b.yield.unit}</>;
     },
   },
   {
@@ -88,6 +81,7 @@ const columns: ColumnDef<Bom>[] = [
             data-selected={selectedId === b.id}
             onClick={() => onSelect(b.id!)}
           >
+            <HugeiconsIcon icon={ViewIcon} strokeWidth={2} />
             Détails
           </Button>
         </>
@@ -125,6 +119,11 @@ export function BomDataTable({
       ariaLabel="Liste des compositions"
       showPagination={false}
       sorting={sorting}
+      columnAlignments={{
+        components: "right",
+        activities: "right",
+        yield: "right",
+      }}
       meta={{ selectedId, onSelect }}
       getRowId={(row) => row.id!}
       isRowSelected={(row) => row.id === selectedId}

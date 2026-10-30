@@ -34,6 +34,7 @@ import {
   ArrowUp01Icon,
   Sorting05Icon,
 } from "@hugeicons/core-free-icons";
+import { cn } from "@/shared/lib/utils";
 
 interface DataTableProps<TData, TValue> {
   columns: ColumnDef<TData, TValue>[];
@@ -51,6 +52,7 @@ interface DataTableProps<TData, TValue> {
   meta?: TableMeta<TData>;
   getRowId?: (row: TData) => string;
   isRowSelected?: (row: Row<TData>) => boolean;
+  columnAlignments?: Partial<Record<string, "left" | "center" | "right">>;
 }
 
 export function DataTable<TData, TValue>({
@@ -69,6 +71,7 @@ export function DataTable<TData, TValue>({
   meta,
   getRowId,
   isRowSelected,
+  columnAlignments = {},
 }: DataTableProps<TData, TValue>) {
   "use no memo";
 
@@ -130,17 +133,24 @@ export function DataTable<TData, TValue>({
                           ? "none"
                           : undefined
                   }
-                  className={
-                    header.id === "actions"
-                      ? "sticky right-0 z-20 w-px border-l bg-muted text-right"
-                      : undefined
-                  }
+                  className={cn(
+                    header.id === "actions" &&
+                      "sticky right-0 z-20 w-px border-l bg-muted text-right",
+                    columnAlignments[header.id] === "right" && "text-right",
+                    columnAlignments[header.id] === "center" && "text-center",
+                  )}
                 >
                   {header.isPlaceholder ? null : header.column.getCanSort() ? (
                     <Button
                       variant="ghost"
                       size="sm"
-                      className="-ml-3 h-8 px-3"
+                      className={
+                        columnAlignments[header.id] === "right"
+                          ? "h-8 w-full justify-end px-3 text-right"
+                          : columnAlignments[header.id] === "center"
+                            ? "h-8 w-full justify-center px-3 text-center"
+                            : "-ml-3 h-8 px-3"
+                      }
                       title={
                         header.column.getIsSorted() === "asc"
                           ? "Trier par ordre décroissant"
@@ -193,11 +203,14 @@ export function DataTable<TData, TValue>({
                 {row.getVisibleCells().map((cell) => (
                   <TableCell
                     key={cell.id}
-                    className={
-                      cell.column.id === "actions"
-                        ? "sticky right-0 z-10 w-px border-l bg-card text-right group-hover/row:bg-muted group-data-[state=selected]/row:bg-muted"
-                        : undefined
-                    }
+                    className={cn(
+                      cell.column.id === "actions" &&
+                        "sticky right-0 z-10 w-px border-l bg-card text-right group-hover/row:bg-muted group-data-[state=selected]/row:bg-muted",
+                      columnAlignments[cell.column.id] === "right" &&
+                        "text-right",
+                      columnAlignments[cell.column.id] === "center" &&
+                        "text-center",
+                    )}
                   >
                     {cell.column.id === "actions" ? (
                       <div className="ml-auto flex w-max min-w-max items-center justify-end gap-2">

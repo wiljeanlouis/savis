@@ -1,6 +1,7 @@
 import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { MemoryRouter } from "react-router";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { ResourcesPage } from "@/features/resource/pages/ResourcesPage";
 import { useResources } from "@/features/resource/hooks/useResources";
@@ -36,12 +37,18 @@ const resource = {
 };
 
 function renderPage(url = "/resources") {
+  const queryClient = new QueryClient({
+    defaultOptions: { queries: { retry: false, staleTime: Infinity } },
+  });
+  queryClient.setQueryData(["resource-offers", resource.id], []);
   render(
-    <TooltipProvider>
-      <MemoryRouter initialEntries={[url]}>
-        <ResourcesPage />
-      </MemoryRouter>
-    </TooltipProvider>,
+    <QueryClientProvider client={queryClient}>
+      <TooltipProvider>
+        <MemoryRouter initialEntries={[url]}>
+          <ResourcesPage />
+        </MemoryRouter>
+      </TooltipProvider>
+    </QueryClientProvider>,
   );
 }
 
@@ -52,7 +59,7 @@ async function openNewResource() {
   return screen.getByRole("dialog", { name: "Nouvelle ressource" });
 }
 
-describe("ResourcesPage modal editor", () => {
+describe("ResourcesPage", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     save.mockResolvedValue(resource);
@@ -76,6 +83,7 @@ describe("ResourcesPage modal editor", () => {
       "INACTIVE",
       10,
       undefined,
+      "name,asc",
     );
     const count = screen.getByText("45 ressources");
     expect(
@@ -90,6 +98,7 @@ describe("ResourcesPage modal editor", () => {
       "INACTIVE",
       10,
       undefined,
+      "name,asc",
     );
     await user.click(screen.getByRole("button", { name: "Filtres · 1" }));
     await user.click(
@@ -102,6 +111,7 @@ describe("ResourcesPage modal editor", () => {
       "ACTIVE",
       10,
       undefined,
+      "name,asc",
     );
     await user.keyboard("{Escape}");
     await user.click(
@@ -114,6 +124,7 @@ describe("ResourcesPage modal editor", () => {
       "ACTIVE",
       50,
       undefined,
+      "name,asc",
     );
     await user.type(
       screen.getByRole("textbox", { name: "Rechercher les ressources" }),
@@ -125,6 +136,7 @@ describe("ResourcesPage modal editor", () => {
       "ACTIVE",
       50,
       undefined,
+      "name,asc",
     );
   });
 
@@ -138,6 +150,7 @@ describe("ResourcesPage modal editor", () => {
       "ACTIVE",
       10,
       "INGREDIENT",
+      "name,asc",
     );
     await userEvent.click(screen.getByRole("button", { name: "Filtres · 2" }));
     expect(
@@ -151,6 +164,7 @@ describe("ResourcesPage modal editor", () => {
       "ACTIVE",
       10,
       "PACKAGING",
+      "name,asc",
     );
     await userEvent.click(
       screen.getByRole("button", { name: "Effacer les filtres" }),
@@ -161,6 +175,7 @@ describe("ResourcesPage modal editor", () => {
       undefined,
       10,
       undefined,
+      "name,asc",
     );
   });
 
@@ -172,6 +187,7 @@ describe("ResourcesPage modal editor", () => {
       undefined,
       20,
       undefined,
+      "name,asc",
     );
     expect(screen.getByRole("button", { name: "Précédent" })).toBeDisabled();
     expect(screen.getByRole("button", { name: "Offres" })).toBeVisible();
@@ -188,6 +204,23 @@ describe("ResourcesPage modal editor", () => {
       { id: resource.id, status: "INACTIVE" },
       expect.objectContaining({ onError: expect.any(Function) }),
     );
+  });
+
+  it("opens resource offers in the shared drawer and restores focus when closed", async () => {
+    const user = userEvent.setup();
+    renderPage();
+    const trigger = screen.getByRole("button", { name: "Offres" });
+    trigger.focus();
+    await user.click(trigger);
+
+    const drawer = screen.getByRole("dialog", { name: "Offres : Farine" });
+    expect(drawer).toHaveAttribute("data-slot", "sheet-content");
+    expect(within(drawer).getByText("Aucune offre associée.")).toBeVisible();
+    expect(drawer.querySelector('[data-slot="dialog-content"]')).toBeNull();
+
+    await user.keyboard("{Escape}");
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+    expect(trigger).toHaveFocus();
   });
 
   it("supports reactivating a resource from the switch", async () => {

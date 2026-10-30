@@ -11,11 +11,14 @@ import { PageSelector } from "@/shared/components/PageSelector";
 import { BomListFilters } from "./BomListFilters";
 import { BomDetails } from "./BomDetails";
 import { BomDataTable } from "./BomDataTable";
+import { HugeiconsIcon } from "@hugeicons/react";
+import { Add01Icon } from "@hugeicons/core-free-icons";
 export const BomList = () => {
   const management = useBomList();
   const {
     params,
     reset,
+    yieldUnits,
     size,
     filtered,
     totalPages,
@@ -35,11 +38,17 @@ export const BomList = () => {
             Définitions de fabrication des biens et services commercialisables.
           </p>
         </div>
-        <Button asChild>
+        <Button>
+          <HugeiconsIcon icon={Add01Icon} strokeWidth={2} />
           <Link to="/boms/add">Nouvelle composition</Link>
         </Button>
       </header>
-      <BomListFilters params={params} update={update} reset={reset} />
+      <BomListFilters
+        params={params}
+        update={update}
+        reset={reset}
+        yieldUnits={yieldUnits}
+      />
       {management.isLoading ? (
         <p role="status">Chargement des compositions…</p>
       ) : management.isError ? (

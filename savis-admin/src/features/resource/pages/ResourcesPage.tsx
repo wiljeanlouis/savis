@@ -1,5 +1,5 @@
-import { ResourceOffersDialog } from "../components/ResourceOffersDialog";
-import { useState } from "react";
+import { ResourceOffersDrawer } from "../components/ResourceOffersDrawer";
+import { useRef, useState } from "react";
 import { useSearchParams } from "react-router";
 import { toast } from "sonner";
 import { getApiErrorMessage } from "@/shared/api/apiError";
@@ -13,6 +13,8 @@ import { ResourcesTable } from "../components/ResourcesTable";
 import { ResourceListFilters } from "../components/ResourceListFilters";
 import { useResources } from "../hooks/useResources";
 import { ResourceEditorDialog } from "../components/ResourceEditorDialog";
+import { HugeiconsIcon } from "@hugeicons/react";
+import { Add01Icon } from "@hugeicons/core-free-icons";
 import {
   resourceCategories,
   type ResourceCategory,
@@ -51,6 +53,7 @@ export function ResourcesPage() {
     category,
     sort,
   );
+  const listRef = useRef<HTMLDivElement>(null);
   const updateParam = (key: string, value: string) => {
     const next = new URLSearchParams(params);
     if (value) next.set(key, value);
@@ -84,12 +87,16 @@ export function ResourcesPage() {
             et matériels de décoration.
           </p>
         </div>
-        <Button onClick={() => setEditor("new")}>Nouvelle ressource</Button>
+        <Button onClick={() => setEditor("new")}>
+          <HugeiconsIcon icon={Add01Icon} strokeWidth={2} />
+          Nouvelle ressource
+        </Button>
       </header>
       {offersResource && (
-        <ResourceOffersDialog
+        <ResourceOffersDrawer
           resource={offersResource}
           onClose={() => setOffersResource(null)}
+          listRef={listRef}
         />
       )}
       {editor && (
@@ -161,7 +168,7 @@ export function ResourcesPage() {
           Aucune ressource ne correspond aux filtres sélectionnés.
         </div>
       ) : (
-        <>
+        <div ref={listRef} className="min-w-0 space-y-3">
           <ResourcesTable
             resources={list.data.content}
             sort={sort}
@@ -176,7 +183,9 @@ export function ResourcesPage() {
                   id: resource.id,
                   status: resource.status === "ACTIVE" ? "INACTIVE" : "ACTIVE",
                 },
-                { onError: (error) => toast.error(getApiErrorMessage(error)) },
+                {
+                  onError: (error) => toast.error(getApiErrorMessage(error)),
+                },
               )
             }
           />
@@ -188,7 +197,7 @@ export function ResourcesPage() {
               goToNextPage={() => updateParam("page", String(page + 1))}
             />
           </nav>
-        </>
+        </div>
       )}
     </div>
   );
