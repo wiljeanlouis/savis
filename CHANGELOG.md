@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.13.0](https://github.com/wiljeanlouis/savis/compare/v1.12.0...v1.13.0) (2026-10-30)
+
+
+### Features
+
+* add batch resource controller for handling bulk resource requests ([c4c3447](https://github.com/wiljeanlouis/savis/commit/c4c3447440e43de811f96196f65fb9e5a9d89bcc))
+* implement batch resource fetching in ResourceJpaRepository and ResourceService ([c4c3447](https://github.com/wiljeanlouis/savis/commit/c4c3447440e43de811f96196f65fb9e5a9d89bcc))
+
 ## [1.12.0](https://github.com/wiljeanlouis/savis/compare/v1.11.0...v1.12.0) (2026-10-24)
 
 
