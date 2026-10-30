@@ -61,7 +61,7 @@ export function CatalogProductsPage() {
           error={management.error}
         />
       ) : (
-        <div className="grid items-start gap-5 lg:grid-cols-[minmax(0,2fr)_minmax(0,3fr)]">
+        <div className="grid items-start gap-5 lg:grid-cols-[minmax(0,1.1fr)_minmax(0,1fr)]">
           <div
             ref={listRef}
             className={

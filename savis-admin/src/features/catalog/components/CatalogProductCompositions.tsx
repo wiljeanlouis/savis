@@ -118,10 +118,6 @@ export function CatalogProductCompositions({
       <h3 id="product-compositions-title" className="text-sm font-semibold">
         Compositions ({compositionCount(product)})
       </h3>
-      <p className="text-sm leading-relaxed text-muted-foreground">
-        Les bases communes sont cumulatives ; les choix et ingrédients
-        conservent leurs règles de personnalisation.
-      </p>
       {!rows.length ? (
         <p className="text-sm text-muted-foreground">
           Aucune composition associée

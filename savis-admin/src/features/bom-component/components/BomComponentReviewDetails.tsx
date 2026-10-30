@@ -151,7 +151,7 @@ export function BomComponentReviewDetails({
         >
           <div>
             <p className="text-sm text-muted-foreground">Prix observé</p>
-            <p className="text-3xl leading-tight font-semibold tracking-tight tabular-nums">
+            <p className="text-2xl leading-tight font-semibold tracking-tight tabular-nums">
               {reviewPrice(offer)}
             </p>
           </div>

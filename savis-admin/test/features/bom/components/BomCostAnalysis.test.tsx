@@ -29,9 +29,11 @@ describe("BomCostAnalysis", () => {
       within(summary).queryByText("Sous-total connu"),
     ).not.toBeInTheDocument();
     expect(within(summary).getByText(format(22.412666667))).toBeVisible();
-    expect(
-      within(summary).getByText(`${format(22.412666667 / 4)} / portion`),
-    ).toBeVisible();
+    const unitCost = within(summary).getByText(
+      `${format(22.412666667 / 4)} / portion`,
+    );
+    expect(unitCost).toBeVisible();
+    expect(unitCost).toHaveClass("whitespace-nowrap");
     expect(within(summary).getByText("4 portion")).toBeVisible();
     expect(screen.getAllByText("Coût complet")).toHaveLength(1);
     expect(screen.queryByText(/Coût connu/)).not.toBeInTheDocument();

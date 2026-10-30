@@ -62,7 +62,7 @@ export const BomList = () => {
           <Button onClick={() => void management.refetch()}>Réessayer</Button>
         </ApiErrorAlert>
       ) : (
-        <div className="grid items-start gap-5 lg:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)] xl:grid-cols-[minmax(0,2fr)_minmax(0,3fr)]">
+        <div className="grid items-start gap-5 lg:grid-cols-[minmax(0,1.1fr)_minmax(0,1fr)]">
           <div
             ref={listRef}
             className={`${mobile ? "hidden lg:block" : ""} min-w-0 space-y-3`}

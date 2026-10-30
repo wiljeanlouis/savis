@@ -28,12 +28,18 @@ export function BomCostOverview({
   return (
     <section aria-label="Synthèse des coûts" className="space-y-3">
       <div className="flex flex-wrap items-start justify-between gap-4">
-        <dl className="grid flex-1 gap-5 sm:grid-cols-[minmax(0,1.2fr)_minmax(0,1fr)_minmax(0,1fr)]">
+        <dl
+          className={`grid min-w-0 flex-1 gap-5 ${
+            showYield
+              ? "sm:grid-cols-[minmax(0,1.2fr)_minmax(0,1fr)_minmax(0,1fr)]"
+              : "sm:grid-cols-[minmax(0,1.2fr)_minmax(0,1fr)]"
+          }`}
+        >
           <div>
             <dt className="text-sm text-muted-foreground">
               {costing.complete ? "Coût total" : "Sous-total connu"}
             </dt>
-            <dd className="mt-1 text-3xl font-semibold tracking-tight tabular-nums">
+            <dd className="mt-1 text-2xl font-semibold tracking-tight tabular-nums">
               {formatBomMoney(
                 costing.complete ? costing.totalCost : costing.knownSubtotal,
               )}
@@ -44,7 +50,7 @@ export function BomCostOverview({
               <dt className="text-xs text-muted-foreground">
                 Coût par unité produite
               </dt>
-              <dd className="mt-2 text-base font-medium tabular-nums">
+              <dd className="mt-1 whitespace-nowrap text-base font-medium tabular-nums">
                 {formatBomMoney(unitCost)} / {yieldUnit}
               </dd>
             </div>
