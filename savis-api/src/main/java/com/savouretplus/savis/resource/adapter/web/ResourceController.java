@@ -11,6 +11,7 @@ import lombok.AllArgsConstructor;
 import com.savouretplus.savis.resource.domain.ResourceCategory;
 import com.savouretplus.savis.resource.domain.ResourceStatus;
 import com.savouretplus.savis.resource.usecase.ResourceService;
+import com.savouretplus.savis.resource.port.ResourceSort;
 
 @RestController
 @RequestMapping("/api/resources")
@@ -21,8 +22,9 @@ public class ResourceController {
     @GetMapping public PageResponse list(@RequestParam(required = false) String search,
             @RequestParam(required = false) ResourceCategory category,
             @RequestParam(required = false) ResourceStatus status,
-            @RequestParam(defaultValue = "0") int page, @RequestParam(defaultValue = "20") int size) {
-        var result = service.search(search, category, status, page, size);
+            @RequestParam(defaultValue = "0") int page, @RequestParam(defaultValue = "20") int size,
+            @RequestParam(defaultValue = "name,asc") String sort) {
+        var result = service.search(search, category, status, page, size, parseSort(sort));
         return new PageResponse(result.content().stream().map(ResourceResponse::from).toList(), result.totalElements(), result.page(), result.size(), result.totalPages());
     }
 
@@ -43,6 +45,19 @@ public class ResourceController {
 
     @PatchMapping("/{id}/status") public ResourceResponse changeStatus(@PathVariable UUID id, @Valid @RequestBody StatusRequest request) {
         return ResourceResponse.from(service.changeStatus(id, request.status()));
+    }
+
+    private ResourceSort parseSort(String sort) {
+        return switch (sort.trim()) {
+            case "name,asc" -> ResourceSort.NAME_ASC;
+            case "name,desc" -> ResourceSort.NAME_DESC;
+            case "category,asc" -> ResourceSort.CATEGORY_ASC;
+            case "category,desc" -> ResourceSort.CATEGORY_DESC;
+            case "referenceUnit,asc" -> ResourceSort.UNIT_ASC;
+            case "referenceUnit,desc" -> ResourceSort.UNIT_DESC;
+            default -> throw new IllegalArgumentException(
+                    "Tri invalide. Valeurs permises : name,asc, name,desc, category,asc, category,desc, referenceUnit,asc, referenceUnit,desc");
+        };
     }
 
     public record StatusRequest(@NotNull(message = "Le statut est obligatoire") ResourceStatus status) {}

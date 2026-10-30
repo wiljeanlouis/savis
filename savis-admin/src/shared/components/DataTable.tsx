@@ -7,10 +7,11 @@ import {
   type OnChangeFn,
   type PaginationState,
   type SortingState,
+  type TableMeta,
+  type Row,
 } from "@tanstack/react-table";
 
 import { Button } from "@/shared/ui/button";
-import { Card, CardContent } from "@/shared/ui/card";
 import {
   Table,
   TableBody,
@@ -28,34 +29,46 @@ import {
   SelectValue,
 } from "@/shared/ui/select";
 import { HugeiconsIcon } from "@hugeicons/react";
-import { ArrowDown01Icon, ArrowUp01Icon } from "@hugeicons/core-free-icons";
+import {
+  ArrowDown01Icon,
+  ArrowUp01Icon,
+  Sorting05Icon,
+} from "@hugeicons/core-free-icons";
 
 interface DataTableProps<TData, TValue> {
   columns: ColumnDef<TData, TValue>[];
   data: TData[];
-  page: number;
-  pageSize: number;
-  totalPages: number;
-  sorting: SortingState;
-  onPageChange: (page: number) => void;
-  onPageSizeChange: (pageSize: number) => void;
-  onSortingChange: OnChangeFn<SortingState>;
+  page?: number;
+  pageSize?: number;
+  totalPages?: number;
+  sorting?: SortingState;
+  onPageChange?: (page: number) => void;
+  onPageSizeChange?: (pageSize: number) => void;
+  onSortingChange?: OnChangeFn<SortingState>;
   emptyMessage?: string;
   showPagination?: boolean;
+  ariaLabel?: string;
+  meta?: TableMeta<TData>;
+  getRowId?: (row: TData) => string;
+  isRowSelected?: (row: Row<TData>) => boolean;
 }
 
 export function DataTable<TData, TValue>({
   columns,
   data,
-  page,
-  pageSize,
-  totalPages,
-  sorting,
+  page = 1,
+  pageSize = 20,
+  totalPages = 1,
+  sorting = [],
   onPageChange,
   onPageSizeChange,
   onSortingChange,
   emptyMessage = "Aucun résultat.",
   showPagination = true,
+  ariaLabel,
+  meta,
+  getRowId,
+  isRowSelected,
 }: DataTableProps<TData, TValue>) {
   "use no memo";
 
@@ -69,6 +82,10 @@ export function DataTable<TData, TValue>({
   const table = useReactTable({
     data,
     columns,
+    meta,
+    getRowId,
+    enableSortingRemoval: false,
+    sortDescFirst: false,
     state: {
       sorting,
       pagination,
@@ -79,12 +96,12 @@ export function DataTable<TData, TValue>({
         typeof updater === "function" ? updater(pagination) : updater;
 
       if (next.pageSize !== pageSize) {
-        onPageSizeChange(next.pageSize);
+        onPageSizeChange?.(next.pageSize);
         return;
       }
 
       if (next.pageIndex !== page - 1) {
-        onPageChange(next.pageIndex + 1);
+        onPageChange?.(next.pageIndex + 1);
       }
     },
     getCoreRowModel: getCoreRowModel(),
@@ -95,81 +112,116 @@ export function DataTable<TData, TValue>({
   });
 
   return (
-    <div className="space-y-3">
-      <Card className="py-0">
-        <CardContent className="px-0">
-          <Table className="min-w-180">
-            <TableHeader>
-              {table.getHeaderGroups().map((headerGroup) => (
-                <TableRow key={headerGroup.id}>
-                  {headerGroup.headers.map((header) => (
-                    <TableHead key={header.id} colSpan={header.colSpan}>
-                      {header.isPlaceholder ? null : header.column.getCanSort() ? (
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          className="-ml-3 h-8 px-3"
-                          onClick={header.column.getToggleSortingHandler()}
-                        >
-                          {flexRender(
-                            header.column.columnDef.header,
-                            header.getContext(),
-                          )}
-                          {header.column.getIsSorted() === "asc" ? (
-                            <HugeiconsIcon
-                              icon={ArrowUp01Icon}
-                              strokeWidth={2}
-                            />
-                          ) : null}
-                          {header.column.getIsSorted() === "desc" ? (
-                            <HugeiconsIcon
-                              icon={ArrowDown01Icon}
-                              strokeWidth={2}
-                            />
-                          ) : null}
-                        </Button>
-                      ) : (
-                        flexRender(
-                          header.column.columnDef.header,
-                          header.getContext(),
-                        )
+    <div className="min-w-0 space-y-3">
+      <Table aria-label={ariaLabel} className="min-w-180">
+        <TableHeader>
+          {table.getHeaderGroups().map((headerGroup) => (
+            <TableRow key={headerGroup.id}>
+              {headerGroup.headers.map((header) => (
+                <TableHead
+                  key={header.id}
+                  colSpan={header.colSpan}
+                  aria-sort={
+                    header.column.getIsSorted() === "asc"
+                      ? "ascending"
+                      : header.column.getIsSorted() === "desc"
+                        ? "descending"
+                        : header.column.getCanSort()
+                          ? "none"
+                          : undefined
+                  }
+                  className={
+                    header.id === "actions"
+                      ? "sticky right-0 z-20 w-px border-l bg-muted text-right"
+                      : undefined
+                  }
+                >
+                  {header.isPlaceholder ? null : header.column.getCanSort() ? (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="-ml-3 h-8 px-3"
+                      title={
+                        header.column.getIsSorted() === "asc"
+                          ? "Trier par ordre décroissant"
+                          : "Trier par ordre croissant"
+                      }
+                      onClick={header.column.getToggleSortingHandler()}
+                    >
+                      {flexRender(
+                        header.column.columnDef.header,
+                        header.getContext(),
                       )}
-                    </TableHead>
-                  ))}
-                </TableRow>
+                      {!header.column.getIsSorted() && (
+                        <HugeiconsIcon
+                          icon={Sorting05Icon}
+                          strokeWidth={2}
+                          aria-hidden="true"
+                          className="text-muted-foreground"
+                        />
+                      )}
+                      {header.column.getIsSorted() === "asc" ? (
+                        <HugeiconsIcon icon={ArrowUp01Icon} strokeWidth={2} />
+                      ) : null}
+                      {header.column.getIsSorted() === "desc" ? (
+                        <HugeiconsIcon icon={ArrowDown01Icon} strokeWidth={2} />
+                      ) : null}
+                    </Button>
+                  ) : (
+                    flexRender(
+                      header.column.columnDef.header,
+                      header.getContext(),
+                    )
+                  )}
+                </TableHead>
               ))}
-            </TableHeader>
-            <TableBody>
-              {table.getRowModel().rows.length ? (
-                table.getRowModel().rows.map((row) => (
-                  <TableRow
-                    key={row.id}
-                    data-state={row.getIsSelected() && "selected"}
+            </TableRow>
+          ))}
+        </TableHeader>
+        <TableBody>
+          {table.getRowModel().rows.length ? (
+            table.getRowModel().rows.map((row) => (
+              <TableRow
+                key={row.id}
+                className="group/row"
+                data-state={
+                  (isRowSelected?.(row) ?? row.getIsSelected())
+                    ? "selected"
+                    : undefined
+                }
+              >
+                {row.getVisibleCells().map((cell) => (
+                  <TableCell
+                    key={cell.id}
+                    className={
+                      cell.column.id === "actions"
+                        ? "sticky right-0 z-10 w-px border-l bg-card text-right group-hover/row:bg-muted group-data-[state=selected]/row:bg-muted"
+                        : undefined
+                    }
                   >
-                    {row.getVisibleCells().map((cell) => (
-                      <TableCell key={cell.id}>
+                    {cell.column.id === "actions" ? (
+                      <div className="ml-auto flex w-max min-w-max items-center justify-end gap-2">
                         {flexRender(
                           cell.column.columnDef.cell,
                           cell.getContext(),
                         )}
-                      </TableCell>
-                    ))}
-                  </TableRow>
-                ))
-              ) : (
-                <TableRow>
-                  <TableCell
-                    colSpan={columns.length}
-                    className="h-24 text-center"
-                  >
-                    {emptyMessage}
+                      </div>
+                    ) : (
+                      flexRender(cell.column.columnDef.cell, cell.getContext())
+                    )}
                   </TableCell>
-                </TableRow>
-              )}
-            </TableBody>
-          </Table>
-        </CardContent>
-      </Card>
+                ))}
+              </TableRow>
+            ))
+          ) : (
+            <TableRow>
+              <TableCell colSpan={columns.length} className="h-24 text-center">
+                {emptyMessage}
+              </TableCell>
+            </TableRow>
+          )}
+        </TableBody>
+      </Table>
 
       {showPagination && (
         <div className="flex items-center justify-end gap-4">

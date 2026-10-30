@@ -12,5 +12,5 @@ public interface ResourceRepository {
     Optional<Resource> findByPublicId(UUID id);
     List<Resource> findByPublicIds(Collection<UUID> ids);
     Resource save(Resource resource);
-    ResourcePage search(String search, ResourceCategory category, ResourceStatus status, int page, int size);
+    ResourcePage search(String search, ResourceCategory category, ResourceStatus status, int page, int size, ResourceSort sort);
 }

@@ -13,7 +13,13 @@ import { ResourcesTable } from "../components/ResourcesTable";
 import { ResourceListFilters } from "../components/ResourceListFilters";
 import { useResources } from "../hooks/useResources";
 import { ResourceEditorDialog } from "../components/ResourceEditorDialog";
-import { type MaterialResource, type ResourceValues } from "../types";
+import {
+  resourceCategories,
+  type ResourceCategory,
+  type ResourceSort,
+  type MaterialResource,
+  type ResourceValues,
+} from "../types";
 
 export function ResourcesPage() {
   const [params, setParams] = useSearchParams();
@@ -24,6 +30,17 @@ export function ResourcesPage() {
     params.get("status") === "ACTIVE" || params.get("status") === "INACTIVE"
       ? (params.get("status") as MaterialResource["status"])
       : undefined;
+  const rawCategory = params.get("category");
+  const category =
+    rawCategory && Object.hasOwn(resourceCategories, rawCategory)
+      ? (rawCategory as ResourceCategory)
+      : undefined;
+  const rawSort = params.get("sort") ?? "";
+  const sort: ResourceSort = /^(name|category|referenceUnit),(asc|desc)$/.test(
+    rawSort,
+  )
+    ? (rawSort as ResourceSort)
+    : "name,asc";
   const rawSize = Number(params.get("size") ?? 20);
   const pageSize = [10, 20, 30, 50].includes(rawSize) ? rawSize : 20;
   const { list, save, changeStatus } = useResources(
@@ -31,6 +48,8 @@ export function ResourcesPage() {
     page,
     status,
     pageSize,
+    category,
+    sort,
   );
   const updateParam = (key: string, value: string) => {
     const next = new URLSearchParams(params);
@@ -85,8 +104,17 @@ export function ResourcesPage() {
       <ResourceListFilters
         search={search}
         status={status}
+        category={category}
         onSearchChange={(value) => updateParam("search", value)}
         onStatusChange={(value) => updateParam("status", value)}
+        onCategoryChange={(value) => updateParam("category", value)}
+        onClear={() =>
+          setParams((current) => {
+            const next = new URLSearchParams(current);
+            for (const key of ["status", "category", "page"]) next.delete(key);
+            return next;
+          })
+        }
       />
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="flex flex-wrap items-center gap-3">
@@ -136,6 +164,8 @@ export function ResourcesPage() {
         <>
           <ResourcesTable
             resources={list.data.content}
+            sort={sort}
+            onSort={(value) => updateParam("sort", value)}
             changingStatus={changeStatus.isPending}
             changingStatusId={changeStatus.variables?.id}
             onEdit={setEditor}

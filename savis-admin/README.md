@@ -78,19 +78,18 @@ muted gray background across pages.
 
 ### Manage Technical BOMs
 
-The `/boms` workspace uses compact selectable rows (40%) and a permanent
-consultation panel (60%) on desktop. Smaller screens open the selected detail
-at full width with a return button and focus restoration. Search (including
-instructions and component names), composition type (food/material), yield unit,
-activity type (including no activity), component presence, name sorting, page size,
-page and explicit selection are URL state. Filter changes reset page and selection;
-resetting filters preserves page size and unrelated URL parameters. Secondary
-activity/component filters and name sorting are grouped under “Plus de filtres”;
-active values remain summarized beside the filter controls when folded. The list
-uses restrained row dividers and emphasizes name and yield.
-Unit options come from all loaded BOMs, not the filtered page. No additional
-requests or valuations are needed for filtering. Filtering and pagination operate
-on the complete existing unpriced list response.
+The `/boms` workspace uses a full-width table with thumbnail/name, type, yield
+unit, component count, activity count, yield and a “Détails” action. Name, type,
+unit and counts sort ascending/descending through accessible column headers,
+before pagination of the complete unpriced list. Legacy `sort=asc|desc` links
+remain supported; column sorting uses `sort=<column>-asc|desc`.
+Search (including instructions and component names), type, activity,
+sorting, page size, page and explicit selection are URL state.
+Filter changes reset page and selection; resetting preserves size and unrelated
+parameters. Type and activity filters appear in a popover anchored below “Filtres”.
+The unit and component-presence filters are removed; old `unit` and `components`
+URL parameters are stripped without changing other list state. Costs and calculation quality remain in the detail drawer,
+so the table never requests one valuation per row or presents incomplete totals.
 
 Only the selected BOM loads `GET /boms/{id}`, through a TanStack Query cache.
 The panel prioritizes saved yield, cost completeness and cost, material resources,
@@ -657,7 +656,7 @@ The current Vitest suite covers:
 
 - BOM draft storage;
 - BOM full-page editing, section navigation, saving and draft cancellation;
-- BOM master-detail loading, URL search/selection, cached valuations, image fallbacks,
+- BOM table/drawer loading, URL search/selection, cached valuations, image fallbacks,
   responsive visibility, actions and navigation to detailed analysis;
 - list cache reuse and invalidation after BOM saves/deletions;
 - complete, incomplete and zero costs, diagnostics, provenance and display rounding;
@@ -726,8 +725,17 @@ actions.
 Retrieval by provider URL, editing review status and refresh frequency, immediate
 refresh scheduling, validation, rejection/invalidation, supplier links and
 confirmed deletion remain available. Supply retains manual creation, resource
-association and offer detail consultation. Its search, availability, sorting and
-pagination now also use URL state. Resource names are resolved for the current
+association and offer detail consultation. Its toolbar uses the shared search
+field and counted “Filtres” popover with availability and “Effacer les filtres”.
+The existing available-only default is reflected as one active filter; clearing
+shows all statuses and keeps search and sorting. The shared DataTable replaces
+the separate sort selector: Composant (`componentName`), Prix du paquet (`price`)
+and Dernière observation (`lastSeen`) expose ascending/descending server sorting
+with persistent neutral/active icons. Commercial product identity (thumbnail,
+label, brand) is separate from the sortable component name. Other columns remain
+non-sortable because the paginated API does not support them; no current-page
+sorting is used. Search, availability, sorting and pagination remain URL state.
+Changing sorting resets the server page and preserves other context. Resource names are resolved for the current
 page using one bounded `GET /resources/batch?ids=…`, never one request per row.
 Task monitoring retains its table and sorting/pagination, adds the existing
 server-side status/type filters, an explicit refresh button and retryable errors.
@@ -798,28 +806,57 @@ validation against actual operational products requires a running SAVIS API.
 
 ## Catalog product consultation
 
-`/catalog-products` uses the procurement review workspace conventions: compact
-selectable rows on the left (40%) and a permanent product detail panel on the
-right (60%) from the `lg` breakpoint. Smaller screens show the list first;
-selecting a product opens a full-width detail view with “Retour à la liste”.
-Focus moves to the detail on mobile and returns to the selected row on return.
-The panel scrolls independently and keeps its action footer available.
-
-Rows show a thumbnail or neutral placeholder, name, category, distinct linked
-BOM count, publication status, and the lowest active purchase-mode price (“Dès”
-when several modes are active). The detail includes the full description, all
-sale modes including inactive ones, and complete BOM names, explicitly separating
-common bases, choices and ingredients. Missing images, prices, modes and BOM
-associations have explicit fallback text.
-
+`/catalog-products` uses a full-width table with thumbnail/name, category,
+starting price, publication, sale-mode count (including inactive modes), distinct
+composition count and “Détails”. All data columns sort through their headers,
+ascending/descending, before pagination of the complete list response. Unknown
+starting prices remain last; currency codes group prices before numerical ordering.
 Search (name/code/description, accent-insensitive), category, publication,
-availability, name sorting, page size, page and explicit selection use URL search
-parameters. Filtering and pagination operate on the complete existing Catalog
-list response, not on a server-paginated subset. Changing selection preserves
-list state and performs no extra detail, BOM or pricing requests. Refreshed data
-preserves an explicit selected product, including when its sorted page changes;
-removing it falls back to the first product on the remaining valid page. Changing
-filters resets the page and selection. The cached unpriced BOM list resolves names.
+sorting (`sort=<column>-asc|desc`), page size, page and selection
+remain URL state. Filters reset page and selection. No per-row requests or pricing
+calculations are introduced. The cached unpriced BOM list resolves detail names.
+
+Resources, BOMs and Products share the same page-header scale and spacing and
+search/filter primitives. Search instructions sit inside the input, followed by a
+magnifying-glass button that focuses it; an accessible name remains available.
+The Products and BOM toolbar shows only search and “Filtres”, with a count of
+active filters (excluding search and sorting). A right-aligned popover opens below
+the button: publication/category for Products, type/activity for BOMs. Labels sit
+beside selectors, changes apply immediately, Escape and outside clicks dismiss
+the panel, and keyboard dismissal restores focus. The panel fits the mobile
+viewport and scrolls if needed. “Effacer les filtres” clears these filters and
+resets page/selection, retaining search, sorting, page size and unrelated URL
+parameters. Retired Product `availability` and BOM `unit`/`components` parameters
+are removed from old links and no longer restrict results. Availability and yield
+units remain visible in details/table data. Resources uses the same popover for status and category, with category sent
+to the existing server filter before pagination. Clearing filters retains search
+and page size. Sorting remains in table headers.
+
+Resources, BOMs and Products use the same shared `DataTable` with feature-owned
+columns. Its headers, sorting controls and action alignment share one renderer.
+The Actions column is pinned to the right within the table's horizontal scroll
+container, with an opaque header/cell background and intrinsic-width button group.
+Buttons remain side by side without shrinking. The page's flex containers allow
+shrinking so wide tables scroll internally instead of widening the page; row
+hover and selection also apply to pinned action cells.
+Sortable headers always show a neutral sorting icon before activation, then an
+ascending/descending arrow. A tooltip describes the next sorting direction;
+`aria-sort` exposes the current state. Non-sortable headers have no sorting icon.
+The shared `Table` primitive owns the rounded card frame, muted header, row
+spacing, hover and horizontal scrolling for all tables; pages do not add a second
+card frame. Resource sorting remains disabled on its server-paginated response.
+The tables use the installed TanStack Table core;
+the existing URL hooks perform sorting and pagination on the complete dataset.
+Both pages reuse their existing business detail components inside a shared right
+shadcn Sheet: 680 px maximum on desktop, full available width on mobile, fixed
+header/actions and independently scrollable content. No drawer opens until an
+explicit `selected` UUID is present in the URL. Opening pushes browser history;
+reload and back/forward restore the drawer. Closing by “Fermer” or Escape removes
+only selection, retains table context and restores focus to the invoking button
+(or a visible table action after a direct link). Invalid/deleted selections are
+removed without automatically selecting another row. Product mode details,
+cumulative bases, choices, ingredient customization and existing mutations are
+reused unchanged. Column order is fixed; no dependency was added.
 
 Creation, editing, publication/republication, withdrawal from SavouretPlus and
 confirmed deletion retain their existing hooks and API operations. “Analyser”
@@ -827,10 +864,10 @@ links to the existing `/catalog-products/:productId/analysis` page. The consulta
 page does not trigger or embed pricing calculations. No backend contract,
 business model or schema is changed.
 
-The product page tests cover selection and refresh, mode and BOM display, search,
-filters, pagination, existing actions, URL state, responsive visibility conventions,
-and loading, empty and error states. Responsive tests verify layout classes and
-list/detail behavior; they do not replace visual verification in a real browser.
+The product page tests cover table columns, sorting before pagination, search,
+filters, modes and composition groups, existing actions, URL restoration, keyboard
+opening, Escape and focus restoration, loading, empty and error states. Automated
+DOM tests do not replace visual verification of mobile and light/dark themes.
 
 Product detail links to analysis and editing carry a local `returnTo` URL with
 the list search, filters, sorting, page size, page and selected product. “Retour

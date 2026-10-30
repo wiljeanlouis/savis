@@ -1,4 +1,5 @@
-import { useEffect, useRef } from "react";
+import { useRef } from "react";
+import { DetailSheet } from "@/shared/components/DetailSheet";
 import { Link } from "react-router";
 import { ApiErrorAlert } from "@/shared/components/ApiErrorAlert";
 import { PageItemCount } from "@/shared/components/PageItemCount";
@@ -6,7 +7,7 @@ import { PageNavigator } from "@/shared/components/PageNavigator";
 import { PageSelector } from "@/shared/components/PageSelector";
 import { Button } from "@/shared/ui/button";
 import { Spinner } from "@/shared/ui/spinner";
-import { CatalogProductCompactList } from "../components/CatalogProductCompactList";
+import { CatalogProductDataTable } from "../components/CatalogProductDataTable";
 import { CatalogProductDetails } from "../components/CatalogProductDetails";
 import { CatalogProductListFilters } from "../components/CatalogProductListFilters";
 import { useCatalogProductManagement } from "../hooks/useCatalogProductManagement";
@@ -14,32 +15,22 @@ import { useCatalogProductList } from "../hooks/useCatalogProductList";
 
 export function CatalogProductsPage() {
   const management = useCatalogProductManagement();
-  const list = useCatalogProductList(management.products);
-  const detailRef = useRef<HTMLDivElement>(null);
+  const list = useCatalogProductList(
+    management.products,
+    !management.isLoading && !management.isError,
+  );
   const listRef = useRef<HTMLDivElement>(null);
-  useEffect(() => {
-    if (list.mobileDetail && window.matchMedia?.("(max-width: 1023px)").matches)
-      detailRef.current?.focus();
-  }, [list.mobileDetail, list.selected?.id]);
-  const backToList = () => {
-    list.showList();
-    requestAnimationFrame(() =>
-      listRef.current
-        ?.querySelector<HTMLButtonElement>('[aria-pressed="true"]')
-        ?.focus(),
-    );
-  };
   return (
-    <div className="min-w-0 space-y-5 dark:[--primary:#e078a4] dark:[--primary-foreground:#24131a]">
-      <header className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+    <div className="min-w-0 space-y-6 dark:[--primary:#e078a4] dark:[--primary-foreground:#24131a]">
+      <header className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h1 className="text-3xl font-semibold tracking-tight">Produits</h1>
+          <h1 className="text-2xl font-semibold">Produits</h1>
           <p className="text-sm text-muted-foreground">
             Consultez vos produits, leurs modes de vente et leurs compositions.
           </p>
         </div>
         <Button asChild>
-          <Link to="/catalog-products/new">Ajouter un produit</Link>
+          <Link to="/catalog-products/new">Nouveau produit</Link>
         </Button>
       </header>
       <CatalogProductListFilters
@@ -61,15 +52,8 @@ export function CatalogProductsPage() {
           error={management.error}
         />
       ) : (
-        <div className="grid items-start gap-5 lg:grid-cols-[minmax(0,1.1fr)_minmax(0,1fr)]">
-          <div
-            ref={listRef}
-            className={
-              list.mobileDetail && list.selected
-                ? "hidden min-w-0 space-y-3 lg:block"
-                : "min-w-0 space-y-3"
-            }
-          >
+        <div className="space-y-3">
+          <div ref={listRef} className="min-w-0 space-y-3">
             <div className="flex flex-wrap items-center justify-between gap-2">
               <PageItemCount
                 itemName="produit"
@@ -87,10 +71,12 @@ export function CatalogProductsPage() {
               </div>
             </div>
             {list.items.length ? (
-              <CatalogProductCompactList
+              <CatalogProductDataTable
                 products={list.items}
                 selectedId={list.selected?.id}
                 onSelect={list.select}
+                params={list.params}
+                onSort={(value) => list.update("sort", value)}
               />
             ) : (
               <div
@@ -109,41 +95,24 @@ export function CatalogProductsPage() {
               goToNextPage={() => list.changePage(list.page + 1)}
             />
           </div>
-          <div
-            ref={detailRef}
-            tabIndex={-1}
-            className={`${list.mobileDetail && list.selected ? "fixed inset-0 z-40 flex" : "hidden"} min-h-0 min-w-0 flex-col gap-2 bg-background p-3 outline-none lg:sticky lg:inset-auto lg:top-4 lg:z-auto lg:flex lg:bg-transparent lg:p-0`}
+          <DetailSheet
+            open={!!list.selected}
+            onClose={list.showList}
+            title="Détail du produit"
+            listRef={listRef}
           >
-            {list.selected ? (
-              <>
-                <Button
-                  variant="outline"
-                  className="shrink-0 self-start lg:hidden"
-                  onClick={backToList}
-                >
-                  Retour à la liste
-                </Button>
-                <CatalogProductDetails
-                  key={list.selected.id}
-                  product={list.selected}
-                  boms={management.boms}
-                  publishing={management.isPublishing}
-                  onPublish={() => management.publishProduct(list.selected!)}
-                  onUnpublish={() =>
-                    management.unpublishProduct(list.selected!)
-                  }
-                  onDelete={() => management.deleteProduct(list.selected!.id)}
-                />
-              </>
-            ) : (
-              <section
-                aria-label="Détail du produit"
-                className="border-y border-dashed p-8 text-center text-sm text-muted-foreground"
-              >
-                Aucun produit à consulter.
-              </section>
+            {list.selected && (
+              <CatalogProductDetails
+                key={list.selected.id}
+                product={list.selected}
+                boms={management.boms}
+                publishing={management.isPublishing}
+                onPublish={() => management.publishProduct(list.selected!)}
+                onUnpublish={() => management.unpublishProduct(list.selected!)}
+                onDelete={() => management.deleteProduct(list.selected!.id)}
+              />
             )}
-          </div>
+          </DetailSheet>
         </div>
       )}
     </div>

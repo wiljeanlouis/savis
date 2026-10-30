@@ -1,3 +1,4 @@
+import { productCategories } from "../types";
 import type { CatalogProduct, Money } from "../types";
 
 export function startingPrice(product: CatalogProduct): Money | null {
@@ -43,7 +44,6 @@ export function filterCatalogProducts(
   const search = normalized(params.get("search") ?? "").trim();
   const category = params.get("category");
   const publication = params.get("publication");
-  const availability = params.get("availability");
   return products
     .filter(
       (product) =>
@@ -54,18 +54,42 @@ export function filterCatalogProducts(
         (!category || category === "ALL" || product.category === category) &&
         (!publication ||
           publication === "ALL" ||
-          product.published === (publication === "PUBLISHED")) &&
-        (!availability ||
-          availability === "ALL" ||
-          product.available === (availability === "AVAILABLE")),
+          product.published === (publication === "PUBLISHED")),
     )
     .sort((a, b) => {
-      const order = params.get("sort") === "name-desc" ? -1 : 1;
+      const sort = params.get("sort") ?? "name-asc";
+      const order = sort.endsWith("-desc") ? -1 : 1;
+      const column = sort.split("-")[0];
+      let comparison: number;
+      if (column === "category")
+        comparison = (
+          productCategories.find((c) => c.value === a.category)?.label ??
+          a.category
+        ).localeCompare(
+          productCategories.find((c) => c.value === b.category)?.label ??
+            b.category,
+          "fr",
+        );
+      else if (column === "publication")
+        comparison = Number(a.published) - Number(b.published);
+      else if (column === "modes")
+        comparison = a.purchaseModes.length - b.purchaseModes.length;
+      else if (column === "compositions")
+        comparison = compositionCount(a) - compositionCount(b);
+      else if (column === "price") {
+        const first = startingPrice(a),
+          second = startingPrice(b);
+        // Unknown prices always follow known prices; currencies remain distinct.
+        if (!first || !second)
+          return first ? -1 : second ? 1 : a.name.localeCompare(b.name, "fr");
+        comparison =
+          first.currency.localeCompare(second.currency) ||
+          first.amount - second.amount;
+      } else comparison = a.name.localeCompare(b.name, "fr-CA");
       return (
-        order *
-        (a.name.localeCompare(b.name, "fr-CA") ||
-          a.code.localeCompare(b.code) ||
-          (a.id ?? "").localeCompare(b.id ?? ""))
+        order * comparison ||
+        a.name.localeCompare(b.name, "fr-CA") ||
+        (a.id ?? "").localeCompare(b.id ?? "")
       );
     });
 }

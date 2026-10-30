@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import { useSearchParams } from "react-router";
 import type { Bom } from "../types";
 const normalize = (s: string) =>
@@ -8,14 +8,10 @@ const normalize = (s: string) =>
     .toLowerCase();
 export function useBomWorkspace(boms?: Bom[]) {
   const [params, setParams] = useSearchParams();
-  const [mobileDetail, setMobileDetail] = useState(params.has("selected"));
   const search = params.get("search") ?? "";
   const size = [10, 20, 30, 50].includes(Number(params.get("size")))
     ? Number(params.get("size"))
     : 10;
-  const units = [
-    ...new Set((boms ?? []).map((bom) => bom.yield.unit).filter(Boolean)),
-  ].sort((a, b) => a.localeCompare(b, "fr"));
   const filtered = (boms ?? [])
     .filter((b) =>
       normalize(
@@ -29,31 +25,44 @@ export function useBomWorkspace(boms?: Bom[]) {
     )
     .filter((bom) => {
       const type = params.get("type");
-      const unit = params.get("unit");
       const activity = params.get("activity");
-      const components = params.get("components");
       return (
         (!type || type === "ALL" || bom.type === type) &&
-        (!unit || unit === "ALL" || bom.yield.unit === unit) &&
         (!activity ||
           activity === "ALL" ||
           (activity === "NONE"
             ? bom.activities.length === 0
-            : bom.activities.some((item) => item.type === activity))) &&
-        (!components ||
-          components === "ALL" ||
-          (components === "WITH"
-            ? bom.components.length > 0
-            : components === "WITHOUT"
-              ? bom.components.length === 0
-              : true))
+            : bom.activities.some((item) => item.type === activity)))
       );
     })
-    .sort(
-      (a, b) =>
-        a.name.localeCompare(b.name, "fr") *
-        (params.get("sort") === "desc" ? -1 : 1),
+    .sort((a, b) => {
+      const sort = params.get("sort") ?? "asc";
+      const column = sort.split("-")[0];
+      const order = sort === "desc" || sort.endsWith("-desc") ? -1 : 1;
+      const comparison =
+        column === "type"
+          ? a.type.localeCompare(b.type)
+          : column === "unit"
+            ? a.yield.unit.localeCompare(b.yield.unit, "fr")
+            : column === "components"
+              ? a.components.length - b.components.length
+              : column === "activities"
+                ? a.activities.length - b.activities.length
+                : a.name.localeCompare(b.name, "fr");
+      return order * comparison || (a.id ?? "").localeCompare(b.id ?? "");
+    });
+  useEffect(() => {
+    if (!params.has("components") && !params.has("unit")) return;
+    setParams(
+      (previous) => {
+        const next = new URLSearchParams(previous);
+        next.delete("components");
+        next.delete("unit");
+        return next;
+      },
+      { replace: true },
     );
+  }, [params, setParams]);
   useEffect(() => {
     const selectedId = params.get("selected");
     if (!boms || !selectedId || filtered.some((bom) => bom.id === selectedId))
@@ -81,12 +90,8 @@ export function useBomWorkspace(boms?: Bom[]) {
           Number.isSafeInteger(rawPage) && rawPage > 0 ? rawPage : 1,
         );
   const items = filtered.slice((page - 1) * size, page * size);
-  const selected =
-    filtered.find((b) => b.id === params.get("selected")) ?? items[0];
-  const mobile =
-    mobileDetail && !!selected && selected.id === params.get("selected");
+  const selected = filtered.find((b) => b.id === params.get("selected"));
   const update = (key: string, value: string, reset = true) => {
-    setMobileDetail(key === "selected");
     setParams((previous) => {
       const next = new URLSearchParams(previous);
       if (value) next.set(key, value);
@@ -99,16 +104,13 @@ export function useBomWorkspace(boms?: Bom[]) {
     });
   };
   const reset = () => {
-    setMobileDetail(false);
     setParams((previous) => {
       const next = new URLSearchParams(previous);
       for (const key of [
-        "search",
         "type",
         "unit",
         "activity",
         "components",
-        "sort",
         "page",
         "selected",
       ])
@@ -117,7 +119,6 @@ export function useBomWorkspace(boms?: Bom[]) {
     });
   };
   return {
-    units,
     reset,
     params,
     search,
@@ -127,8 +128,12 @@ export function useBomWorkspace(boms?: Bom[]) {
     page,
     items,
     selected,
-    mobile,
-    showList: () => setMobileDetail(false),
+    showList: () =>
+      setParams((previous) => {
+        const next = new URLSearchParams(previous);
+        next.delete("selected");
+        return next;
+      }),
     update,
   };
 }

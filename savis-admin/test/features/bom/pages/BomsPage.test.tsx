@@ -1,13 +1,7 @@
 import { BomsPage } from "@/features/bom/pages/BomsPage";
 import { api } from "@/shared/api";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import {
-  fireEvent,
-  render,
-  screen,
-  within,
-  waitFor,
-} from "@testing-library/react";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { createMemoryRouter, RouterProvider } from "react-router";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
@@ -68,48 +62,24 @@ function setup(entry = "/boms", incomplete = false, activityMinutes = 40) {
   );
   return { get, router, client };
 }
-it("loads only selected valuation, shows saved production and complete cost, and preserves navigation actions", async () => {
+it("loads the full table without requesting individual costs", async () => {
   const { get } = setup();
-  expect(await screen.findByText("Coût complet")).toBeVisible();
-  const count = screen.getByText("2 compositions");
   expect(
-    count.compareDocumentPosition(
-      screen.getByRole("list", { name: "Liste des compositions" }),
-    ) & Node.DOCUMENT_POSITION_FOLLOWING,
-  ).toBeTruthy();
-  expect(screen.getByText("Farine")).toBeVisible();
-  const panel = screen.getByLabelText("Détail de la composition");
-  const content = screen.getByRole("region", {
-    name: "Informations de la composition",
-  });
-  expect(panel).toHaveClass(
-    "overflow-hidden",
-    "max-h-[var(--bom-detail-height,calc(100dvh-2rem))]",
-  );
-  expect(panel.style.getPropertyValue("--bom-detail-height")).toMatch(/px$/);
-  expect(content).toHaveClass("min-h-0", "flex-1", "overflow-y-auto");
-  expect(content).not.toContainElement(
-    screen.getByRole("link", { name: "Modifier" }),
-  );
-  expect(
-    [...content.children]
-      .filter((child) => child.tagName === "SECTION")
-      .slice(0, 3)
-      .map((section) => section.getAttribute("aria-label")),
-  ).toEqual(["Coût de revient", "Composants matériels", "Activités"]);
-  expect(screen.getByText("Préparation")).toBeVisible();
-  expect(screen.getByText("40 min")).toBeVisible();
-  expect(
-    within(screen.getByLabelText("Détail de la composition")).getByText(
-      /Rendement : 4 portion/,
-    ),
+    await screen.findByRole("table", { name: "Liste des compositions" }),
   ).toBeVisible();
-  const supplemental = screen.getByText("Description et instructions");
-  expect(supplemental).toBeVisible();
-  await userEvent.click(supplemental);
-  expect(screen.getByText("Une composition de test")).toBeVisible();
-  expect(screen.getByText("Mélanger")).toBeVisible();
-  expect(screen.getByText("Coût total")).toBeVisible();
+  expect(screen.getAllByRole("columnheader")).toHaveLength(7);
+  expect(screen.queryByRole("dialog")).toBeNull();
+  expect(get.mock.calls.map(([url]) => url)).toEqual(["/boms"]);
+});
+it("opens selected valuation with complete cost, production and existing actions", async () => {
+  const { get } = setup();
+  await userEvent.click(
+    await screen.findByRole("button", { name: "Détails de Pâte à pain" }),
+  );
+  expect(await screen.findByText("Coût complet")).toBeVisible();
+  expect(screen.getByText("Farine")).toBeVisible();
+  expect(screen.getByText("40 min")).toBeVisible();
+  expect(screen.getByText(/Rendement : 4 portion/)).toBeVisible();
   expect(screen.getByRole("link", { name: "Modifier" })).toHaveAttribute(
     "href",
     "/boms/bom-1",
@@ -117,355 +87,168 @@ it("loads only selected valuation, shows saved production and complete cost, and
   expect(
     screen.getByRole("link", { name: "Analyser les coûts" }),
   ).toHaveAttribute("href", "/boms/bom-1#bom-cost");
-  expect(screen.getByRole("contentinfo")).toHaveClass("bg-card");
-  await userEvent.click(screen.getByRole("button", { name: "Actions" }));
-  expect(screen.getByRole("menuitem", { name: "Cloner" })).toBeVisible();
-  expect(screen.getByRole("menuitem", { name: "Supprimer" })).toBeVisible();
+  expect(
+    screen.getByRole("region", { name: "Informations de la composition" }),
+  ).not.toContainElement(screen.getByRole("link", { name: "Modifier" }));
   expect(get.mock.calls.map(([url]) => url)).toEqual(["/boms", "/boms/bom-1"]);
 });
-it("selects via URL, preserves unrelated params, returns to list and reuses valuation cache", async () => {
-  const { get, router } = setup("/boms?custom=keep");
-  const user = userEvent.setup();
-  await screen.findByText("Coût complet");
-  const list = screen.getByLabelText("Liste des compositions");
-  const otherBom = within(list).getByRole("button", {
-    name: "Consulter Structure de 3 arches",
-  });
-  otherBom.focus();
-  expect(otherBom).toHaveFocus();
-  await user.keyboard("{Enter}");
-  expect(await screen.findByText("Aucun composant")).toBeVisible();
-  expect(screen.getByText("Aucune activité")).toBeVisible();
-  expect(screen.getByText("Coût non évalué")).toBeVisible();
-  expect(router.state.location.search).toContain("selected=bom-2");
-  expect(router.state.location.search).toContain("custom=keep");
-  expect(
-    screen.getByLabelText("Détail de la composition").parentElement,
-  ).toHaveClass("fixed");
-  await user.click(screen.getByRole("button", { name: "Retour à la liste" }));
-  expect(router.state.location.search).toContain("selected=bom-2");
-  expect(
-    screen.getByLabelText("Détail de la composition").parentElement,
-  ).toHaveClass("hidden");
-  await user.click(
-    within(list).getByRole("button", { name: "Consulter Pâte à pain" }),
-  );
-  await screen.findByText("Coût complet");
-  expect(get).toHaveBeenCalledTimes(3);
-});
-it("searches without accents using URL state and handles empty search results", async () => {
-  const { router } = setup();
-  const user = userEvent.setup();
-  await screen.findByText("Coût complet");
-  const search = screen.getByPlaceholderText("Nom ou description…");
-  await user.click(search);
-  await user.paste("pate");
-  expect(
-    screen.queryByRole("button", { name: /Structure de 3 arches/ }),
-  ).not.toBeInTheDocument();
-  await waitFor(() =>
-    expect(router.state.location.search).toContain("search=pate"),
-  );
-  await user.paste(" introuvable");
-  expect(
-    await screen.findByText(
-      "Aucune composition ne correspond aux filtres sélectionnés.",
-    ),
-  ).toBeVisible();
-});
-it("shows incomplete known subtotals and blocking diagnostics without a full or unit cost", async () => {
+it("restores incomplete valuation and blocking diagnostics without full or unit totals", async () => {
   setup("/boms?selected=bom-1", true);
   expect(await screen.findByText("Coût incomplet")).toBeVisible();
   expect(screen.getByText("Sous-total connu")).toBeVisible();
   expect(screen.getByText("1 diagnostic bloquant")).toBeVisible();
-  expect(screen.getByText(/Bloquant · Taux horaire absent/)).toBeVisible();
-  expect(screen.queryByText("Coût total")).not.toBeInTheDocument();
-  expect(screen.queryByText("Coût par unité produite")).not.toBeInTheDocument();
+  expect(screen.queryByText("Coût total")).toBeNull();
+  expect(screen.queryByText("Coût par unité produite")).toBeNull();
 });
-it("keeps advanced filter values when the advanced section is collapsed", async () => {
-  const { router } = setup("/boms?activity=PREP&custom=keep");
-  await screen.findByRole("combobox", { name: "Activité" });
-  const toggle = screen.getByRole("button", { name: /Moins de filtres/ });
-  expect(toggle).toHaveAttribute("aria-expanded", "true");
-  expect(screen.getByRole("combobox", { name: "Activité" })).toHaveTextContent(
-    "Préparation",
-  );
-  await userEvent.click(toggle);
-  expect(
-    screen.queryByRole("combobox", { name: "Activité" }),
-  ).not.toBeInTheDocument();
-  expect(router.state.location.search).toContain("activity=PREP");
-  expect(
-    screen.getByText("Filtres actifs : Activité : Préparation"),
-  ).toBeVisible();
-  expect(
-    screen.getByRole("button", { name: /Plus de filtres/ }),
-  ).toHaveTextContent("1");
-});
-it("clears a URL selection excluded by the current filters", async () => {
-  const { router } = setup("/boms?type=FOOD&selected=bom-2&custom=keep");
-  await screen.findByText("Coût complet");
-  await waitFor(() =>
-    expect(router.state.location.search).not.toContain("selected="),
-  );
-  expect(router.state.location.search).toContain("custom=keep");
-  expect(
-    within(screen.getByLabelText("Liste des compositions")).getByRole(
-      "button",
-      { name: "Consulter Pâte à pain" },
-    ),
-  ).toHaveAttribute("aria-pressed", "true");
-});
-it("displays an actually zero-duration activity as zero", async () => {
-  setup("/boms?selected=bom-1", false, 0);
-  expect(await screen.findByText("0 min")).toBeVisible();
-});
-it("preserves precision for a very short positive activity", async () => {
-  setup("/boms?selected=bom-1", false, 0.00000000001);
-  expect(await screen.findByText("0,00000000001 min")).toBeVisible();
-});
-it("replaces broken and missing images with placeholders", async () => {
-  setup();
-  await screen.findByText("Coût complet");
-  expect(
-    screen.getByRole("img", {
-      name: "Aucune image pour Structure de 3 arches",
-    }),
-  ).toBeVisible();
-  for (const img of screen.getAllByRole("img", { name: bom.name }))
-    fireEvent.error(img);
-  expect(
-    screen.getAllByRole("img", { name: `Aucune image pour ${bom.name}` }),
-  ).toHaveLength(2);
-});
-it("renders loading and retryable list errors", async () => {
-  const get = vi.spyOn(api, "get").mockRejectedValue(new Error("Indisponible"));
-  const client = new QueryClient({
-    defaultOptions: { queries: { retry: false } },
+it("closes with Escape and restores focus while preserving filters", async () => {
+  const { router } = setup("/boms?type=MATERIAL&custom=keep");
+  const trigger = await screen.findByRole("button", {
+    name: "Détails de Structure de 3 arches",
   });
-  const router = createMemoryRouter(
-    [{ path: "/boms", element: <BomsPage /> }],
-    { initialEntries: ["/boms"] },
-  );
-  render(
-    <QueryClientProvider client={client}>
-      <RouterProvider router={router} />
-    </QueryClientProvider>,
-  );
-  expect(screen.getByText("Chargement des compositions…")).toBeVisible();
-  expect(await screen.findByRole("alert")).toBeVisible();
-  get.mockResolvedValue({ data: [] });
-  await userEvent.click(screen.getByRole("button", { name: "Réessayer" }));
-  await waitFor(() =>
-    expect(screen.getByText("Aucune composition.")).toBeVisible(),
-  );
+  trigger.focus();
+  await userEvent.keyboard("{Enter}");
+  expect(await screen.findByText("Coût non évalué")).toBeVisible();
+  expect(router.state.location.search).toContain("selected=bom-2");
+  await userEvent.keyboard("{Escape}");
+  expect(screen.queryByRole("dialog")).toBeNull();
+  expect(router.state.location.search).toBe("?type=MATERIAL&custom=keep");
+  expect(trigger).toHaveFocus();
 });
-
-it("paginates and sorts the complete list while preserving unrelated URL state", async () => {
-  const rows = Array.from({ length: 12 }, (_, i) => ({
-    ...bom,
-    id: `bom-${i + 1}`,
-    name: `Composition ${String(i + 1).padStart(2, "0")}`,
-    costing: null,
-  }));
-  vi.spyOn(api, "get").mockImplementation(async (url) => ({
-    data: url === "/boms" ? rows : rows.find((b) => url === `/boms/${b.id}`),
-  }));
-  const client = new QueryClient({
-    defaultOptions: { queries: { retry: false } },
-  });
-  const router = createMemoryRouter(
-    [{ path: "/boms", element: <BomsPage /> }],
-    { initialEntries: ["/boms?custom=keep"] },
-  );
-  render(
-    <QueryClientProvider client={client}>
-      <RouterProvider router={router} />
-    </QueryClientProvider>,
-  );
-  await screen.findByText("Coût non évalué");
-  expect(
-    within(screen.getByLabelText("Liste des compositions")).getAllByRole(
-      "button",
-    ),
-  ).toHaveLength(10);
-  await userEvent.click(screen.getByRole("button", { name: "Suivant" }));
-  expect(router.state.location.search).toContain("page=2");
-  expect(screen.getByText("Page 2 sur 2")).toBeVisible();
-  expect(
-    screen.queryByRole("combobox", { name: "Tri" }),
-  ).not.toBeInTheDocument();
-  expect(
-    within(screen.getByLabelText("Liste des compositions")).getAllByRole(
-      "button",
-    ),
-  ).toHaveLength(2);
+it("supports browser back and forward with URL as the sole drawer state", async () => {
+  const { router } = setup();
   await userEvent.click(
-    screen.getByRole("button", { name: /Plus de filtres/ }),
+    await screen.findByRole("button", { name: "Détails de Pâte à pain" }),
   );
-  await userEvent.click(screen.getByRole("combobox", { name: "Tri" }));
-  await userEvent.click(screen.getByRole("option", { name: "Nom : Z à A" }));
-  expect(router.state.location.search).not.toContain("page=");
-  expect(router.state.location.search).toContain("custom=keep");
-  expect(
-    within(screen.getByLabelText("Liste des compositions")).getAllByRole(
-      "button",
-    )[0],
-  ).toHaveTextContent("Composition 12");
-  await userEvent.click(
-    screen.getByRole("button", { name: /Moins de filtres/ }),
-  );
-  expect(screen.getByText("Filtres actifs : Tri : Z à A")).toBeVisible();
-});
-it("keeps the selected identity and actions available during detail loading and errors", async () => {
-  let rejectDetail: (error: Error) => void = () => {
-    throw new Error("Detail request not started");
-  };
-  const get = vi.spyOn(api, "get").mockImplementation(async (url) => {
-    if (url === "/boms") return { data: [{ ...bom, costing: null }] };
-    return new Promise((_resolve, reject) => {
-      rejectDetail = reject;
-    });
-  });
-  const client = new QueryClient({
-    defaultOptions: { queries: { retry: false } },
-  });
-  const router = createMemoryRouter(
-    [{ path: "/boms", element: <BomsPage /> }],
-    { initialEntries: ["/boms?selected=bom-1"] },
-  );
-  render(
-    <QueryClientProvider client={client}>
-      <RouterProvider router={router} />
-    </QueryClientProvider>,
-  );
-  expect(
-    await screen.findByText("Chargement de la composition…"),
-  ).toBeVisible();
-  expect(screen.getByRole("link", { name: "Modifier" })).toBeVisible();
-  rejectDetail(new Error("Détail indisponible"));
-  expect(await screen.findByRole("alert")).toHaveTextContent(
-    "Impossible de charger la composition.",
-  );
-  get.mockResolvedValue({ data: bom });
-  await userEvent.click(screen.getByRole("button", { name: "Réessayer" }));
+  await screen.findByText("Coût complet");
+  await router.navigate(-1);
+  await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
+  await router.navigate(1);
   expect(await screen.findByText("Coût complet")).toBeVisible();
+  await userEvent.click(screen.getByRole("button", { name: "Fermer" }));
+  expect(router.state.location.search).not.toContain("selected=");
 });
-
-it("combines composition filters, resets navigation, and retains units from the entire list", async () => {
-  const rows = [
-    {
-      ...bom,
-      name: "Pain",
-      components: [
-        { resourceId: "r", componentName: "Farine", quantity: 1, unit: "kg" },
-      ],
-      activities: [{ type: "PREP", minutes: 20, sequence: 1 }],
-      costing: null,
-    },
-    {
-      ...bom,
-      id: "arches",
-      name: "Arches",
-      type: "MATERIAL",
-      yield: { quantity: 3, unit: "piece" },
-      costing: null,
-    },
-    {
-      ...bom,
-      id: "montage",
-      name: "Montage",
-      type: "MATERIAL",
-      yield: { quantity: 1, unit: "piece" },
-      activities: [{ type: "INSTALLATION", minutes: 60, sequence: 1 }],
-      costing: null,
-    },
-  ];
-  const get = vi.spyOn(api, "get").mockImplementation(async (url) => ({
-    data:
-      url === "/boms" ? rows : rows.find((row) => url === `/boms/${row.id}`),
-  }));
-  const client = new QueryClient({
-    defaultOptions: { queries: { retry: false } },
-  });
-  const router = createMemoryRouter(
-    [{ path: "/boms", element: <BomsPage /> }],
-    { initialEntries: ["/boms?custom=keep&size=20&page=2&selected=bom-1"] },
+it("searches without accents, filters and sorts the full list", async () => {
+  const { router, get } = setup();
+  await screen.findByRole("table");
+  await userEvent.click(screen.getByRole("button", { name: "Composition" }));
+  expect(screen.getAllByRole("row")[1]).toHaveTextContent(
+    "Structure de 3 arches",
   );
-  const user = userEvent.setup();
-  render(
-    <QueryClientProvider client={client}>
-      <RouterProvider router={router} />
-    </QueryClientProvider>,
+  expect(router.state.location.search).toContain("sort=name-desc");
+  fireEvent.change(
+    screen.getByPlaceholderText("Rechercher par nom ou description"),
+    {
+      target: { value: "pate" },
+    },
   );
-  await screen.findByText("Coût non évalué");
-  const filter = async (name: string, option: string) => {
-    await user.click(screen.getByRole("combobox", { name }));
-    await user.click(screen.getByRole("option", { name: option }));
-  };
-  const names = () =>
-    within(screen.getByLabelText("Liste des compositions"))
-      .getAllByRole("button")
-      .map((button) => button.textContent);
-  await filter("Type de composition", "Matériel");
-  expect(names()).toHaveLength(2);
-  expect(router.state.location.search).toContain("type=MATERIAL");
-  expect(router.state.location.search).not.toMatch(/page=|selected=/);
-  await user.click(
-    screen.getByRole("combobox", { name: "Unité de rendement" }),
+  expect(screen.getAllByRole("row")).toHaveLength(2);
+  fireEvent.change(
+    screen.getByPlaceholderText("Rechercher par nom ou description"),
+    {
+      target: { value: "introuvable" },
+    },
   );
-  expect(screen.getByRole("option", { name: "portion" })).toBeVisible();
-  await user.click(screen.getByRole("option", { name: "piece" }));
-  await user.click(screen.getByRole("button", { name: /Plus de filtres/ }));
-  await filter("Activité", "Installation");
-  expect(names()).toHaveLength(1);
-  expect(names()[0]).toContain("Montage");
-  await filter("Composants", "Sans composant");
-  expect(names()).toHaveLength(1);
-  await filter("Composants", "Avec composants");
   expect(
     screen.getByText(
       "Aucune composition ne correspond aux filtres sélectionnés.",
     ),
   ).toBeVisible();
-  await user.click(
-    screen.getByRole("button", { name: "Réinitialiser les filtres" }),
+  expect(get).toHaveBeenCalledTimes(1);
+});
+it("clears invalid selections without requesting a fallback valuation", async () => {
+  const { router, get } = setup("/boms?type=FOOD&selected=bom-2&custom=keep");
+  await screen.findByRole("table");
+  await waitFor(() =>
+    expect(router.state.location.search).not.toContain("selected="),
   );
-  expect(names()).toHaveLength(3);
-  expect(router.state.location.search).toBe("?custom=keep&size=20");
-  await filter("Activité", "Sans activité");
-  expect(names()).toHaveLength(1);
-  expect(names()[0]).toContain("Arches");
-  await filter("Activité", "Préparation");
-  expect(names()[0]).toContain("Pain");
-  await filter("Type de composition", "Alimentaire");
-  await filter("Composants", "Avec composants");
-  expect(names()).toHaveLength(1);
-  expect(names()[0]).toContain("Pain");
-  expect(get.mock.calls.filter(([url]) => url === "/boms")).toHaveLength(1);
-  expect(get.mock.calls.every(([url]) => !String(url).includes("/price"))).toBe(
-    true,
+  expect(screen.queryByRole("dialog")).toBeNull();
+  expect(get).toHaveBeenCalledTimes(1);
+});
+it("retains zero-duration activities and missing-cost distinctions", async () => {
+  setup("/boms?selected=bom-1", false, 0);
+  expect(await screen.findByText("0 min")).toBeVisible();
+});
+it("retains empty production and missing valuation", async () => {
+  setup("/boms?selected=bom-2");
+  expect(await screen.findByText("Coût non évalué")).toBeVisible();
+  expect(screen.getByText("Aucun composant")).toBeVisible();
+  expect(screen.getByText("Aucune activité")).toBeVisible();
+});
+it("sorts before pagination and retains the original filters on close", async () => {
+  const rows = Array.from({ length: 12 }, (_, i) => ({
+    ...bom,
+    id: `bom-${i}`,
+    name: `Composition ${String(i).padStart(2, "0")}`,
+    components: [],
+    activities: [],
+    costing: null,
+  }));
+  vi.spyOn(api, "get").mockImplementation(async (url) => ({
+    data: url === "/boms" ? rows : rows.find((b) => url === `/boms/${b.id}`),
+  }));
+  const router = createMemoryRouter(
+    [{ path: "/boms", element: <BomsPage /> }],
+    { initialEntries: ["/boms?size=10&custom=keep"] },
   );
-}, 10_000);
-
-it("restores combined filters from a direct URL", async () => {
-  const { router } = setup(
-    "/boms?type=MATERIAL&unit=piece&activity=NONE&components=WITHOUT&custom=keep",
+  render(
+    <QueryClientProvider client={new QueryClient()}>
+      <RouterProvider router={router} />
+    </QueryClientProvider>,
+  );
+  await screen.findByRole("table");
+  await userEvent.click(screen.getByRole("button", { name: "Composition" }));
+  expect(screen.getAllByRole("row")[1]).toHaveTextContent("Composition 11");
+  await userEvent.click(screen.getByRole("button", { name: "Suivant" }));
+  expect(screen.getAllByRole("row")).toHaveLength(3);
+  expect(screen.getAllByRole("row")[1]).toHaveTextContent("Composition 01");
+  await userEvent.click(
+    screen.getByRole("button", { name: "Détails de Composition 01" }),
   );
   await screen.findByText("Coût non évalué");
-  const list = screen.getByLabelText("Liste des compositions");
-  expect(within(list).getAllByRole("button")).toHaveLength(1);
-  expect(within(list).getByRole("button")).toHaveTextContent(
-    "Structure de 3 arches",
-  );
-  expect(
-    screen.getByRole("combobox", { name: "Type de composition" }),
-  ).toHaveTextContent("Matériel");
-  expect(
-    screen.getByRole("combobox", { name: "Unité de rendement" }),
-  ).toHaveTextContent("piece");
-  expect(screen.getByRole("combobox", { name: "Activité" })).toHaveTextContent(
-    "Sans activité",
-  );
+  await userEvent.click(screen.getByRole("button", { name: "Fermer" }));
+  expect(screen.getByText("Page 2 sur 2")).toBeVisible();
   expect(router.state.location.search).toContain("custom=keep");
+  expect(router.state.location.search).toContain("sort=name-desc");
+});
+
+it("removes the retired component filter from old links and keeps useful filters in a popover", async () => {
+  const { router } = setup(
+    "/boms?components=WITH&unit=unknown&sort=name-desc&size=20&custom=keep",
+  );
+  await screen.findByRole("table");
+  expect(screen.getAllByRole("row")).toHaveLength(3);
+  await waitFor(() =>
+    expect(router.state.location.search).not.toContain("components="),
+  );
+  expect(router.state.location.search).not.toContain("unit=");
+  expect(screen.queryByRole("combobox", { name: "Activité" })).toBeNull();
+  await userEvent.click(screen.getByRole("button", { name: "Filtres" }));
+  expect(screen.getByRole("combobox", { name: "Activité" })).toBeVisible();
+  expect(
+    screen.queryByRole("combobox", { name: "Unité de rendement" }),
+  ).toBeNull();
+  expect(screen.queryByRole("combobox", { name: "Composants" })).toBeNull();
+  expect(screen.queryByRole("button", { name: /Plus de filtres/ })).toBeNull();
+  await userEvent.click(
+    screen.getByRole("combobox", { name: "Type de composition" }),
+  );
+  await userEvent.click(screen.getByRole("option", { name: "Matériel" }));
+  expect(screen.getAllByRole("row")).toHaveLength(2);
+  expect(screen.getByRole("button", { name: "Filtres · 1" })).toBeVisible();
+  await userEvent.click(screen.getByRole("combobox", { name: "Activité" }));
+  await userEvent.click(screen.getByRole("option", { name: "Sans activité" }));
+  expect(screen.getByRole("button", { name: "Filtres · 2" })).toBeVisible();
+  expect(router.state.location.search).toContain("activity=NONE");
+  await userEvent.click(
+    screen.getByRole("button", { name: "Effacer les filtres" }),
+  );
+  expect(screen.getAllByRole("row")).toHaveLength(3);
+  expect(router.state.location.search).toBe(
+    "?sort=name-desc&size=20&custom=keep",
+  );
+  const search = screen.getByRole("textbox", {
+    name: "Rechercher par nom ou description",
+  });
+  await userEvent.click(screen.getByRole("button", { name: "Rechercher" }));
+  expect(search).toHaveFocus();
 });

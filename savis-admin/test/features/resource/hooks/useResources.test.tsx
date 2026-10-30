@@ -34,6 +34,41 @@ const page: ResourcePage = {
 afterEach(() => vi.clearAllMocks());
 
 describe("useResources status mutation", () => {
+  it("passes category to the API and separates cached categories", async () => {
+    vi.mocked(listResources).mockResolvedValue(page);
+    const client = new QueryClient({
+      defaultOptions: { queries: { retry: false } },
+    });
+    const wrapper = ({ children }: { children: ReactNode }) => (
+      <QueryClientProvider client={client}>{children}</QueryClientProvider>
+    );
+    const { rerender } = renderHook(
+      ({ category }: { category: "INGREDIENT" | "PACKAGING" }) =>
+        useResources("farine", 2, "ACTIVE", 10, category),
+      { wrapper, initialProps: { category: "INGREDIENT" } },
+    );
+    await waitFor(() =>
+      expect(listResources).toHaveBeenLastCalledWith(
+        "farine",
+        2,
+        "ACTIVE",
+        10,
+        "INGREDIENT",
+      ),
+    );
+    rerender({ category: "PACKAGING" });
+    await waitFor(() =>
+      expect(listResources).toHaveBeenLastCalledWith(
+        "farine",
+        2,
+        "ACTIVE",
+        10,
+        "PACKAGING",
+      ),
+    );
+    expect(client.getQueryCache().getAll()).toHaveLength(2);
+    client.clear();
+  });
   it("optimistically changes status, restores it after failure, and refreshes the list", async () => {
     let rejectStatus!: (error: Error) => void;
     vi.mocked(listResources).mockResolvedValue(page);
@@ -52,7 +87,13 @@ describe("useResources status mutation", () => {
     });
     const queryKey = [
       "resources",
-      { search: "", page: 0, status: undefined, pageSize: 20 },
+      {
+        search: "",
+        page: 0,
+        status: undefined,
+        pageSize: 20,
+        category: undefined,
+      },
     ] as const;
     queryClient.setQueryData(queryKey, page);
     const wrapper = ({ children }: { children: ReactNode }) => (

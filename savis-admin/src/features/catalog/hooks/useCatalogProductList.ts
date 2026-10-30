@@ -1,12 +1,37 @@
-import { useState } from "react";
+import { useEffect } from "react";
 import { useSearchParams } from "react-router";
 import { filterCatalogProducts } from "../model/catalogProductList";
 import type { CatalogProduct } from "../types";
 
-export function useCatalogProductList(products: CatalogProduct[]) {
+export function useCatalogProductList(
+  products: CatalogProduct[],
+  loaded = true,
+) {
   const [params, setParams] = useSearchParams();
-  const [mobileDetail, setMobileDetail] = useState(false);
+  useEffect(() => {
+    if (!params.has("availability")) return;
+    setParams(
+      (current) => {
+        const next = new URLSearchParams(current);
+        next.delete("availability");
+        return next;
+      },
+      { replace: true },
+    );
+  }, [params, setParams]);
   const filtered = filterCatalogProducts(products, params);
+  useEffect(() => {
+    const id = params.get("selected");
+    if (!loaded || !id || filtered.some((product) => product.id === id)) return;
+    setParams(
+      (current) => {
+        const next = new URLSearchParams(current);
+        if (next.get("selected") === id) next.delete("selected");
+        return next;
+      },
+      { replace: true },
+    );
+  }, [loaded, filtered, params, setParams]);
   const size = Number(params.get("size"));
   const pageSize = [10, 20, 30, 50].includes(size) ? size : 20;
   const totalPages = Math.max(1, Math.ceil(filtered.length / pageSize));
@@ -22,8 +47,9 @@ export function useCatalogProductList(products: CatalogProduct[]) {
           Number.isSafeInteger(requested) && requested > 0 ? requested : 1,
         );
   const items = filtered.slice((page - 1) * pageSize, page * pageSize);
-  const selected =
-    items.find((product) => product.id === params.get("selected")) ?? items[0];
+  const selected = items.find(
+    (product) => product.id === params.get("selected"),
+  );
   const update = (key: string, value: string) => {
     setParams(
       (current) => {
@@ -35,18 +61,15 @@ export function useCatalogProductList(products: CatalogProduct[]) {
       },
       { replace: true },
     );
-    setMobileDetail(false);
   };
   const resetFilters = () => {
     setParams(
       (current) => {
         const next = new URLSearchParams(current);
         for (const key of [
-          "search",
           "category",
           "publication",
           "availability",
-          "sort",
           "page",
           "selected",
         ]) {
@@ -56,18 +79,13 @@ export function useCatalogProductList(products: CatalogProduct[]) {
       },
       { replace: true },
     );
-    setMobileDetail(false);
   };
   const select = (id: string) => {
-    setParams(
-      (current) => {
-        const next = new URLSearchParams(current);
-        next.set("selected", id);
-        return next;
-      },
-      { replace: true },
-    );
-    setMobileDetail(true);
+    setParams((current) => {
+      const next = new URLSearchParams(current);
+      next.set("selected", id);
+      return next;
+    });
   };
   const changePage = (nextPage: number) => {
     setParams(
@@ -79,7 +97,6 @@ export function useCatalogProductList(products: CatalogProduct[]) {
       },
       { replace: true },
     );
-    setMobileDetail(false);
   };
   return {
     params,
@@ -93,7 +110,11 @@ export function useCatalogProductList(products: CatalogProduct[]) {
     totalPages,
     totalItems: filtered.length,
     changePage,
-    mobileDetail,
-    showList: () => setMobileDetail(false),
+    showList: () =>
+      setParams((current) => {
+        const next = new URLSearchParams(current);
+        next.delete("selected");
+        return next;
+      }),
   };
 }

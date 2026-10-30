@@ -4,13 +4,15 @@ import {
   saveResource,
   setResourceStatus,
 } from "../api/resourceApi";
-import type { ResourcePage } from "../types";
+import type { ResourcePage, ResourceCategory, ResourceSort } from "../types";
 
 export function useResources(
   search: string,
   page: number,
   status?: "ACTIVE" | "INACTIVE",
   pageSize = 20,
+  category?: ResourceCategory,
+  sort: ResourceSort = "name,asc",
 ) {
   const client = useQueryClient();
   const refresh = async () => {
@@ -18,8 +20,12 @@ export function useResources(
   };
   return {
     list: useQuery({
-      queryKey: ["resources", { search, page, status, pageSize }],
-      queryFn: () => listResources(search, page, status, pageSize),
+      queryKey: [
+        "resources",
+        { search, page, status, pageSize, category, sort },
+      ],
+      queryFn: () =>
+        listResources(search, page, status, pageSize, category, sort),
     }),
     save: useMutation({ mutationFn: saveResource, onSuccess: refresh }),
     changeStatus: useMutation({

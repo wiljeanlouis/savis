@@ -25,3 +25,6 @@ export interface ResourcePage {
   size: number;
   totalPages: number;
 }
+
+export type ResourceSort =
+  `${"name" | "category" | "referenceUnit"},${"asc" | "desc"}`;

@@ -70,7 +70,13 @@ describe("ResourcesPage modal editor", () => {
   it("keeps search, status and page size in the URL and resets pagination on filter changes", async () => {
     const user = userEvent.setup();
     renderPage("/resources?search=farine&page=2&status=INACTIVE&size=10");
-    expect(useResources).toHaveBeenLastCalledWith("farine", 2, "INACTIVE", 10);
+    expect(useResources).toHaveBeenLastCalledWith(
+      "farine",
+      2,
+      "INACTIVE",
+      10,
+      undefined,
+    );
     const count = screen.getByText("45 ressources");
     expect(
       count.compareDocumentPosition(screen.getByRole("table")) &
@@ -78,17 +84,37 @@ describe("ResourcesPage modal editor", () => {
     ).toBeTruthy();
     expect(screen.getByText("Page 3 sur 3")).toBeInTheDocument();
     await user.click(screen.getByRole("button", { name: "Précédent" }));
-    expect(useResources).toHaveBeenLastCalledWith("farine", 1, "INACTIVE", 10);
+    expect(useResources).toHaveBeenLastCalledWith(
+      "farine",
+      1,
+      "INACTIVE",
+      10,
+      undefined,
+    );
+    await user.click(screen.getByRole("button", { name: "Filtres · 1" }));
     await user.click(
       screen.getByRole("combobox", { name: "Filtrer par statut" }),
     );
     await user.click(screen.getByRole("option", { name: "Actives" }));
-    expect(useResources).toHaveBeenLastCalledWith("farine", 0, "ACTIVE", 10);
+    expect(useResources).toHaveBeenLastCalledWith(
+      "farine",
+      0,
+      "ACTIVE",
+      10,
+      undefined,
+    );
+    await user.keyboard("{Escape}");
     await user.click(
       screen.getByRole("combobox", { name: "Résultats par page" }),
     );
     await user.click(screen.getByRole("option", { name: "50" }));
-    expect(useResources).toHaveBeenLastCalledWith("farine", 0, "ACTIVE", 50);
+    expect(useResources).toHaveBeenLastCalledWith(
+      "farine",
+      0,
+      "ACTIVE",
+      50,
+      undefined,
+    );
     await user.type(
       screen.getByRole("textbox", { name: "Rechercher les ressources" }),
       " blanche",
@@ -98,12 +124,55 @@ describe("ResourcesPage modal editor", () => {
       0,
       "ACTIVE",
       50,
+      undefined,
+    );
+  });
+
+  it("restores and changes category server filtering while retaining search, status and page size", async () => {
+    renderPage(
+      "/resources?search=farine&page=2&status=ACTIVE&size=10&category=INGREDIENT&custom=keep",
+    );
+    expect(useResources).toHaveBeenLastCalledWith(
+      "farine",
+      2,
+      "ACTIVE",
+      10,
+      "INGREDIENT",
+    );
+    await userEvent.click(screen.getByRole("button", { name: "Filtres · 2" }));
+    expect(
+      screen.getByRole("combobox", { name: "Catégorie" }),
+    ).toHaveTextContent("Ingrédient");
+    await userEvent.click(screen.getByRole("combobox", { name: "Catégorie" }));
+    await userEvent.click(screen.getByRole("option", { name: "Emballage" }));
+    expect(useResources).toHaveBeenLastCalledWith(
+      "farine",
+      0,
+      "ACTIVE",
+      10,
+      "PACKAGING",
+    );
+    await userEvent.click(
+      screen.getByRole("button", { name: "Effacer les filtres" }),
+    );
+    expect(useResources).toHaveBeenLastCalledWith(
+      "farine",
+      0,
+      undefined,
+      10,
+      undefined,
     );
   });
 
   it("uses safe defaults and changes status from the accessible switch", async () => {
     renderPage("/resources?page=-1&status=OTHER&size=999");
-    expect(useResources).toHaveBeenLastCalledWith("", 0, undefined, 20);
+    expect(useResources).toHaveBeenLastCalledWith(
+      "",
+      0,
+      undefined,
+      20,
+      undefined,
+    );
     expect(screen.getByRole("button", { name: "Précédent" })).toBeDisabled();
     expect(screen.getByRole("button", { name: "Offres" })).toBeVisible();
     expect(screen.getByRole("button", { name: "Modifier" })).toBeVisible();

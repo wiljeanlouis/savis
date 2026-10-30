@@ -13,6 +13,7 @@ import com.savouretplus.savis.resource.domain.Resource;
 import com.savouretplus.savis.resource.domain.ResourceCategory;
 import com.savouretplus.savis.resource.domain.ResourceStatus;
 import com.savouretplus.savis.resource.port.ResourcePage;
+import com.savouretplus.savis.resource.port.ResourceSort;
 import com.savouretplus.savis.resource.port.ResourceRepository;
 import com.savouretplus.savis.resource.api.ResourceCatalogApi;
 import com.savouretplus.savis.resource.api.ResourceCatalogApi.ResourceReference;
@@ -54,11 +55,11 @@ public class ResourceService implements ResourceCatalogApi {
         return repository.save(get(id).changeStatus(status));
     }
 
-    public ResourcePage search(String search, ResourceCategory category, ResourceStatus status, int page, int size) {
+    public ResourcePage search(String search, ResourceCategory category, ResourceStatus status, int page, int size, ResourceSort sort) {
         if (page < 0 || size < 1 || size > 100)
             throw new IllegalArgumentException("Pagination invalide : page positive ou nulle, taille entre 1 et 100");
         String term = Resource.normalizeName(search).toLowerCase(Locale.ROOT);
         if (term.length() > 160) throw new IllegalArgumentException("La recherche ne doit pas dépasser 160 caractères");
-        return repository.search(term, category, status, page, size);
+        return repository.search(term, category, status, page, size, Objects.requireNonNull(sort, "Le tri des ressources est obligatoire"));
     }
 }

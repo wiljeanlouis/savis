@@ -7,40 +7,12 @@ import { PageItemCount } from "@/shared/components/PageItemCount";
 import { PageSelector } from "@/shared/components/PageSelector";
 import { Button } from "@/shared/ui/button";
 import { ApiErrorAlert } from "@/shared/components/ApiErrorAlert";
-import { ButtonGroup } from "@/shared/ui/button-group";
-import { Field } from "@/shared/ui/field";
-import { Input } from "@/shared/ui/input";
-import { Label } from "@/shared/ui/label";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/shared/ui/select";
 import { Spinner } from "@/shared/ui/spinner";
-import { Search01Icon } from "@hugeicons/core-free-icons";
-import { HugeiconsIcon } from "@hugeicons/react";
+import { SupplyOfferListFilters } from "../components/SupplyOfferListFilters";
 import { SupplyOfferDetailsDialog } from "../components/SupplyOfferDetailsDialog";
-import { SupplyOfferListSorting } from "../components/SupplyOfferListSorting";
 import { SupplyOffersTable } from "../components/SupplyOffersTable";
 import { useSupplyOffers } from "../hooks/useSupplyOffers";
-import type {
-  SupplyOffer,
-  SupplyOfferSort,
-  SupplyOfferSortDirection,
-  SupplyOfferSortField,
-  SupplyOfferStatusFilter,
-} from "../types";
-
-const statusOptions: Array<{
-  value: SupplyOfferStatusFilter;
-  label: string;
-}> = [
-  { value: "AVAILABLE", label: "Disponibles" },
-  { value: "UNAVAILABLE", label: "Indisponibles" },
-  { value: "ALL", label: "Toutes" },
-];
+import type { SupplyOffer } from "../types";
 
 /** Read-only consultation page for offers persisted by Supply. */
 export function SupplyOffersPage() {
@@ -74,20 +46,6 @@ export function SupplyOffersPage() {
   const resourceNames = Object.fromEntries(
     (resources.data ?? []).map((resource) => [resource.id, resource.name]),
   );
-  const [sortBy, sortDirection] = sort.split(",") as [
-    SupplyOfferSortField,
-    SupplyOfferSortDirection,
-  ];
-
-  const changeSortBy = (value: SupplyOfferSortField) => {
-    setSort(`${value},${sortDirection}` as SupplyOfferSort);
-  };
-
-  const toggleSortDirection = () => {
-    const nextDirection = sortDirection === "asc" ? "desc" : "asc";
-    setSort(`${sortBy},${nextDirection}` as SupplyOfferSort);
-  };
-
   return (
     <div className="space-y-6">
       <header className="flex flex-wrap items-center justify-between gap-3">
@@ -102,55 +60,12 @@ export function SupplyOffersPage() {
       </header>
       {creating && <ManualOfferDialog onClose={() => setCreating(false)} />}
 
-      <section
-        aria-label="Filtres des offres"
-        className="flex flex-col gap-3 sm:flex-row sm:items-center"
-      >
-        <Field className="flex-1">
-          <ButtonGroup className="w-full">
-            <Input
-              id="supply-offer-search"
-              value={search}
-              aria-label="Rechercher dans les offres fournisseurs"
-              placeholder="Rechercher dans les offres fournisseurs"
-              onChange={(event) => setSearch(event.target.value)}
-            />
-            <Button variant="outline" type="button" aria-label="Rechercher">
-              <HugeiconsIcon icon={Search01Icon} strokeWidth={2} />
-            </Button>
-          </ButtonGroup>
-        </Field>
-
-        <div className="flex w-full items-center gap-2 sm:w-auto">
-          <Label
-            htmlFor="supply-offer-status"
-            className="whitespace-nowrap text-muted-foreground"
-          >
-            Filtrer par statut
-          </Label>
-          <Select
-            value={status}
-            onValueChange={(value) =>
-              setStatus(value as SupplyOfferStatusFilter)
-            }
-          >
-            <SelectTrigger
-              id="supply-offer-status"
-              className="flex-1 sm:w-48 sm:flex-none"
-              aria-label="Filtrer par statut"
-            >
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {statusOptions.map((option) => (
-                <SelectItem key={option.value} value={option.value}>
-                  {option.label}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-      </section>
+      <SupplyOfferListFilters
+        search={search}
+        status={status}
+        onSearchChange={setSearch}
+        onStatusChange={setStatus}
+      />
 
       <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
         <div className="flex flex-wrap items-center gap-2">
@@ -161,12 +76,6 @@ export function SupplyOffersPage() {
                 ? undefined
                 : result?.totalElements
             }
-          />
-          <SupplyOfferListSorting
-            sortBy={sortBy}
-            sortDirection={sortDirection}
-            onSortByChange={changeSortBy}
-            onToggleSortDirection={toggleSortDirection}
           />
           {query.isFetching && !query.isPending ? (
             <span className="text-sm text-muted-foreground">
@@ -220,6 +129,8 @@ export function SupplyOffersPage() {
           )}
           <SupplyOffersTable
             offers={offers}
+            sort={sort}
+            onSort={setSort}
             resourceNames={resourceNames}
             resourcesLoading={resourceIds.length > 0 && resources.isPending}
             onViewDetails={setSelectedOffer}
