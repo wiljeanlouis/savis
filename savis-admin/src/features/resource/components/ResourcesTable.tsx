@@ -1,6 +1,10 @@
-import { Badge } from "@/shared/ui/badge";
 import { Button } from "@/shared/ui/button";
 import { Card, CardContent } from "@/shared/ui/card";
+import { Edit02Icon } from "@hugeicons/core-free-icons";
+import { HugeiconsIcon } from "@hugeicons/react";
+import { Spinner } from "@/shared/ui/spinner";
+import { Switch } from "@/shared/ui/switch";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/shared/ui/tooltip";
 import {
   Table,
   TableHeader,
@@ -14,12 +18,14 @@ import { resourceCategories, type MaterialResource } from "../types";
 export function ResourcesTable({
   resources,
   changingStatus,
+  changingStatusId,
   onEdit,
   onOffers,
   onChangeStatus,
 }: {
   resources: MaterialResource[];
   changingStatus: boolean;
+  changingStatusId?: string;
   onEdit: (resource: MaterialResource) => void;
   onOffers: (resource: MaterialResource) => void;
   onChangeStatus: (resource: MaterialResource) => void;
@@ -50,20 +56,24 @@ export function ResourcesTable({
                 </TableCell>
                 <TableCell>{resourceCategories[resource.category]}</TableCell>
                 <TableCell>{resource.referenceUnit ?? "—"}</TableCell>
-                <TableCell>
-                  <Badge variant="outline">
-                    {resource.status === "ACTIVE" ? "Active" : "Inactive"}
-                  </Badge>
+                <TableCell className="whitespace-nowrap">
+                  <div className="flex items-center gap-2">
+                    <Switch
+                      checked={resource.status === "ACTIVE"}
+                      disabled={changingStatus}
+                      aria-label={`${resource.status === "ACTIVE" ? "Désactiver" : "Activer"} ${resource.name}`}
+                      onCheckedChange={() => onChangeStatus(resource)}
+                    />
+                    {changingStatus && changingStatusId === resource.id && (
+                      <Spinner
+                        role="status"
+                        aria-label={`Mise à jour du statut de ${resource.name}`}
+                      />
+                    )}
+                  </div>
                 </TableCell>
                 <TableCell>
                   <div className="flex justify-end gap-2">
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={() => onEdit(resource)}
-                    >
-                      Modifier
-                    </Button>
                     <Button
                       size="sm"
                       variant="outline"
@@ -71,14 +81,20 @@ export function ResourcesTable({
                     >
                       Offres
                     </Button>
-                    <Button
-                      size="sm"
-                      variant="ghost"
-                      disabled={changingStatus}
-                      onClick={() => onChangeStatus(resource)}
-                    >
-                      {resource.status === "ACTIVE" ? "Désactiver" : "Activer"}
-                    </Button>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Button
+                          type="button"
+                          size="icon"
+                          variant="ghost"
+                          aria-label="Modifier"
+                          onClick={() => onEdit(resource)}
+                        >
+                          <HugeiconsIcon icon={Edit02Icon} strokeWidth={2} />
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent>Modifier</TooltipContent>
+                    </Tooltip>
                   </div>
                 </TableCell>
               </TableRow>

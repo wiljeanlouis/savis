@@ -137,6 +137,7 @@ export function ResourcesPage() {
           <ResourcesTable
             resources={list.data.content}
             changingStatus={changeStatus.isPending}
+            changingStatusId={changeStatus.variables?.id}
             onEdit={setEditor}
             onOffers={setOffersResource}
             onChangeStatus={(resource) =>

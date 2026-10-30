@@ -4,6 +4,8 @@ import { MemoryRouter } from "react-router";
 import { beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { ResourcesPage } from "@/features/resource/pages/ResourcesPage";
 import { useResources } from "@/features/resource/hooks/useResources";
+import { TooltipProvider } from "@/shared/ui/tooltip";
+import { toast } from "sonner";
 
 vi.mock("@/features/resource/hooks/useResources");
 vi.mock("sonner", () => ({ toast: { success: vi.fn(), error: vi.fn() } }));
@@ -13,6 +15,14 @@ beforeAll(() => {
   HTMLElement.prototype.hasPointerCapture = vi.fn(() => false);
   HTMLElement.prototype.setPointerCapture = vi.fn();
   HTMLElement.prototype.releasePointerCapture = vi.fn();
+  vi.stubGlobal(
+    "ResizeObserver",
+    class {
+      observe = vi.fn();
+      unobserve = vi.fn();
+      disconnect = vi.fn();
+    },
+  );
 });
 
 const save = vi.fn();
@@ -27,9 +37,11 @@ const resource = {
 
 function renderPage(url = "/resources") {
   render(
-    <MemoryRouter initialEntries={[url]}>
-      <ResourcesPage />
-    </MemoryRouter>,
+    <TooltipProvider>
+      <MemoryRouter initialEntries={[url]}>
+        <ResourcesPage />
+      </MemoryRouter>
+    </TooltipProvider>,
   );
 }
 
@@ -89,17 +101,68 @@ describe("ResourcesPage modal editor", () => {
     );
   });
 
-  it("uses safe defaults for invalid URL values and preserves status actions", async () => {
+  it("uses safe defaults and changes status from the accessible switch", async () => {
     renderPage("/resources?page=-1&status=OTHER&size=999");
     expect(useResources).toHaveBeenLastCalledWith("", 0, undefined, 20);
     expect(screen.getByRole("button", { name: "Précédent" })).toBeDisabled();
-    await userEvent.click(screen.getByRole("button", { name: "Désactiver" }));
+    expect(screen.getByRole("button", { name: "Offres" })).toBeVisible();
+    expect(screen.getByRole("button", { name: "Modifier" })).toBeVisible();
+    expect(
+      screen.queryByRole("button", { name: "Désactiver" }),
+    ).not.toBeInTheDocument();
+    await userEvent.click(
+      screen.getByRole("switch", { name: "Désactiver Farine" }),
+    );
     expect(
       vi.mocked(useResources).mock.results.at(-1)?.value.changeStatus.mutate,
     ).toHaveBeenCalledWith(
       { id: resource.id, status: "INACTIVE" },
       expect.objectContaining({ onError: expect.any(Function) }),
     );
+  });
+
+  it("supports reactivating a resource from the switch", async () => {
+    const inactiveResource = { ...resource, status: "INACTIVE" as const };
+    const current = vi.mocked(useResources).getMockImplementation()!("", 0);
+    vi.mocked(useResources).mockReturnValue({
+      ...current,
+      list: {
+        ...current.list,
+        data: {
+          content: [inactiveResource],
+          totalPages: 3,
+          totalElements: 45,
+        },
+      },
+    } as ReturnType<typeof useResources>);
+    renderPage();
+    const statusSwitch = screen.getByRole("switch", {
+      name: "Activer Farine",
+    });
+    expect(statusSwitch).not.toBeChecked();
+    await userEvent.click(statusSwitch);
+    expect(
+      vi.mocked(useResources).mock.results.at(-1)?.value.changeStatus.mutate,
+    ).toHaveBeenCalledWith(
+      { id: resource.id, status: "ACTIVE" },
+      expect.objectContaining({ onError: expect.any(Function) }),
+    );
+  });
+
+  it("shows a notification when changing status fails", async () => {
+    const current = vi.mocked(useResources).getMockImplementation()!("", 0);
+    const mutate = vi.fn((_variables, options) => {
+      options.onError(new Error("Modification impossible"));
+    });
+    vi.mocked(useResources).mockReturnValue({
+      ...current,
+      changeStatus: { mutate, isPending: false },
+    } as unknown as ReturnType<typeof useResources>);
+    renderPage();
+    await userEvent.click(
+      screen.getByRole("switch", { name: "Désactiver Farine" }),
+    );
+    expect(toast.error).toHaveBeenCalledWith("Modification impossible");
   });
 
   it("shows an empty filtered result without a table", () => {
