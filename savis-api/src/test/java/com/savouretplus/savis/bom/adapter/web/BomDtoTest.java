@@ -101,9 +101,10 @@ public class BomDtoTest {
                 List.of(),
                 null);
 
-        BomDto dto = BomDto.from(bom, com.savouretplus.savis.common.Money.of(12));
+        BomDto dto = BomDto.from(bom, com.savouretplus.savis.bom.usecase.BomPricingMapper.from(bom.calculateCost(java.util.Map.of(), java.util.Map.of())));
 
-        Assertions.assertEquals(com.savouretplus.savis.common.Money.of(12), dto.price());
+        Assertions.assertEquals(com.savouretplus.savis.common.Money.ZERO, dto.price());
+        Assertions.assertTrue(dto.costing().complete());
     }
 
     @Test

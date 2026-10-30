@@ -51,6 +51,51 @@ class SupplyOfferControllerTest {
     }
 
     @Test
+    void associatesByPublicResourceUuidAndExposesIt() throws Exception {
+        UUID resource = UUID.randomUUID();
+        when(offers.associate(OFFER_ID, resource)).thenReturn(completeOffer().associatedWith(resource));
+        mockMvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put(
+                        "/api/supply/offers/" + OFFER_ID + "/resource")
+                .contentType("application/json").content("{\"resourceId\":\"" + resource + "\"}"))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.resourceId").value(resource.toString()));
+    }
+
+    @Test
+    void associationValidationReturnsFrenchProblemDetails() throws Exception {
+        UUID resource = UUID.randomUUID();
+        when(offers.associate(OFFER_ID, resource)).thenThrow(new IllegalArgumentException("Unités incompatibles"));
+        mockMvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put(
+                        "/api/supply/offers/" + OFFER_ID + "/resource")
+                .contentType("application/json").content("{\"resourceId\":\"" + resource + "\"}"))
+                .andExpect(status().isBadRequest()).andExpect(jsonPath("$.detail").value("Unités incompatibles"));
+    }
+
+    @Test
+    void createsManualOfferWithResourceAndExactPrice() throws Exception {
+        UUID resource = UUID.randomUUID();
+        when(offers.createManualOffer(any())).thenAnswer(invocation -> invocation.getArgument(0));
+        mockMvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post("/api/supply/offers")
+                .contentType("application/json").content("""
+                        {"resourceId":"%s","externalId":"external","providerName":"Fournisseur",
+                         "providerIdentifier":"provider","price":3.75,"currency":"CAD",
+                         "packageValue":2,"packageUnit":"kg"}
+                        """.formatted(resource)))
+                .andExpect(status().isCreated()).andExpect(jsonPath("$.resourceId").value(resource.toString()))
+                .andExpect(jsonPath("$.price.amount").value(3.75));
+    }
+
+    @Test
+    void resourceSearchPreservesUnavailableOffersUnlessRequestedOtherwise() throws Exception {
+        UUID resource = UUID.randomUUID();
+        when(offers.resourceOffers(resource)).thenReturn(List.of(completeOffer().associatedWith(resource),
+                completeOffer().associatedWith(resource).unavailable()));
+        mockMvc.perform(get("/api/supply/offers/resource/" + resource))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.length()").value(2));
+        mockMvc.perform(get("/api/supply/offers/resource/" + resource).param("availableOnly", "true"))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.length()").value(1));
+    }
+
+    @Test
     void listsAvailableOffersByDefaultWithExactMonetaryValues() throws Exception {
         when(offers.searchOfferCatalog(any())).thenReturn(new OfferCatalogPage(List.of(completeOffer()), 1, 1));
 
@@ -137,7 +182,7 @@ class SupplyOfferControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$[0].id").value(OFFER_ID.toString()))
                 .andExpect(jsonPath("$[0].componentName").value("farine"))
-                .andExpect(jsonPath("$[0].status").doesNotExist())
+                .andExpect(jsonPath("$[0].status").value("AVAILABLE"))
                 .andExpect(jsonPath("$[0].lastSeen").doesNotExist());
 
         verify(offers).searchAvailableOffers("farine");

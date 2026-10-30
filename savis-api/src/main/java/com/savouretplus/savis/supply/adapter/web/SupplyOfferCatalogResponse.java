@@ -33,6 +33,7 @@ public record SupplyOfferCatalogResponse(
     /** Read-only representation of one supplier offer. */
     public record OfferDto(
             UUID id,
+            UUID resourceId,
             String componentName,
             String label,
             String brand,
@@ -47,6 +48,7 @@ public record SupplyOfferCatalogResponse(
         static OfferDto from(Offer offer) {
             return new OfferDto(
                     offer.publicId(),
+                    offer.resourceId(),
                     offer.componentName(),
                     offer.label(),
                     offer.brand(),

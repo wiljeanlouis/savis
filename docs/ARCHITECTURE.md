@@ -268,9 +268,17 @@ flowchart TB
     subgraph Bom["BOM module"]
       BomWeb["Web adapters<br/>BomController<br/>ActivityRateController"]
       BomUse["Use cases<br/>BomService<br/>ActivityRateService"]
-      BomDomain["Domain<br/>Bom, Component, Activity<br/>Yield, ActivityRate"]
-      BomPorts["Ports and public API<br/>Repositories<br/>ComponentPricePort<br/>ComponentNeededEventPort<br/>BomPricingApi"]
+      BomDomain["Domain<br/>Bom, BomComponent, Activity<br/>Yield, ActivityRate"]
+      BomPorts["Ports and public API<br/>Repositories<br/>ComponentPricePort<br/>BomPricingApi"]
       BomAdapters["Adapters<br/>JPA<br/>Modulith event publisher<br/>Supply pricing"]
+    end
+
+    subgraph Resource["Resource module"]
+      ResourceWeb["Web adapter<br/>ResourceController"]
+      ResourceUse["Use case<br/>ResourceService"]
+      ResourceDomain["Domain<br/>Resource, category, status"]
+      ResourceApi["Public API<br/>ResourceCatalogApi"]
+      ResourcePersistence["Adapter<br/>JPA"]
     end
 
     subgraph Supply["Supply module"]
@@ -306,6 +314,7 @@ flowchart TB
   SupplyWeb --> SupplyUse --> SupplyDomain
   SupplyUse --> SupplyApi
   SupplyUse --> SupplyAdapters
+  SupplyUse -->|ResourceCatalogApi| ResourceApi
 
   CatalogWeb --> CatalogUse --> CatalogDomain
   CatalogUse --> CatalogPorts --> CatalogAdapters
@@ -314,6 +323,10 @@ flowchart TB
   OrderUse --> OrderPorts --> OrderAdapters
 
   BomAdapters -->|SupplyApi| SupplyUse
+  BomUse -->|ResourceCatalogApi| ResourceApi
+  ResourceWeb --> ResourceUse --> ResourceDomain
+  ResourceUse --> ResourceApi
+  ResourceUse --> ResourcePersistence
   CatalogAdapters -->|BomPricingApi| BomUse
   OrderAdapters -->|CatalogOrderingApi| CatalogUse
   OrderAdapters -->|BomRequirementsApi| BomUse
@@ -327,6 +340,15 @@ flowchart TB
 ### Module Boundaries
 
 - BOM consumes offer prices through `SupplyApi`.
+- Each BOM component references Resource by public UUID through `ResourceCatalogApi`;
+  BOM never accesses Resource persistence. Resource deactivation does not remove
+  historical BOM lines. Component names remain display/acquisition snapshots;
+  BOM valuation retrieves available offers by resource UUID in a batch. Explicit
+  selections must belong to the component resource or produce a blocking diagnostic.
+- Flyway V12 shares one Resource UUID per normalized legacy component name
+  (trimmed, whitespace collapsed, case ignored), after checking unit dimensions.
+  Existing Resource ambiguity or incompatible units abort atomically. BOM quantity,
+  selected offer, name snapshot and pricing inputs remain unchanged.
 - Catalog consumes BOM cost and yield through `BomPricingApi`.
 - Order consumes validated product snapshots through `CatalogOrderingApi` when
   an administrator creates an order, and consumes public Catalog, BOM, and
@@ -522,7 +544,9 @@ sequenceDiagram
 Activities store only their type and duration. Rates are global and are read
 when a BOM is priced, so a configuration change affects subsequent
 calculations without modifying existing BOM activities. A missing rate
-currently contributes zero.
+produces a missing activity line with a blocking diagnostic. An explicitly
+configured zero rate is known. COOK semantics remain unchanged and may represent
+elapsed oven time; separating equipment from labor belongs to the future phase.
 
 ### Manual Offer Retrieval
 
@@ -561,42 +585,21 @@ Manual retrieval is the preferred acquisition path when the operator knows the
 exact provider product URL. It is more precise and avoids broad provider search
 results.
 
-### BOM Creation and Automatic Offer Collection
+### BOM Save and Cost Consultation
 
-```mermaid
-sequenceDiagram
-  participant Admin as SAVIS Admin
-  participant Bom as API BOM module
-  participant Outbox as Modulith event_publication
-  participant Rabbit as RabbitMQ
-  participant Executor as Executor subscriber
-  participant PgExec as savis_executor
-  participant Worker as Celery worker
-  participant Provider as Provider website
-  participant Supply as API Supply module
+BOM creation, replacement and component changes validate Resource UUIDs, status
+and units, then persist the aggregate and resource name snapshots. They publish
+no acquisition event and enqueue no Executor task. Resource creation only
+persists business data; association validates an existing reference.
 
-  Admin->>Bom: Save BOM
-  Bom->>Bom: Persist aggregate
-  loop each component
-    Bom->>Outbox: Publish ComponentNeededEvent
-    Outbox->>Rabbit: Externalize ComponentNeededMessage
-  end
-  Rabbit->>Executor: savis.offer.requests
-  Executor->>PgExec: Persist GET_OFFERS task
-  Executor->>Rabbit: Enqueue Celery task
-  Rabbit->>Worker: Deliver task
-  Worker->>Provider: Search through Chrome CDP
-  Worker->>PgExec: Reconcile NEW offers
-  Worker->>PgExec: Mark task COMPLETED
-  Admin->>Executor: Review offer
-  Admin->>Executor: Mark offer VALID
-  Executor->>Rabbit: savis.offer.results
-  Rabbit->>Supply: Upsert available offer
-```
+Admin posts the BOM to `POST /api/boms`, then reloads `GET /api/boms/{id}`.
+Cost consultation batch-reads existing Supply offers by Resource UUID, retaining
+selected offers or choosing the cheapest compatible existing offer. Missing
+prices produce diagnostics and do not block saving.
 
-Automatic collection is a secondary coverage mechanism for BOM components
-without a known product URL. It is skipped when all configured providers
-already have offers for the requested search term and type.
+Explicit acquisition via Executor `POST /api/tasks` and independent scheduled
+refresh remain available. The RabbitMQ request contract is retained for
+compatibility; BOM saves no longer produce requests.
 
 ### Review, Invalidate, and Delete an Offer
 
@@ -780,7 +783,34 @@ sequenceDiagram
 ```
 
 Pricing recommendations are advisory and never mutate sale prices. Missing or
-non-calculable BOM references produce an `INCOMPLETE` result.
+non-calculable BOM references and internal missing BOM cost lines produce an
+`INCOMPLETE` result. The public BOM valuation includes component/activity lines,
+known subtotals, source diagnostics and nullable complete total. Catalog maps
+that DTO through its own port; no internal BOM model crosses the boundary.
+Incomplete analyses expose a known subtotal but no total/unit cost, margin or
+recommendation. Unexpected technical failures propagate instead of becoming
+missing-BOM diagnostics.
+
+The BOM list (`GET /api/boms`) returns composition data without invoking pricing,
+supplier prices or activity rates; `price` and `costing` remain null. Admin list
+cards contain no cost information. Its unpriced list cache (`["boms"]`) is fresh
+for 60 seconds and invalidated after saves/clones/deletions. The detail route
+loads `GET /api/boms/{id}` on entry and revalidates after a successful save,
+including the saved valuation for “Analyse des coûts”. Saving stays on detail;
+creation replaces the creation route with the new composition's detail route. The explicit `GET /api/boms/{id}/price` endpoint and the public
+`BomPricingApi` used by Catalog are preserved. Multi-BOM list pricing was removed;
+per-BOM component batching and supplier lookup caching remain used by detail and
+Catalog. The analysis shows grouped component/activity lines and diagnostics;
+identifiers and timestamps remain in secondary provenance disclosures. Backend `BigDecimal` subtotals are summed
+before display rounding. Admin formats each amount independently and preserves
+the received total, with a precision note explaining possible cent differences.
+This presentation does not change cost formulas, rate ownership or COOK semantics.
+
+Selected supplier references retain the existing deterministic policy: a resolved
+unavailable offer uses its last observed price with a warning; only an unresolved
+selected UUID falls back to the cheapest usable compatible offer. No RabbitMQ or
+Executor contract changes are involved. Calculation responses include the prices
+and rates used but are not historical persisted snapshots.
 
 ### Catalog Publication
 
@@ -939,13 +969,20 @@ on-hand stock.
 | -------------------------- | ---------------------------------------------------------------------------------------------- |
 | Activity rates             | Should rate changes be versioned or effective-dated for historical cost reproducibility?       |
 | Manual offer retrieval     | Should operators be able to cancel, retry, or resume a failed task from the Admin?             |
-| Automatic offer collection | Should duplicate component events have an explicit idempotency key or acquisition window?      |
+| Explicit offer collection | Acquisition is independent of BOM saving and pricing. |
 | Offer review               | Should review transitions record the operator, reason, and audit timestamp?                    |
 | Scheduled refresh          | Should per-provider schedules and concurrency limits be configurable independently?            |
 | Retry and scheduling       | Should failed integration messages use a dead-letter queue and an operator replay workflow?    |
 | Product management         | Should optional choice and ingredient BOMs be validated earlier with non-blocking diagnostics? |
 | Catalog pricing            | Should stored pricing snapshots preserve the assumptions used for a recommendation?            |
 | Catalog publication        | Should bulk publication reconcile deletions and newly unpublished products in Supabase?        |
+
+Resource catalog consultation keeps search/category/status filtering and
+name/category/reference-unit sorting inside the API Resource slice, before
+server pagination. Admin stores navigation in URL parameters and sends the
+existing filters plus a whitelisted `sort` parameter to `GET /api/resources`.
+The persistence adapter owns Criteria ordering and stable public-UUID tie-breaks;
+no client-side sort of a partial page or direct database access is introduced.
 
 ## Data Ownership
 
@@ -989,7 +1026,7 @@ forward-only.
 
 | Queue                       | Producer       | Consumer                | Purpose                                   |
 | --------------------------- | -------------- | ----------------------- | ----------------------------------------- |
-| `savis.offer.requests`      | API BOM module | Executor API subscriber | Request offer acquisition                 |
+| `savis.offer.requests`      | Retained API event adapter (unused by saves) | Executor API subscriber | Compatible acquisition request contract |
 | `savis.offer.results`       | Executor       | API Supply module       | Publish valid or refreshed offers         |
 | `savis.offer.invalidations` | Executor       | API Supply module       | Remove an offer from pricing availability |
 
@@ -1146,3 +1183,59 @@ Flyway runs as part of API startup before API readiness succeeds.
 - Quote requests exist in Supabase but are not yet managed by a SAVIS business
   module. Failed order inbox rows currently require manual review and reset to
   `pending` before retry.
+
+## Supply resource association
+
+Supply offers reference Resource by UUID. Admin supports manual offer creation,
+explicit association from offer details, and resource offer consultation. BOM and
+Catalog cost valuation use resource UUIDs and batched offer reads; foreign selected
+offers produce a blocking diagnostic. Executor messages remain compatible and
+discoveries await operator association. See [phase 2.3 migration and validation](SUPPLY_RESOURCE_MIGRATION.md)
+for V13 preflight, unresolved offers, HTTP contracts and verification.
+
+### Procurement review UI and resource labels
+
+The procurement workspace keeps Executor review (`/offers`), Supply
+consultation (`/supply/offers`), and acquisition tasks separate. Review defaults
+to `NEW`; accepting or rejecting uses the existing Executor PATCH and messaging
+workflow. Executor supports exact search-term filtering, not free-text product
+search or provider filtering. Task filtering supports status and type only.
+
+The current Supply catalog returns resource UUIDs without names. Existing
+Resource endpoints expose paginated search or individual reads, so they cannot
+resolve an arbitrary page of offers without N+1 calls or loading the full catalog.
+A bounded read-only `GET /api/resources/batch?ids=<uuid>,<uuid>` resolves up to
+100 distinct resource identifiers in one repository query. Admin requests
+only identifiers on the current Supply page. Missing references display an
+explicit unavailable-name label; unassociated offers display “Non associée”.
+This adds no persistence, module dependency, or synchronization process.
+
+### Catalog profitability presentation
+
+Admin exposes a dedicated read-only product analysis route. Catalog remains the
+sole financial calculator, through its existing configuration and worst-case
+analysis endpoints. TanStack Query caches each analyzed mode/configuration and
+invalidates these entries with the catalog product query prefix on product
+mutations. BOM names and yields come from one unpriced list read; no BOM pricing
+fan-out or frontend yield/contribution calculation is introduced. The analysis
+contract exposes aggregate costs and diagnostics, not per-BOM contributions;
+Admin explicitly identifies this presentation limit. Base BOM references remain
+cumulative, choice options remain alternatives, and allocated bundles retain
+Catalog's worst-case semantics. No service boundary, schema, or pricing formula
+changes are involved.
+
+Calculation quality resolves Catalog diagnostic `bomId` using the same cached
+unpriced BOM list as composition details. `BomPricingAdapter` attaches the public
+BOM UUID requested by Catalog; diagnostic `source` remains the component/activity
+label. `missingBomIds` records incomplete valuation, including existing BOMs,
+and must not be interpreted as a list of nonexistent references. Admin retains
+the original diagnostic and blocking status, displays known BOM names, and
+distinguishes unresolved references from unavailable name reads. No API contract,
+financial calculation or additional request is required.
+
+Catalog consultation at `/catalog-products` uses a master-detail presentation.
+Admin filters, sorts and paginates the complete existing Catalog list in memory;
+URL parameters preserve list state and explicit selection. Selection reuses the
+loaded product and unpriced BOM list without issuing detail or pricing requests.
+Editing and publication retain their existing Catalog operations, and analysis
+navigates to the dedicated profitability route above. No service contracts change.

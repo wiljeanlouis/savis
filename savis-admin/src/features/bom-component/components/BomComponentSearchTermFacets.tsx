@@ -1,3 +1,4 @@
+import type { BomComponentStatus } from "../types";
 import { Badge } from "@/shared/ui/badge";
 import { Button } from "@/shared/ui/button";
 import {
@@ -18,11 +19,13 @@ import { HugeiconsIcon } from "@hugeicons/react";
 import { useBomComponentSearchTermFacets } from "../hooks/useBomComponentSearchTermFacets";
 
 interface BomComponentSearchTermFacetsProps {
+  status?: BomComponentStatus;
   selectedSearchTerm?: string;
   onSearchTermChange: (searchTerm: string | undefined) => void;
 }
 
 export const BomComponentSearchTermFacets = ({
+  status,
   selectedSearchTerm,
   onSearchTermChange,
 }: BomComponentSearchTermFacetsProps) => {
@@ -36,19 +39,25 @@ export const BomComponentSearchTermFacets = ({
     onSearchTermChange: handleSearchTermChange,
     setSearchQuery,
   } = useBomComponentSearchTermFacets({
+    status,
     selectedSearchTerm,
     onSearchTermChange,
   });
 
-  if (!facets?.length) {
+  if (!facets?.length && !selectedSearchTerm) {
     return null;
   }
 
   const selectedLabel = currentSearchTerm ?? "Tous";
-  const selectedCount = selectedFacet?.count ?? totalCount;
+  const selectedCount = currentSearchTerm
+    ? (selectedFacet?.count ?? 0)
+    : totalCount;
 
   return (
-    <div className="flex flex-wrap items-center gap-2">
+    <div
+      className="flex flex-wrap items-center gap-2"
+      aria-label="Termes de recherche"
+    >
       <div className="flex min-w-0 items-center gap-2 py-1 text-sm">
         <span className="max-w-64 truncate">{selectedLabel}</span>
         <Badge variant="secondary">{selectedCount}</Badge>
@@ -73,7 +82,8 @@ export const BomComponentSearchTermFacets = ({
                 value={searchQuery}
                 onChange={(event) => setSearchQuery(event.target.value)}
                 onKeyDown={(event) => event.stopPropagation()}
-                placeholder="Filtrer les recherches"
+                aria-label="Rechercher un terme de recherche"
+                placeholder="Rechercher un terme de recherche"
                 className="pl-8"
               />
             </div>

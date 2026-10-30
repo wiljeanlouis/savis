@@ -34,6 +34,9 @@ public class BomPricingAdapter implements BomPricingPort {
         BomPricingApi.BomPricing pricing = bomPricingApi.getBomPricing(bomId);
         return new BomPricing(
                 pricing.totalCost(),
-                pricing.yieldQuantity());
+                pricing.yieldQuantity(), pricing.knownSubtotal(), pricing.complete(),
+                pricing.diagnostics().stream().map(diagnostic ->
+                        new com.savouretplus.savis.catalog.domain.CostDiagnostic(bomId, diagnostic.code(),
+                                diagnostic.source(), diagnostic.message(), diagnostic.blocking())).toList());
     }
 }

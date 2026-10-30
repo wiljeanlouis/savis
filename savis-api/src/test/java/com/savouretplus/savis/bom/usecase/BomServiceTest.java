@@ -22,12 +22,12 @@ import com.savouretplus.savis.bom.domain.Activity;
 import com.savouretplus.savis.bom.domain.ActivityRate;
 import com.savouretplus.savis.bom.domain.ActivityType;
 import com.savouretplus.savis.bom.domain.Bom;
+import com.savouretplus.savis.bom.port.ComponentPrice;
 import com.savouretplus.savis.bom.domain.BomType;
 import com.savouretplus.savis.bom.domain.Minute;
 import com.savouretplus.savis.bom.domain.Yield;
 import com.savouretplus.savis.bom.port.ActivityRateRepositoryPort;
 import com.savouretplus.savis.bom.port.BomRepositoryPort;
-import com.savouretplus.savis.bom.port.ComponentNeededEventPort;
 import com.savouretplus.savis.bom.port.ComponentPricePort;
 import com.savouretplus.savis.bom.port.ComponentPriceRequest;
 import com.savouretplus.savis.common.Money;
@@ -46,9 +46,6 @@ class BomServiceTest {
     @Mock
     ActivityRateRepositoryPort activityRateRepository;
 
-    @Mock
-    ComponentNeededEventPort componentNeededEventPublisher;
-
     @InjectMocks
     BomService bomService;
 
@@ -66,19 +63,19 @@ class BomServiceTest {
                 null);
         bom.addComponent("Flour", 200, Unit.GRAM, UUID.fromString("59960a6c-9491-473a-87e9-3244396096d6"));
 
-        Map<ComponentPriceRequest, Money> componentPrices = new LinkedHashMap<>();
-        componentPrices.put(bom.componentPriceRequests().get(0), Money.of(5));
+        Map<ComponentPriceRequest, ComponentPrice> componentPrices = new LinkedHashMap<>();
+        componentPrices.put(bom.componentPriceRequests().get(0), new ComponentPrice(Money.of(5), null, List.of()));
         when(priceCalculator.getPrices(bom.componentPriceRequests())).thenReturn(componentPrices);
         when(activityRateRepository.findAll())
                 .thenReturn(List.of(new ActivityRate(1L, ActivityType.PREP, Money.of(60))));
 
-        Money total = bomService.calculateTotalCost(bom);
+        Money total = bomService.calculateTotalCost(bom).totalCost();
 
         Assertions.assertEquals(0, total.amount().compareTo(Money.of(35).amount()));
         Assertions.assertEquals("CAD", total.currency());
         verify(priceCalculator).getPrices(bom.componentPriceRequests());
         verify(activityRateRepository).findAll();
-        verifyNoMoreInteractions(repository, priceCalculator, activityRateRepository, componentNeededEventPublisher);
+        verifyNoMoreInteractions(repository, priceCalculator, activityRateRepository);
     }
 
     @Test
@@ -98,13 +95,13 @@ class BomServiceTest {
         when(priceCalculator.getPrices(List.of())).thenReturn(Map.of());
         when(activityRateRepository.findAll()).thenReturn(List.of());
 
-        Money total = bomService.calculateTotalCost(publicId);
+        Money total = bomService.calculateTotalCost(publicId).totalCost();
 
         Assertions.assertEquals(Money.ZERO, total);
         verify(repository).findByPublicId(publicId);
         verify(priceCalculator).getPrices(List.of());
         verify(activityRateRepository).findAll();
-        verifyNoMoreInteractions(repository, priceCalculator, activityRateRepository, componentNeededEventPublisher);
+        verifyNoMoreInteractions(repository, priceCalculator, activityRateRepository);
     }
 
     @Test
@@ -135,4 +132,15 @@ class BomServiceTest {
         Assertions.assertEquals(Unit.GRAM, requirements.components().getFirst().unit());
         Assertions.assertEquals(offerId, requirements.components().getFirst().selectedOfferId());
     }
+    @Test
+    void publicPricingRepresentsMissingBomExplicitly() {
+        UUID id = UUID.randomUUID();
+        when(repository.findByPublicId(id)).thenReturn(Optional.empty());
+        var result = bomService.getBomPricing(id);
+        Assertions.assertFalse(result.complete());
+        Assertions.assertNull(result.totalCost());
+        Assertions.assertEquals("BOM_NOT_FOUND", result.diagnostics().getFirst().code());
+        verifyNoMoreInteractions(priceCalculator, activityRateRepository);
+    }
+
 }

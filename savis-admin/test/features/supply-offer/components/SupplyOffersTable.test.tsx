@@ -3,10 +3,12 @@ import { SupplyOffersTable } from "@/features/supply-offer/components/SupplyOffe
 import type { SupplyOffer } from "@/features/supply-offer/types";
 import { fireEvent, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { useState } from "react";
 import { describe, expect, it, vi } from "vitest";
 
 const offer: SupplyOffer = {
+  resourceId: null,
   id: "offer-123",
   componentName: "Farine",
   label: "Farine tout usage",
@@ -25,9 +27,22 @@ const offer: SupplyOffer = {
 };
 
 describe("SupplyOffersTable", () => {
+  it("displays resolved resource names without exposing UUIDs", () => {
+    render(
+      <SupplyOffersTable
+        offers={[{ ...offer, resourceId: "resource-uuid" }]}
+        resourceNames={{ "resource-uuid": "Farine de blé" }}
+        onViewDetails={vi.fn()}
+      />,
+    );
+    expect(screen.getByText("Farine de blé")).toBeInTheDocument();
+    expect(screen.queryByText("resource-uuid")).not.toBeInTheDocument();
+  });
+
   it("shows nullable values safely and provides a failed-image placeholder", () => {
     const nullableOffer: SupplyOffer = {
       ...offer,
+      resourceId: null,
       id: "offer-nullable",
       label: null,
       brand: null,
@@ -70,7 +85,11 @@ describe("SupplyOffersTable", () => {
       );
     }
 
-    render(<TestView />);
+    render(
+      <QueryClientProvider client={new QueryClient()}>
+        <TestView />
+      </QueryClientProvider>,
+    );
 
     const productLink = screen.getByRole("link", {
       name: "Ouvrir Farine tout usage chez le fournisseur",

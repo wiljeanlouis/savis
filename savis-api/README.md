@@ -29,7 +29,7 @@ PostgreSQL, and publishes a customer-facing catalog projection to Supabase.
 
 - Manage generic technical BOMs, components, activities, and yields.
 - Calculate BOM costs from provider offers and global activity rates.
-- Request offer acquisition for BOM component names.
+- Value BOM components using existing Supply offers.
 - Consume valid offer results and invalidations from SAVIS Executor.
 - Expose available offers for BOM component selection.
 - Manage product categories and sellable catalog products.
@@ -75,7 +75,7 @@ slices with domain, use-case, port, and adapter packages:
 ```text
 src/main/java/com/savouretplus/savis/
 |-- bom/
-|   |-- api/                    # Public BOM pricing interface
+|   |-- api/                    # Public pricing and requirements interfaces
 |   |-- domain/
 |   |-- usecase/
 |   |-- port/
@@ -85,6 +85,14 @@ src/main/java/com/savouretplus/savis/
 |   |   |-- messaging/
 |   |   `-- external/
 |   `-- config/
+|-- resource/
+|   |-- api/                    # Public ResourceCatalogApi reference view
+|   |-- domain/
+|   |-- usecase/
+|   |-- port/
+|   `-- adapter/
+|       |-- web/
+|       `-- persistence/
 |-- supply/
 |   |-- api/                    # Public offer pricing interface
 |   |-- domain/
@@ -116,6 +124,8 @@ The slices collaborate through explicit public contracts:
   through local ports to generate production-requirement reports.
 - Catalog stores BOM UUIDs as values and does not access BOM entities or
   repositories.
+- BOM validates component resource UUIDs through `ResourceCatalogApi`; the API
+  exposes an immutable reference view and never exposes Resource persistence.
 
 `SavisApiModularityTests` uses Spring Modulith to verify module boundaries and
 generate documentation snippets.
@@ -161,39 +171,146 @@ Supported activity types:
 
 #### BOM Cost
 
+BOM costing covers the existing component and activity scope only. Each line has
+an explicit `KNOWN`, `MISSING`, or explicitly justified `NOT_APPLICABLE` status.
+A known zero is valid; absent prices and rates are never inferred to be zero.
+
 For each component, the BOM slice:
 
-1. uses its selected offer when that UUID still resolves;
-2. otherwise searches for the cheapest available offer with a compatible unit;
-3. prorates the package price to the requested component quantity;
-4. returns zero when no priced compatible offer is available.
+1. uses its selected offer when that UUID resolves and belongs to its resource;
+2. otherwise searches for the cheapest available compatible offer of the same resource, retaining a
+   `SELECTED_OFFER_NOT_FOUND` warning when a selected UUID no longer resolves;
+3. prorates the package price to the requested component quantity.
 
-Component cost:
-
-```text
-offer price * requested base quantity / package base quantity
-```
-
-Activity cost:
-
-```text
-minutes / 60 * global hourly rate
-```
-
-Total BOM cost:
+A resolved selected offer marked unavailable retains its last observed price,
+with a non-blocking `SELECTED_OFFER_UNAVAILABLE` warning and **no automatic
+fallback**. This preserves the previous selection policy. A selected offer with
+missing price, invalid package, incompatible units, or another resource produces a missing line,
+without switching supplier silently. If no usable fallback exists, `OFFER_NOT_FOUND`
+explains that no available compatible priced package was found. Unexpected
+technical failures propagate as errors, rather than incomplete valuations.
 
 ```text
-sum(component costs) + sum(activity costs)
+component consumption cost = package price * requested base quantity / package base quantity
+activity cost = minutes / 60 * global hourly rate
+known subtotal = sum of known component and activity costs
 ```
 
-Missing activity rates contribute zero. BOM list responses include the
-calculated total price; the dedicated price endpoint recalculates one BOM.
+Consumption cost is not the budget for purchasing whole packages. Source data
+include the selected and used offer UUIDs, observation date, package price and
+size. Activity lines include the duration and hourly rate used. These are current
+calculation responses, not persisted historical snapshots.
+
+Missing activity rates produce `ACTIVITY_RATE_MISSING`; an explicitly configured
+zero rate remains known. Activity semantics and the existing formula are
+unchanged: **COOK may currently describe elapsed oven time, not human labor**.
+Separating labor, equipment and energy is deferred to the Resource/equipment phase.
+
+`GET /api/boms/{id}/price` now returns a structured `BomPricing` object, replacing
+the former bare `Money` response. It contains `knownSubtotal`, `componentSubtotal`,
+`activitySubtotal`, `components`, `activities`, `diagnostics`, `yieldQuantity`,
+`complete`, and nullable `totalCost`. Each line carries its own diagnostics;
+aggregate diagnostics retain their source and blocking/non-blocking distinction.
+A non-positive yield produces `INVALID_YIELD`, preserves the known batch subtotal,
+and prevents a complete valuation usable by Catalog.
+
+`GET /api/boms` returns composition data only: it does not consult supplier
+prices or activity rates, and does not calculate costs. The existing `price` and
+`costing` DTO fields remain null for compatibility. Components and activities
+remain available for search, cloning and Catalog's BOM selectors.
+
+`GET /api/boms/{id}` includes the detailed result in `costing`; the legacy `price`
+field contains only a complete total and is null for an incomplete BOM.
+`GET /api/boms/{id}/price` remains available for explicit cost analysis.
+The public `BomPricingApi` continues to serve Catalog without exposing internal
+BOM objects. The former multi-BOM list calculation has been removed because the
+list was its only consumer. Per-BOM `ComponentPricePort.getPrices` batching,
+request deduplication and supplier lookup caches remain active for detail and
+Catalog pricing, along with the activity-rate read for each BOM calculation.
 
 #### Component Acquisition
 
-After a BOM is saved, the BOM slice publishes one component-needed message per
-component. The payload contains the normalized component name and BOM type.
-SAVIS Executor decides whether a new acquisition task is necessary.
+BOM creation, replacement and component changes validate Resource references and
+persist the aggregate only. They publish no acquisition events and enqueue no
+scraping, even without offers. Cost reads use existing Supply offers only,
+preserving selected offers, cheapest-compatible fallback and missing-price
+diagnostics. Acquisition remains an explicit Executor task action or independent
+scheduled maintenance.
+
+### Resource-backed BOM Components
+
+Each saved BOM component now carries a `resourceId` UUID, a quantity/unit, and
+an optional selected offer UUID. The component row also keeps its resource name
+as a display/acquisition snapshot. BOM pricing uses the resource UUID, with a
+batched Supply lookup and strict selected-offer resource validation. BOM checks that
+new references point to active resources and that units share the same base
+unit (for example, `kg` and `g`). A component already attached to an inactive
+resource remains readable and can be saved without changing that reference.
+
+Flyway V12 groups legacy components by trimmed name with consecutive whitespace
+collapsed and case ignored. It performs no synonym, accent or approximate matching.
+Mass (`g`/`kg`) and volume (`ml`/`l`) are compatible within their dimension;
+`piece` and legacy `portion` each form separate dimensions. Unknown units, blank
+names and incompatible dimensions abort with the normalized name and component IDs.
+A portion maps only to a Resource with no physical reference unit.
+
+One existing resource with the same normalized name and compatible dimension is
+reused without changing its UUID or metadata (including status). Multiple matches
+or incompatible existing units abort with the matching UUIDs for explicit review.
+Otherwise one resource is created with a deterministic UUID derived from the name,
+and a base reference unit (`GRAM`, `MILLILITER`, `PIECE`, or null for portions).
+All-material groups use `DECORATION_MATERIAL`; other physical groups use
+`INGREDIENT`. Portions use `DECORATION_MATERIAL`. Names over 160 characters abort.
+Component IDs, original names, quantities, units and selected offers stay unchanged;
+no quantities are converted and pricing continues to use the original snapshots.
+
+V12 was replaced during development with the user's confirmation that no retained
+database has received it. Do not use Flyway repair to conceal a checksum mismatch
+on another environment: stop and prepare a reviewed forward migration instead.
+For production, back up the database, validate data and run the complete Flyway
+chain on a restored staging copy first. Apply with application writers stopped.
+A preflight failure rolls back the entire migration; correct the reported source
+data explicitly and retry. Flyway history prevents replay after success.
+No reset, deletion or automatic consolidation of pre-existing resources occurs.
+
+Real PostgreSQL migration tests (use an isolated empty database, never business data):
+
+```bash
+docker run --rm -d --name savis-bom-migration-test \
+  -e POSTGRES_PASSWORD=postgres -p 127.0.0.1:55439:5432 postgres:18.3-alpine
+BOM_MIGRATION_TEST_URL=jdbc:postgresql://127.0.0.1:55439/postgres \
+  ./mvnw -Dtest=BomResourceMigrationTest test
+docker stop savis-bom-migration-test
+```
+
+Wait for PostgreSQL readiness before running Maven. The tests roll back each fixture
+and its DDL. Run these tests explicitly against an isolated PostgreSQL database;
+without the environment variable they are skipped, including in CI.
+
+Post-migration integrity checks:
+
+```sql
+select count(*) as components_without_resource
+from savis_api.bom_components where resource_id is null;
+
+select count(*) as broken_resource_references
+from savis_api.bom_components component
+left join savis_api.resources resource on resource.public_id = component.resource_id
+where resource.public_id is null;
+
+-- Expected: no rows (multiple resources referenced for one component name).
+select lower(trim(regexp_replace(component_name, '[[:space:]]+', ' ', 'g'))) as normalized_name,
+       count(distinct resource_id) as resource_count,
+       array_agg(distinct resource_id) as resource_ids
+from savis_api.bom_components
+group by 1 having count(distinct resource_id) > 1;
+
+-- Also inspect duplicate names anywhere in the independent Resource catalog.
+select lower(trim(regexp_replace(name, '[[:space:]]+', ' ', 'g'))) as normalized_name,
+       count(*) as resource_count, array_agg(public_id order by public_id) as resource_ids
+from savis_api.resources
+group by 1 having count(*) > 1;
+```
 
 ### Supply
 
@@ -203,7 +320,7 @@ and published.
 An offer includes:
 
 - public and provider product identifiers;
-- component search term;
+- component search term (acquisition metadata) and optional resource UUID;
 - label, brand, image, and product URL;
 - price and package size;
 - provider identity;
@@ -214,8 +331,10 @@ Incoming offers are reconciled first by public UUID, then by
 `(externalId, provider.identifier)`. An invalidation marks the corresponding
 offer unavailable instead of deleting it.
 
-Only available offers are exposed to BOM workflows. Searches are
-case-insensitive and ordered by package price.
+Automatic cheapest-offer searches expose only available offers; direct UUID lookup also exposes unavailable selected references with their availability. Searches are
+case-insensitive and ordered by package price on the legacy name-search endpoint.
+BOM pricing uses batched resource UUID lookup and compares normalized base-unit
+prices. Supply validates manual associations using ResourceCatalogApi.
 
 ### Catalog
 
@@ -298,7 +417,8 @@ The conservative bundle analysis adds the common cost to the most expensive
 active choice BOM multiplied by the selected mode quantity.
 
 An analysis becomes `INCOMPLETE` when a required BOM UUID is absent, no longer
-resolves, has no valid cost, or has a non-positive yield. This also covers a
+resolves, contains a missing component price or activity rate, has no valid cost,
+or has a non-positive yield. This also covers a
 common `ProductBom` deleted after product save. Missing UUIDs are returned when
 known.
 
@@ -308,7 +428,8 @@ Pricing analysis returns:
 
 - analyzed quantity;
 - selected sale price;
-- total and unit cost;
+- `knownSubtotal`, plus nullable complete total `cost` and unit cost `unitCost`;
+- source diagnostics propagated from BOM, including non-blocking warnings;
 - actual and target margin;
 - recommended price;
 - completeness and missing BOM UUIDs;
@@ -324,7 +445,15 @@ Recommended price:
 cost / (1 - target margin)
 ```
 
-It is rounded upward to the next CAD 0.25. The recommendation is advisory and
+Incomplete analyses expose their known subtotal and diagnostics, but return null
+for `cost`, `unitCost`, `actualMarginRate`, and `recommendedPrice`. Known BOM
+subtotals are scaled by valid yields; an invalid yield cannot be used to convert
+a batch subtotal into a product subtotal. For a worst-case bundle with an
+incomplete candidate, the retained subtotal covers common BOMs only: no candidate
+is asserted to be the maximum. A missing optional reference remains a business
+diagnostic; unexpected technical exceptions are not caught as missing BOMs.
+
+The recommendation is rounded upward to the next CAD 0.25. The recommendation is advisory and
 never changes a product or purchase-mode sale price.
 
 #### Product Categories and Subcategories
@@ -475,9 +604,9 @@ Actuator health endpoints:
 
 | Method   | Path                      | Purpose                                         |
 | -------- | ------------------------- | ----------------------------------------------- |
-| `GET`    | `/api/boms`               | List BOMs with calculated prices.               |
+| `GET`    | `/api/boms`               | List BOMs without calculating costs.            |
 | `GET`    | `/api/boms/{bomId}`       | Retrieve one BOM.                               |
-| `GET`    | `/api/boms/{bomId}/price` | Calculate one BOM total cost.                   |
+| `GET`    | `/api/boms/{bomId}/price` | Return detailed BOM valuation and completeness.                   |
 | `POST`   | `/api/boms`               | Create or replace a BOM using the payload UUID. |
 | `DELETE` | `/api/boms/{bomId}`       | Delete one BOM.                                 |
 
@@ -493,6 +622,8 @@ Example:
   "type": "FOOD",
   "components": [
     {
+      "id": null,
+      "resourceId": "c84c583c-2608-4ef0-aad3-16a87eb418c4",
       "componentName": "farine",
       "quantity": 500,
       "unit": "g",
@@ -526,6 +657,34 @@ Example:
 
 Only one rate can exist for each activity type.
 
+### Resource Endpoints
+
+| Method | Path | Purpose |
+| --- | --- | --- |
+| `GET` | `/api/resources?search=&category=&status=&page=&size=&sort=` | Search/paginate resources. |
+| `GET` | `/api/resources/{id}` | Retrieve a resource, including inactive historical references. |
+| `POST` | `/api/resources` | Create a resource. |
+| `PUT` | `/api/resources/{id}` | Update resource definition. |
+| `PATCH` | `/api/resources/{id}/status` | Activate/deactivate a resource. |
+
+Resource search accepts `sort=name,asc|desc`, `category,asc|desc`, or
+`referenceUnit,asc|desc` (default `name,asc`). Unknown fields/directions return
+HTTP 400. Filtering by search/category/status and ordering happen in PostgreSQL
+before pagination; totals count all matches. Category ordering follows the French
+Admin labels (Consommable, Emballage, Équipement, Ingrédient, Matériel de décoration).
+Unit ordering uses displayed symbols; null units remain last for both directions.
+Name comparison is case-insensitive, with ascending name/public UUID tie-breakers
+for stable pages. Existing callers without `sort` keep name-ascending ordering.
+No schema migration is required.
+
+New BOM components must include `resourceId`. `componentName` remains a
+display/acquisition compatibility snapshot; new or reselected resources
+use the current Resource name, while an unchanged historical component keeps
+its snapshot for acquisition traceability. Pricing uses the resource UUID. Admin displays
+the current Resource name and can identify inactive references. `id` is
+returned and accepted for each BOM line to preserve component row identities
+during edits.
+
 ```json
 {
   "activityType": "PREP",
@@ -540,7 +699,10 @@ Only one rate can exist for each activity type.
 
 | Method | Path                                      | Purpose                                      |
 | ------ | ----------------------------------------- | -------------------------------------------- |
-| `GET`  | `/api/supply/offers?componentName={name}` | Search available offers for a BOM component. |
+| `GET`  | `/api/supply/offers?componentName={name}` | Legacy name-based available-offer search. |
+| `POST` | `/api/supply/offers` | Create a manual offer with a validated resource. |
+| `PUT` | `/api/supply/offers/{id}/resource` | Validate or change the resource association. |
+| `GET` | `/api/supply/offers/resource/{resourceId}` | Resource offers; optional `availableOnly=true`. |
 
 ### Product Endpoints
 
@@ -592,7 +754,7 @@ conversion.
 
 Queue: `savis.offer.requests`
 
-Published after a BOM save:
+Retained request contract; BOM saves no longer publish it:
 
 ```json
 {
@@ -841,3 +1003,23 @@ Useful targeted checks:
 - Bulk catalog publication does not yet reconcile newly unpublished Supabase
   rows.
 - No authentication or authorization layer is currently present.
+
+## Supply resource association
+
+Supply offers reference Resource by UUID. Admin supports manual offer creation,
+explicit association from offer details, and resource offer consultation. BOM and
+Catalog cost valuation use resource UUIDs and batched offer reads; foreign selected
+offers produce a blocking diagnostic. Executor messages remain compatible and
+discoveries await operator association. See [phase 2.3 migration and validation](../docs/SUPPLY_RESOURCE_MIGRATION.md)
+for V13 preflight, unresolved offers, HTTP contracts and verification.
+
+### Batched Resource names for procurement
+
+`GET /api/resources/batch?ids=<uuid>,<uuid>` resolves between 1 and 100 resource
+identifiers in a single repository query. Duplicates are collapsed, unknown
+identifiers are omitted, and active and inactive resources can be returned.
+The response is a JSON array using the existing Resource response fields.
+Malformed identifiers and requests outside the bound return HTTP 400. Admin uses
+this read-only endpoint for resource labels on the current Supply catalog page;
+no full catalog loading or per-row lookup is required. Supply review, acquisition
+and RabbitMQ contracts are unchanged.

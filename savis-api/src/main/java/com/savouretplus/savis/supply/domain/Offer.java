@@ -22,7 +22,21 @@ public record Offer(
         Quantity packageSize,
         Provider provider,
         LocalDateTime lastSeen,
-        OfferStatus status) {
+        OfferStatus status,
+        UUID resourceId) {
+
+    /** Discovered provider offers await explicit resource association. */
+    public Offer(UUID publicId, String externalId, String url, String componentName, String brand,
+            String label, String imageUrl, Money price, Quantity packageSize, Provider provider,
+            LocalDateTime lastSeen, OfferStatus status) {
+        this(publicId, externalId, url, componentName, brand, label, imageUrl, price, packageSize,
+                provider, lastSeen, status, null);
+    }
+
+    public Offer associatedWith(UUID resourceId) {
+        return new Offer(publicId, externalId, url, componentName, brand, label, imageUrl, price,
+                packageSize, provider, lastSeen, status, resourceId);
+    }
 
     /** Validates supplier prices persisted as amounts billed to the cent. */
     public Offer {
@@ -55,6 +69,6 @@ public record Offer(
                 packageSize,
                 provider,
                 lastSeen,
-                OfferStatus.UNAVAILABLE);
+                OfferStatus.UNAVAILABLE, resourceId);
     }
 }
