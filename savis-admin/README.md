@@ -708,21 +708,24 @@ separate explicit action in the offer retrieval workflow (`POST /api/tasks`).
 Approvisionnement contains **À valider** (`/offers`), **Offres
 fournisseurs** (`/supply/offers`), and **Tâches d'acquisition**
 (`/offers/tasks`). The legacy `/supply-offers` entry redirects to Supply.
-Review uses a compact list and a selected-offer detail panel; small screens open
-the detail at full width with a return button. The default status is `NEW`;
+Review uses a sortable table and an explicit offer-detail drawer. The default status is `NEW`;
 `VALID`, `REJECTED`, and all statuses remain accessible. Status, exact search
 term, sorting and pagination are URL state. Successful review/deletion refreshes
-Executor lists and term counters, selects the next visible offer and returns to
+Executor lists and term counters and returns to
 the preceding page when the last row of a page disappears. No Supply write is
 performed by review.
 
-The review page uses a restrained divided list that prioritizes product, brand,
-provider, observed price and package size; the default `NEW` state is not repeated
-as a badge on every row. The detail panel keeps status, product, price, package
-and validation actions visible. Collection metadata is grouped in one expandable
-section; edit, supplier link and delete actions remain available without opening
-it. The detail content scrolls independently from the persistent validation
-actions.
+The review page follows the supplier-offer consultation layout: a shared
+`DataTable` with product images, search term, provider, package price, format,
+status and collection dates. Sorting runs on the server through column headers
+and retains URL state. Explicit detail actions occupy the pinned Actions column. Details open in an accessible right drawer with the existing
+rejection confirmation, editing and deletion actions. Supplier product links
+and validation are available in the drawer footer. Validation is shown for offers
+that are not already validated. Collection information
+is always visible in the scrollable body; editing, deletion, supplier links and validation/rejection actions
+are grouped in the persistent footer. Escape closes
+the drawer and restores focus to the invoking action. An offer that leaves the
+current results after a mutation closes its details without selecting another.
 
 Retrieval by provider URL, editing review status and refresh frequency, immediate
 refresh scheduling, validation, rejection/invalidation, supplier links and

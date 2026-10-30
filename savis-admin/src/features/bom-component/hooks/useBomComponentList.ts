@@ -198,6 +198,15 @@ export const useBomComponentList = () => {
     }));
   };
 
+  const handleSortChange = (sortBy: string, sortDirection: SortDirection) => {
+    updateListState((current) => ({
+      ...current,
+      page: 1,
+      sortBy,
+      sortDirection,
+    }));
+  };
+
   const toggleSortDirection = () => {
     updateListState((current) => ({
       ...current,
@@ -352,6 +361,7 @@ export const useBomComponentList = () => {
     handleRetrieve,
     handleSearchTermChange,
     handleSortByChange,
+    handleSortChange,
     goToNextPage,
     goToPreviousPage,
     toggleSortDirection,

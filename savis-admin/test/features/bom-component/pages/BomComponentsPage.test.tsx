@@ -110,10 +110,10 @@ describe("Procurement review", () => {
     });
   });
 
-  it("keeps primary review actions separate from the other actions for a single offer", async () => {
+  it("shows collection information in the body and drawer actions in the footer", async () => {
     offers = [offer("1")];
     mount();
-    const offerList = await screen.findByRole("list", {
+    const offerList = await screen.findByRole("table", {
       name: "Offres découvertes",
     });
     const count = screen.getByText("1 offre");
@@ -121,6 +121,9 @@ describe("Procurement review", () => {
       count.compareDocumentPosition(offerList) &
         Node.DOCUMENT_POSITION_FOLLOWING,
     ).toBeTruthy();
+    await userEvent.click(
+      screen.getByRole("button", { name: "Consulter Farine 1" }),
+    );
     const details = await screen.findByRole("region", {
       name: "Détail de Farine 1",
     });
@@ -129,13 +132,14 @@ describe("Procurement review", () => {
     ).toBeVisible();
     expect(within(details).getByText(/3,50/)).toBeVisible();
     expect(within(details).getByText("Informations de collecte")).toBeVisible();
-    expect(within(details).getByText("Dernière observation")).not.toBeVisible();
-    await userEvent.click(
-      within(details).getByText("Informations de collecte"),
-    );
     expect(within(details).getByText("Dernière observation")).toBeVisible();
+    const body = within(details).getByRole("region", {
+      name: "Informations de l'offre",
+    });
+    expect(within(body).getByText("Toutes les 24 h")).toBeVisible();
+    expect(within(body).queryByRole("button")).not.toBeInTheDocument();
     const actions = within(details).getByRole("group", {
-      name: "Validation de l'offre",
+      name: "Actions de l'offre",
     });
     expect(
       within(actions).getByRole("button", { name: "Valider" }),
@@ -144,51 +148,45 @@ describe("Procurement review", () => {
       within(actions).getByRole("button", { name: "Rejeter" }),
     ).toBeEnabled();
     expect(
-      within(details).getByRole("button", { name: "Modifier" }),
+      within(actions).getByRole("button", { name: "Modifier" }),
     ).toBeInTheDocument();
     expect(
-      within(details).getByRole("button", { name: "Supprimer" }),
+      within(actions).getByRole("button", { name: "Supprimer" }),
     ).toBeInTheDocument();
     expect(
-      within(details).getByRole("link", { name: /Voir le produit chez/ }),
-    ).toBeInTheDocument();
+      within(actions).getByRole("link", { name: "Voir le produit" }),
+    ).toHaveAttribute("href", "https://example.com/product");
   });
 
-  it("marks the selected offer and preserves selection when returning to the list", async () => {
+  it("opens details explicitly and restores focus on Escape", async () => {
     const user = userEvent.setup();
     mount();
-    const first = await screen.findByRole("button", {
-      name: "Consulter Farine 1",
+    const second = await screen.findByRole("button", {
+      name: "Consulter Farine 2",
     });
-    const second = screen.getByRole("button", { name: "Consulter Farine 2" });
-    expect(first).toHaveAttribute("aria-pressed", "true");
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
     await user.click(second);
-    expect(second).toHaveAttribute("aria-pressed", "true");
-    expect(first).toHaveAttribute("aria-pressed", "false");
+    expect(screen.getByRole("dialog")).toHaveAttribute("data-side", "right");
     expect(
       screen.getByRole("region", { name: "Détail de Farine 2" }),
-    ).toBeInTheDocument();
-    await user.click(screen.getByRole("button", { name: "Retour à la liste" }));
-    expect(second).toHaveAttribute("aria-pressed", "true");
+    ).toBeVisible();
+    await user.keyboard("{Escape}");
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+    expect(second).toHaveFocus();
   });
 
-  it("defaults to NEW, opens details and advances after validation without deleting", async () => {
+  it("validates from the drawer footer and closes details without deleting", async () => {
     const user = userEvent.setup();
     mount();
-    await screen.findByRole("button", { name: "Consulter Farine 1" });
-    expect(getBomComponents).toHaveBeenLastCalledWith(
-      expect.objectContaining({ status: "NEW", page: 1 }),
-    );
-    await user.click(
-      screen.getByRole("button", { name: "Consulter Farine 1" }),
-    );
+    const detailsButton = await screen.findByRole("button", {
+      name: "Consulter Farine 1",
+    });
     expect(
-      screen.getByRole("region", { name: "Détail de Farine 1" }),
-    ).toHaveTextContent("Toutes les 24 h");
-    expect(
-      screen.getByRole("link", { name: /Voir le produit chez/ }),
-    ).toHaveAttribute("rel", "noopener noreferrer");
-    await user.click(screen.getByRole("button", { name: "Valider" }));
+      screen.queryByRole("button", { name: /Valider/ }),
+    ).not.toBeInTheDocument();
+    await user.click(detailsButton);
+    const footer = screen.getByRole("group", { name: "Actions de l'offre" });
+    await user.click(within(footer).getByRole("button", { name: "Valider" }));
     await waitFor(() =>
       expect(
         screen.queryByRole("button", { name: "Consulter Farine 1" }),
@@ -196,16 +194,19 @@ describe("Procurement review", () => {
     );
     expect(patchBomComponent).toHaveBeenCalledWith("1", { status: "VALID" });
     expect(deleteBomComponent).not.toHaveBeenCalled();
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
     expect(
-      screen.getByRole("region", { name: "Détail de Farine 2" }),
-    ).toBeInTheDocument();
-    expect(getBomComponentSearchTermFacets).toHaveBeenCalledTimes(2);
+      screen.getByRole("button", { name: "Consulter Farine 2" }),
+    ).toBeVisible();
   });
 
   it("confirms rejection and removes the offer from the active filter", async () => {
     const user = userEvent.setup();
     mount();
     await screen.findByRole("button", { name: "Consulter Farine 1" });
+    await user.click(
+      screen.getByRole("button", { name: "Consulter Farine 1" }),
+    );
     await user.click(screen.getByRole("button", { name: "Rejeter" }));
     expect(patchBomComponent).not.toHaveBeenCalled();
     await user.click(screen.getByRole("button", { name: "Confirmer" }));
@@ -258,10 +259,13 @@ describe("Procurement review", () => {
     }));
     mount("/offers?status=VALID");
     await screen.findByRole("button", { name: "Consulter Farine 1" });
-    const list = screen.getByRole("list", { name: "Offres découvertes" });
+    const list = screen.getByRole("table", { name: "Offres découvertes" });
     expect(within(list).getAllByText("Validée")[0]).toHaveClass(
       "text-emerald-800",
       "dark:text-emerald-300",
+    );
+    await userEvent.click(
+      screen.getByRole("button", { name: "Consulter Farine 1" }),
     );
     const details = await screen.findByRole("region", {
       name: "Détail de Farine 1",
@@ -269,6 +273,32 @@ describe("Procurement review", () => {
     expect(within(details).getByText("Validée")).toHaveClass(
       "text-emerald-800",
       "dark:text-emerald-300",
+    );
+  });
+
+  it("sorts through table headers on the server", async () => {
+    const user = userEvent.setup();
+    mount();
+    await screen.findByRole("table", { name: "Offres découvertes" });
+    await user.click(screen.getByRole("button", { name: /^Prix du paquet/ }));
+    await waitFor(() =>
+      expect(getBomComponents).toHaveBeenLastCalledWith(
+        expect.objectContaining({
+          sortBy: "price",
+          sortDirection: "asc",
+          page: 1,
+        }),
+      ),
+    );
+    await user.click(screen.getByRole("button", { name: /^Prix du paquet/ }));
+    await waitFor(() =>
+      expect(getBomComponents).toHaveBeenLastCalledWith(
+        expect.objectContaining({
+          sortBy: "price",
+          sortDirection: "desc",
+          page: 1,
+        }),
+      ),
     );
   });
 

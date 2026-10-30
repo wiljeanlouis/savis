@@ -65,6 +65,7 @@ export function BomComponentReviewDetails({
   onEdit,
   onDelete,
 }: Props) {
+  const [editOpen, setEditOpen] = useState(false);
   const [confirmRejection, setConfirmRejection] = useState(false);
   const [pendingEdit, setPendingEdit] = useState<BomComponentEditValues | null>(
     null,
@@ -94,7 +95,7 @@ export function BomComponentReviewDetails({
     };
   }, []);
 
-  const url = safeExternalUrl(offer.url);
+  const productUrl = safeExternalUrl(offer.url);
   const fields = [
     ["Terme de recherche", offer.search_term || "—"],
     ["Dernière observation", formatSupplyOfferDate(offer.last_retrieved_at)],
@@ -159,10 +160,11 @@ export function BomComponentReviewDetails({
             {reviewPackage(offer)}
           </p>
         </section>
-        <details className="border-t pt-3">
-          <summary className="cursor-pointer rounded-sm py-1 text-sm font-medium marker:text-muted-foreground focus-visible:outline-2 focus-visible:outline-primary">
-            Informations de collecte
-          </summary>
+        <section
+          aria-label="Informations de collecte"
+          className="border-t pt-3"
+        >
+          <h3 className="text-sm font-medium">Informations de collecte</h3>
           <dl className="mt-3 space-y-3 text-sm">
             {fields.map(([label, value]) => (
               <div
@@ -174,42 +176,47 @@ export function BomComponentReviewDetails({
               </div>
             ))}
           </dl>
-        </details>
-        <div className="flex flex-wrap items-center gap-2 border-t pt-3">
-          <BomComponentEditDialog
-            bomComponent={offer}
-            isPatching={busy}
-            onEdit={(item, values) => {
-              if (values.status === "REJECTED" && item.status !== "REJECTED") {
-                setPendingEdit(values);
-                setConfirmRejection(true);
-              } else onEdit(item, values);
-            }}
-          />
-          {url && (
-            <Button
-              variant="outline"
-              className="h-auto min-h-9 min-w-0 flex-1 whitespace-normal text-sm"
-              asChild
-            >
-              <a href={url} target="_blank" rel="noopener noreferrer">
-                Voir le produit chez le fournisseur
-              </a>
-            </Button>
-          )}
-          <DeleteAlert
-            item={offer.label}
-            onDelete={() => {
-              if (!busy) onDelete(offer);
-            }}
-          />
-        </div>
+        </section>
       </div>
       <div
         role="group"
-        aria-label="Validation de l'offre"
-        className="sticky bottom-0 z-10 flex shrink-0 flex-wrap gap-2 border-t bg-card p-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] [&>button]:min-h-10 [&>button]:min-w-0 [&>button]:flex-1"
+        aria-label="Actions de l'offre"
+        className="flex shrink-0 flex-wrap justify-end gap-2 border-t bg-card px-3 py-2.5"
       >
+        {productUrl && (
+          <Button asChild variant="outline">
+            <a href={productUrl} target="_blank" rel="noopener noreferrer">
+              Voir le produit
+            </a>
+          </Button>
+        )}
+        <Button
+          variant="outline"
+          disabled={busy}
+          onClick={() => setEditOpen(true)}
+        >
+          Modifier
+        </Button>
+        <BomComponentEditDialog
+          hideTrigger
+          open={editOpen}
+          onOpenChange={setEditOpen}
+          bomComponent={offer}
+          isPatching={busy}
+          onEdit={(item, values) => {
+            if (values.status === "REJECTED" && item.status !== "REJECTED") {
+              setPendingEdit(values);
+              setConfirmRejection(true);
+            } else onEdit(item, values);
+          }}
+        />
+        <DeleteAlert
+          item={offer.label}
+          onDelete={() => {
+            if (!busy) onDelete(offer);
+          }}
+        />
+
         {offer.status !== "VALID" && (
           <Button disabled={busy} onClick={() => onPatch(offer, "VALID")}>
             Valider
