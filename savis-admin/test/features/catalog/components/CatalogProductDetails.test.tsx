@@ -129,8 +129,14 @@ describe("Compact product detail panel", () => {
   });
   it("presents ingredient quantities and a signed supplement without losing the configured name", () => {
     renderPanel(product());
-    const compositions = screen.getByRole("region", { name: "Compositions" });
-    expect(within(compositions).getByText("Ingrédient")).toBeInTheDocument();
+    const compositions = screen.getByRole("region", {
+      name: /^Compositions/,
+    });
+    expect(
+      within(compositions).getByRole("heading", {
+        name: "Ingrédients personnalisables (1)",
+      }),
+    ).toBeInTheDocument();
     expect(
       within(compositions).getByText("Œuf bouilli extra"),
     ).toBeInTheDocument();
@@ -160,8 +166,7 @@ describe("Compact product detail panel", () => {
       "[overflow-wrap:anywhere]",
     );
     expect(screen.getByRole("img", { name: "Pâté kòde" })).toHaveClass(
-      "size-20",
-      "sm:size-24",
+      "size-12",
       "object-contain",
     );
     fireEvent.error(screen.getByRole("img", { name: "Pâté kòde" }));
