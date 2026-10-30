@@ -8,9 +8,11 @@ import type { BomCosting } from "../../types";
 export function BomCostOverview({
   costing,
   yieldUnit,
+  showYield = true,
 }: {
   costing: BomCosting;
   yieldUnit: string;
+  showYield?: boolean;
 }) {
   const validYield =
     Number.isFinite(costing.yieldQuantity) && costing.yieldQuantity > 0;
@@ -47,16 +49,18 @@ export function BomCostOverview({
               </dd>
             </div>
           )}
-          <div>
-            <dt className="text-xs text-muted-foreground">
-              Rendement enregistré
-            </dt>
-            <dd className="mt-2 text-sm font-medium">
-              {validYield
-                ? formatBomQuantity(costing.yieldQuantity, yieldUnit)
-                : "Rendement invalide"}
-            </dd>
-          </div>
+          {showYield && (
+            <div>
+              <dt className="text-xs text-muted-foreground">
+                Rendement enregistré
+              </dt>
+              <dd className="mt-2 text-sm font-medium">
+                {validYield
+                  ? formatBomQuantity(costing.yieldQuantity, yieldUnit)
+                  : "Rendement invalide"}
+              </dd>
+            </div>
+          )}
         </dl>
         <Badge
           variant="outline"

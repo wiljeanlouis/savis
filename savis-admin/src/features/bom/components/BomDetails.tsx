@@ -46,16 +46,16 @@ export function BomDetails({
       aria-label="Détail de la composition"
       className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden rounded-xl border bg-card max-h-[var(--bom-detail-height,calc(100dvh-2rem))]"
     >
-      <header className="shrink-0 border-b p-4">
-        <h2 className="text-lg font-semibold [overflow-wrap:anywhere]">
-          {selected.name}
+      <header className="shrink-0 border-b px-4 py-3">
+        <h2 className="text-lg leading-snug font-semibold [overflow-wrap:anywhere]">
+          {detail.data?.name ?? selected.name}
         </h2>
       </header>
       <div
         role="region"
         aria-label="Informations de la composition"
         tabIndex={0}
-        className="min-h-0 flex-1 space-y-4 overflow-y-auto overscroll-contain p-4 [overflow-wrap:anywhere] focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-primary"
+        className="min-h-0 flex-1 space-y-3 overflow-y-auto overscroll-contain p-4 [overflow-wrap:anywhere] focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-primary"
       >
         {detail.isPending ? (
           <p role="status">Chargement de la composition…</p>
@@ -74,20 +74,22 @@ export function BomDetails({
               <div className="flex items-start gap-3">
                 <BomImage src={bom.imageUrl} name={bom.name} large />
                 <div className="min-w-0 space-y-2">
-                  <p className="whitespace-pre-wrap text-sm text-muted-foreground">
+                  <p className="whitespace-pre-wrap text-sm leading-relaxed text-muted-foreground">
                     {bom.description || "Aucune description"}
                   </p>
-                  <p className="text-sm">
-                    Rendement :{" "}
-                    {formatBomQuantity(bom.yield.quantity, bom.yield.unit)}
-                  </p>
-                  <p className="text-xs text-muted-foreground">
-                    {bom.type === "FOOD" ? "Alimentaire" : "Matériel"}
-                  </p>
+                  <div className="flex flex-wrap gap-1.5">
+                    <span className="rounded-full border px-2 py-0.5 text-xs text-muted-foreground">
+                      {bom.type === "FOOD" ? "Alimentaire" : "Matériel"}
+                    </span>
+                    <span className="rounded-full border px-2 py-0.5 text-xs text-muted-foreground">
+                      Rendement :{" "}
+                      {formatBomQuantity(bom.yield.quantity, bom.yield.unit)}
+                    </span>
+                  </div>
                 </div>
               </div>
-              <BomProductionDetails bom={bom} />
               <BomCostSummary bom={bom} />
+              <BomProductionDetails bom={bom} />
               {bom.instructions && (
                 <section className="space-y-2 border-t pt-3">
                   <h3 className="text-sm font-semibold">Instructions</h3>
@@ -101,7 +103,7 @@ export function BomDetails({
         )}
       </div>
       <BomDetailActions
-        bom={selected}
+        bom={detail.data ?? selected}
         cloneBom={cloneBom}
         deleteBom={deleteBom}
         isCloning={isCloning}

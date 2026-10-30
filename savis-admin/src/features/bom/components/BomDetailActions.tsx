@@ -26,7 +26,7 @@ export function BomDetailActions({
   const [isDeleteOpen, setIsDeleteOpen] = useState(false);
   const name = bom.name;
   return (
-    <footer className="flex shrink-0 flex-wrap justify-end gap-2 border-t p-3">
+    <footer className="flex shrink-0 flex-wrap justify-end gap-2 border-t bg-card px-3 py-2.5">
       <Button asChild>
         <Link to={`/boms/${bom.id}`}>Modifier</Link>
       </Button>

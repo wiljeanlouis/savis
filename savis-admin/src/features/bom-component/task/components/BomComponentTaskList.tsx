@@ -11,6 +11,7 @@ import { getApiErrorMessage } from "@/shared/api/apiError";
 import { DataTable } from "@/shared/components/DataTable";
 import { PageNavigator } from "@/shared/components/PageNavigator";
 import { PageSelector } from "@/shared/components/PageSelector";
+import { PageItemCount } from "@/shared/components/PageItemCount";
 import { Label } from "@/shared/ui/label";
 import { Badge } from "@/shared/ui/badge";
 import { Spinner } from "@/shared/ui/spinner";
@@ -251,9 +252,15 @@ export const BomComponentTaskList = () => {
         </div>
       </section>
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <Button variant="outline" size="sm" onClick={() => void refetch()}>
-          Actualiser
-        </Button>
+        <div className="flex flex-wrap items-center gap-3">
+          <Button variant="outline" size="sm" onClick={() => void refetch()}>
+            Actualiser
+          </Button>
+          <PageItemCount
+            itemName="tâche"
+            totalItems={isPending || isError ? undefined : data?.total_items}
+          />
+        </div>
         <div className="flex items-center gap-2">
           <PageSelector
             pageSize={pageSize}
@@ -298,8 +305,6 @@ export const BomComponentTaskList = () => {
             onSortingChange={handleSortingChange}
           />
           <PageNavigator
-            itemName="tâche"
-            totalItems={data.total_items}
             page={data.page}
             totalPages={data.total_pages}
             goToPreviousPage={() =>

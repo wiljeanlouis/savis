@@ -21,7 +21,7 @@ beforeEach(() => {
 });
 
 afterEach(() => vi.restoreAllMocks());
-function setup(entry = "/boms", incomplete = false) {
+function setup(entry = "/boms", incomplete = false, activityMinutes = 40) {
   const other = {
     ...bom,
     id: "bom-2",
@@ -47,7 +47,7 @@ function setup(entry = "/boms", incomplete = false) {
               unit: "g",
             },
           ],
-          activities: [{ type: "PREP", minutes: 40, sequence: 1 }],
+          activities: [{ type: "PREP", minutes: activityMinutes, sequence: 1 }],
           costing: incomplete ? missingCosting : bom.costing,
         },
       };
@@ -71,6 +71,12 @@ function setup(entry = "/boms", incomplete = false) {
 it("loads only selected valuation, shows saved production and complete cost, and preserves navigation actions", async () => {
   const { get } = setup();
   expect(await screen.findByText("Coût complet")).toBeVisible();
+  const count = screen.getByText("2 compositions");
+  expect(
+    count.compareDocumentPosition(
+      screen.getByRole("list", { name: "Liste des compositions" }),
+    ) & Node.DOCUMENT_POSITION_FOLLOWING,
+  ).toBeTruthy();
   expect(screen.getByText("Farine")).toBeVisible();
   const panel = screen.getByLabelText("Détail de la composition");
   const content = screen.getByRole("region", {
@@ -85,6 +91,12 @@ it("loads only selected valuation, shows saved production and complete cost, and
   expect(content).not.toContainElement(
     screen.getByRole("link", { name: "Modifier" }),
   );
+  expect(
+    [...content.children]
+      .filter((child) => child.tagName === "SECTION")
+      .slice(0, 3)
+      .map((section) => section.getAttribute("aria-label")),
+  ).toEqual(["Coût de revient", "Composants matériels", "Activités"]);
   expect(screen.getByText("Préparation")).toBeVisible();
   expect(screen.getByText("40 min")).toBeVisible();
   expect(screen.getByText(/Rendement : 4 portion/)).toBeVisible();
@@ -96,6 +108,7 @@ it("loads only selected valuation, shows saved production and complete cost, and
   expect(
     screen.getByRole("link", { name: "Analyser les coûts" }),
   ).toHaveAttribute("href", "/boms/bom-1#bom-cost");
+  expect(screen.getByRole("contentinfo")).toHaveClass("bg-card");
   await userEvent.click(screen.getByRole("button", { name: "Actions" }));
   expect(screen.getByRole("menuitem", { name: "Cloner" })).toBeVisible();
   expect(screen.getByRole("menuitem", { name: "Supprimer" })).toBeVisible();
@@ -103,11 +116,15 @@ it("loads only selected valuation, shows saved production and complete cost, and
 });
 it("selects via URL, preserves unrelated params, returns to list and reuses valuation cache", async () => {
   const { get, router } = setup("/boms?custom=keep");
+  const user = userEvent.setup();
   await screen.findByText("Coût complet");
   const list = screen.getByLabelText("Liste des compositions");
-  await userEvent.click(
-    within(list).getByRole("button", { name: /Structure de 3 arches/ }),
-  );
+  const otherBom = within(list).getByRole("button", {
+    name: "Consulter Structure de 3 arches",
+  });
+  otherBom.focus();
+  expect(otherBom).toHaveFocus();
+  await user.keyboard("{Enter}");
   expect(await screen.findByText("Aucun composant")).toBeVisible();
   expect(screen.getByText("Aucune activité")).toBeVisible();
   expect(screen.getByText("Coût non évalué")).toBeVisible();
@@ -116,15 +133,13 @@ it("selects via URL, preserves unrelated params, returns to list and reuses valu
   expect(
     screen.getByLabelText("Détail de la composition").parentElement,
   ).toHaveClass("fixed");
-  await userEvent.click(
-    screen.getByRole("button", { name: "Retour à la liste" }),
-  );
+  await user.click(screen.getByRole("button", { name: "Retour à la liste" }));
   expect(router.state.location.search).toContain("selected=bom-2");
   expect(
     screen.getByLabelText("Détail de la composition").parentElement,
   ).toHaveClass("hidden");
-  await userEvent.click(
-    within(list).getByRole("button", { name: /Pâte à pain/ }),
+  await user.click(
+    within(list).getByRole("button", { name: "Consulter Pâte à pain" }),
   );
   await screen.findByText("Coût complet");
   expect(get).toHaveBeenCalledTimes(3);
@@ -133,9 +148,7 @@ it("searches without accents using URL state and handles empty search results", 
   const { router } = setup();
   const user = userEvent.setup();
   await screen.findByText("Coût complet");
-  const search = screen.getByPlaceholderText(
-    "Rechercher dans les compositions",
-  );
+  const search = screen.getByPlaceholderText("Nom ou description…");
   await user.click(search);
   await user.paste("pate");
   expect(
@@ -159,6 +172,45 @@ it("shows incomplete known subtotals and blocking diagnostics without a full or 
   expect(screen.getByText(/Bloquant · Taux horaire absent/)).toBeVisible();
   expect(screen.queryByText("Coût total")).not.toBeInTheDocument();
   expect(screen.queryByText("Coût par unité produite")).not.toBeInTheDocument();
+});
+it("keeps advanced filter values when the advanced section is collapsed", async () => {
+  const { router } = setup("/boms?activity=PREP&custom=keep");
+  await screen.findByRole("combobox", { name: "Activité" });
+  const toggle = screen.getByRole("button", { name: /Moins de filtres/ });
+  expect(toggle).toHaveAttribute("aria-expanded", "true");
+  expect(screen.getByRole("combobox", { name: "Activité" })).toHaveTextContent(
+    "Préparation",
+  );
+  await userEvent.click(toggle);
+  expect(
+    screen.queryByRole("combobox", { name: "Activité" }),
+  ).not.toBeInTheDocument();
+  expect(router.state.location.search).toContain("activity=PREP");
+  expect(
+    screen.getByRole("button", { name: /Plus de filtres/ }),
+  ).toHaveTextContent("1");
+});
+it("clears a URL selection excluded by the current filters", async () => {
+  const { router } = setup("/boms?type=FOOD&selected=bom-2&custom=keep");
+  await screen.findByText("Coût complet");
+  await waitFor(() =>
+    expect(router.state.location.search).not.toContain("selected="),
+  );
+  expect(router.state.location.search).toContain("custom=keep");
+  expect(
+    within(screen.getByLabelText("Liste des compositions")).getByRole(
+      "button",
+      { name: "Consulter Pâte à pain" },
+    ),
+  ).toHaveAttribute("aria-pressed", "true");
+});
+it("displays an actually zero-duration activity as zero", async () => {
+  setup("/boms?selected=bom-1", false, 0);
+  expect(await screen.findByText("0 min")).toBeVisible();
+});
+it("preserves precision for a very short positive activity", async () => {
+  setup("/boms?selected=bom-1", false, 0.00000000001);
+  expect(await screen.findByText("0,00000000001 min")).toBeVisible();
 });
 it("replaces broken and missing images with placeholders", async () => {
   setup();
@@ -342,6 +394,7 @@ it("combines composition filters, resets navigation, and retains units from the 
   );
   expect(screen.getByRole("option", { name: "portion" })).toBeVisible();
   await user.click(screen.getByRole("option", { name: "piece" }));
+  await user.click(screen.getByRole("button", { name: /Plus de filtres/ }));
   await filter("Activité", "Installation");
   expect(names()).toHaveLength(1);
   expect(names()[0]).toContain("Montage");

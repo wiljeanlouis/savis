@@ -5,6 +5,7 @@ import { toast } from "sonner";
 import { getApiErrorMessage } from "@/shared/api/apiError";
 import { Button } from "@/shared/ui/button";
 import { PageNavigator } from "@/shared/components/PageNavigator";
+import { PageItemCount } from "@/shared/components/PageItemCount";
 import { PageSelector } from "@/shared/components/PageSelector";
 import { ApiErrorAlert } from "@/shared/components/ApiErrorAlert";
 import { Spinner } from "@/shared/ui/spinner";
@@ -88,11 +89,21 @@ export function ResourcesPage() {
         onStatusChange={(value) => updateParam("status", value)}
       />
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <span className="text-sm text-muted-foreground">
-          {list.isFetching && !list.isPending
-            ? "Actualisation…"
-            : "Référentiel des ressources"}
-        </span>
+        <div className="flex flex-wrap items-center gap-3">
+          <PageItemCount
+            itemName="ressource"
+            totalItems={
+              list.isPending || list.isError
+                ? undefined
+                : list.data?.totalElements
+            }
+          />
+          {list.isFetching && !list.isPending && (
+            <span className="text-sm text-muted-foreground" role="status">
+              Actualisation…
+            </span>
+          )}
+        </div>
         <div className="flex items-center gap-2">
           <PageSelector
             pageSize={pageSize}
@@ -140,8 +151,6 @@ export function ResourcesPage() {
           />
           <nav aria-label="Pagination des ressources">
             <PageNavigator
-              itemName="ressource"
-              totalItems={list.data.totalElements}
               page={page + 1}
               totalPages={list.data.totalPages}
               goToPreviousPage={() => updateParam("page", String(page - 1))}

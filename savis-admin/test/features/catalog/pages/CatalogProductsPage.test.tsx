@@ -93,9 +93,12 @@ beforeEach(() => {
 describe("Catalog product master-detail workspace", () => {
   it("shows a compact list, selects the first sorted product and preserves creation", () => {
     renderPage();
+    const list = screen.getByRole("list", { name: "Liste des produits" });
+    const count = screen.getByText("2 produits");
+    expect(list.children).toHaveLength(2);
     expect(
-      screen.getByRole("list", { name: "Liste des produits" }).children,
-    ).toHaveLength(2);
+      count.compareDocumentPosition(list) & Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
     expect(
       screen.getByRole("button", { name: "Consulter Arche" }),
     ).toHaveAttribute("aria-pressed", "true");

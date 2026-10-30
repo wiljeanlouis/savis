@@ -6,11 +6,18 @@ export function BomCostSummary({ bom }: { bom: Bom }) {
   const blocking =
     costing?.diagnostics.filter((issue) => issue.blocking).length ?? 0;
   return (
-    <section aria-label="Coût de revient" className="space-y-3 border-t pt-3">
+    <section
+      aria-label="Coût de revient"
+      className="space-y-3 rounded-lg border bg-muted/20 p-3"
+    >
       <h3 className="text-sm font-semibold">Coût de revient</h3>
       {costing ? (
         <>
-          <BomCostOverview costing={costing} yieldUnit={bom.yield.unit} />
+          <BomCostOverview
+            costing={costing}
+            yieldUnit={bom.yield.unit}
+            showYield={false}
+          />
           <dl className="space-y-2 text-sm">
             <div className="flex justify-between gap-2">
               <dt>Sous-total connu · composants</dt>

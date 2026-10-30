@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useSearchParams } from "react-router";
 import type { Bom } from "../types";
 const normalize = (s: string) =>
@@ -54,6 +54,20 @@ export function useBomWorkspace(boms?: Bom[]) {
         a.name.localeCompare(b.name, "fr") *
         (params.get("sort") === "desc" ? -1 : 1),
     );
+  useEffect(() => {
+    const selectedId = params.get("selected");
+    if (!boms || !selectedId || filtered.some((bom) => bom.id === selectedId))
+      return;
+    setParams(
+      (previous) => {
+        if (previous.get("selected") !== selectedId) return previous;
+        const next = new URLSearchParams(previous);
+        next.delete("selected");
+        return next;
+      },
+      { replace: true },
+    );
+  }, [boms, filtered, params, setParams]);
   const totalPages = Math.max(1, Math.ceil(filtered.length / size));
   const rawPage = Number(params.get("page"));
   const selectedIndex = filtered.findIndex(
@@ -69,7 +83,8 @@ export function useBomWorkspace(boms?: Bom[]) {
   const items = filtered.slice((page - 1) * size, page * size);
   const selected =
     filtered.find((b) => b.id === params.get("selected")) ?? items[0];
-  const mobile = mobileDetail && !!selected;
+  const mobile =
+    mobileDetail && !!selected && selected.id === params.get("selected");
   const update = (key: string, value: string, reset = true) => {
     setMobileDetail(key === "selected");
     setParams((previous) => {

@@ -1,6 +1,7 @@
 import { useEffect, useRef } from "react";
 import { Link } from "react-router";
 import { ApiErrorAlert } from "@/shared/components/ApiErrorAlert";
+import { PageItemCount } from "@/shared/components/PageItemCount";
 import { PageNavigator } from "@/shared/components/PageNavigator";
 import { PageSelector } from "@/shared/components/PageSelector";
 import { Button } from "@/shared/ui/button";
@@ -65,11 +66,21 @@ export function CatalogProductsPage() {
                 : "min-w-0 space-y-3"
             }
           >
-            <div className="flex items-center justify-end gap-2">
-              <PageSelector
-                pageSize={list.pageSize}
-                onPageChange={(size) => list.update("size", String(size))}
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <PageItemCount
+                itemName="produit"
+                totalItems={
+                  management.isLoading || management.isError
+                    ? undefined
+                    : list.totalItems
+                }
               />
+              <div className="flex items-center gap-2">
+                <PageSelector
+                  pageSize={list.pageSize}
+                  onPageChange={(size) => list.update("size", String(size))}
+                />
+              </div>
             </div>
             {list.items.length ? (
               <CatalogProductCompactList
@@ -88,8 +99,6 @@ export function CatalogProductsPage() {
               </div>
             )}
             <PageNavigator
-              itemName="produit"
-              totalItems={list.totalItems}
               page={list.page}
               totalPages={list.totalPages}
               goToPreviousPage={() => list.changePage(list.page - 1)}

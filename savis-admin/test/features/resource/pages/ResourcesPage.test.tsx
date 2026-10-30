@@ -59,7 +59,11 @@ describe("ResourcesPage modal editor", () => {
     const user = userEvent.setup();
     renderPage("/resources?search=farine&page=2&status=INACTIVE&size=10");
     expect(useResources).toHaveBeenLastCalledWith("farine", 2, "INACTIVE", 10);
-    expect(screen.getByText("45 ressources")).toBeInTheDocument();
+    const count = screen.getByText("45 ressources");
+    expect(
+      count.compareDocumentPosition(screen.getByRole("table")) &
+        Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
     expect(screen.getByText("Page 3 sur 3")).toBeInTheDocument();
     await user.click(screen.getByRole("button", { name: "Précédent" }));
     expect(useResources).toHaveBeenLastCalledWith("farine", 1, "INACTIVE", 10);

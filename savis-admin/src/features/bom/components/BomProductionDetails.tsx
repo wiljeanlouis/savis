@@ -1,6 +1,7 @@
 import type { Bom } from "../types";
 import {
   costActivityLabel,
+  formatBomDuration,
   formatBomQuantity,
 } from "../model/bomCostPresentation";
 export function BomProductionDetails({ bom }: { bom: Bom }) {
@@ -22,9 +23,9 @@ export function BomProductionDetails({ bom }: { bom: Bom }) {
               component.id ??
               `${component.resourceId}-${component.componentName}`
             }
-            className="flex items-start justify-between gap-3 border-b py-2 text-sm"
+            className="flex items-start justify-between gap-3 border-b py-1.5 text-sm last:border-0"
           >
-            <div className="min-w-0">
+            <div className="min-w-0 [overflow-wrap:anywhere]">
               {component.componentName}
               <p className="text-xs text-muted-foreground">
                 Ressource matérielle
@@ -48,11 +49,13 @@ export function BomProductionDetails({ bom }: { bom: Bom }) {
           .map((activity) => (
             <div
               key={activity.id ?? `${activity.sequence}-${activity.type}`}
-              className="flex justify-between gap-3 border-b py-2 text-sm"
+              className="flex justify-between gap-3 border-b py-1.5 text-sm last:border-0"
             >
-              <span>{costActivityLabel(activity.type)}</span>
+              <span className="min-w-0 [overflow-wrap:anywhere]">
+                {costActivityLabel(activity.type)}
+              </span>
               <span className="shrink-0 tabular-nums">
-                {formatBomQuantity(activity.minutes, "min")}
+                {formatBomDuration(activity.minutes)}
               </span>
             </div>
           ))}

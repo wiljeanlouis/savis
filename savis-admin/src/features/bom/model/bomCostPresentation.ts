@@ -16,6 +16,9 @@ export function formatBomMoney(
 export const formatBomQuantity = (quantity: number, unit: string) =>
   `${new Intl.NumberFormat("fr-CA", { maximumFractionDigits: 10 }).format(quantity)} ${unit}`.trim();
 
+export const formatBomDuration = (minutes: number) =>
+  `${new Intl.NumberFormat("fr-CA", { maximumFractionDigits: 20 }).format(minutes)} min`;
+
 const activityLabels: Record<string, string> = {
   PREP: "Préparation",
   COOK: "Cuisson",

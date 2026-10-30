@@ -113,6 +113,14 @@ describe("Procurement review", () => {
   it("keeps primary review actions separate from the other actions for a single offer", async () => {
     offers = [offer("1")];
     mount();
+    const offerList = await screen.findByRole("list", {
+      name: "Offres découvertes",
+    });
+    const count = screen.getByText("1 offre");
+    expect(
+      count.compareDocumentPosition(offerList) &
+        Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
     const details = await screen.findByRole("region", {
       name: "Détail de Farine 1",
     });

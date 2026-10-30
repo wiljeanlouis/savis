@@ -10,7 +10,7 @@ export function BomImage({
   large?: boolean;
 }) {
   const [failed, setFailed] = useState<string>();
-  const classes = `${large ? "size-20" : "size-10"} shrink-0 rounded-md border bg-muted object-contain`;
+  const classes = `${large ? "size-16" : "size-10"} shrink-0 rounded-md border bg-muted object-contain`;
   return src && failed !== src ? (
     <img
       src={src}

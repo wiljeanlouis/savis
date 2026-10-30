@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { Link } from "react-router";
 import { PageSelector } from "@/shared/components/PageSelector";
 import { PageNavigator } from "@/shared/components/PageNavigator";
+import { PageItemCount } from "@/shared/components/PageItemCount";
 import { ApiErrorAlert } from "@/shared/components/ApiErrorAlert";
 import { Spinner } from "@/shared/ui/spinner";
 import { Button } from "@/shared/ui/button";
@@ -91,6 +92,12 @@ export const BomComponentList = () => {
       </section>
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="flex flex-wrap items-center gap-2">
+          <PageItemCount
+            itemName="offre"
+            totalItems={
+              list.isLoading || list.isError ? undefined : data?.total_items
+            }
+          />
           <BomComponentListSorting
             sortBy={listState.sortBy}
             handleSortByChange={list.handleSortByChange}
@@ -204,8 +211,6 @@ export const BomComponentList = () => {
               ))}
             </ul>
             <PageNavigator
-              itemName="offre"
-              totalItems={data?.total_items ?? 0}
               page={data?.page ?? 1}
               totalPages={data?.total_pages ?? 0}
               goToNextPage={list.goToNextPage}

@@ -49,7 +49,11 @@ describe("Acquisition tasks", () => {
     mount();
     expect(await screen.findByRole("table")).toBeInTheDocument();
     expect(screen.getByText("Offre indisponible")).toBeInTheDocument();
-    expect(screen.getByText("25 tâches")).toBeInTheDocument();
+    const count = screen.getByText("25 tâches");
+    expect(
+      count.compareDocumentPosition(screen.getByRole("table")) &
+        Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
     expect(
       screen.getByRole("combobox", { name: "Résultats par page" }),
     ).toBeInTheDocument();

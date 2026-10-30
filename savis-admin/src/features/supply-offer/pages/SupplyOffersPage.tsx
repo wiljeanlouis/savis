@@ -3,6 +3,7 @@ import { getResourcesByIds } from "@/features/resource/api/resourceApi";
 import { ManualOfferDialog } from "../components/ManualOfferDialog";
 import { useState } from "react";
 import { PageNavigator } from "@/shared/components/PageNavigator";
+import { PageItemCount } from "@/shared/components/PageItemCount";
 import { PageSelector } from "@/shared/components/PageSelector";
 import { Button } from "@/shared/ui/button";
 import { ApiErrorAlert } from "@/shared/components/ApiErrorAlert";
@@ -153,6 +154,14 @@ export function SupplyOffersPage() {
 
       <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
         <div className="flex flex-wrap items-center gap-2">
+          <PageItemCount
+            itemName="offre"
+            totalItems={
+              query.isPending || query.isError
+                ? undefined
+                : result?.totalElements
+            }
+          />
           <SupplyOfferListSorting
             sortBy={sortBy}
             sortDirection={sortDirection}
@@ -216,8 +225,6 @@ export function SupplyOffersPage() {
             onViewDetails={setSelectedOffer}
           />
           <PageNavigator
-            itemName="offre"
-            totalItems={result?.totalElements ?? 0}
             page={page + 1}
             totalPages={result?.totalPages ?? 0}
             goToPreviousPage={() => setPage(page - 1)}

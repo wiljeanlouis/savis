@@ -123,7 +123,11 @@ describe("SupplyOffersPage", () => {
     expect(
       screen.getByRole("combobox", { name: "Résultats par page" }),
     ).toHaveTextContent("20");
-    expect(screen.getByText("25 offres")).toBeInTheDocument();
+    const count = screen.getByText("25 offres");
+    expect(
+      count.compareDocumentPosition(screen.getByRole("table")) &
+        Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
     expect(screen.getByText("Page 1 sur 2")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Précédent" })).toBeDisabled();
     await user.click(screen.getByRole("button", { name: "Suivant" }));

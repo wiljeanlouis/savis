@@ -4,8 +4,16 @@ import { useBomWorkspace } from "../hooks/useBomWorkspace";
 import { useBomList } from "../hooks/useBomList";
 import { Button } from "@/shared/ui/button";
 import { ApiErrorAlert } from "@/shared/components/ApiErrorAlert";
+import { PageItemCount } from "@/shared/components/PageItemCount";
 import { PageNavigator } from "@/shared/components/PageNavigator";
 import { PageSelector } from "@/shared/components/PageSelector";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/shared/ui/select";
 import { BomListFilters } from "./BomListFilters";
 import { BomDetails } from "./BomDetails";
 import { BomImage } from "./BomImage";
@@ -61,49 +69,64 @@ export const BomList = () => {
           <Button onClick={() => void management.refetch()}>Réessayer</Button>
         </ApiErrorAlert>
       ) : (
-        <div className="grid items-start gap-4 lg:grid-cols-[minmax(0,2fr)_minmax(0,3fr)]">
+        <div className="grid items-start gap-4 lg:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)] xl:grid-cols-[minmax(0,2fr)_minmax(0,3fr)]">
           <div
             ref={listRef}
             className={`${mobile ? "hidden lg:block" : ""} min-w-0 space-y-3`}
           >
-            <div className="flex justify-end gap-2">
-              <PageSelector
-                pageSize={size}
-                onPageChange={(v) => update("size", String(v))}
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <PageItemCount
+                itemName="composition"
+                totalItems={filtered.length}
               />
+              <div className="flex flex-wrap items-center gap-2">
+                <Select
+                  value={params.get("sort") === "desc" ? "desc" : "asc"}
+                  onValueChange={(value) => update("sort", value)}
+                >
+                  <SelectTrigger aria-label="Tri" className="h-9 w-40">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="asc">Nom : A à Z</SelectItem>
+                    <SelectItem value="desc">Nom : Z à A</SelectItem>
+                  </SelectContent>
+                </Select>
+                <PageSelector
+                  pageSize={size}
+                  onPageChange={(v) => update("size", String(v))}
+                />
+              </div>
             </div>
             {items.length ? (
-              <div
+              <ul
                 aria-label="Liste des compositions"
-                className="overflow-hidden rounded-xl border bg-card"
+                className="divide-y overflow-hidden rounded-xl border bg-card"
               >
                 {items.map((b) => (
-                  <button
-                    key={b.id}
-                    type="button"
-                    aria-pressed={selected?.id === b.id}
-                    className={`flex w-full items-center gap-3 border-b p-3 text-left last:border-0 hover:bg-muted focus-visible:outline-2 focus-visible:outline-primary ${selected?.id === b.id ? "bg-muted" : ""}`}
-                    onClick={() => update("selected", b.id!, false)}
-                  >
-                    <BomImage src={b.imageUrl} name={b.name} />
-                    <span className="min-w-0 flex-1">
-                      <span className="block truncate text-sm font-medium">
-                        {b.name}
-                      </span>
-                      {b.description && (
-                        <span className="block truncate text-xs text-muted-foreground">
-                          {b.description}
+                  <li key={b.id}>
+                    <button
+                      type="button"
+                      aria-label={`Consulter ${b.name}`}
+                      aria-pressed={selected?.id === b.id}
+                      className="grid w-full grid-cols-[2.5rem_minmax(0,1fr)] items-center gap-2.5 border-l-[3px] border-transparent py-2 pr-3 pl-2 text-left transition-colors hover:bg-muted/60 focus-visible:outline-2 focus-visible:outline-primary focus-visible:outline-offset-[-2px] aria-pressed:border-primary aria-pressed:bg-primary/10"
+                      onClick={() => update("selected", b.id!, false)}
+                    >
+                      <BomImage src={b.imageUrl} name={b.name} />
+                      <span className="min-w-0">
+                        <span className="line-clamp-2 [overflow-wrap:anywhere] text-sm leading-snug font-medium">
+                          {b.name}
                         </span>
-                      )}
-                      <span className="block text-xs text-muted-foreground">
-                        {formatBomQuantity(b.yield.quantity, b.yield.unit)} ·{" "}
-                        {b.components.length} composants · {b.activities.length}{" "}
-                        activités
+                        <span className="mt-0.5 block text-xs text-muted-foreground">
+                          {formatBomQuantity(b.yield.quantity, b.yield.unit)} ·{" "}
+                          {b.components.length} composants ·{" "}
+                          {b.activities.length} activités
+                        </span>
                       </span>
-                    </span>
-                  </button>
+                    </button>
+                  </li>
                 ))}
-              </div>
+              </ul>
             ) : (
               <p
                 role="status"
@@ -115,8 +138,6 @@ export const BomList = () => {
               </p>
             )}
             <PageNavigator
-              itemName="composition"
-              totalItems={filtered.length}
               page={page}
               totalPages={totalPages}
               goToPreviousPage={() => update("page", String(page - 1))}
