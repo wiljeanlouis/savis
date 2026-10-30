@@ -45,7 +45,27 @@ export function BomListFilters({
   const activeAdvancedFilters = [
     params.get("activity") && params.get("activity") !== "ALL",
     params.get("components") && params.get("components") !== "ALL",
+    params.get("sort") && params.get("sort") !== "asc",
   ].filter(Boolean).length;
+  const activeLabels = [
+    params.get("activity") &&
+      params.get("activity") !== "ALL" &&
+      `Activité : ${
+        params.get("activity") === "NONE"
+          ? "Sans activité"
+          : costActivityLabel(params.get("activity")!)
+      }`,
+    params.get("components") &&
+      params.get("components") !== "ALL" &&
+      `Composants : ${
+        params.get("components") === "WITH"
+          ? "Avec composants"
+          : "Sans composant"
+      }`,
+    params.get("sort") &&
+      params.get("sort") !== "asc" &&
+      `Tri : ${params.get("sort") === "desc" ? "Z à A" : "A à Z"}`,
+  ].filter(Boolean);
   const [advancedExpanded, setAdvancedExpanded] = useState(
     activeAdvancedFilters > 0,
   );
@@ -53,10 +73,10 @@ export function BomListFilters({
   return (
     <section
       aria-label="Recherche et filtres des compositions"
-      className="space-y-2 rounded-xl border p-3"
+      className="space-y-2 border-b pb-3"
     >
       <div className="grid grid-cols-1 items-end gap-2 sm:grid-cols-2 lg:grid-cols-[minmax(0,1fr)_11rem_11rem_auto_auto]">
-        <label className="grid min-w-0 gap-1 text-xs text-muted-foreground">
+        <label className="grid min-w-0 gap-1 text-sm text-muted-foreground">
           Rechercher par nom ou description
           <Input
             placeholder="Nom ou description…"
@@ -106,6 +126,11 @@ export function BomListFilters({
           Réinitialiser
         </Button>
       </div>
+      {activeLabels.length > 0 && !advancedExpanded && (
+        <p className="text-sm text-muted-foreground">
+          Filtres actifs : {activeLabels.join(" · ")}
+        </p>
+      )}
       <div
         id="bom-advanced-filters"
         hidden={!advancedExpanded}
@@ -133,6 +158,15 @@ export function BomListFilters({
             ["WITHOUT", "Sans composant"],
           ]}
         />
+        <Filter
+          label="Tri"
+          value={params.get("sort") === "desc" ? "desc" : "asc"}
+          onChange={(value) => update("sort", value)}
+          options={[
+            ["asc", "Nom : A à Z"],
+            ["desc", "Nom : Z à A"],
+          ]}
+        />
       </div>
     </section>
   );
@@ -150,7 +184,7 @@ function Filter({
 }) {
   return (
     <div className="grid min-w-0 gap-1">
-      <span className="text-xs text-muted-foreground">{label}</span>
+      <span className="text-sm text-muted-foreground">{label}</span>
       <Select value={value} onValueChange={onChange}>
         <SelectTrigger aria-label={label} className="w-full">
           <SelectValue />

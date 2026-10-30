@@ -115,7 +115,11 @@ describe("Catalog product master-detail workspace", () => {
     renderPage();
     fireEvent.click(screen.getByRole("button", { name: "Consulter Pâté" }));
     expect(detail().getByRole("heading", { name: "Pâté" })).toBeInTheDocument();
-    expect(detail().getByText("Description de Pâté")).toBeInTheDocument();
+    expect(detail().getByText("Description de Pâté")).not.toBeVisible();
+    fireEvent.click(
+      detail().getByText("Description et informations complémentaires"),
+    );
+    expect(detail().getByText("Description de Pâté")).toBeVisible();
     expect(detail().getByText("Unité")).toBeInTheDocument();
     expect(detail().getByText("Douzaine")).toBeInTheDocument();
     expect(detail().getByText(/12 unités/)).toBeInTheDocument();
@@ -160,6 +164,7 @@ describe("Catalog product master-detail workspace", () => {
     management.products = [
       {
         ...product("p1", "Pâté"),
+        imageUrl: "https://example.com/pate.jpg",
         productBoms: [
           { id: "base", bomId: "b1", quantity: 2, displayOrder: 0 },
         ],
@@ -206,24 +211,89 @@ describe("Catalog product master-detail workspace", () => {
       yield: { quantity: 12, unit: "UNIT" },
     }));
     renderPage();
+    expect(detail().getByRole("img", { name: "Pâté" })).toHaveAttribute(
+      "src",
+      "https://example.com/pate.jpg",
+    );
     expect(
       detail().getByRole("link", { name: "Nom complet de la composition b1" }),
     ).toHaveAttribute("href", "/boms/b1");
-    expect(detail().getByText("Base commune")).toBeInTheDocument();
+    expect(
+      detail().getByRole("heading", { name: "Compositions de base (1)" }),
+    ).toBeInTheDocument();
     expect(detail().getByText("Quantité : 2")).toBeInTheDocument();
+    expect(detail().getByRole("heading", { name: "Choix (1)" })).toBeVisible();
     expect(detail().getByText(/Saveur · Poulet/)).toBeInTheDocument();
-    expect(detail().getByText("Ingrédient")).toBeInTheDocument();
+    expect(
+      detail().getByRole("heading", {
+        name: "Ingrédients personnalisables (1)",
+      }),
+    ).toBeVisible();
     expect(detail().getByText("Extra")).toBeInTheDocument();
+    expect(detail().queryByText("Base commune")).not.toBeInTheDocument();
+    expect(
+      detail().queryByText("Ingrédient", { exact: true }),
+    ).not.toBeInTheDocument();
     expect(
       screen.getByRole("button", { name: "Consulter Pâté" }),
-    ).toHaveTextContent("3 composition(s)");
+    ).not.toHaveTextContent("composition(s)");
+    expect(
+      detail().getByRole("heading", { name: "Compositions (3)" }),
+    ).toBeInTheDocument();
+  });
+  it("groups cumulative base compositions without showing empty groups", () => {
+    management.products = [
+      {
+        ...product("p1", "Pâté"),
+        productBoms: [
+          { id: "base-1", bomId: "b1", quantity: 2, displayOrder: 0 },
+          { id: "base-2", bomId: "b2", quantity: 1, displayOrder: 1 },
+        ],
+      },
+    ];
+    management.boms = ["b1", "b2"].map((id) => ({
+      id,
+      name: `Base ${id}`,
+      type: "FOOD",
+      description: "",
+      imageUrl: "",
+      instructions: "",
+      components: [],
+      activities: [],
+      yield: { quantity: 12, unit: "UNIT" },
+    }));
+    renderPage();
+    expect(
+      detail().getByRole("heading", { name: "Compositions de base (2)" }),
+    ).toBeVisible();
+    expect(detail().getByRole("link", { name: "Base b1" })).toHaveAttribute(
+      "href",
+      "/boms/b1",
+    );
+    expect(detail().getByText("Quantité : 2")).toBeVisible();
+    expect(detail().queryByRole("heading", { name: /^Choix/ })).toBeNull();
+    expect(
+      detail().queryByRole("heading", { name: /Ingrédients personnalisables/ }),
+    ).toBeNull();
   });
   it("handles products without compositions or sale modes", () => {
     management.products = [{ ...product("p1", "Pâté"), purchaseModes: [] }];
     renderPage();
     expect(
+      detail().getByRole("img", { name: "Aucune image pour Pâté" }),
+    ).toBeInTheDocument();
+    expect(
       detail().getByText("Aucune composition associée"),
     ).toBeInTheDocument();
+    expect(
+      detail().queryByRole("heading", { name: /Compositions de base/ }),
+    ).not.toBeInTheDocument();
+    expect(
+      detail().queryByRole("heading", { name: /^Choix/ }),
+    ).not.toBeInTheDocument();
+    expect(
+      detail().queryByRole("heading", { name: /Ingrédients personnalisables/ }),
+    ).not.toBeInTheDocument();
     expect(detail().getByText("Aucun mode de vente")).toBeInTheDocument();
     expect(screen.getByText("Prix non renseigné")).toBeInTheDocument();
   });
@@ -263,6 +333,34 @@ describe("Catalog product master-detail workspace", () => {
     expect(
       screen.queryByRole("button", { name: "Consulter Arche" }),
     ).not.toBeInTheDocument();
+  });
+  it("keeps collapsed advanced filters identifiable and resets URL filters", async () => {
+    const user = userEvent.setup();
+    renderPage(
+      "/catalog-products?custom=keep&size=10&page=2&selected=p2&search=Arche&category=DECORATION&publication=PUBLISHED&availability=AVAILABLE&sort=name-desc",
+    );
+    const toggle = screen.getByRole("button", { name: /Moins de filtres/ });
+    await user.click(toggle);
+    expect(
+      screen.getByText(
+        "Filtres actifs : Catégorie : Décoration · Disponibilité : Disponibles · Tri : Z à A",
+      ),
+    ).toBeVisible();
+    await user.click(
+      screen.getByRole("button", { name: "Réinitialiser les filtres" }),
+    );
+    expect(screen.getByLabelText("URL")).toHaveTextContent(
+      "/catalog-products?custom=keep&size=10",
+    );
+    expect(
+      screen.getByRole("button", { name: "Consulter Pâté" }),
+    ).toBeVisible();
+    expect(
+      screen.getByRole("button", { name: "Consulter Arche" }),
+    ).toBeVisible();
+    expect(
+      screen.getByRole("button", { name: "Plus de filtres" }),
+    ).toBeVisible();
   });
   it("keeps filters and pagination when selecting and retains selection on refresh", () => {
     management.products = Array.from({ length: 25 }, (_, i) =>

@@ -84,15 +84,20 @@ at full width with a return button and focus restoration. Search (including
 instructions and component names), composition type (food/material), yield unit,
 activity type (including no activity), component presence, name sorting, page size,
 page and explicit selection are URL state. Filter changes reset page and selection;
-resetting filters preserves page size and unrelated URL parameters. Unit options
-come from all loaded BOMs, not the filtered page. No additional requests or
-valuations are needed for filtering. Filtering and pagination operate on the
-complete existing unpriced list response.
+resetting filters preserves page size and unrelated URL parameters. Secondary
+activity/component filters and name sorting are grouped under “Plus de filtres”;
+active values remain summarized beside the filter controls when folded. The list
+uses restrained row dividers and emphasizes name and yield.
+Unit options come from all loaded BOMs, not the filtered page. No additional
+requests or valuations are needed for filtering. Filtering and pagination operate
+on the complete existing unpriced list response.
 
 Only the selected BOM loads `GET /boms/{id}`, through a TanStack Query cache.
-The panel shows saved yield, material resources, ordered activities, instructions,
-and the existing cost overview. Complete costs and known subtotals remain distinct;
-blocking diagnostics and component/activity subtotals come from the backend.
+The panel prioritizes saved yield, cost completeness and cost, material resources,
+and ordered activities; descriptions and instructions are available in one
+secondary disclosure. Complete costs and known subtotals remain distinct;
+blocking diagnostics remain visible and non-blocking warnings can be expanded.
+Component/activity subtotals come from the backend.
 No per-row valuations or frontend cost engine are introduced. Missing and broken
 images use a neutral placeholder. A separate action footer remains visible around
 the independently scrollable content. Editing, detailed cost analysis (`#bom-cost`),
@@ -710,6 +715,14 @@ Executor lists and term counters, selects the next visible offer and returns to
 the preceding page when the last row of a page disappears. No Supply write is
 performed by review.
 
+The review page uses a restrained divided list that prioritizes product, brand,
+provider, observed price and package size; the default `NEW` state is not repeated
+as a badge on every row. The detail panel keeps status, product, price, package
+and validation actions visible. Collection metadata is grouped in one expandable
+section; edit, supplier link and delete actions remain available without opening
+it. The detail content scrolls independently from the persistent validation
+actions.
+
 Retrieval by provider URL, editing review status and refresh frequency, immediate
 refresh scheduling, validation, rejection/invalidation, supplier links and
 confirmed deletion remain available. Supply retains manual creation, resource
@@ -830,13 +843,15 @@ The product detail panel uses a fixed header and action footer around one
 keyboard-focusable, independently scrollable content region. Its available height
 is measured from its actual viewport position, following the procurement review
 panel convention, and refreshed on window resize and scroll. This keeps actions
-outside the scrolling content on desktop and in the mobile detail view. Compact
+outside the scrolling content on desktop and in the mobile detail view. Publication
+state and identity lead the panel, followed by sale modes and compositions;
+description and availability notes are in a single secondary disclosure. Compact
 sale-mode rows align prices; composition rows show their actual role (common
 base, choice, ingredient), full BOM name, configured quantities and ingredient
 supplement separately. Supplements are displayed as supplied, without recalculating
 pricing rules. A compact contained image preserves varying aspect ratios; long
-descriptions remain complete and wrap inside the scroll region. URL selection,
-list filters, return navigation and Catalog mutations are unchanged.
+descriptions remain complete and wrap inside the scroll region. URL selection
+and filter semantics, return navigation and Catalog mutations are unchanged.
 
 The analysis header uses compact product identity and selectors, and explicitly
 identifies the conservative worst-case assumption for allocated bundles. Cost and

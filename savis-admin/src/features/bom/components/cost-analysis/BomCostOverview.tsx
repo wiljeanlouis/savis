@@ -30,7 +30,7 @@ export function BomCostOverview({
       <div className="flex flex-wrap items-start justify-between gap-4">
         <dl className="grid flex-1 gap-5 sm:grid-cols-[minmax(0,1.2fr)_minmax(0,1fr)_minmax(0,1fr)]">
           <div>
-            <dt className="text-xs text-muted-foreground">
+            <dt className="text-sm text-muted-foreground">
               {costing.complete ? "Coût total" : "Sous-total connu"}
             </dt>
             <dd className="mt-1 text-3xl font-semibold tracking-tight tabular-nums">
@@ -44,17 +44,17 @@ export function BomCostOverview({
               <dt className="text-xs text-muted-foreground">
                 Coût par unité produite
               </dt>
-              <dd className="mt-2 text-sm font-medium tabular-nums">
+              <dd className="mt-2 text-base font-medium tabular-nums">
                 {formatBomMoney(unitCost)} / {yieldUnit}
               </dd>
             </div>
           )}
           {showYield && (
             <div>
-              <dt className="text-xs text-muted-foreground">
+              <dt className="text-sm text-muted-foreground">
                 Rendement enregistré
               </dt>
-              <dd className="mt-2 text-sm font-medium">
+              <dd className="mt-2 text-base font-medium">
                 {validYield
                   ? formatBomQuantity(costing.yieldQuantity, yieldUnit)
                   : "Rendement invalide"}
@@ -74,7 +74,7 @@ export function BomCostOverview({
         </Badge>
       </div>
       {!costing.complete && (
-        <p className="text-xs text-muted-foreground">
+        <p className="text-sm text-muted-foreground">
           Le sous-total couvre uniquement les coûts connus. Un coût manquant
           n’est pas un coût nul.
         </p>

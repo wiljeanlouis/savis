@@ -46,28 +46,33 @@ export function CatalogProductDetails({ product, boms, ...actions }: Props) {
       aria-label="Détail du produit"
       className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden rounded-xl border bg-card max-h-[var(--catalog-detail-height,calc(100dvh-2rem))]"
     >
-      <header className="shrink-0 space-y-1.5 border-b px-4 py-3">
+      <header className="shrink-0 space-y-1.5 border-b px-5 py-4">
         <div className="flex flex-wrap items-center gap-2">
-          <h2 className="min-w-0 [overflow-wrap:anywhere] text-lg leading-snug font-semibold">
+          <CatalogProductImage
+            src={product.imageUrl}
+            name={product.name}
+            className="size-12 object-contain"
+          />
+          <h2 className="min-w-0 [overflow-wrap:anywhere] text-xl leading-snug font-semibold tracking-tight">
             {product.name}
           </h2>
+          <Badge variant={product.published ? "secondary" : "outline"}>
+            {product.published ? "Publié" : "Brouillon"}
+          </Badge>
         </div>
-        <p className="[overflow-wrap:anywhere] text-xs text-muted-foreground">
+        <p className="[overflow-wrap:anywhere] text-sm text-muted-foreground">
           {
             productCategories.find(
               (category) => category.value === product.category,
             )?.label
           }{" "}
-          · {product.code}{" "}
-          <Badge variant="outline" className="ml-1 text-muted-foreground">
-            {product.published ? "Publié" : "Brouillon"}
-          </Badge>
+          · {product.code}
         </p>
-        <div className="flex flex-wrap gap-1.5">
-          <Badge variant="outline" className="text-[11px]">
+        <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-muted-foreground">
+          <span>
             {product.commercialType === "SERVICE" ? "Service" : "Bien"}
-          </Badge>
-          <Badge variant="outline" className="text-[11px]">
+          </span>
+          <span>
             {
               {
                 STANDARD: "Standard",
@@ -76,43 +81,36 @@ export function CatalogProductDetails({ product, boms, ...actions }: Props) {
                 INGREDIENT_CUSTOMIZATION: "Ingrédients personnalisables",
               }[product.productType]
             }
-          </Badge>
-          {!product.available && (
-            <Badge variant="secondary" className="text-[11px]">
-              Indisponible
-            </Badge>
-          )}
+          </span>
+          {!product.available && <Badge variant="outline">Indisponible</Badge>}
         </div>
       </header>
       <div
         role="region"
         aria-label="Informations du produit"
         tabIndex={0}
-        className="min-h-0 flex-1 space-y-3 overflow-y-auto overscroll-contain p-4 focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-primary"
+        className="min-h-0 flex-1 space-y-4 overflow-y-auto overscroll-contain p-5 focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-primary"
       >
-        <div className="flex items-start gap-3">
-          <CatalogProductImage
-            src={product.imageUrl}
-            name={product.name}
-            className="size-20 object-contain sm:size-24"
-          />
-          <p className="min-w-0 whitespace-pre-wrap [overflow-wrap:anywhere] text-sm leading-relaxed text-muted-foreground">
-            {product.description.trim() || "Aucune description"}
-          </p>
-        </div>
         <CatalogProductPurchaseModes modes={product.purchaseModes} />
         <CatalogProductCompositions product={product} boms={boms} />
-        {product.availabilityNote && (
-          <section
-            aria-label="Disponibilité"
-            className="space-y-1 border-t pt-3"
-          >
-            <h3 className="text-sm font-semibold">Disponibilité</h3>
-            <p className="whitespace-pre-wrap [overflow-wrap:anywhere] text-xs leading-relaxed text-muted-foreground">
-              {product.availabilityNote}
+        <details className="border-t pt-3">
+          <summary className="cursor-pointer rounded-sm py-1 text-sm font-medium marker:text-muted-foreground focus-visible:outline-2 focus-visible:outline-primary">
+            Description et informations complémentaires
+          </summary>
+          <div className="mt-3 space-y-4">
+            <p className="whitespace-pre-wrap [overflow-wrap:anywhere] text-sm leading-relaxed text-muted-foreground">
+              {product.description.trim() || "Aucune description"}
             </p>
-          </section>
-        )}
+            {product.availabilityNote && (
+              <section aria-label="Disponibilité" className="space-y-1">
+                <h3 className="text-sm font-semibold">Disponibilité</h3>
+                <p className="whitespace-pre-wrap [overflow-wrap:anywhere] text-sm leading-relaxed text-muted-foreground">
+                  {product.availabilityNote}
+                </p>
+              </section>
+            )}
+          </div>
+        </details>
       </div>
       <CatalogProductDetailActions product={product} {...actions} />
     </section>

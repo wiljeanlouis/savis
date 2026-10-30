@@ -2,11 +2,7 @@ import { Badge } from "@/shared/ui/badge";
 import { CatalogProductImage } from "./CatalogProductImage";
 import type { CatalogProduct } from "../types";
 import { productCategories } from "../types";
-import {
-  compositionCount,
-  startingPrice,
-  productMoney,
-} from "../model/catalogProductList";
+import { startingPrice, productMoney } from "../model/catalogProductList";
 export function CatalogProductCompactList({
   products,
   selectedId,
@@ -17,10 +13,7 @@ export function CatalogProductCompactList({
   onSelect: (id: string) => void;
 }) {
   return (
-    <ul
-      aria-label="Liste des produits"
-      className="divide-y overflow-hidden rounded-xl border bg-card"
-    >
+    <ul aria-label="Liste des produits" className="divide-y border-y">
       {products.map((product) => (
         <li key={product.id}>
           <button
@@ -28,7 +21,7 @@ export function CatalogProductCompactList({
             aria-label={`Consulter ${product.name}`}
             aria-pressed={product.id === selectedId}
             onClick={() => product.id && onSelect(product.id)}
-            className="grid w-full grid-cols-[2.5rem_minmax(0,1fr)_auto] items-center gap-2.5 border-l-[3px] border-transparent py-3 pr-3 pl-2 text-left transition-colors hover:bg-muted/60 focus-visible:outline-2 focus-visible:outline-primary focus-visible:outline-offset-[-2px] aria-pressed:border-primary aria-pressed:bg-primary/10"
+            className="grid w-full grid-cols-[2.5rem_minmax(0,1fr)_auto] items-center gap-3 border-l-[3px] border-transparent py-4 pr-3 pl-2 text-left transition-colors hover:bg-muted/60 focus-visible:outline-2 focus-visible:outline-primary focus-visible:outline-offset-[-2px] aria-pressed:border-primary aria-pressed:bg-primary/10"
           >
             <CatalogProductImage
               src={product.imageUrl}
@@ -44,12 +37,11 @@ export function CatalogProductCompactList({
                   productCategories.find(
                     (category) => category.value === product.category,
                   )?.label
-                }{" "}
-                · {compositionCount(product)} composition(s)
+                }
               </span>
             </span>
             <span className="text-right">
-              <span className="block text-xs font-semibold tabular-nums">
+              <span className="block text-sm font-semibold tabular-nums">
                 {product.purchaseModes.filter((mode) => mode.active).length > 1
                   ? "Dès "
                   : ""}

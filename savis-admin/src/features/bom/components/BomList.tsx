@@ -7,13 +7,6 @@ import { ApiErrorAlert } from "@/shared/components/ApiErrorAlert";
 import { PageItemCount } from "@/shared/components/PageItemCount";
 import { PageNavigator } from "@/shared/components/PageNavigator";
 import { PageSelector } from "@/shared/components/PageSelector";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/shared/ui/select";
 import { BomListFilters } from "./BomListFilters";
 import { BomDetails } from "./BomDetails";
 import { BomImage } from "./BomImage";
@@ -41,7 +34,7 @@ export const BomList = () => {
       detailRef.current?.focus();
   }, [mobile, selected?.id]);
   return (
-    <div className="min-w-0 space-y-4">
+    <div className="min-w-0 space-y-5 dark:[--primary:#e078a4] dark:[--primary-foreground:#24131a]">
       <header className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h1 className="text-2xl font-semibold">Compositions</h1>
@@ -69,7 +62,7 @@ export const BomList = () => {
           <Button onClick={() => void management.refetch()}>Réessayer</Button>
         </ApiErrorAlert>
       ) : (
-        <div className="grid items-start gap-4 lg:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)] xl:grid-cols-[minmax(0,2fr)_minmax(0,3fr)]">
+        <div className="grid items-start gap-5 lg:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)] xl:grid-cols-[minmax(0,2fr)_minmax(0,3fr)]">
           <div
             ref={listRef}
             className={`${mobile ? "hidden lg:block" : ""} min-w-0 space-y-3`}
@@ -79,29 +72,15 @@ export const BomList = () => {
                 itemName="composition"
                 totalItems={filtered.length}
               />
-              <div className="flex flex-wrap items-center gap-2">
-                <Select
-                  value={params.get("sort") === "desc" ? "desc" : "asc"}
-                  onValueChange={(value) => update("sort", value)}
-                >
-                  <SelectTrigger aria-label="Tri" className="h-9 w-40">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="asc">Nom : A à Z</SelectItem>
-                    <SelectItem value="desc">Nom : Z à A</SelectItem>
-                  </SelectContent>
-                </Select>
-                <PageSelector
-                  pageSize={size}
-                  onPageChange={(v) => update("size", String(v))}
-                />
-              </div>
+              <PageSelector
+                pageSize={size}
+                onPageChange={(v) => update("size", String(v))}
+              />
             </div>
             {items.length ? (
               <ul
                 aria-label="Liste des compositions"
-                className="divide-y overflow-hidden rounded-xl border bg-card"
+                className="divide-y border-y"
               >
                 {items.map((b) => (
                   <li key={b.id}>
@@ -109,7 +88,7 @@ export const BomList = () => {
                       type="button"
                       aria-label={`Consulter ${b.name}`}
                       aria-pressed={selected?.id === b.id}
-                      className="grid w-full grid-cols-[2.5rem_minmax(0,1fr)] items-center gap-2.5 border-l-[3px] border-transparent py-2 pr-3 pl-2 text-left transition-colors hover:bg-muted/60 focus-visible:outline-2 focus-visible:outline-primary focus-visible:outline-offset-[-2px] aria-pressed:border-primary aria-pressed:bg-primary/10"
+                      className="grid w-full grid-cols-[2.5rem_minmax(0,1fr)] items-center gap-3 border-l-[3px] border-transparent py-4 pr-3 pl-2 text-left transition-colors hover:bg-muted/60 focus-visible:outline-2 focus-visible:outline-primary focus-visible:outline-offset-[-2px] aria-pressed:border-primary aria-pressed:bg-primary/10"
                       onClick={() => update("selected", b.id!, false)}
                     >
                       <BomImage src={b.imageUrl} name={b.name} />
@@ -118,9 +97,7 @@ export const BomList = () => {
                           {b.name}
                         </span>
                         <span className="mt-0.5 block text-xs text-muted-foreground">
-                          {formatBomQuantity(b.yield.quantity, b.yield.unit)} ·{" "}
-                          {b.components.length} composants ·{" "}
-                          {b.activities.length} activités
+                          {formatBomQuantity(b.yield.quantity, b.yield.unit)}
                         </span>
                       </span>
                     </button>
@@ -130,7 +107,7 @@ export const BomList = () => {
             ) : (
               <p
                 role="status"
-                className="rounded-xl border border-dashed p-8 text-center text-muted-foreground"
+                className="border-y border-dashed py-8 text-center text-sm text-muted-foreground"
               >
                 {management.boms?.length
                   ? "Aucune composition ne correspond aux filtres sélectionnés."
@@ -176,7 +153,7 @@ export const BomList = () => {
                 />
               </>
             ) : (
-              <p className="rounded-xl border border-dashed p-8 text-center text-muted-foreground">
+              <p className="border-y border-dashed p-8 text-center text-sm text-muted-foreground">
                 Aucune composition à consulter.
               </p>
             )}

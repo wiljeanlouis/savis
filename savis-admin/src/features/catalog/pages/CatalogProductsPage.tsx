@@ -30,10 +30,10 @@ export function CatalogProductsPage() {
     );
   };
   return (
-    <div className="min-w-0 space-y-4">
+    <div className="min-w-0 space-y-5 dark:[--primary:#e078a4] dark:[--primary-foreground:#24131a]">
       <header className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-2xl font-semibold">Produits</h1>
+          <h1 className="text-3xl font-semibold tracking-tight">Produits</h1>
           <p className="text-sm text-muted-foreground">
             Consultez vos produits, leurs modes de vente et leurs compositions.
           </p>
@@ -42,7 +42,11 @@ export function CatalogProductsPage() {
           <Link to="/catalog-products/new">Ajouter un produit</Link>
         </Button>
       </header>
-      <CatalogProductListFilters params={list.params} update={list.update} />
+      <CatalogProductListFilters
+        params={list.params}
+        update={list.update}
+        reset={list.resetFilters}
+      />
       {management.isLoading ? (
         <div
           role="status"
@@ -57,7 +61,7 @@ export function CatalogProductsPage() {
           error={management.error}
         />
       ) : (
-        <div className="grid items-start gap-4 lg:grid-cols-[minmax(0,2fr)_minmax(0,3fr)]">
+        <div className="grid items-start gap-5 lg:grid-cols-[minmax(0,2fr)_minmax(0,3fr)]">
           <div
             ref={listRef}
             className={
@@ -91,7 +95,7 @@ export function CatalogProductsPage() {
             ) : (
               <div
                 role="status"
-                className="rounded-xl border border-dashed p-8 text-center text-sm text-muted-foreground"
+                className="border-y border-dashed py-8 text-center text-sm text-muted-foreground"
               >
                 {management.products.length
                   ? "Aucun produit ne correspond aux filtres sélectionnés."
@@ -134,7 +138,7 @@ export function CatalogProductsPage() {
             ) : (
               <section
                 aria-label="Détail du produit"
-                className="rounded-xl border border-dashed p-8 text-center text-sm text-muted-foreground"
+                className="border-y border-dashed p-8 text-center text-sm text-muted-foreground"
               >
                 Aucun produit à consulter.
               </section>

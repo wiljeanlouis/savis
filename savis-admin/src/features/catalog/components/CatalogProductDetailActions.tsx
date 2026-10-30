@@ -32,7 +32,7 @@ export function CatalogProductDetailActions({
   return (
     <footer
       aria-label="Actions du produit"
-      className="flex shrink-0 flex-wrap items-center gap-2 border-t bg-card px-4 py-3"
+      className="flex shrink-0 flex-wrap items-center gap-2 border-t bg-card px-5 py-3"
     >
       <Button variant="outline" asChild>
         <Link to={catalogProductWorkspaceLink(product.id!, "edit", returnTo)}>

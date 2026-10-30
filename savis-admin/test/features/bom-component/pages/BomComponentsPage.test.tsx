@@ -124,6 +124,16 @@ describe("Procurement review", () => {
     const details = await screen.findByRole("region", {
       name: "Détail de Farine 1",
     });
+    expect(
+      within(details).getByRole("heading", { name: "Farine 1" }),
+    ).toBeVisible();
+    expect(within(details).getByText(/3,50/)).toBeVisible();
+    expect(within(details).getByText("Informations de collecte")).toBeVisible();
+    expect(within(details).getByText("Dernière observation")).not.toBeVisible();
+    await userEvent.click(
+      within(details).getByText("Informations de collecte"),
+    );
+    expect(within(details).getByText("Dernière observation")).toBeVisible();
     const actions = within(details).getByRole("group", {
       name: "Validation de l'offre",
     });
@@ -239,6 +249,27 @@ describe("Procurement review", () => {
     expect(
       screen.getByRole("button", { name: /Récupérer/i }),
     ).toBeInTheDocument();
+  });
+
+  it("uses a green badge for validated offers in the list and detail", async () => {
+    offers = [offer("1"), offer("2")].map((item) => ({
+      ...item,
+      status: "VALID",
+    }));
+    mount("/offers?status=VALID");
+    await screen.findByRole("button", { name: "Consulter Farine 1" });
+    const list = screen.getByRole("list", { name: "Offres découvertes" });
+    expect(within(list).getAllByText("Validée")[0]).toHaveClass(
+      "text-emerald-800",
+      "dark:text-emerald-300",
+    );
+    const details = await screen.findByRole("region", {
+      name: "Détail de Farine 1",
+    });
+    expect(within(details).getByText("Validée")).toHaveClass(
+      "text-emerald-800",
+      "dark:text-emerald-300",
+    );
   });
 
   it("shows errors with retry, loading, and empty results", async () => {

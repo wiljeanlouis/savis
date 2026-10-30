@@ -7,11 +7,8 @@ export function CatalogProductPurchaseModes({
   modes: ProductPurchaseMode[];
 }) {
   return (
-    <section
-      aria-labelledby="product-modes-title"
-      className="space-y-2 border-t pt-3"
-    >
-      <h3 id="product-modes-title" className="text-sm font-semibold">
+    <section aria-labelledby="product-modes-title" className="space-y-2">
+      <h3 id="product-modes-title" className="text-base font-semibold">
         Modes de vente
       </h3>
       {!modes.length ? (
@@ -23,7 +20,7 @@ export function CatalogProductPurchaseModes({
             .map((mode) => (
               <li
                 key={mode.id ?? mode.code}
-                className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3 py-2 text-sm"
+                className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3 py-3 text-sm"
               >
                 <div className="min-w-0">
                   <p className="flex flex-wrap items-center gap-1.5 [overflow-wrap:anywhere] font-medium">
@@ -34,7 +31,7 @@ export function CatalogProductPurchaseModes({
                       </Badge>
                     )}
                   </p>
-                  <p className="mt-0.5 text-xs text-muted-foreground">
+                  <p className="mt-0.5 text-sm text-muted-foreground">
                     {mode.quantity} unité{mode.quantity > 1 ? "s" : ""} ·{" "}
                     {
                       {
@@ -45,7 +42,7 @@ export function CatalogProductPurchaseModes({
                     }
                   </p>
                 </div>
-                <span className="text-right font-semibold whitespace-nowrap tabular-nums">
+                <span className="text-right text-base font-semibold whitespace-nowrap tabular-nums">
                   {productMoney(mode.price)}
                 </span>
               </li>

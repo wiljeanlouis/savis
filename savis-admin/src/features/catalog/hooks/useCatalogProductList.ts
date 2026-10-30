@@ -37,6 +37,27 @@ export function useCatalogProductList(products: CatalogProduct[]) {
     );
     setMobileDetail(false);
   };
+  const resetFilters = () => {
+    setParams(
+      (current) => {
+        const next = new URLSearchParams(current);
+        for (const key of [
+          "search",
+          "category",
+          "publication",
+          "availability",
+          "sort",
+          "page",
+          "selected",
+        ]) {
+          next.delete(key);
+        }
+        return next;
+      },
+      { replace: true },
+    );
+    setMobileDetail(false);
+  };
   const select = (id: string) => {
     setParams(
       (current) => {
@@ -63,6 +84,7 @@ export function useCatalogProductList(products: CatalogProduct[]) {
   return {
     params,
     update,
+    resetFilters,
     select,
     items,
     selected,

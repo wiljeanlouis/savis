@@ -99,7 +99,16 @@ it("loads only selected valuation, shows saved production and complete cost, and
   ).toEqual(["Coût de revient", "Composants matériels", "Activités"]);
   expect(screen.getByText("Préparation")).toBeVisible();
   expect(screen.getByText("40 min")).toBeVisible();
-  expect(screen.getByText(/Rendement : 4 portion/)).toBeVisible();
+  expect(
+    within(screen.getByLabelText("Détail de la composition")).getByText(
+      /Rendement : 4 portion/,
+    ),
+  ).toBeVisible();
+  const supplemental = screen.getByText("Description et instructions");
+  expect(supplemental).toBeVisible();
+  await userEvent.click(supplemental);
+  expect(screen.getByText("Une composition de test")).toBeVisible();
+  expect(screen.getByText("Mélanger")).toBeVisible();
   expect(screen.getByText("Coût total")).toBeVisible();
   expect(screen.getByRole("link", { name: "Modifier" })).toHaveAttribute(
     "href",
@@ -186,6 +195,9 @@ it("keeps advanced filter values when the advanced section is collapsed", async 
     screen.queryByRole("combobox", { name: "Activité" }),
   ).not.toBeInTheDocument();
   expect(router.state.location.search).toContain("activity=PREP");
+  expect(
+    screen.getByText("Filtres actifs : Activité : Préparation"),
+  ).toBeVisible();
   expect(
     screen.getByRole("button", { name: /Plus de filtres/ }),
   ).toHaveTextContent("1");
@@ -281,10 +293,16 @@ it("paginates and sorts the complete list while preserving unrelated URL state",
   expect(router.state.location.search).toContain("page=2");
   expect(screen.getByText("Page 2 sur 2")).toBeVisible();
   expect(
+    screen.queryByRole("combobox", { name: "Tri" }),
+  ).not.toBeInTheDocument();
+  expect(
     within(screen.getByLabelText("Liste des compositions")).getAllByRole(
       "button",
     ),
   ).toHaveLength(2);
+  await userEvent.click(
+    screen.getByRole("button", { name: /Plus de filtres/ }),
+  );
   await userEvent.click(screen.getByRole("combobox", { name: "Tri" }));
   await userEvent.click(screen.getByRole("option", { name: "Nom : Z à A" }));
   expect(router.state.location.search).not.toContain("page=");
@@ -294,6 +312,10 @@ it("paginates and sorts the complete list while preserving unrelated URL state",
       "button",
     )[0],
   ).toHaveTextContent("Composition 12");
+  await userEvent.click(
+    screen.getByRole("button", { name: /Moins de filtres/ }),
+  );
+  expect(screen.getByText("Filtres actifs : Tri : Z à A")).toBeVisible();
 });
 it("keeps the selected identity and actions available during detail loading and errors", async () => {
   let rejectDetail: (error: Error) => void = () => {

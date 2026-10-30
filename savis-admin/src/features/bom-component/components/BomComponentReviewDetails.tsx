@@ -30,6 +30,11 @@ export const reviewStatusLabels: Record<BomComponentStatus, string> = {
   REJECTED: "Rejetée",
 };
 
+export const reviewStatusBadgeClass = (status: BomComponentStatus) =>
+  status === "VALID"
+    ? "border-emerald-600/40 bg-emerald-50 text-emerald-800 dark:border-emerald-400/40 dark:bg-emerald-950/50 dark:text-emerald-300"
+    : undefined;
+
 export function reviewPrice(offer: BomComponent) {
   return offer.price
     ? new Intl.NumberFormat("fr-CA", {
@@ -102,26 +107,36 @@ export function BomComponentReviewDetails({
       aria-label={`Détail de ${offer.label}`}
       className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-xl border bg-card lg:max-h-[var(--review-detail-height,calc(100dvh-2rem))]"
     >
-      <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain p-4">
-        <div className="flex items-start gap-3">
+      <div
+        role="region"
+        aria-label="Informations de l'offre"
+        tabIndex={0}
+        className="min-h-0 flex-1 space-y-4 overflow-y-auto overscroll-contain p-5 focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-primary"
+      >
+        <header className="flex items-start gap-3">
           <SupplyOfferImage
             imageUrl={offer.image_url}
             alt={offer.label}
-            className="size-20 shrink-0 bg-muted object-contain sm:size-24"
+            className="size-16 shrink-0 bg-muted object-contain sm:size-20"
           />
           <div className="min-w-0 flex-1 space-y-1.5">
             <Badge
               variant={
-                offer.status === "REJECTED" ? "destructive" : "secondary"
+                offer.status === "REJECTED"
+                  ? "destructive"
+                  : offer.status === "VALID"
+                    ? "outline"
+                    : "secondary"
               }
+              className={reviewStatusBadgeClass(offer.status)}
             >
               {reviewStatusLabels[offer.status]}
             </Badge>
-            <h2 className="break-words text-base leading-snug font-semibold">
+            <h2 className="break-words text-xl leading-snug font-semibold tracking-tight">
               {offer.label}
             </h2>
             {offer.brand && (
-              <p className="break-words text-xs text-muted-foreground">
+              <p className="break-words text-sm text-muted-foreground">
                 {offer.brand}
               </p>
             )}
@@ -129,30 +144,38 @@ export function BomComponentReviewDetails({
               {offer.provider.name}
             </p>
           </div>
-        </div>
-        <div className="my-4 flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1 rounded-lg bg-muted/50 px-3 py-2.5">
-          <p className="text-xl leading-tight font-semibold tabular-nums">
-            {reviewPrice(offer)}{" "}
-            <span className="text-xs font-normal text-muted-foreground">
-              {offer.price?.currency}
-            </span>
-          </p>
-          <p className="text-sm text-muted-foreground">
+        </header>
+        <section
+          aria-label="Prix et format"
+          className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1 border-y py-3"
+        >
+          <div>
+            <p className="text-sm text-muted-foreground">Prix observé</p>
+            <p className="text-3xl leading-tight font-semibold tracking-tight tabular-nums">
+              {reviewPrice(offer)}
+            </p>
+          </div>
+          <p className="text-base font-medium text-muted-foreground">
             {reviewPackage(offer)}
           </p>
-        </div>
-        <dl className="space-y-2.5 border-t pt-3 text-xs">
-          {fields.map(([label, value]) => (
-            <div
-              key={label}
-              className="grid grid-cols-[minmax(0,1fr)_minmax(0,1.2fr)] items-baseline gap-3"
-            >
-              <dt className="text-muted-foreground">{label}</dt>
-              <dd className="min-w-0 break-words text-right">{value}</dd>
-            </div>
-          ))}
-        </dl>
-        <div className="mt-4 flex flex-wrap items-center gap-2 border-t pt-3">
+        </section>
+        <details className="border-t pt-3">
+          <summary className="cursor-pointer rounded-sm py-1 text-sm font-medium marker:text-muted-foreground focus-visible:outline-2 focus-visible:outline-primary">
+            Informations de collecte
+          </summary>
+          <dl className="mt-3 space-y-3 text-sm">
+            {fields.map(([label, value]) => (
+              <div
+                key={label}
+                className="grid grid-cols-[minmax(0,1fr)_minmax(0,1.2fr)] items-baseline gap-3"
+              >
+                <dt className="text-muted-foreground">{label}</dt>
+                <dd className="min-w-0 break-words text-right">{value}</dd>
+              </div>
+            ))}
+          </dl>
+        </details>
+        <div className="flex flex-wrap items-center gap-2 border-t pt-3">
           <BomComponentEditDialog
             bomComponent={offer}
             isPatching={busy}
@@ -166,7 +189,7 @@ export function BomComponentReviewDetails({
           {url && (
             <Button
               variant="outline"
-              className="h-auto min-h-8 min-w-0 flex-1 whitespace-normal"
+              className="h-auto min-h-9 min-w-0 flex-1 whitespace-normal text-sm"
               asChild
             >
               <a href={url} target="_blank" rel="noopener noreferrer">
