@@ -977,6 +977,13 @@ on-hand stock.
 | Catalog pricing            | Should stored pricing snapshots preserve the assumptions used for a recommendation?            |
 | Catalog publication        | Should bulk publication reconcile deletions and newly unpublished products in Supabase?        |
 
+Resource catalog consultation keeps search/category/status filtering and
+name/category/reference-unit sorting inside the API Resource slice, before
+server pagination. Admin stores navigation in URL parameters and sends the
+existing filters plus a whitelisted `sort` parameter to `GET /api/resources`.
+The persistence adapter owns Criteria ordering and stable public-UUID tie-breaks;
+no client-side sort of a partial page or direct database access is introduced.
+
 ## Data Ownership
 
 ```mermaid

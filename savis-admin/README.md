@@ -847,7 +847,11 @@ ascending/descending arrow. A tooltip describes the next sorting direction;
 `aria-sort` exposes the current state. Non-sortable headers have no sorting icon.
 The shared `Table` primitive owns the rounded card frame, muted header, row
 spacing, hover and horizontal scrolling for all tables; pages do not add a second
-card frame. Resource sorting remains disabled on its server-paginated response.
+card frame. Resource headers sort name, category and reference unit through the server before
+pagination. Search, status, category, sort and page size remain URL state; changing
+filters or sorting resets the page. Category sorting follows French label order,
+unit sorting follows displayed symbols, and missing units remain last in either
+direction. The default is `name,asc`.
 The tables use the installed TanStack Table core;
 the existing URL hooks perform sorting and pagination on the complete dataset.
 Both pages reuse their existing business detail components inside a shared right

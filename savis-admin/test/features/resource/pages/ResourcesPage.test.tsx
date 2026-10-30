@@ -179,6 +179,81 @@ describe("ResourcesPage", () => {
     );
   });
 
+  it("sorts all three columns through the server and preserves category and other URL state", async () => {
+    renderPage(
+      "/resources?search=farine&page=2&status=ACTIVE&size=10&category=INGREDIENT&sort=referenceUnit,desc&custom=keep",
+    );
+    expect(useResources).toHaveBeenLastCalledWith(
+      "farine",
+      2,
+      "ACTIVE",
+      10,
+      "INGREDIENT",
+      "referenceUnit,desc",
+    );
+    expect(screen.getByRole("columnheader", { name: "Unité" })).toHaveAttribute(
+      "aria-sort",
+      "descending",
+    );
+    await userEvent.click(screen.getByRole("button", { name: "Unité" }));
+    expect(useResources).toHaveBeenLastCalledWith(
+      "farine",
+      0,
+      "ACTIVE",
+      10,
+      "INGREDIENT",
+      "referenceUnit,asc",
+    );
+    await userEvent.click(screen.getByRole("button", { name: "Catégorie" }));
+    expect(useResources).toHaveBeenLastCalledWith(
+      "farine",
+      0,
+      "ACTIVE",
+      10,
+      "INGREDIENT",
+      "category,asc",
+    );
+    await userEvent.click(screen.getByRole("button", { name: "Catégorie" }));
+    expect(useResources).toHaveBeenLastCalledWith(
+      "farine",
+      0,
+      "ACTIVE",
+      10,
+      "INGREDIENT",
+      "category,desc",
+    );
+    await userEvent.click(screen.getByRole("button", { name: "Ressource" }));
+    expect(useResources).toHaveBeenLastCalledWith(
+      "farine",
+      0,
+      "ACTIVE",
+      10,
+      "INGREDIENT",
+      "name,asc",
+    );
+    await userEvent.click(screen.getByRole("button", { name: "Ressource" }));
+    expect(useResources).toHaveBeenLastCalledWith(
+      "farine",
+      0,
+      "ACTIVE",
+      10,
+      "INGREDIENT",
+      "name,desc",
+    );
+    await userEvent.click(screen.getByRole("button", { name: "Filtres · 2" }));
+    await userEvent.click(
+      screen.getByRole("button", { name: "Effacer les filtres" }),
+    );
+    expect(useResources).toHaveBeenLastCalledWith(
+      "farine",
+      0,
+      undefined,
+      10,
+      undefined,
+      "name,desc",
+    );
+  });
+
   it("uses safe defaults and changes status from the accessible switch", async () => {
     renderPage("/resources?page=-1&status=OTHER&size=999");
     expect(useResources).toHaveBeenLastCalledWith(

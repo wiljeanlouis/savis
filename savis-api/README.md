@@ -661,11 +661,21 @@ Only one rate can exist for each activity type.
 
 | Method | Path | Purpose |
 | --- | --- | --- |
-| `GET` | `/api/resources?search=&category=&status=&page=&size=` | Search/paginate resources. |
+| `GET` | `/api/resources?search=&category=&status=&page=&size=&sort=` | Search/paginate resources. |
 | `GET` | `/api/resources/{id}` | Retrieve a resource, including inactive historical references. |
 | `POST` | `/api/resources` | Create a resource. |
 | `PUT` | `/api/resources/{id}` | Update resource definition. |
 | `PATCH` | `/api/resources/{id}/status` | Activate/deactivate a resource. |
+
+Resource search accepts `sort=name,asc|desc`, `category,asc|desc`, or
+`referenceUnit,asc|desc` (default `name,asc`). Unknown fields/directions return
+HTTP 400. Filtering by search/category/status and ordering happen in PostgreSQL
+before pagination; totals count all matches. Category ordering follows the French
+Admin labels (Consommable, Emballage, Équipement, Ingrédient, Matériel de décoration).
+Unit ordering uses displayed symbols; null units remain last for both directions.
+Name comparison is case-insensitive, with ascending name/public UUID tie-breakers
+for stable pages. Existing callers without `sort` keep name-ascending ordering.
+No schema migration is required.
 
 New BOM components must include `resourceId`. `componentName` remains a
 display/acquisition compatibility snapshot; new or reselected resources

@@ -38,12 +38,14 @@ export function useResources(
         client.setQueriesData<ResourcePage>(
           { queryKey: ["resources"] },
           (page) =>
-            page && {
-              ...page,
-              content: page.content.map((resource) =>
-                resource.id === id ? { ...resource, status } : resource,
-              ),
-            },
+            page && Array.isArray(page.content)
+              ? {
+                  ...page,
+                  content: page.content.map((resource) =>
+                    resource.id === id ? { ...resource, status } : resource,
+                  ),
+                }
+              : page,
         );
         return { previous };
       },

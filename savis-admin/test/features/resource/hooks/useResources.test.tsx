@@ -54,6 +54,7 @@ describe("useResources status mutation", () => {
         "ACTIVE",
         10,
         "INGREDIENT",
+        "name,asc",
       ),
     );
     rerender({ category: "PACKAGING" });
@@ -64,6 +65,7 @@ describe("useResources status mutation", () => {
         "ACTIVE",
         10,
         "PACKAGING",
+        "name,asc",
       ),
     );
     expect(client.getQueryCache().getAll()).toHaveLength(2);
@@ -93,9 +95,12 @@ describe("useResources status mutation", () => {
         status: undefined,
         pageSize: 20,
         category: undefined,
+        sort: "name,asc",
       },
     ] as const;
     queryClient.setQueryData(queryKey, page);
+    const batchKey = ["resources", "batch", [resource.id]];
+    queryClient.setQueryData(batchKey, [resource]);
     const wrapper = ({ children }: { children: ReactNode }) => (
       <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
     );
@@ -126,6 +131,7 @@ describe("useResources status mutation", () => {
       ).toBe("ACTIVE"),
     );
     expect(listResources).toHaveBeenCalledOnce();
+    expect(queryClient.getQueryData(batchKey)).toEqual([resource]);
     queryClient.clear();
   });
 });
