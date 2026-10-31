@@ -38,6 +38,14 @@ import { SupplyOffersPage } from "@/features/supply-offer/pages/SupplyOffersPage
 const router = createBrowserRouter([
   {
     element: <MainLayout />,
+    hydrateFallbackElement: (
+      <div
+        role="status"
+        className="flex min-h-screen items-center justify-center text-muted-foreground"
+      >
+        Chargement…
+      </div>
+    ),
     children: [
       {
         path: "/resources",

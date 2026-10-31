@@ -23,100 +23,104 @@ export const BomComponentList = () => {
 
   return (
     <div ref={listRef} className="min-w-0 space-y-6">
-      <header className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+      <header className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div>
-          <h1 className="text-2xl font-semibold">À valider</h1>
+          <h1 className="text-2xl font-semibold">Validation des offres</h1>
           <p className="text-sm text-muted-foreground">
-            Examinez les offres découvertes et validez celles à utiliser pour la
-            production.
+            Examinez et validez les offres fournisseurs.
           </p>
         </div>
-        <div className="flex flex-wrap gap-2">
-          <Button variant="outline" asChild>
-            <Link to="/offers/tasks">Tâches d'acquisition</Link>
-          </Button>
+        <div className="flex flex-wrap items-center gap-3">
           <BomComponentRetrieveDialog
             isRetrieving={list.isCreatingTask}
             onRetrieve={list.handleRetrieve}
           />
+          <Link
+            to="/offers/tasks"
+            className="text-sm text-muted-foreground underline-offset-4 hover:text-foreground hover:underline"
+          >
+            Tâches d'acquisition <span aria-hidden="true">→</span>
+          </Link>
         </div>
       </header>
-      <BomComponentListFilters list={list} />
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div className="flex flex-wrap items-center gap-2">
-          <PageItemCount
-            itemName="offre"
-            totalItems={
-              list.isLoading || list.isError ? undefined : data?.total_items
-            }
-          />
-          {list.isFetching && !list.isLoading && (
-            <span className="text-sm text-muted-foreground" role="status">
-              Actualisation…
-            </span>
-          )}
+      <div className="space-y-3">
+        <BomComponentListFilters list={list} />
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div className="flex flex-wrap items-center gap-2">
+            <PageItemCount
+              itemName="offre"
+              totalItems={
+                list.isLoading || list.isError ? undefined : data?.total_items
+              }
+            />
+            {list.isFetching && !list.isLoading && (
+              <span className="text-sm text-muted-foreground" role="status">
+                Actualisation…
+              </span>
+            )}
+          </div>
+          <div className="flex items-center gap-2">
+            <PageSelector
+              pageSize={listState.pageSize}
+              onPageChange={list.handlePageSizeChange}
+            />
+          </div>
         </div>
-        <div className="flex items-center gap-2">
-          <PageSelector
-            pageSize={listState.pageSize}
-            onPageChange={list.handlePageSizeChange}
-          />
-        </div>
-      </div>
-      {list.isLoading ? (
-        <div
-          className="flex min-h-64 items-center justify-center"
-          aria-label="Chargement des offres"
-        >
-          <Spinner />
-        </div>
-      ) : list.isError ? (
-        <ApiErrorAlert
-          title="Impossible de charger les offres à valider."
-          error={list.error}
-        >
-          <Button variant="outline" onClick={() => void list.refetch()}>
-            Réessayer
-          </Button>
-        </ApiErrorAlert>
-      ) : !items.length ? (
-        <div
-          role="status"
-          className="flex min-h-52 flex-col items-center justify-center gap-2 rounded-xl border border-dashed bg-card/50 px-5 py-8 text-center"
-        >
-          <span
-            className="mb-1 flex size-10 items-center justify-center rounded-full bg-muted text-lg text-muted-foreground"
-            aria-hidden="true"
+        {list.isLoading ? (
+          <div
+            className="flex min-h-64 items-center justify-center"
+            aria-label="Chargement des offres"
           >
-            ✓
-          </span>
-          <p className="font-medium">
-            Aucune offre ne correspond aux filtres sélectionnés.
-          </p>
-          <p className="max-w-sm text-sm text-muted-foreground">
-            Modifiez le statut ou le terme de recherche pour consulter d’autres
-            offres.
-          </p>
-        </div>
-      ) : (
-        <>
-          <BomComponentReviewTable
-            offers={items}
-            sortBy={listState.sortBy}
-            sortDirection={listState.sortDirection}
-            onSort={list.handleSortChange}
-            onViewDetails={(offer) => {
-              setSelectedId(offer.id);
-            }}
-          />
-          <PageNavigator
-            page={data?.page ?? 1}
-            totalPages={data?.total_pages ?? 0}
-            goToNextPage={list.goToNextPage}
-            goToPreviousPage={list.goToPreviousPage}
-          />
-        </>
-      )}
+            <Spinner />
+          </div>
+        ) : list.isError ? (
+          <ApiErrorAlert
+            title="Impossible de charger les offres à valider."
+            error={list.error}
+          >
+            <Button variant="outline" onClick={() => void list.refetch()}>
+              Réessayer
+            </Button>
+          </ApiErrorAlert>
+        ) : !items.length ? (
+          <div
+            role="status"
+            className="flex min-h-52 flex-col items-center justify-center gap-2 rounded-xl border border-dashed bg-card/50 px-5 py-8 text-center"
+          >
+            <span
+              className="mb-1 flex size-10 items-center justify-center rounded-full bg-muted text-lg text-muted-foreground"
+              aria-hidden="true"
+            >
+              ✓
+            </span>
+            <p className="font-medium">
+              Aucune offre ne correspond aux filtres sélectionnés.
+            </p>
+            <p className="max-w-sm text-sm text-muted-foreground">
+              Modifiez le statut ou le terme de recherche pour consulter
+              d’autres offres.
+            </p>
+          </div>
+        ) : (
+          <>
+            <BomComponentReviewTable
+              offers={items}
+              sortBy={listState.sortBy}
+              sortDirection={listState.sortDirection}
+              onSort={list.handleSortChange}
+              onViewDetails={(offer) => {
+                setSelectedId(offer.id);
+              }}
+            />
+            <PageNavigator
+              page={data?.page ?? 1}
+              totalPages={data?.total_pages ?? 0}
+              goToNextPage={list.goToNextPage}
+              goToPreviousPage={list.goToPreviousPage}
+            />
+          </>
+        )}
+      </div>
       <DetailSheet
         open={!!selected}
         onClose={() => setSelectedId(null)}

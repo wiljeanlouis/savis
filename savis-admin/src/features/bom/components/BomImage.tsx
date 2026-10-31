@@ -1,16 +1,23 @@
 import { useState } from "react";
+import { cn } from "@/shared/lib/utils";
 
 export function BomImage({
   src,
   name,
   large = false,
+  className,
 }: {
   src: string;
   name: string;
   large?: boolean;
+  className?: string;
 }) {
   const [failed, setFailed] = useState<string>();
-  const classes = `${large ? "size-16" : "size-10"} shrink-0 rounded-md border bg-muted object-contain`;
+  const classes = cn(
+    large ? "size-16" : "size-10",
+    "shrink-0 rounded-md border bg-muted object-contain",
+    className,
+  );
   return src && failed !== src ? (
     <img
       src={src}

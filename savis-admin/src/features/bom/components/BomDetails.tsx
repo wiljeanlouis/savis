@@ -8,6 +8,7 @@ import { BomImage } from "./BomImage";
 import { BomDetailActions } from "./BomDetailActions";
 import { ApiErrorAlert } from "@/shared/components/ApiErrorAlert";
 import { Button } from "@/shared/ui/button";
+import { Badge } from "@/shared/ui/badge";
 
 export function BomDetails({
   selected,
@@ -44,24 +45,13 @@ export function BomDetails({
     <section
       ref={panelRef}
       aria-label="Détail de la composition"
-      className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden rounded-xl border bg-card max-h-[var(--bom-detail-height,calc(100dvh-2rem))]"
+      className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden bg-transparent max-h-[var(--bom-detail-height,calc(100dvh-2rem))]"
     >
-      <header className="shrink-0 space-y-1.5 border-b px-5 py-4">
-        <h2 className="text-xl leading-snug font-semibold tracking-tight [overflow-wrap:anywhere]">
-          {bom?.name ?? selected.name}
-        </h2>
-        {bom && (
-          <p className="text-sm text-muted-foreground">
-            {bom.type === "FOOD" ? "Alimentaire" : "Matériel"} · Rendement :{" "}
-            {formatBomQuantity(bom.yield.quantity, bom.yield.unit)}
-          </p>
-        )}
-      </header>
       <div
         role="region"
         aria-label="Informations de la composition"
         tabIndex={0}
-        className="min-h-0 flex-1 space-y-4 overflow-y-auto overscroll-contain p-5 [overflow-wrap:anywhere] focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-primary"
+        className="min-h-0 flex-1 space-y-5 overflow-y-auto overscroll-contain px-4 pt-1 pb-5 [overflow-wrap:anywhere] focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-primary"
       >
         {detail.isPending ? (
           <p role="status">Chargement de la composition…</p>
@@ -77,29 +67,30 @@ export function BomDetails({
         ) : (
           bom && (
             <>
-              <BomCostSummary bom={bom} />
-              <BomProductionDetails bom={bom} />
-              <details className="border-t pt-3">
-                <summary className="cursor-pointer rounded-sm py-1 text-sm font-medium marker:text-muted-foreground focus-visible:outline-2 focus-visible:outline-primary">
-                  Description et instructions
-                </summary>
-                <div className="mt-3 space-y-4">
-                  <div className="flex items-start gap-3">
-                    <BomImage src={bom.imageUrl} name={bom.name} large />
-                    <p className="min-w-0 whitespace-pre-wrap text-sm leading-relaxed text-muted-foreground">
-                      {bom.description || "Aucune description"}
-                    </p>
-                  </div>
-                  {bom.instructions && (
-                    <section className="space-y-1">
-                      <h3 className="text-sm font-semibold">Instructions</h3>
-                      <p className="whitespace-pre-wrap text-sm leading-relaxed">
-                        {bom.instructions}
+              <BomIdentityHeader bom={bom} />
+              <div className="space-y-4">
+                <BomProductionDetails bom={bom} />
+                <section className="border-t pt-3">
+                  <h3 className="text-sm font-semibold">
+                    Description et instructions
+                  </h3>
+                  <div className="mt-3 space-y-4">
+                    <div>
+                      <p className="min-w-0 whitespace-pre-wrap text-sm leading-relaxed text-muted-foreground">
+                        {bom.description || "Aucune description"}
                       </p>
-                    </section>
-                  )}
-                </div>
-              </details>
+                    </div>
+                    {bom.instructions && (
+                      <section className="space-y-1">
+                        <h3 className="text-sm font-semibold">Instructions</h3>
+                        <p className="whitespace-pre-wrap text-sm leading-relaxed">
+                          {bom.instructions}
+                        </p>
+                      </section>
+                    )}
+                  </div>
+                </section>
+              </div>
             </>
           )
         )}
@@ -111,5 +102,31 @@ export function BomDetails({
         isCloning={isCloning}
       />
     </section>
+  );
+}
+
+function BomIdentityHeader({ bom }: { bom: Bom }) {
+  return (
+    <header className="space-y-4">
+      <div className="flex h-[300px] items-center justify-center">
+        <BomImage
+          src={bom.imageUrl}
+          name={bom.name}
+          className="size-[300px] max-w-full rounded-lg border-0 bg-white object-contain p-2"
+        />
+      </div>
+      <div className="space-y-1.5">
+        <Badge variant="secondary">
+          {bom.type === "FOOD" ? "Alimentaire" : "Matériel"}
+        </Badge>
+        <h2 className="text-xl leading-snug font-semibold tracking-tight [overflow-wrap:anywhere]">
+          {bom.name}
+        </h2>
+        <p className="text-sm text-muted-foreground">
+          Rendement : {formatBomQuantity(bom.yield.quantity, bom.yield.unit)}
+        </p>
+      </div>
+      <BomCostSummary bom={bom} />
+    </header>
   );
 }

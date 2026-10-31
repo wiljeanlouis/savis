@@ -44,15 +44,55 @@ export function CatalogProductDetails({ product, boms, ...actions }: Props) {
     <section
       ref={panelRef}
       aria-label="Détail du produit"
-      className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden rounded-xl border bg-card max-h-[var(--catalog-detail-height,calc(100dvh-2rem))]"
+      className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden bg-transparent max-h-[var(--catalog-detail-height,calc(100dvh-2rem))]"
     >
-      <header className="shrink-0 space-y-1.5 border-b px-5 py-4">
+      <div
+        role="region"
+        aria-label="Informations du produit"
+        tabIndex={0}
+        className="min-h-0 flex-1 space-y-5 overflow-y-auto overscroll-contain px-4 pt-1 pb-5 focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-primary"
+      >
+        <ProductIdentityHeader product={product} />
+        <div className="space-y-4">
+          <CatalogProductPurchaseModes modes={product.purchaseModes} />
+          <CatalogProductCompositions product={product} boms={boms} />
+          <section className="border-t pt-3">
+            <h3 className="text-sm font-semibold">
+              Description et informations complémentaires
+            </h3>
+            <div className="mt-3 space-y-4">
+              <p className="whitespace-pre-wrap [overflow-wrap:anywhere] text-sm leading-relaxed text-muted-foreground">
+                {product.description.trim() || "Aucune description"}
+              </p>
+              {product.availabilityNote && (
+                <section aria-label="Disponibilité" className="space-y-1">
+                  <h3 className="text-sm font-semibold">Disponibilité</h3>
+                  <p className="whitespace-pre-wrap [overflow-wrap:anywhere] text-sm leading-relaxed text-muted-foreground">
+                    {product.availabilityNote}
+                  </p>
+                </section>
+              )}
+            </div>
+          </section>
+        </div>
+      </div>
+      <CatalogProductDetailActions product={product} {...actions} />
+    </section>
+  );
+}
+
+function ProductIdentityHeader({ product }: { product: CatalogProduct }) {
+  return (
+    <header className="space-y-4">
+      <div className="flex h-[300px] items-center justify-center">
+        <CatalogProductImage
+          src={product.imageUrl}
+          name={product.name}
+          className="size-[300px] max-w-full rounded-lg border-0 bg-white object-contain p-2"
+        />
+      </div>
+      <div className="space-y-1.5">
         <div className="flex flex-wrap items-center gap-2">
-          <CatalogProductImage
-            src={product.imageUrl}
-            name={product.name}
-            className="size-12 object-contain"
-          />
           <h2 className="min-w-0 [overflow-wrap:anywhere] text-xl leading-snug font-semibold tracking-tight">
             {product.name}
           </h2>
@@ -84,35 +124,7 @@ export function CatalogProductDetails({ product, boms, ...actions }: Props) {
           </span>
           {!product.available && <Badge variant="outline">Indisponible</Badge>}
         </div>
-      </header>
-      <div
-        role="region"
-        aria-label="Informations du produit"
-        tabIndex={0}
-        className="min-h-0 flex-1 space-y-4 overflow-y-auto overscroll-contain p-5 focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-primary"
-      >
-        <CatalogProductPurchaseModes modes={product.purchaseModes} />
-        <CatalogProductCompositions product={product} boms={boms} />
-        <details className="border-t pt-3">
-          <summary className="cursor-pointer rounded-sm py-1 text-sm font-medium marker:text-muted-foreground focus-visible:outline-2 focus-visible:outline-primary">
-            Description et informations complémentaires
-          </summary>
-          <div className="mt-3 space-y-4">
-            <p className="whitespace-pre-wrap [overflow-wrap:anywhere] text-sm leading-relaxed text-muted-foreground">
-              {product.description.trim() || "Aucune description"}
-            </p>
-            {product.availabilityNote && (
-              <section aria-label="Disponibilité" className="space-y-1">
-                <h3 className="text-sm font-semibold">Disponibilité</h3>
-                <p className="whitespace-pre-wrap [overflow-wrap:anywhere] text-sm leading-relaxed text-muted-foreground">
-                  {product.availabilityNote}
-                </p>
-              </section>
-            )}
-          </div>
-        </details>
       </div>
-      <CatalogProductDetailActions product={product} {...actions} />
-    </section>
+    </header>
   );
 }

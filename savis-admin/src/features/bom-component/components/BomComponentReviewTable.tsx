@@ -2,6 +2,8 @@ import type { ColumnDef, SortingState } from "@tanstack/react-table";
 import { DataTable } from "@/shared/components/DataTable";
 import { Button } from "@/shared/ui/button";
 import { Badge } from "@/shared/ui/badge";
+import { ViewIcon } from "@hugeicons/core-free-icons";
+import { HugeiconsIcon } from "@hugeicons/react";
 import { SupplyOfferImage } from "@/features/supply-offer/components/SupplyOfferImage";
 import { formatSupplyOfferDate } from "@/features/supply-offer/format";
 import {
@@ -100,6 +102,7 @@ const columns: ColumnDef<BomComponent>[] = [
             onClick={() => onViewDetails(offer)}
             aria-label={`Consulter ${offer.label}`}
           >
+            <HugeiconsIcon icon={ViewIcon} strokeWidth={2} />
             Détails
           </Button>
         </div>
