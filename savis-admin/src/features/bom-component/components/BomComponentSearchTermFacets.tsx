@@ -58,6 +58,9 @@ export const BomComponentSearchTermFacets = ({
       className="flex flex-wrap items-center gap-2"
       aria-label="Termes de recherche"
     >
+      <span className="text-sm font-medium text-muted-foreground">
+        Terme de recherche
+      </span>
       <div className="flex min-w-0 items-center gap-2 py-1 text-sm">
         <span className="max-w-64 truncate">{selectedLabel}</span>
         <Badge variant="secondary">{selectedCount}</Badge>

@@ -49,12 +49,15 @@ export function BomCostSummary({ bom }: { bom: Bom }) {
             </ul>
           )}
           {warnings.length > 0 && (
-            <details className="text-sm">
-              <summary className="cursor-pointer rounded-sm py-1 text-muted-foreground focus-visible:outline-2 focus-visible:outline-primary">
+            <section
+              aria-label="Avertissements non bloquants"
+              className="text-sm"
+            >
+              <h4 className="text-sm font-medium text-muted-foreground">
                 {warnings.length} avertissement
                 {warnings.length > 1 ? "s" : ""} non bloquant
                 {warnings.length > 1 ? "s" : ""}
-              </summary>
+              </h4>
               <ul className="mt-2 space-y-1 text-muted-foreground">
                 {warnings.map((issue) => (
                   <li key={`${issue.code}-${issue.source}-${issue.message}`}>
@@ -62,7 +65,7 @@ export function BomCostSummary({ bom }: { bom: Bom }) {
                   </li>
                 ))}
               </ul>
-            </details>
+            </section>
           )}
         </>
       ) : (

@@ -4,7 +4,11 @@ This document describes the current architecture of SAVIS using C4-style
 system, container, component, and dynamic views.
 
 It focuses on ownership, dependencies, runtime behavior, persistence, and
-delivery. Setup instructions and feature details belong in the
+delivery. Reviewed against the repository source and deployment definitions on
+2026-10-31. This describes implemented behavior; external notification infrastructure
+and future capabilities are identified separately.
+
+Setup instructions and feature details belong in the
 [root README](../README.md) and module documentation.
 
 ## Navigation
@@ -20,9 +24,11 @@ delivery. Setup instructions and feature details belong in the
 - [Admin Components](#admin-components)
 - [Runtime Flows](#runtime-flows)
 - [Data Ownership](#data-ownership)
+- [Monetary Policy](#monetary-policy)
 - [Messaging](#messaging)
 - [Operational Characteristics](#operational-characteristics)
 - [Delivery Architecture](#delivery-architecture)
+- [Verification and Source Map](#verification-and-source-map)
 - [Architectural Rules](#architectural-rules)
 - [Known Constraints](#known-constraints)
 
@@ -30,6 +36,7 @@ delivery. Setup instructions and feature details belong in the
 
 SAVIS is the internal back-office system for SavouretPlus. It currently owns:
 
+- material resources and their associations with components and supplier offers;
 - technical BOMs, components, activities, yields, and costs;
 - provider offer acquisition and review;
 - global activity rates;
@@ -37,7 +44,9 @@ SAVIS is the internal back-office system for SavouretPlus. It currently owns:
 - product cost and margin analysis;
 - publication of a limited customer-facing catalog projection;
 - normalized local orders entered by administrators or imported manually from
-  the Supabase web inbox.
+  the Supabase web inbox;
+- commercial quotations, accepted-quotation conversion to orders, and invoices;
+- quotation and invoice PDF generation and order production requirement reports.
 
 The public SavouretPlus application and Supabase commerce tables are outside
 the SAVIS system boundary. SAVIS publishes catalog data to Supabase but does
@@ -92,32 +101,33 @@ the Executor isolates provider access, browser automation, and Celery work.
 
 The main architectural patterns used are:
 
-| Pattern                                      | Where it appears                                                                                                                                             | Purpose                                                                                                                                                                        |
-| -------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| Modular monolith                             | SAVIS API modules: BOM, Supply, Catalog, Common                                                                                                              | Keep business slices independently understandable while sharing one JVM, one deployment unit, and in-process module calls.                                                     |
-| Spring Modulith module verification          | `SavisApiModularityTests` and named interfaces                                                                                                               | Enforce allowed module dependencies and document the module graph.                                                                                                             |
-| Hexagonal architecture / ports and adapters  | API use cases depend on repository, pricing, publication, and messaging ports; Executor use cases depend on repository, queue, publisher, and provider ports | Keep domain/use-case code independent from HTTP, JPA, RabbitMQ, Supabase, provider HTML, and browser automation details.                                                       |
-| Domain-driven tactical patterns              | Aggregates such as BOM and catalog Product; value objects such as Money, Quantity, Unit                                                                      | Put business invariants and calculations close to the model that owns them.                                                                                                    |
-| Repository pattern                           | JPA repositories in the API and SQLAlchemy repositories in the Executor                                                                                      | Hide persistence mechanics behind module-specific persistence adapters.                                                                                                        |
-| Application service / use-case orchestration | `BomService`, `OfferService`, catalog services, Executor use cases                                                                                           | Coordinate validation, persistence, pricing, messaging, and external ports without pushing workflow into controllers.                                                          |
-| Adapter pattern                              | Web controllers, RabbitMQ listeners/publishers, Supabase adapter, provider adapters                                                                          | Isolate protocol-specific and vendor-specific code at the edges.                                                                                                               |
-| Facade / public module API                   | `BomPricingApi`, `BomRequirementsApi`, `SupplyApi`, `CatalogOrderingApi`                                                                                                           | Allow one module to consume another module's capability without depending on its entities or repositories.                                                                     |
-| Event-driven integration                     | RabbitMQ offer request, result, and invalidation messages                                                                                                    | Decouple the API from slower provider acquisition and allow asynchronous processing.                                                                                           |
-| Outbox pattern                               | Spring Modulith event publication table `event_publication` for API events externalized to RabbitMQ                                                          | Persist event publication state with the API transaction so outbound integration messages are traceable and retryable instead of being fire-and-forget `RabbitTemplate` sends. |
-| Declarative event externalization            | `@Externalized` on `ComponentNeededEvent` and Modulith AMQP externalization                                                                                  | Declare which application events leave the module boundary and map domain events to RabbitMQ contracts in one place.                                                           |
-| Message contract mapping                     | `ComponentNeededEvent` maps to the RabbitMQ payload `{content,type}`                                                                                         | Preserve external wire compatibility while allowing the Java domain event to keep domain-oriented names.                                                                       |
-| Durable broker topology                      | Durable RabbitMQ queues, direct exchange, and queue bindings                                                                                                 | Keep broker routes stable across restarts and avoid coupling publishers directly to queue declaration details.                                                                 |
-| Task queue / worker pattern                  | Celery tasks and RabbitMQ delivery in the Executor                                                                                                           | Run slow browser/provider operations outside request and subscriber callbacks.                                                                                                 |
-| Scheduled jobs                               | Celery Beat executor workflows                                                                                                                               | Run refresh and cleanup workflows on explicit schedules.                                                                                                                       |
-| Circuit breaker / provider protection        | Executor provider access policy cooldowns                                                                                                                    | Reduce repeated requests when a provider blocks or becomes unhealthy.                                                                                                          |
-| Retry with backoff and stale cleanup         | Celery retry policy, hard task limits, and scheduled stale task cleanup                                                                                      | Recover from transient failures while making stuck work visible and terminal.                                                                                                  |
-| Read model / projection                      | API Supply offer projection and Supabase published catalog projection                                                                                        | Store query-friendly views owned by the consumer boundary rather than sharing internal aggregates.                                                                             |
-| Health check and readiness gates             | API, Executor, RabbitMQ, PostgreSQL, Chrome relay, deployment script                                                                                         | Promote releases only after dependencies and application components are operational.                                                                                           |
+| Pattern                                      | Where it appears                                                                                                                                             | Purpose                                                                                                                                                                               |
+| -------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Modular monolith                             | SAVIS API modules: Resource, BOM, Supply, Catalog, Quotation, Order, Invoice, Common                                                                         | Keep business slices independently understandable while sharing one JVM, one deployment unit, and in-process module calls.                                                            |
+| Spring Modulith module verification          | `SavisApiModularityTests` and named interfaces                                                                                                               | Enforce allowed module dependencies and document the module graph.                                                                                                                    |
+| Hexagonal architecture / ports and adapters  | API use cases depend on repository, pricing, publication, and messaging ports; Executor use cases depend on repository, queue, publisher, and provider ports | Keep domain/use-case code independent from HTTP, JPA, RabbitMQ, Supabase, provider HTML, and browser automation details.                                                              |
+| Domain-driven tactical patterns              | Aggregates such as BOM and catalog Product; value objects such as Money, Quantity, Unit                                                                      | Put business invariants and calculations close to the model that owns them.                                                                                                           |
+| Repository pattern                           | JPA repositories in the API and SQLAlchemy repositories in the Executor                                                                                      | Hide persistence mechanics behind module-specific persistence adapters.                                                                                                               |
+| Application service / use-case orchestration | `BomService`, `OfferService`, catalog services, Executor use cases                                                                                           | Coordinate validation, persistence, pricing, messaging, and external ports without pushing workflow into controllers.                                                                 |
+| Adapter pattern                              | Web controllers, RabbitMQ listeners/publishers, Supabase adapter, provider adapters                                                                          | Isolate protocol-specific and vendor-specific code at the edges.                                                                                                                      |
+| Facade / public module API                   | `ResourceCatalogApi`, `BomPricingApi`, `BomRequirementsApi`, `SupplyApi`, `CatalogOrderingApi`, `QuotationOrderApi`, `OrderInvoicingApi`                     | Allow one module to consume another module's capability without depending on its entities or repositories.                                                                            |
+| Event-driven integration                     | RabbitMQ offer request, result, and invalidation messages                                                                                                    | Decouple the API from slower provider acquisition and allow asynchronous processing.                                                                                                  |
+| Outbox pattern                               | Spring Modulith event publication table `event_publication` for API events externalized to RabbitMQ                                                          | Retained API event infrastructure; current BOM saves and pricing do not publish acquisition requests. This does not provide an Executor outbox.                                       |
+| Declarative event externalization            | `@Externalized` on `ComponentNeededEvent` and Modulith AMQP externalization                                                                                  | Declare which application events leave the module boundary and map retained domain events to the compatible RabbitMQ contract in one place; no current BOM workflow emits this event. |
+| Message contract mapping                     | `ComponentNeededEvent` maps to the RabbitMQ payload `{content,type}`                                                                                         | Preserve external wire compatibility while allowing the Java domain event to keep domain-oriented names.                                                                              |
+| Durable broker topology                      | Durable RabbitMQ queues, direct exchange, and queue bindings                                                                                                 | Keep broker routes stable across restarts and avoid coupling publishers directly to queue declaration details.                                                                        |
+| Task queue / worker pattern                  | Celery tasks and RabbitMQ delivery in the Executor                                                                                                           | Run slow browser/provider operations outside request and subscriber callbacks.                                                                                                        |
+| Scheduled jobs                               | Celery Beat executor workflows                                                                                                                               | Run refresh and cleanup workflows on explicit schedules.                                                                                                                              |
+| Circuit breaker / provider protection        | Executor provider access policy cooldowns                                                                                                                    | Reduce repeated requests when a provider blocks or becomes unhealthy.                                                                                                                 |
+| Retry with backoff and stale cleanup         | Celery retry policy, hard task limits, and scheduled stale task cleanup                                                                                      | Recover from transient failures while making stuck work visible and terminal.                                                                                                         |
+| Read model / projection                      | API Supply offer projection and Supabase published catalog projection                                                                                        | Store query-friendly views owned by the consumer boundary rather than sharing internal aggregates.                                                                                    |
+| Health check and readiness gates             | API, Executor, RabbitMQ, PostgreSQL, Chrome relay, deployment script                                                                                         | Promote releases only after dependencies and application components are operational.                                                                                                  |
 
 These patterns are intentionally not applied uniformly everywhere. The system
-uses the heavier event/outbox path where cross-process messaging must be
-transactionally traceable, and keeps direct in-process APIs for synchronous
-module calls such as catalog pricing.
+retains an event/outbox adapter for compatible acquisition requests and uses
+direct in-process APIs for synchronous module calls such as catalog pricing.
+Executor result publication and Supabase REST calls do not participate in an
+atomic transaction with local PostgreSQL writes.
 
 ## System Context
 
@@ -130,11 +140,12 @@ flowchart LR
   SAVIS["Software System<br/>SAVIS<br/>Back-office management and pricing"]
   Providers["External Systems<br/>Provider websites"]
   Storefront["External System<br/>SavouretPlus storefront"]
-  Supabase["External System<br/>Supabase public projection"]
+  Supabase["External System<br/>Supabase catalog and submission inboxes"]
 
-  Operator -->|manages BOMs, offers, rates, and catalog| SAVIS
+  Operator -->|manages resources, production, catalog, and sales| SAVIS
   SAVIS -->|collects and refreshes offers| Providers
   SAVIS -->|publishes catalog products| Supabase
+  Supabase -->|manual customer-order import| SAVIS
   Storefront -->|reads catalog and submits requests| Supabase
   Customer -->|shops and requests quotes| Storefront
 ```
@@ -174,7 +185,7 @@ flowchart LR
   Supabase[("External System<br/>Supabase")]
   Storefront["External System<br/>SavouretPlus"]
 
-  Admin -->|HTTP /api| Api
+  Admin -->|HTTP /savis-api| Api
   Admin -->|HTTP /executor-api| ExecutorApi
 
   Api -->|JPA / schema savis_api| Postgres
@@ -188,7 +199,8 @@ flowchart LR
   Rabbit -->|Celery tasks| Worker
   Rabbit -->|offer requests| ExecutorApi
   Beat -->|scheduled Celery tasks| Rabbit
-  Worker -->|offer results and invalidations| Rabbit
+  Worker -->|offer results| Rabbit
+  ExecutorApi -->|review results and invalidations| Rabbit
 
   Worker -->|Playwright over CDP| ChromeRelay
   ChromeRelay -->|TCP relay| Chrome
@@ -200,18 +212,18 @@ flowchart LR
 
 ### Container Responsibilities
 
-| Container or process | Responsibility                                         | State                   |
-| -------------------- | ------------------------------------------------------ | ----------------------- |
-| `frontend_admin`     | Serves the SPA and proxies API traffic                 | Browser state only      |
-| `backend_api`        | Runs BOM, Supply, Activity Rate, and Catalog workflows | `savis_api` schema      |
-| `executor_api`       | Exposes offers/tasks and subscribes to offer requests  | `savis_executor` schema |
-| `executor_worker`    | Executes slow provider collection and refresh          | `savis_executor` schema |
-| `executor_beat`      | Schedules due refreshes and stale-task cleanup         | Celery schedule state   |
-| `executor_migrate`   | Applies forward-only Executor migrations               | Alembic version table   |
-| `postgres`           | Hosts independently owned API and Executor schemas     | Docker volume           |
-| `rabbitmq`           | Carries integration messages and Celery tasks          | Durable broker data     |
-| Google Chrome        | Maintains the provider-facing browser identity         | Host profile directory  |
-| CDP relay            | Makes loopback Chrome CDP reachable from Docker        | None                    |
+| Container or process | Responsibility                                                 | State                   |
+| -------------------- | -------------------------------------------------------------- | ----------------------- |
+| `frontend_admin`     | Serves the SPA and proxies API traffic                         | Browser state only      |
+| `backend_api`        | Runs resources, costing, catalog, quotations, orders, invoices | `savis_api` schema      |
+| `executor_api`       | Exposes offers/tasks and subscribes to offer requests          | `savis_executor` schema |
+| `executor_worker`    | Executes slow provider collection and refresh                  | `savis_executor` schema |
+| `executor_beat`      | Schedules due refreshes and stale-task cleanup                 | Celery schedule state   |
+| `executor_migrate`   | Applies forward-only Executor migrations                       | Alembic version table   |
+| `postgres`           | Hosts independently owned API and Executor schemas             | Docker volume           |
+| `rabbitmq`           | Carries integration messages and Celery tasks                  | Durable broker data     |
+| Google Chrome        | Maintains the provider-facing browser identity                 | Host profile directory  |
+| CDP relay            | Makes loopback Chrome CDP reachable from Docker                | None                    |
 
 ## Production Topology
 
@@ -251,8 +263,8 @@ PostgreSQL, and RabbitMQ remain on the private backend network.
 The Admin Nginx container is the production entry point:
 
 - `/` serves the React single-page application;
-- `/api/*` proxies to `backend_api`;
-- `/executor-api/*` proxies to `executor_api`;
+- `/savis-api/*` proxies to `backend_api:8080/api/*`;
+- `/executor-api/*` proxies to `executor_api:8000/api/*`;
 - `/health` provides a container health endpoint.
 
 Chrome and its relay are user-level `systemd` services owned by the graphical
@@ -305,7 +317,21 @@ flowchart TB
       OrderAdapters["Adapters<br/>JPA<br/>Supabase PostgREST<br/>Catalog, BOM, Supply APIs"]
     end
 
-    Common["Shared value objects<br/>Money, Quantity, Unit"]
+    subgraph Quotations["Quotation module"]
+      QuotationWeb["Web adapter<br/>QuotationController"]
+      QuotationUse["QuotationService<br/>Document use case"]
+      QuotationDomain["Quotation aggregate<br/>commercial snapshots"]
+      QuotationAdapters["Repository and renderer ports<br/>JPA, OpenHTMLtoPDF"]
+    end
+
+    subgraph Invoices["Invoice module"]
+      InvoiceWeb["Web adapter<br/>InvoiceController"]
+      InvoiceUse["InvoiceService<br/>Document use case"]
+      InvoiceDomain["Invoice aggregate<br/>tax amounts and snapshots"]
+      InvoiceAdapters["Repository and renderer ports<br/>JPA, OpenHTMLtoPDF"]
+    end
+
+    Common["Shared value objects<br/>Money, Quantity, Unit<br/>PDF font support"]
   end
 
   BomWeb --> BomUse --> BomDomain
@@ -332,6 +358,14 @@ flowchart TB
   OrderAdapters -->|BomRequirementsApi| BomUse
   OrderAdapters -->|SupplyApi| SupplyUse
 
+  QuotationWeb --> QuotationUse --> QuotationDomain
+  QuotationUse --> QuotationAdapters
+  QuotationUse -->|CatalogOrderingApi| CatalogUse
+  QuotationUse -->|QuotationOrderApi| OrderUse
+  InvoiceWeb --> InvoiceUse --> InvoiceDomain
+  InvoiceUse --> InvoiceAdapters
+  InvoiceUse -->|OrderInvoicingApi| OrderUse
+
   BomDomain --> Common
   SupplyDomain --> Common
   CatalogDomain --> Common
@@ -353,8 +387,12 @@ flowchart TB
 - Order consumes validated product snapshots through `CatalogOrderingApi` when
   an administrator creates an order, and consumes public Catalog, BOM, and
   Supply contracts when generating production requirements.
+- Quotation consumes `CatalogOrderingApi` directly to capture validated commercial
+  snapshots, then `QuotationOrderApi` to convert an accepted quotation.
+- Invoice consumes `OrderInvoicingApi` to copy a locked eligible order snapshot;
+  it does not depend on Order entities or query Catalog again.
 - Catalog stores BOM UUID values, not JPA relationships to BOM entities.
-- `common` contains shared value objects, not workflow orchestration.
+- `common` contains shared value objects and PDF font support, not workflow orchestration.
 - HTTP, JPA, RabbitMQ, and Supabase dependencies remain in adapters.
 
 `SavisApiModularityTests` uses Spring Modulith to verify module dependencies and
@@ -466,6 +504,11 @@ flowchart TB
       Rates["activity-rate"]
       Catalog["catalog"]
       Orders["orders"]
+      Resources["resource"]
+      SupplyOffers["supply-offer"]
+      Sales["sales workspace"]
+      Quotations["quotations"]
+      Invoices["invoices"]
     end
   end
 
@@ -476,7 +519,12 @@ flowchart TB
   Components --> Tasks
   Router --> Rates
   Router --> Catalog
-  Router --> Orders
+  Router --> Sales
+  Sales --> Orders
+  Sales --> Quotations
+  Sales --> Invoices
+  Router --> Resources
+  Router --> SupplyOffers
 
   Bom --> ApiClients
   Components --> ApiClients
@@ -484,6 +532,10 @@ flowchart TB
   Rates --> ApiClients
   Catalog --> ApiClients
   Orders --> ApiClients
+  Resources --> ApiClients
+  SupplyOffers --> ApiClients
+  Quotations --> ApiClients
+  Invoices --> ApiClients
 
   Bom --> SharedUi
   Components --> SharedUi
@@ -494,11 +546,46 @@ flowchart TB
 
 | Client        | Default production path | Target         |
 | ------------- | ----------------------- | -------------- |
-| `api`         | `/api`                  | SAVIS API      |
+| `api`         | `/savis-api`            | SAVIS API      |
 | `executorApi` | `/executor-api`         | SAVIS Executor |
 
 The dashboard currently demonstrates the application shell with static data.
 It is not yet an operational read model.
+
+### State and Navigation
+
+- `src/app` owns routing, providers and layout; `src/features` owns API calls,
+  hooks, models, components and pages; `src/shared` owns Axios clients and UI primitives.
+- TanStack Query owns server state and feature query invalidation. Supported
+  list filters, sorting, pagination and selected details are URL state.
+- Resource, Supply, Executor offer and task lists use backend pagination.
+  BOM and Catalog consultation filter and paginate the loaded collection.
+- BOM and product creation drafts use `localStorage`; new order and quotation
+  drafts use tab-local `sessionStorage`. These are unsaved browser drafts,
+  not business persistence.
+- `/sales/{quotations,orders,invoices}` groups sales lists. Editors/details use
+  `/quotations/*`, `/orders/*`, and `/invoices/*`; legacy list URLs redirect.
+- `VITE_API_URL` and `VITE_EXECUTOR_API_URL` override proxy roots at build time.
+  Vite uses `SAVIS_API_PROXY_TARGET` and `EXECUTOR_API_PROXY_TARGET` for development.
+  Runtime Nginx environment changes do not reconfigure the built bundle.
+- UI text is French. Backend prices are authoritative; frontend totals are previews.
+
+### Procurement and Catalog Consultation
+
+Executor review at `/offers`, API Supply consultation at `/supply/offers`, and
+acquisition task history at `/offers/tasks` represent separate models. Review
+starts with `NEW` offers and uses exact search-term facets; task filtering supports
+status and type. The Supply page resolves its Resource labels with a bounded
+`GET /api/resources/batch?ids=...` read (up to 100 distinct UUIDs), avoiding one
+request per row. Unassociated and unresolved resources are displayed separately.
+
+Catalog consultation uses the loaded product list and cached unpriced BOM list.
+A dedicated `/catalog-products/:productId/analysis` route invokes configuration
+and worst-case analysis. TanStack Query keys distinguish configurations and are
+invalidated with the product query prefix. Diagnostic `bomId` identifies the
+requested BOM; `missingBomIds` may include existing BOMs with incomplete costs.
+The current analysis exposes aggregate costs and diagnostics, not per-BOM cost
+contributions.
 
 ## Runtime Flows
 
@@ -626,8 +713,9 @@ sequenceDiagram
   end
 ```
 
-The Executor owns review history and refresh settings. The API stores only the
-available offer projection required by BOM pricing.
+The Executor owns review history and refresh settings. The API stores a separate supplier-offer projection with availability and
+Resource associations; invalidation retains the offer as unavailable. Supply
+also supports manually created offers independent of Executor acquisition.
 
 ### Scheduled Refresh and Provider Protection
 
@@ -816,50 +904,42 @@ and rates used but are not historical persisted snapshots.
 
 ```mermaid
 sequenceDiagram
-  participant Trigger as SAVIS Admin or Spring scheduler
-  participant Controller as CatalogController
+  participant Admin as SAVIS Admin
   participant Publication as CatalogPublicationService
   participant Products as ProductRepository
-  participant Mapper as PublishedCatalogProductMapper
-  participant Port as PublishedCatalogPort
-  participant Supabase as Supabase
-  participant Storefront as SavouretPlus
+  participant Supabase as published_catalog_products
 
-  alt bulk publication
-    Trigger->>Controller: POST /api/catalog/products/publish
-    Controller->>Publication: publishAll()
-  else single product publication
-    Trigger->>Controller: POST /api/catalog/products/{productId}/publish
-    Controller->>Publication: publish(productId)
-  else single product removal
-    Trigger->>Controller: POST /api/catalog/products/{productId}/unpublish
-    Controller->>Publication: unpublish(productId)
-  end
-
-  alt Supabase publication is disabled
-    Publication-->>Trigger: Reject request
-  else publication is enabled
+  alt publish one product
+    Admin->>Publication: POST /api/catalog/products/{id}/publish
+    Publication->>Products: Set published=true
+    Publication->>Supabase: Upsert mapped public projection
+  else withdraw one product
+    Admin->>Publication: POST /api/catalog/products/{id}/unpublish
+    Publication->>Products: Set published=false
+    Publication->>Supabase: Delete public projection
+  else publish flagged products in bulk
+    Admin->>Publication: POST /api/catalog/products/publish
     Publication->>Products: findAllPublished()
-    loop each published product
-      Publication->>Mapper: Map internal aggregate
-      Mapper-->>Publication: PublishedCatalogProduct
-      Publication->>Port: publish(public projection)
-      Port->>Supabase: Upsert published_catalog_products
+    loop each flagged product
+      Publication->>Supabase: Upsert mapped public projection
     end
-    Publication-->>Trigger: Published product count
   end
-
-  Storefront->>Supabase: Read published catalog
 ```
 
-The public projection includes the product category and the optional
-subcategory public code (`decorative-arch`, `centerpiece`, `birthday`, or
-`wedding`). It excludes common `productBoms`, internal costs, target-margin
-data, diagnostics, and recommended prices. Publishing one product that is no
-longer marked `published` removes its public projection. The current HTTP
-endpoint calls only bulk publication, which processes products still marked
-for publication and therefore does not reconcile newly unpublished records by
-itself.
+Publication requires `SUPABASE_ENABLED`, a URL and the backend service-role key.
+There is no catalog publication scheduler. Saving a product and publishing it are
+separate operations. Bulk publication does not remove stale projections of
+unpublished or deleted products; explicit withdrawal handles a single product.
+
+The projection carries public identity, category/subcategory codes, commercial
+nature (`GOODS` or `SERVICE`), purchase modes, configuration options and commercial
+prices in CAD cents. It excludes internal BOM references, costs, target margins,
+diagnostics and recommendations. Services can be sold without a BOM.
+
+Local publication flags and remote REST writes are not a distributed transaction.
+A local rollback cannot undo an already successful remote write, and bulk
+publication may partially succeed before a later failure. Re-publication or
+explicit withdrawal is the reconciliation mechanism.
 
 ### Manual Supabase Order Import
 
@@ -868,15 +948,17 @@ sequenceDiagram
   participant Customer as Customer
   participant Storefront as SavouretPlus
   participant Supabase as customer_orders inbox
-  participant Notify as Supabase Edge Function
+  participant Notify as Optional external notification
   participant Admin as SAVIS Admin
   participant Orders as API Order module
   participant PgApi as savis_api
 
   Customer->>Storefront: Submit order
   Storefront->>Supabase: RPC receive_customer_order (pending request)
-  Supabase->>Notify: Database webhook on INSERT
-  Notify-->>Admin: Administrative email notification
+  opt external webhook and Edge Function configured
+    Supabase->>Notify: Database webhook on INSERT
+    Notify-->>Admin: Administrative email notification
+  end
   Admin->>Orders: POST /api/orders/import
   Orders->>Supabase: GET pending orders with service-role key
   loop each pending order
@@ -903,7 +985,13 @@ The raw Supabase row is retained as JSONB for audit.
 The database uniqueness constraint on `(source, external_order_id)` makes the
 flow idempotent. A pending Supabase row whose local order already exists is
 acknowledged as synced. This also repairs the case where local commit succeeded
-but the previous Supabase acknowledgement failed.
+but the previous Supabase acknowledgement failed. Mapping/persistence failures
+are marked `failed`; acknowledgement failures after a successful local save are
+reported separately and leave the source eligible for acknowledgement repair.
+
+The webhook, Edge Function and email provider described in the
+[Supabase README](../supabase/README.md) are external infrastructure instructions;
+the repository does not ship that notification implementation.
 
 ### Administrative Order Entry
 
@@ -928,6 +1016,10 @@ The browser submits catalog identifiers, quantities, and configuration codes;
 it cannot submit product names or prices. Catalog validates the current product
 rules and calculates prices before Order captures immutable snapshots. This
 keeps subsequent order processing independent from later catalog changes.
+An `ADMIN` order at `NEW` can be replaced and repriced from the current Catalog.
+A web order at `NEW` permits customer/contact/note corrections only. Commercial
+lines are frozen after `NEW`. The lifecycle includes `ACCEPTED`,
+`IN_PREPARATION`, `READY`, `COMPLETED`, `REJECTED` and `CANCELLED`.
 The administrative product dropdown queries a bounded, debounced Catalog
 search instead of loading the complete product collection.
 
@@ -963,26 +1055,71 @@ do not make production quantities incomplete. Inventory-aware missing and
 purchase quantities remain intentionally unset until an inventory module owns
 on-hand stock.
 
-### Flow Review Checklist
+### Commercial Quotation and Order Conversion
 
-| Flow                       | Questions for the next iteration                                                               |
-| -------------------------- | ---------------------------------------------------------------------------------------------- |
-| Activity rates             | Should rate changes be versioned or effective-dated for historical cost reproducibility?       |
-| Manual offer retrieval     | Should operators be able to cancel, retry, or resume a failed task from the Admin?             |
-| Explicit offer collection | Acquisition is independent of BOM saving and pricing. |
-| Offer review               | Should review transitions record the operator, reason, and audit timestamp?                    |
-| Scheduled refresh          | Should per-provider schedules and concurrency limits be configurable independently?            |
-| Retry and scheduling       | Should failed integration messages use a dead-letter queue and an operator replay workflow?    |
-| Product management         | Should optional choice and ingredient BOMs be validated earlier with non-blocking diagnostics? |
-| Catalog pricing            | Should stored pricing snapshots preserve the assumptions used for a recommendation?            |
-| Catalog publication        | Should bulk publication reconcile deletions and newly unpublished products in Supabase?        |
+```mermaid
+sequenceDiagram
+  participant Admin as SAVIS Admin
+  participant Quotation as QuotationService
+  participant Catalog as CatalogOrderingApi
+  participant Orders as QuotationOrderApi
+  participant DB as savis_api
 
-Resource catalog consultation keeps search/category/status filtering and
-name/category/reference-unit sorting inside the API Resource slice, before
-server pagination. Admin stores navigation in URL parameters and sends the
-existing filters plus a whitelisted `sort` parameter to `GET /api/resources`.
-The persistence adapter owns Criteria ordering and stable public-UUID tie-breaks;
-no client-side sort of a partial page or direct database access is introduced.
+  Admin->>Quotation: Create or update DRAFT
+  Quotation->>Catalog: Validate configuration and capture current prices
+  Quotation->>DB: Persist quotation snapshots
+  Admin->>Quotation: Mark SENT, then ACCEPTED or REJECTED
+  Admin->>Quotation: POST /api/quotations/{id}/convert
+  Quotation->>DB: Lock quotation and check convertedOrderId
+  alt already converted
+    Quotation-->>Admin: Existing order UUID
+  else ACCEPTED
+    Quotation->>Orders: Copy accepted commercial snapshots
+    Orders->>DB: Persist QUOTATION order at ACCEPTED
+    Quotation->>DB: Store converted order UUID in same transaction
+    Quotation-->>Admin: Order UUID
+  end
+```
+
+Only draft quotations are editable. Conversion does not consult current Catalog
+prices. The Order public API also checks `(source, external_order_id)` with the
+quotation UUID to avoid duplicate conversion. Status `SENT` records a business
+transition; it does not send an email.
+
+### Invoice Creation and Documents
+
+`POST /api/invoices` takes an order UUID. `OrderInvoicingApi` locks and snapshots
+an order at `ACCEPTED`, `IN_PREPARATION`, `READY` or `COMPLETED`. Invoice creates
+one `DRAFT` per source order, guarded by a database unique constraint, and returns
+the existing invoice for subsequent eligible requests. It copies the commercial
+lines and adjustments without consulting Catalog and initializes TPS/TVQ to zero.
+
+Draft updates can change customer details, notes, discount, delivery fee and
+explicit tax amounts; product lines remain copied snapshots. Issuing assigns the
+final invoice number and moves to `ISSUED`; cancellation moves a draft or issued
+invoice to `CANCELLED` without creating a credit note. No payment workflow or
+automatic tax-rate calculation is implemented.
+
+Quotation and Invoice expose `GET /api/{quotations|invoices}/{id}/pdf` through
+dedicated document use cases and renderer ports. OpenHTMLtoPDF adapters render
+persisted commercial snapshots using repository templates and bundled fonts.
+Rendering does not reprice the document; Invoice PDF generation requires a
+previously issued invoice, including one subsequently cancelled. Documents are generated on demand, not stored in Supabase.
+
+### Public Event Quote Reception
+
+`public.submit_quote_request(payload jsonb)` stores raw event requests in
+Supabase `quote_requests`. It validates published offering snapshots and allows
+mixed catering/decoration requests. A private `quote_request_receipts` ledger
+uses `(scope, request_id)` and a canonical JSONB hash for transactional
+idempotency: an identical retry returns the existing UUID; a changed payload
+with the same key fails.
+
+Public roles execute the `SECURITY DEFINER` RPC with an empty `search_path`;
+they cannot read/write the inbox or private ledger directly. This is separate
+from SAVIS commercial `quotation`: no API mapper, import endpoint or Admin
+workflow consumes `quote_requests`. See the
+[RPC contract and coordinated rollout](integration/mixed-event-quote-request-rpc.md).
 
 ## Data Ownership
 
@@ -992,7 +1129,7 @@ flowchart LR
   Executor["SAVIS Executor"] --> ExecutorSchema[("savis_executor")]
   Api --> PublicSchema[("Supabase public schema")]
 
-  ApiSchema --> ApiData["BOMs and activities<br/>activity rates<br/>available offers<br/>catalog aggregates<br/>normalized orders"]
+  ApiSchema --> ApiData["BOMs and activities<br/>activity rates<br/>supplier offers and resources<br/>catalog aggregates<br/>quotations, orders, invoices"]
   ExecutorSchema --> ExecutorData["tasks<br/>reviewed offers<br/>provider access state"]
   PublicSchema --> PublicData["published catalog<br/>customer orders<br/>quote requests"]
 ```
@@ -1003,11 +1140,33 @@ flowchart LR
 | SAVIS Executor | Alembic under `savis-executor/alembic/versions`          | Explicit `executor_migrate` process |
 | Supabase       | SQL under `supabase/migrations`                          | Applied by Supabase CLI             |
 
+The current API migration chain runs from V1 to V13: commerce tables were added
+in V5 (orders), V8 (quotations) and V9 (invoices); V11–V13 introduce resources and
+link BOM components and Supply offers to them. Invoice retains a database foreign
+key to the source order public UUID; this does not permit cross-module repository
+access. Executor has an initial schema and a follow-up active-refresh uniqueness
+migration. Supabase has its own timestamped catalog/inbox/RPC migrations.
+
 API tests use H2 in PostgreSQL compatibility mode with
 `ddl-auto=create-drop`; Flyway is disabled in that test profile.
 
 Executor downgrades are intentionally unsupported. Production migrations are
 forward-only.
+
+### Resource Associations
+
+Resource owns material identity, category, active status and optional reference
+unit. Names are not unique business identifiers. BOM components reference its
+UUID and retain name snapshots; deactivation preserves historical compositions.
+Resource filtering and whitelisted sorting occur before server pagination with
+stable UUID tie-breaks.
+
+Supply owns the offer-to-Resource association. Operators can create a manual offer
+or associate an acquired offer, subject to active-resource and compatible-unit
+validation. Incoming Executor messages contain no Resource UUID; persistence
+preserves an existing operator association during acquisition updates. New
+unassociated discoveries require explicit operator association for resource-based
+BOM costing. No Resource synchronization is added to Executor.
 
 ### Cross-Boundary Identifiers
 
@@ -1020,15 +1179,35 @@ forward-only.
 - Executor and API offer records form separate models connected by published
   identifiers, not shared tables.
 
+## Monetary Policy
+
+Supply, BOM and Catalog use `Money(BigDecimal, currency)` in dollars. Costs retain
+intermediate precision; entered prices and hourly rates must be exactly
+representable at the cent. Mixed-currency arithmetic is rejected and there is no
+currency conversion.
+
+Quotation, Order and Invoice use integer CAD cents. Catalog validates CAD and
+converts at the commercial snapshot/publication boundary with `HALF_UP` and exact
+integer overflow checks. Line and aggregate arithmetic also rejects overflow.
+Quotation and Order total lines minus discount plus delivery; Invoice additionally
+includes explicit TPS/TVQ amounts. Documents copy snapshots across conversions.
+
+Executor storage retains four decimals; its outgoing offer representation
+quantizes to cents with `ROUND_HALF_EVEN`. Maxi parsing uses its own
+`ROUND_HALF_UP` calculation. These are distinct boundaries, not a shared global
+rounding rule. Frontend display rounding never replaces backend calculations.
+See the [monetary policy](architecture/monetary-policy.md) for precision, limits
+and recommendation rounding.
+
 ## Messaging
 
 ### Integration Queues
 
-| Queue                       | Producer       | Consumer                | Purpose                                   |
-| --------------------------- | -------------- | ----------------------- | ----------------------------------------- |
-| `savis.offer.requests`      | Retained API event adapter (unused by saves) | Executor API subscriber | Compatible acquisition request contract |
-| `savis.offer.results`       | Executor       | API Supply module       | Publish valid or refreshed offers         |
-| `savis.offer.invalidations` | Executor       | API Supply module       | Remove an offer from pricing availability |
+| Queue                       | Producer                                     | Consumer                | Purpose                                   |
+| --------------------------- | -------------------------------------------- | ----------------------- | ----------------------------------------- |
+| `savis.offer.requests`      | Retained API event adapter (unused by saves) | Executor API subscriber | Compatible acquisition request contract   |
+| `savis.offer.results`       | Executor                                     | API Supply module       | Publish valid or refreshed offers         |
+| `savis.offer.invalidations` | Executor                                     | API Supply module       | Remove an offer from pricing availability |
 
 All three are durable classic queues. Executor result and invalidation messages
 use persistent delivery.
@@ -1043,34 +1222,49 @@ The Executor subscriber:
 
 The API Supply listeners also disable requeue for rejected messages.
 
-Celery uses the same RabbitMQ instance but its task queues are an internal
-Executor concern, not integration contracts.
+Celery uses the same RabbitMQ instance, with durable quorum queue
+`savis.executor.tasks` and a durable topic exchange of the same name. It enables
+persistent task delivery and publisher confirms. This is an internal Executor
+queue, separate from the three classic integration queues.
 
 ### Delivery Semantics
 
-Messaging is effectively at-least-once at system boundaries. Consumers must be
-idempotent:
+Duplicate delivery is possible, so consumers must be idempotent. Durability does
+not guarantee an atomic database-and-message commit:
 
 - API offers reconcile by public UUID and provider identity;
 - Executor offers reconcile by `(provider_identifier, external_id)`;
 - invalidation changes availability instead of relying on physical deletion.
 
-A dead-letter strategy for rejected integration messages is not yet
-implemented.
+Executor persists review changes and publishes through separate database and
+broker operations; it has no transactional outbox for results/invalidations.
+Its result publisher uses persistent messages without publisher confirms. A
+failure between saving an offer and publishing its change can leave API Supply
+stale; a retry is not guaranteed to replay the lost transition. API event outbox
+infrastructure does not close this Executor gap.
+
+A dead-letter strategy for rejected integration messages is not yet implemented;
+`requeue=false` can discard a rejected message without operator replay.
 
 ## Operational Characteristics
 
 ### Health Model
 
-| Component  | Endpoint or check                          | Meaning                                    |
-| ---------- | ------------------------------------------ | ------------------------------------------ |
-| API        | `/actuator/health/readiness`               | Spring readiness and required dependencies |
-| Executor   | `/health`                                  | PostgreSQL and RabbitMQ are reachable      |
-| Executor   | `/health/live`                             | HTTP process is alive                      |
-| Admin      | `/health`                                  | Nginx is serving                           |
-| PostgreSQL | `pg_isready`                               | Database accepts connections               |
-| RabbitMQ   | `rabbitmq-diagnostics ping`                | Broker node responds                       |
-| Chrome     | `/json/version` on ports `9222` and `9223` | Browser and Docker relay are reachable     |
+| Component  | Endpoint or check                          | Meaning                                       |
+| ---------- | ------------------------------------------ | --------------------------------------------- |
+| API        | `/actuator/health/readiness`               | Spring readiness state (default health group) |
+| Executor   | `/health`                                  | PostgreSQL and RabbitMQ are reachable         |
+| Executor   | `/health/live`                             | HTTP process is alive                         |
+| Admin      | `/health`                                  | Nginx is serving                              |
+| PostgreSQL | `pg_isready`                               | Database accepts connections                  |
+| RabbitMQ   | `rabbitmq-diagnostics ping`                | Broker node responds                          |
+| Chrome     | `/json/version` on ports `9222` and `9223` | Browser and Docker relay are reachable        |
+
+Executor `/health` probes PostgreSQL and RabbitMQ, but does not prove subscriber,
+worker, Beat or Chrome availability. API `/actuator/health/readiness` uses the
+configured Spring readiness group; no explicit database/broker contributors are
+added to that group in `application.properties`. Compose gates initial startup
+on healthy infrastructure. Chrome is checked separately by deployment.
 
 Production deployment fails when API, Executor, or Admin does not expose a
 healthy Docker status. Failure diagnostics include container logs and recent
@@ -1090,7 +1284,9 @@ throughput.
 
 ### Security Boundaries
 
-- Production publishes only the Admin port.
+- Production publishes only the Admin port. Application authentication and
+  authorization are not implemented; access control must be provided by the
+  deployment environment.
 - Database and broker credentials come from external environment files.
 - Supabase writes use the service-role key only inside the API.
 - Supabase RLS controls public catalog reads and customer submissions.
@@ -1145,6 +1341,45 @@ The production deployment script:
 
 Flyway runs as part of API startup before API readiness succeeds.
 
+### Backup and Recovery
+
+Production PostgreSQL backups use a compressed custom-format dump, `rclone`
+upload and remote-file verification. The supplied systemd timer installs this
+outside application containers. Default retention is 7 local and 90 remote days.
+Backups cover the shared API/Executor database, not remote Supabase or the host
+Chrome profile. Backup and restoration procedures live in the
+[operations guide](../deploy/PRODUCTION_COMMANDS.md).
+`make restore-latest-prod-db` replaces local PostgreSQL data; it is destructive.
+
+## Verification and Source Map
+
+This architecture is based on source/configuration inspection, not a live
+production audit. The owning READMEs describe setup and endpoint details:
+[Admin](../savis-admin/README.md), [API](../savis-api/README.md),
+[Executor](../savis-executor/README.md), [Supabase](../supabase/README.md).
+
+| Concern                               | Source of truth                                                                                       |
+| ------------------------------------- | ----------------------------------------------------------------------------------------------------- |
+| Business modules and public contracts | `savis-api/src/main/java/com/savouretplus/savis/` and `*/api/package-info.java`                       |
+| Module enforcement                    | `savis-api/src/test/java/com/savouretplus/savis/SavisApiModularityTests.java`                         |
+| Provider execution and review         | `savis-executor/app/core/`, `app/adapters/` and `app/container.py`                                    |
+| UI routes and backend clients         | `savis-admin/src/app/router/AppRouter.tsx`, `src/shared/api/index.ts`, `vite.config.ts`, `nginx.conf` |
+| Persistence evolution                 | API Flyway, Executor Alembic and `supabase/migrations/`                                               |
+| Local/production runtime              | `docker-compose.yml`, `docker-compose.prod.yml`, `Makefile`, Dockerfiles                              |
+| Delivery and operations               | `.github/workflows/`, `deploy/`, `scripts/`, `test/smoke/`                                            |
+
+CI runs Maven tests (including module verification), Admin lint/Vitest/build,
+Executor locked install/Ruff/pytest/Alembic SQL-chain validation, container smoke
+tests, production Compose validation and local Supabase migration lint. SQL RPC
+behavior/concurrency scripts also exist under `supabase/tests/`; the current CI
+workflow does not execute them as a separate test step.
+
+For changes to behavior, run the owning application's checks documented in its
+README. Cross-service changes require both sides' contract tests; smoke targets
+exercise RabbitMQ/worker wiring, PostgreSQL migration startup and Nginx proxying.
+A documentation-only change requires checking document structure, relative links
+and statements against source rather than starting the runtime stack.
+
 ## Architectural Rules
 
 1. Keep domain and core models independent from frameworks.
@@ -1180,62 +1415,10 @@ Flyway runs as part of API startup before API readiness succeeds.
 - Bulk catalog publication does not currently remove projections for products
   that were changed from published to unpublished; use single-product removal
   to reconcile those projections.
-- Quote requests exist in Supabase but are not yet managed by a SAVIS business
-  module. Failed order inbox rows currently require manual review and reset to
-  `pending` before retry.
-
-## Supply resource association
-
-Supply offers reference Resource by UUID. Admin supports manual offer creation,
-explicit association from offer details, and resource offer consultation. BOM and
-Catalog cost valuation use resource UUIDs and batched offer reads; foreign selected
-offers produce a blocking diagnostic. Executor messages remain compatible and
-discoveries await operator association. See [phase 2.3 migration and validation](SUPPLY_RESOURCE_MIGRATION.md)
-for V13 preflight, unresolved offers, HTTP contracts and verification.
-
-### Procurement review UI and resource labels
-
-The procurement workspace keeps Executor review (`/offers`), Supply
-consultation (`/supply/offers`), and acquisition tasks separate. Review defaults
-to `NEW`; accepting or rejecting uses the existing Executor PATCH and messaging
-workflow. Executor supports exact search-term filtering, not free-text product
-search or provider filtering. Task filtering supports status and type only.
-
-The current Supply catalog returns resource UUIDs without names. Existing
-Resource endpoints expose paginated search or individual reads, so they cannot
-resolve an arbitrary page of offers without N+1 calls or loading the full catalog.
-A bounded read-only `GET /api/resources/batch?ids=<uuid>,<uuid>` resolves up to
-100 distinct resource identifiers in one repository query. Admin requests
-only identifiers on the current Supply page. Missing references display an
-explicit unavailable-name label; unassociated offers display “Non associée”.
-This adds no persistence, module dependency, or synchronization process.
-
-### Catalog profitability presentation
-
-Admin exposes a dedicated read-only product analysis route. Catalog remains the
-sole financial calculator, through its existing configuration and worst-case
-analysis endpoints. TanStack Query caches each analyzed mode/configuration and
-invalidates these entries with the catalog product query prefix on product
-mutations. BOM names and yields come from one unpriced list read; no BOM pricing
-fan-out or frontend yield/contribution calculation is introduced. The analysis
-contract exposes aggregate costs and diagnostics, not per-BOM contributions;
-Admin explicitly identifies this presentation limit. Base BOM references remain
-cumulative, choice options remain alternatives, and allocated bundles retain
-Catalog's worst-case semantics. No service boundary, schema, or pricing formula
-changes are involved.
-
-Calculation quality resolves Catalog diagnostic `bomId` using the same cached
-unpriced BOM list as composition details. `BomPricingAdapter` attaches the public
-BOM UUID requested by Catalog; diagnostic `source` remains the component/activity
-label. `missingBomIds` records incomplete valuation, including existing BOMs,
-and must not be interpreted as a list of nonexistent references. Admin retains
-the original diagnostic and blocking status, displays known BOM names, and
-distinguishes unresolved references from unavailable name reads. No API contract,
-financial calculation or additional request is required.
-
-Catalog consultation at `/catalog-products` uses a master-detail presentation.
-Admin filters, sorts and paginates the complete existing Catalog list in memory;
-URL parameters preserve list state and explicit selection. Selection reuses the
-loaded product and unpriced BOM list without issuing detail or pricing requests.
-Editing and publication retain their existing Catalog operations, and analysis
-navigates to the dedicated profitability route above. No service contracts change.
+- Public event quote requests have no import into internal commercial quotations.
+- Failed order inbox rows require manual review and reset to `pending` before retry.
+- Executor has no transactional result outbox; Supabase publication has no atomic
+  local/remote commit or automatic reconciliation.
+- Costs use current offers and rates, not persisted historical valuation snapshots.
+- Inventory, purchase planning, payments, automatic taxes and credit notes are not
+  implemented business slices.

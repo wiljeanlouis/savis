@@ -106,70 +106,25 @@ export function BomComponentReviewDetails({
     <section
       ref={panelRef}
       aria-label={`Détail de ${offer.label}`}
-      className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-xl border bg-card lg:max-h-[var(--review-detail-height,calc(100dvh-2rem))]"
+      className="flex min-h-0 flex-1 flex-col overflow-hidden bg-transparent lg:max-h-[var(--review-detail-height,calc(100dvh-2rem))]"
     >
       <div
         role="region"
         aria-label="Informations de l'offre"
         tabIndex={0}
-        className="min-h-0 flex-1 space-y-4 overflow-y-auto overscroll-contain p-5 focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-primary"
+        className="min-h-0 flex-1 space-y-5 overflow-y-auto overscroll-contain px-4 pt-1 pb-5 focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-primary"
       >
-        <header className="flex items-start gap-3">
-          <SupplyOfferImage
-            imageUrl={offer.image_url}
-            alt={offer.label}
-            className="size-16 shrink-0 bg-muted object-contain sm:size-20"
-          />
-          <div className="min-w-0 flex-1 space-y-1.5">
-            <Badge
-              variant={
-                offer.status === "REJECTED"
-                  ? "destructive"
-                  : offer.status === "VALID"
-                    ? "outline"
-                    : "secondary"
-              }
-              className={reviewStatusBadgeClass(offer.status)}
-            >
-              {reviewStatusLabels[offer.status]}
-            </Badge>
-            <h2 className="break-words text-xl leading-snug font-semibold tracking-tight">
-              {offer.label}
-            </h2>
-            {offer.brand && (
-              <p className="break-words text-sm text-muted-foreground">
-                {offer.brand}
-              </p>
-            )}
-            <p className="break-words text-sm font-medium">
-              {offer.provider.name}
-            </p>
-          </div>
-        </header>
-        <section
-          aria-label="Prix et format"
-          className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1 border-y py-3"
-        >
-          <div>
-            <p className="text-sm text-muted-foreground">Prix observé</p>
-            <p className="text-2xl leading-tight font-semibold tracking-tight tabular-nums">
-              {reviewPrice(offer)}
-            </p>
-          </div>
-          <p className="text-base font-medium text-muted-foreground">
-            {reviewPackage(offer)}
-          </p>
-        </section>
+        <ReviewProductHeader offer={offer} />
         <section
           aria-label="Informations de collecte"
-          className="border-t pt-3"
+          className="border-t pt-4"
         >
           <h3 className="text-sm font-medium">Informations de collecte</h3>
-          <dl className="mt-3 space-y-3 text-sm">
+          <dl className="mt-3 divide-y text-sm">
             {fields.map(([label, value]) => (
               <div
                 key={label}
-                className="grid grid-cols-[minmax(0,1fr)_minmax(0,1.2fr)] items-baseline gap-3"
+                className="grid grid-cols-[minmax(0,1fr)_minmax(0,1.2fr)] items-baseline gap-3 py-3"
               >
                 <dt className="text-muted-foreground">{label}</dt>
                 <dd className="min-w-0 break-words text-right">{value}</dd>
@@ -264,5 +219,62 @@ export function BomComponentReviewDetails({
         </AlertDialogContent>
       </AlertDialog>
     </section>
+  );
+}
+
+function ReviewProductHeader({ offer }: { offer: BomComponent }) {
+  return (
+    <header className="space-y-4">
+      <div className="flex h-[300px] items-center justify-center">
+        <SupplyOfferImage
+          imageUrl={offer.image_url}
+          alt={offer.label}
+          className="size-[300px] max-w-full rounded-lg border-0 bg-white object-contain p-2"
+        />
+      </div>
+      <div className="space-y-1.5">
+        <div className="min-w-0 flex-1 space-y-1.5">
+          <Badge
+            variant={
+              offer.status === "REJECTED"
+                ? "destructive"
+                : offer.status === "VALID"
+                  ? "outline"
+                  : "secondary"
+            }
+            className={reviewStatusBadgeClass(offer.status)}
+          >
+            {reviewStatusLabels[offer.status]}
+          </Badge>
+          <h2 className="break-words text-xl leading-snug font-semibold tracking-tight">
+            {offer.label}
+          </h2>
+          {offer.brand && (
+            <p className="break-words text-sm text-muted-foreground">
+              {offer.brand}
+            </p>
+          )}
+          <p className="break-words text-sm font-medium">
+            {offer.provider.name}
+          </p>
+        </div>
+      </div>
+      <div>
+        <section
+          aria-label="Prix et format"
+          className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1 rounded-lg bg-muted/60 p-4"
+        >
+          <div>
+            <p className="text-sm text-muted-foreground">Prix observé</p>
+            <p className="text-2xl leading-tight font-semibold tracking-tight tabular-nums">
+              {reviewPrice(offer)}
+            </p>
+          </div>
+          <p className="text-base font-medium text-muted-foreground">
+            {reviewPackage(offer)}
+          </p>
+        </section>
+      </div>
+    </header>
   );
 }

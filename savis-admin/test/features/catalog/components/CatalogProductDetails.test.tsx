@@ -62,7 +62,7 @@ afterEach(() => {
   vi.unstubAllGlobals();
 });
 describe("Compact product detail panel", () => {
-  it("separates the fixed header and actions from keyboard-scrollable content", () => {
+  it("keeps product identity in the scrollable content and actions outside", () => {
     renderPanel(product());
     const panel = screen.getByRole("region", { name: "Détail du produit" });
     const content = screen.getByRole("region", {
@@ -76,14 +76,9 @@ describe("Compact product detail panel", () => {
     );
     expect(content).toHaveAttribute("tabindex", "0");
     expect(content).not.toContainElement(footer);
-    expect(content).not.toContainElement(
+    expect(content).toContainElement(
       screen.getByRole("heading", { name: "Pâté kòde" }),
     );
-    const header = screen
-      .getByRole("heading", { name: "Pâté kòde" })
-      .closest("header");
-    expect(header).toHaveClass("shrink-0");
-    expect(header).not.toHaveClass("overflow-y-auto");
     expect(panel).toContainElement(footer);
     expect(footer).toHaveClass(
       "shrink-0",
@@ -166,15 +161,21 @@ describe("Compact product detail panel", () => {
     expect(modes.getByText("Inactif")).toBeInTheDocument();
     expect(modes.getByText(/40,00/)).toHaveClass("text-right", "tabular-nums");
   });
-  it("preserves long descriptions and gives the image compact contain sizing", () => {
+  it("shows full descriptions without expansion and contains the header image", () => {
     const description = "Description très longue. ".repeat(100);
     renderPanel({ ...product(), description });
     expect(screen.getByText(description.trim())).toHaveClass(
       "whitespace-pre-wrap",
       "[overflow-wrap:anywhere]",
     );
+    expect(screen.getByText(description.trim())).toBeVisible();
+    expect(
+      screen.getByRole("heading", {
+        name: "Description et informations complémentaires",
+      }),
+    ).toBeVisible();
     expect(screen.getByRole("img", { name: "Pâté kòde" })).toHaveClass(
-      "size-12",
+      "size-[300px]",
       "object-contain",
     );
     fireEvent.error(screen.getByRole("img", { name: "Pâté kòde" }));
@@ -189,7 +190,7 @@ describe("Compact product detail panel", () => {
       description: " ",
       ingredientOptions: [],
     });
-    expect(screen.getByText("Aucune description")).toBeInTheDocument();
+    expect(screen.getByText("Aucune description")).toBeVisible();
     expect(screen.getByText("Aucune composition associée")).toBeInTheDocument();
     expect(
       screen.getByRole("img", { name: "Aucune image pour Pâté kòde" }),
