@@ -110,7 +110,7 @@ export function ActivityRatesPage() {
       ) : activityRates.length === 0 ? (
         <NoData />
       ) : (
-        <div className="rounded-md border">
+        <div className="min-w-0">
           <Table>
             <TableHeader>
               <TableRow>

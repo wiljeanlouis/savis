@@ -5,6 +5,7 @@ import java.util.UUID;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.savouretplus.savis.common.Money;
+import com.savouretplus.savis.bom.api.BomPricingApi.BomPricing;
 import com.savouretplus.savis.common.Quantity;
 import com.savouretplus.savis.common.Unit;
 import com.savouretplus.savis.bom.domain.Activity;
@@ -31,7 +32,14 @@ public record BomDto(
         @NotNull List<BomComponentDto> components,
         List<ActivityDto> activities,
         @JsonProperty("yield") YieldDto bomYield,
-        Money price) {
+        Money price,
+        BomPricing costing) {
+
+    public BomDto(UUID id, String name, String description, String imageUrl, String instructions,
+            BomType type, List<BomComponentDto> components, List<ActivityDto> activities,
+            YieldDto bomYield, Money price) {
+        this(id, name, description, imageUrl, instructions, type, components, activities, bomYield, price, null);
+    }
 
     /**
      * Normalizes nullable BOM DTO collections.
@@ -59,13 +67,13 @@ public record BomDto(
                         .map(ActivityDto::from)
                         .toList(),
                 YieldDto.from(bom.getYield()),
-                null);
+                null, null);
     }
 
     /**
      * Creates a DTO or API value from the provided domain object.
      */
-    public static BomDto from(Bom bom, Money price) {
+    public static BomDto from(Bom bom, BomPricing costing) {
         return new BomDto(
                 bom.getPublicId(),
                 bom.getName(),
@@ -80,7 +88,7 @@ public record BomDto(
                         .map(ActivityDto::from)
                         .toList(),
                 YieldDto.from(bom.getYield()),
-                price);
+                costing.totalCost(), costing);
     }
 
     /**
@@ -167,10 +175,16 @@ record YieldDto(
  * DTO value used to exchange BOM component data.
  */
 record BomComponentDto(
+        Long id,
+        @NotNull UUID resourceId,
         @NotBlank String componentName,
         @NotNull double quantity,
         @NotBlank String unit,
         UUID selectedOfferId) {
+
+    BomComponentDto(String componentName, double quantity, String unit, UUID selectedOfferId) {
+        this(null, null, componentName, quantity, unit, selectedOfferId);
+    }
 
     /**
      * Resolves the unit symbol to the domain enum.
@@ -183,7 +197,7 @@ record BomComponentDto(
      * Converts this DTO into its domain representation.
      */
     public BomComponent toDomain() {
-        return new BomComponent(null, componentName, new Quantity(quantity, unitEnum()), selectedOfferId);
+        return new BomComponent(id, resourceId, componentName, new Quantity(quantity, unitEnum()), selectedOfferId);
     }
 
     /**
@@ -191,7 +205,9 @@ record BomComponentDto(
      */
     public static BomComponentDto from(BomComponent componentRequirement) {
         return new BomComponentDto(
-                componentRequirement.componentName(),
+                componentRequirement.id(),
+                componentRequirement.resourceId(),
+                componentRequirement.resourceName(),
                 componentRequirement.quantity().value(),
                 componentRequirement.quantity().unit().getSymbole(),
                 componentRequirement.selectedOfferId());

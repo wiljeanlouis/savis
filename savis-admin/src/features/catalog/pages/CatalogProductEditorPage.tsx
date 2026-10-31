@@ -1,5 +1,12 @@
+import { catalogReturnTo } from "../model/catalogProductNavigation";
 import { useEffect, useRef, useState } from "react";
-import { Link, useBlocker, useNavigate, useParams } from "react-router";
+import {
+  Link,
+  useBlocker,
+  useNavigate,
+  useParams,
+  useSearchParams,
+} from "react-router";
 import { CatalogProductEditor } from "../components/CatalogProductEditor";
 import { useCatalogProductManagement } from "../hooks/useCatalogProductManagement";
 import { Button } from "@/shared/ui/button";
@@ -22,6 +29,8 @@ function CatalogProductEditorContent({
   productId: string | undefined;
 }) {
   const navigate = useNavigate();
+  const [params] = useSearchParams();
+  const returnTo = catalogReturnTo(params.toString(), productId);
   const allowNavigation = useRef(false);
   const [isDirty, setIsDirty] = useState(false);
   const { products, boms, isLoading, isSaving, saveProduct } =
@@ -53,7 +62,7 @@ function CatalogProductEditorContent({
 
   const returnToCatalog = () => {
     allowNavigation.current = true;
-    navigate("/catalog-products");
+    navigate(returnTo);
   };
 
   if (isLoading) {
@@ -77,7 +86,7 @@ function CatalogProductEditorContent({
           </p>
         </div>
         <Button asChild variant="outline">
-          <Link to="/catalog-products">Retour aux produits</Link>
+          <Link to={returnTo}>Retour aux produits</Link>
         </Button>
       </div>
     );

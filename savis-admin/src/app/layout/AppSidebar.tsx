@@ -41,17 +41,18 @@ const data = {
       icon: <HugeiconsIcon icon={Database01Icon} strokeWidth={2} />,
       children: [
         {
-          name: "Offres fournisseurs",
-          url: "/supply/offers",
-        },
-        {
-          name: "Gestion des offres",
-          url: "/bom-components",
+          name: "À valider",
+          url: "/offers",
           exact: true,
         },
         {
+          name: "Offres fournisseurs",
+          url: "/supply/offers",
+        },
+
+        {
           name: "Tâches d'acquisition",
-          url: "/bom-components/tasks",
+          url: "/offers/tasks",
         },
       ],
     },
@@ -59,6 +60,10 @@ const data = {
       name: "Production",
       icon: <HugeiconsIcon icon={GearsFreeIcons} strokeWidth={2} />,
       children: [
+        {
+          name: "Ressources matérielles",
+          url: "/resources",
+        },
         {
           name: "Compositions",
           url: "/boms",

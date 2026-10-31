@@ -1,21 +1,30 @@
 package com.savouretplus.savis.supply.adapter.web;
 
+import com.savouretplus.savis.supply.domain.OfferStatus;
+import com.savouretplus.savis.common.Money;
+import com.savouretplus.savis.common.Quantity;
+import com.savouretplus.savis.common.Unit;
+import com.savouretplus.savis.supply.domain.Offer;
+import com.savouretplus.savis.supply.domain.Provider;
+import com.savouretplus.savis.supply.port.OfferCatalogQuery;
+import com.savouretplus.savis.supply.port.OfferCatalogSort;
+import com.savouretplus.savis.supply.usecase.OfferService;
+import java.math.BigDecimal;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Locale;
-
+import java.util.UUID;
+import lombok.AllArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
-
-import com.savouretplus.savis.supply.usecase.OfferService;
-import com.savouretplus.savis.supply.domain.OfferStatus;
-import com.savouretplus.savis.supply.port.OfferCatalogQuery;
-import com.savouretplus.savis.supply.port.OfferCatalogSort;
-
-import lombok.AllArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
 
 /**
  * REST controller exposing supplier offer search endpoints.
@@ -64,6 +73,39 @@ public class SupplyOfferController {
                 parseSort(sort));
 
         return SupplyOfferCatalogResponse.from(offerService.searchOfferCatalog(query), page, size);
+    }
+
+    public record ManualOfferRequest(UUID resourceId, String externalId, String providerName,
+            String providerIdentifier, String label, String brand, String url,
+            BigDecimal price, String currency, double packageValue, String packageUnit) {}
+
+    @PostMapping
+    public ResponseEntity<SupplyOfferDto> create(@RequestBody ManualOfferRequest request) {
+        if (request.price() == null || request.currency() == null || request.currency().isBlank()) {
+            throw new IllegalArgumentException("Prix et devise requis");
+        }
+        var offer = new Offer(UUID.randomUUID(), request.externalId(),
+                request.url(), "Saisie manuelle", request.brand(), request.label(), null,
+                new Money(request.price(), request.currency()),
+                new Quantity(request.packageValue(),
+                        Unit.fromSymbole(request.packageUnit())),
+                new Provider(request.providerName(), request.providerIdentifier(), null, null),
+                LocalDateTime.now(), OfferStatus.AVAILABLE, request.resourceId());
+        return ResponseEntity.status(201).body(SupplyOfferDto.from(offerService.createManualOffer(offer)));
+    }
+
+    public record AssociationRequest(UUID resourceId) {}
+
+    @PutMapping("/{offerId}/resource")
+    public SupplyOfferDto associate(@PathVariable UUID offerId, @RequestBody AssociationRequest request) {
+        return SupplyOfferDto.from(offerService.associate(offerId, request.resourceId()));
+    }
+
+    @GetMapping("/resource/{resourceId}")
+    public List<SupplyOfferDto> resourceOffers(@PathVariable UUID resourceId,
+            @RequestParam(defaultValue = "false") boolean availableOnly) {
+        return offerService.resourceOffers(resourceId).stream()
+                .filter(offer -> !availableOnly || offer.status() == OfferStatus.AVAILABLE).map(SupplyOfferDto::from).toList();
     }
 
     private OfferStatus parseStatus(String status) {

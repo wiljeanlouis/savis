@@ -18,7 +18,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/shared/ui/dropdown-menu";
-import { Separator } from "@/shared/ui/separator";
+import { CatalogPricingSummary } from "./CatalogPricingSummary";
 import { HugeiconsIcon } from "@hugeicons/react";
 import { MoreVerticalCircle01Icon } from "@hugeicons/core-free-icons";
 import type { CatalogProduct, ProductPricingAnalysis } from "../types";
@@ -40,7 +40,6 @@ export function CatalogProductCard({
   result,
   boms,
   publishing,
-  onAnalyze,
   onPublish,
   onUnpublish,
   onDelete,
@@ -181,45 +180,14 @@ export function CatalogProductCard({
         </section>
       </CardContent>
 
-      {result && (
-        <>
-          <Separator />
-          <CardContent className="grid grid-cols-2 gap-x-5 gap-y-2 py-4 sm:grid-cols-4">
-            <Metric
-              label="Analyse"
-              value={
-                result.analysisType === "WORST_CASE"
-                  ? "Pire cas"
-                  : "Configuration"
-              }
-            />
-            <Metric
-              label="Coût unitaire"
-              value={money(result.unitCost.amount)}
-            />
-            <Metric
-              label="Marge"
-              value={
-                result.actualMarginRate == null
-                  ? "Incomplète"
-                  : `${(result.actualMarginRate * 100).toFixed(1)} %`
-              }
-            />
-            <Metric
-              label="Prix recommandé"
-              value={money(result.recommendedPrice?.amount)}
-              status={result.status}
-            />
-          </CardContent>
-        </>
-      )}
+      {result && <CatalogPricingSummary result={result} />}
 
       <CardFooter className="flex-wrap justify-end gap-2 border-t py-3">
         <Button variant="outline" asChild>
           <Link to={`/catalog-products/${product.id}/edit`}>Modifier</Link>
         </Button>
-        <Button type="button" variant="outline" onClick={onAnalyze}>
-          Analyser
+        <Button variant="outline" asChild>
+          <Link to={`/catalog-products/${product.id}/analysis`}>Analyser</Link>
         </Button>
         <Button
           type="button"
@@ -288,38 +256,6 @@ function BomLine({
 
 function MutedValue({ value }: { value: string }) {
   return <p className="text-muted-foreground">{value}</p>;
-}
-
-function Metric({
-  label,
-  value,
-  status,
-}: {
-  label: string;
-  value: string;
-  status?: ProductPricingAnalysis["status"];
-}) {
-  return (
-    <div>
-      <p className="text-muted-foreground">{label}</p>
-      <div className="mt-1 flex items-center gap-2">
-        <p className="font-medium tabular-nums">{value}</p>
-        {status && (
-          <Badge
-            variant={
-              status === "GOOD"
-                ? "default"
-                : status === "LOSS"
-                  ? "destructive"
-                  : "secondary"
-            }
-          >
-            {status}
-          </Badge>
-        )}
-      </div>
-    </div>
-  );
 }
 
 function productTypeLabel(type: CatalogProduct["productType"]) {

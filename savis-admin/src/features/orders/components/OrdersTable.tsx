@@ -1,4 +1,3 @@
-import { Card, CardContent } from "@/shared/ui/card";
 import {
   Table,
   TableBody,
@@ -20,58 +19,54 @@ import { OrderProductImage } from "./OrderProductImage";
 
 export function OrdersTable({ orders }: { orders: OrderSummary[] }) {
   return (
-    <Card>
-      <CardContent className="px-0">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Commande</TableHead>
-              <TableHead>Articles</TableHead>
-              <TableHead>Client</TableHead>
-              <TableHead>Téléphone</TableHead>
-              <TableHead>Total</TableHead>
-              <TableHead>Source</TableHead>
-              <TableHead>Statut</TableHead>
-              <TableHead>Date</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {orders.map((order) => (
-              <TableRow key={order.id}>
-                <TableCell>
-                  <Link
-                    className="font-semibold text-primary hover:underline"
-                    to={`/orders/${order.id}`}
-                  >
-                    {order.orderNumber}
-                  </Link>
-                </TableCell>
-                <TableCell>
-                  <OrderItemsPreview order={order} />
-                </TableCell>
-                <TableCell>{order.customerName}</TableCell>
-                <TableCell>
-                  <a
-                    className="hover:underline"
-                    href={`tel:${phoneHref(order.customerPhone)}`}
-                  >
-                    {formatPhoneForDisplay(order.customerPhone)}
-                  </a>
-                </TableCell>
-                <TableCell className="font-medium">
-                  {formatOrderCurrency(order.totalCents)}
-                </TableCell>
-                <TableCell>{orderSourceLabels[order.source]}</TableCell>
-                <TableCell>
-                  <OrderStatusBadge status={order.status} />
-                </TableCell>
-                <TableCell>{formatOrderDate(order.placedAt)}</TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-      </CardContent>
-    </Card>
+    <Table>
+      <TableHeader>
+        <TableRow>
+          <TableHead>Commande</TableHead>
+          <TableHead>Articles</TableHead>
+          <TableHead>Client</TableHead>
+          <TableHead>Téléphone</TableHead>
+          <TableHead>Total</TableHead>
+          <TableHead>Source</TableHead>
+          <TableHead>Statut</TableHead>
+          <TableHead>Date</TableHead>
+        </TableRow>
+      </TableHeader>
+      <TableBody>
+        {orders.map((order) => (
+          <TableRow key={order.id}>
+            <TableCell>
+              <Link
+                className="font-semibold text-primary hover:underline"
+                to={`/orders/${order.id}`}
+              >
+                {order.orderNumber}
+              </Link>
+            </TableCell>
+            <TableCell>
+              <OrderItemsPreview order={order} />
+            </TableCell>
+            <TableCell>{order.customerName}</TableCell>
+            <TableCell>
+              <a
+                className="hover:underline"
+                href={`tel:${phoneHref(order.customerPhone)}`}
+              >
+                {formatPhoneForDisplay(order.customerPhone)}
+              </a>
+            </TableCell>
+            <TableCell className="font-medium">
+              {formatOrderCurrency(order.totalCents)}
+            </TableCell>
+            <TableCell>{orderSourceLabels[order.source]}</TableCell>
+            <TableCell>
+              <OrderStatusBadge status={order.status} />
+            </TableCell>
+            <TableCell>{formatOrderDate(order.placedAt)}</TableCell>
+          </TableRow>
+        ))}
+      </TableBody>
+    </Table>
   );
 }
 

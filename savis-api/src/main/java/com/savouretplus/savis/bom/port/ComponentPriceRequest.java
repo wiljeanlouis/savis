@@ -10,7 +10,8 @@ import com.savouretplus.savis.common.Quantity;
 public record ComponentPriceRequest(
         String componentName,
         Quantity quantity,
-        UUID selectedOfferId) {
+        UUID selectedOfferId,
+        UUID resourceId) {
 
     /**
      * Validates a component price request.
