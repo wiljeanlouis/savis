@@ -1,3 +1,5 @@
+import { HugeiconsIcon } from "@hugeicons/react";
+import { Download01Icon } from "@hugeicons/core-free-icons";
 import { Button } from "@/shared/ui/button";
 import {
   Dialog,
@@ -63,7 +65,10 @@ export const BomComponentRetrieveDialog = ({
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogTrigger asChild>
-        <Button>Récupérer une offre fournisseur</Button>
+        <Button>
+          <HugeiconsIcon icon={Download01Icon} strokeWidth={2} />
+          Récupérer une offre
+        </Button>
       </DialogTrigger>
       <DialogContent className="sm:max-w-md">
         <form onSubmit={handleSubmit}>

@@ -34,9 +34,10 @@ describe("CatalogProductCard", () => {
       "href",
       "/catalog-products/product-1/edit",
     );
-    expect(
-      screen.getByRole("button", { name: "Analyser" }),
-    ).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Analyser" })).toHaveAttribute(
+      "href",
+      "/catalog-products/product-1/analysis",
+    );
     expect(screen.getByRole("button", { name: "Publier" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Actions" })).toBeInTheDocument();
     expect(

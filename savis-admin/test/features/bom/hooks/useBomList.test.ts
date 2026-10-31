@@ -87,6 +87,7 @@ describe("useBomList", () => {
       id: null,
       name: "Boeuf bourguignon (copie)",
       price: null,
+      costing: null,
       components: [{ ...bom.components[0] }],
       activities: [
         { type: "PREP", minutes: 20, sequence: 1 },

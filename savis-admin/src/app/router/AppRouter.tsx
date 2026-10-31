@@ -1,8 +1,12 @@
+import { catalogReturnTo } from "@/features/catalog/model/catalogProductNavigation";
+import { ResourcesPage } from "@/features/resource/pages/ResourcesPage";
 import {
   createBrowserRouter,
   Link,
   Navigate,
   RouterProvider,
+  useLocation,
+  useMatch,
 } from "react-router";
 import { DashboardPage } from "@/features/dashboard/pages/DashboardPage";
 import { MainLayout } from "@/app/layout/MainLayout";
@@ -19,6 +23,7 @@ import type { Bom } from "@/features/bom/types";
 import { BomComponentTasksPage } from "@/features/bom-component/task/pages/BomComponentTasksPage";
 import { BomComponentsPage } from "@/features/bom-component/pages/BomComponentsPage";
 import { ActivityRatesPage } from "@/features/activity-rate/pages/ActivityRatesPage";
+import { CatalogProductAnalysisPage } from "@/features/catalog/pages/CatalogProductAnalysisPage";
 import { CatalogProductsPage } from "@/features/catalog/pages/CatalogProductsPage";
 import { CatalogProductEditorPage } from "@/features/catalog/pages/CatalogProductEditorPage";
 import { OrdersPage } from "@/features/orders/pages/OrdersPage";
@@ -33,7 +38,40 @@ import { SupplyOffersPage } from "@/features/supply-offer/pages/SupplyOffersPage
 const router = createBrowserRouter([
   {
     element: <MainLayout />,
+    hydrateFallbackElement: (
+      <div
+        role="status"
+        className="flex min-h-screen items-center justify-center text-muted-foreground"
+      >
+        Chargement…
+      </div>
+    ),
     children: [
+      {
+        path: "/resources",
+        element: <ResourcesPage />,
+        handle: {
+          breadcrumb: () => (
+            <>
+              <BreadcrumbItem className="hidden md:block">
+                <BreadcrumbLink asChild>
+                  <Link to="/">Accueil</Link>
+                </BreadcrumbLink>
+              </BreadcrumbItem>
+              <BreadcrumbSeparator className="hidden md:block" />
+              <BreadcrumbItem className="hidden md:block">
+                <BreadcrumbLink asChild>
+                  <Link to="/boms">Production</Link>
+                </BreadcrumbLink>
+              </BreadcrumbItem>
+              <BreadcrumbSeparator className="hidden md:block" />
+              <BreadcrumbItem>
+                <BreadcrumbPage>Ressources matérielles</BreadcrumbPage>
+              </BreadcrumbItem>
+            </>
+          ),
+        },
+      },
       {
         path: "/",
         element: <DashboardPage />,
@@ -296,6 +334,15 @@ const router = createBrowserRouter([
         },
       },
       {
+        path: "/catalog-products/:productId/analysis",
+        element: <CatalogProductAnalysisPage />,
+        handle: {
+          breadcrumb: () => (
+            <CatalogProductEditorBreadcrumb section="Analyse de rentabilité" />
+          ),
+        },
+      },
+      {
         path: "/catalog-products/new",
         element: <CatalogProductEditorPage />,
         handle: {
@@ -395,15 +442,13 @@ const router = createBrowserRouter([
         },
       },
       {
-        path: "/bom-components",
+        path: "/offers",
         children: [
           {
             index: true,
             element: <BomComponentsPage />,
             handle: {
-              breadcrumb: () => (
-                <ProcurementBreadcrumb section="Gestion des offres" />
-              ),
+              breadcrumb: () => <ProcurementBreadcrumb section="À valider" />,
             },
           },
           {
@@ -431,7 +476,7 @@ const router = createBrowserRouter([
         children: [
           {
             index: true,
-            element: <BomComponentsPage supplierOffers />,
+            element: <Navigate to="/supply/offers" replace />,
             handle: {
               breadcrumb: () => (
                 <>
@@ -550,7 +595,17 @@ function SalesBreadcrumb({ section }: { section: string }) {
   );
 }
 
-function CatalogProductEditorBreadcrumb({ section }: { section: string }) {
+export function CatalogProductEditorBreadcrumb({
+  section,
+}: {
+  section: string;
+}) {
+  const location = useLocation();
+  const productRoute = useMatch("/catalog-products/:productId/:workspace");
+  const returnTo = catalogReturnTo(
+    location.search,
+    productRoute?.params.productId,
+  );
   return (
     <>
       <BreadcrumbItem className="hidden md:block">
@@ -561,13 +616,13 @@ function CatalogProductEditorBreadcrumb({ section }: { section: string }) {
       <BreadcrumbSeparator className="hidden md:block" />
       <BreadcrumbItem className="hidden md:block">
         <BreadcrumbLink asChild>
-          <Link to="/catalog-products">Catalogue</Link>
+          <Link to={returnTo}>Catalogue</Link>
         </BreadcrumbLink>
       </BreadcrumbItem>
       <BreadcrumbSeparator className="hidden md:block" />
       <BreadcrumbItem className="hidden md:block">
         <BreadcrumbLink asChild>
-          <Link to="/catalog-products">Produits</Link>
+          <Link to={returnTo}>Produits</Link>
         </BreadcrumbLink>
       </BreadcrumbItem>
       <BreadcrumbSeparator className="hidden md:block" />

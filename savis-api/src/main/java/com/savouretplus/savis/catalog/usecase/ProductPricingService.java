@@ -2,11 +2,13 @@ package com.savouretplus.savis.catalog.usecase;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.util.ArrayList;
 import java.util.List;
 
 import org.springframework.stereotype.Service;
 
 import com.savouretplus.savis.catalog.domain.PriceHealthStatus;
+import com.savouretplus.savis.catalog.domain.CostDiagnostic;
 import com.savouretplus.savis.catalog.domain.Product;
 import com.savouretplus.savis.catalog.domain.ProductConfiguration;
 import com.savouretplus.savis.catalog.domain.ProductPricingAnalysis;
@@ -58,33 +60,39 @@ public class ProductPricingService {
             int analyzedQuantity,
             Money salePrice,
             ProductCost cost) {
-        Money unitCost = new Money(
-                cost.cost().amount().divide(BigDecimal.valueOf(analyzedQuantity), 10, RoundingMode.HALF_UP),
-                cost.cost().currency());
-        if (!cost.complete() || salePrice.amount().compareTo(BigDecimal.ZERO) <= 0) {
+        if (!cost.complete() || salePrice.amount().signum() <= 0) {
+            List<CostDiagnostic> diagnostics = new ArrayList<>(cost.diagnostics());
+            if (salePrice.amount().signum() <= 0) {
+                diagnostics.add(new CostDiagnostic(null, "SALE_PRICE_NON_POSITIVE", "Prix de vente",
+                        "Le prix de vente doit être supérieur à zéro pour analyser la marge", true));
+            }
             return new ProductPricingAnalysis(
                     analysisType,
                     analyzedQuantity,
                     salePrice,
-                    unitCost,
-                    cost.cost(),
+                    null,
+                    null,
                     null,
                     product.targetMarginRate(),
                     null,
                     PriceHealthStatus.INCOMPLETE,
                     false,
-                    cost.missingBomIds());
+                    cost.missingBomIds(), cost.knownSubtotal(), diagnostics);
         }
 
+        Money unitCost = new Money(
+                cost.knownSubtotal().amount().divide(BigDecimal.valueOf(analyzedQuantity), 10, RoundingMode.HALF_UP),
+                cost.knownSubtotal().currency());
+
         BigDecimal actualMargin = salePrice.amount()
-                .subtract(cost.cost().amount())
+                .subtract(cost.knownSubtotal().amount())
                 .divide(salePrice.amount(), 6, RoundingMode.HALF_UP);
-        PriceHealthStatus status = cost.cost().amount().compareTo(salePrice.amount()) > 0
+        PriceHealthStatus status = cost.knownSubtotal().amount().compareTo(salePrice.amount()) > 0
                 ? PriceHealthStatus.LOSS
                 : actualMargin.compareTo(product.targetMarginRate()) >= 0
                         ? PriceHealthStatus.GOOD
                         : PriceHealthStatus.REVIEW;
-        BigDecimal rawRecommendation = cost.cost().amount()
+        BigDecimal rawRecommendation = cost.knownSubtotal().amount()
                 .divide(BigDecimal.ONE.subtract(product.targetMarginRate()), 10, RoundingMode.UP);
         BigDecimal roundedRecommendation = rawRecommendation
                 .divide(QUARTER, 0, RoundingMode.CEILING)
@@ -96,13 +104,13 @@ public class ProductPricingService {
                 analyzedQuantity,
                 salePrice,
                 unitCost,
-                cost.cost(),
+                cost.knownSubtotal(),
                 actualMargin,
                 product.targetMarginRate(),
                 new Money(roundedRecommendation, salePrice.currency()),
                 status,
                 true,
-                List.of());
+                List.of(), cost.knownSubtotal(), cost.diagnostics());
     }
 
     private int analyzedQuantity(Product product, ProductConfiguration configuration) {

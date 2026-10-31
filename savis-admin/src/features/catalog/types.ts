@@ -146,8 +146,16 @@ export interface ProductPricingAnalysis {
   analysisType: "CONFIGURATION" | "WORST_CASE";
   analyzedQuantity: number;
   salePrice: Money;
-  unitCost: Money;
-  cost: Money;
+  unitCost: Money | null;
+  cost: Money | null;
+  knownSubtotal: Money;
+  diagnostics: {
+    bomId: string | null;
+    code: string;
+    source: string;
+    message: string;
+    blocking: boolean;
+  }[];
   actualMarginRate: number | null;
   targetMarginRate: number;
   recommendedPrice: Money | null;

@@ -1,15 +1,48 @@
+import { getResourcesByIds } from "@/features/resource/api/resourceApi";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { useSupplyOffers } from "@/features/supply-offer/hooks/useSupplyOffers";
 import { SupplyOffersPage } from "@/features/supply-offer/pages/SupplyOffersPage";
-import { render, screen } from "@testing-library/react";
+import { render as baseRender, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
+
+vi.mock("@/features/resource/api/resourceApi", () => ({
+  getResourcesByIds: vi.fn(),
+}));
 
 vi.mock("@/features/supply-offer/hooks/useSupplyOffers", () => ({
   useSupplyOffers: vi.fn(),
 }));
 
+const render = (ui: React.ReactNode) =>
+  baseRender(
+    <QueryClientProvider client={new QueryClient()}>{ui}</QueryClientProvider>,
+  );
+
 describe("SupplyOffersPage", () => {
   beforeEach(() => vi.clearAllMocks());
+
+  it("resolves shared resource names with a single bounded read for the offer page", async () => {
+    vi.mocked(getResourcesByIds).mockResolvedValue([
+      { id: "resource-1", name: "Farine de blé" },
+    ] as never);
+    mockPageState({
+      data: {
+        content: [
+          { ...offer, resourceId: "resource-1" },
+          { ...offer, id: "offer-second", resourceId: "resource-1" },
+        ],
+        page: 0,
+        size: 20,
+        totalElements: 2,
+        totalPages: 1,
+      },
+    });
+    render(<SupplyOffersPage />);
+    expect(await screen.findAllByText("Farine de blé")).toHaveLength(2);
+    expect(getResourcesByIds).toHaveBeenCalledExactlyOnceWith(["resource-1"]);
+    expect(screen.queryByText("resource-1")).not.toBeInTheDocument();
+  });
 
   it("renders the loading state", () => {
     mockPageState({ isPending: true });
@@ -48,6 +81,40 @@ describe("SupplyOffersPage", () => {
     expect(refetch).toHaveBeenCalledOnce();
   });
 
+  it("clears the availability filter and closes the popover with keyboard focus restored", async () => {
+    const setStatus = vi.fn();
+    mockPageState(
+      {
+        data: {
+          content: [offer],
+          page: 0,
+          size: 20,
+          totalElements: 1,
+          totalPages: 1,
+        },
+      },
+      { setStatus },
+    );
+    render(<SupplyOffersPage />);
+    const trigger = screen.getByRole("button", { name: "Filtres · 1" });
+    await userEvent.click(trigger);
+    expect(
+      screen.getByRole("dialog", { name: "Filtres des offres fournisseurs" }),
+    ).toBeVisible();
+    await userEvent.click(
+      screen.getByRole("button", { name: "Effacer les filtres" }),
+    );
+    expect(setStatus).toHaveBeenCalledWith("ALL");
+    await userEvent.keyboard("{Escape}");
+    expect(trigger).toHaveFocus();
+    await userEvent.click(screen.getByRole("button", { name: "Rechercher" }));
+    expect(
+      screen.getByRole("textbox", {
+        name: "Rechercher dans les offres fournisseurs",
+      }),
+    ).toHaveFocus();
+  });
+
   it("presents sorting and pagination like offer management", async () => {
     const user = userEvent.setup();
     const setPage = vi.fn();
@@ -79,18 +146,37 @@ describe("SupplyOffersPage", () => {
       screen.getByRole("button", { name: "Rechercher" }),
     ).toBeInTheDocument();
     expect(
-      screen.getByRole("combobox", { name: "Filtrer par statut" }),
-    ).toHaveTextContent("Disponibles");
+      screen.queryByRole("combobox", { name: "Disponibilité" }),
+    ).toBeNull();
+    await user.click(screen.getByRole("button", { name: "Filtres · 1" }));
     expect(
-      screen.getByRole("combobox", { name: "Trier les offres par" }),
-    ).toHaveTextContent("Prix du paquet");
-    await user.click(screen.getByRole("button", { name: "Descendant" }));
+      screen.getByRole("combobox", { name: "Disponibilité" }),
+    ).toHaveTextContent("Disponibles");
+    await user.keyboard("{Escape}");
+    expect(
+      screen.queryByRole("combobox", { name: "Trier les offres par" }),
+    ).toBeNull();
+    expect(
+      screen.getByRole("columnheader", { name: "Prix du paquet" }),
+    ).toHaveAttribute("aria-sort", "descending");
+    await user.click(screen.getByRole("button", { name: "Prix du paquet" }));
     expect(setSort).toHaveBeenCalledWith("price,asc");
-
+    await user.click(screen.getByRole("button", { name: "Composant" }));
+    expect(setSort).toHaveBeenCalledWith("componentName,asc");
+    await user.click(
+      screen.getByRole("button", { name: "Dernière observation" }),
+    );
+    expect(setSort).toHaveBeenCalledWith("lastSeen,asc");
+    expect(screen.queryByRole("button", { name: "Fournisseur" })).toBeNull();
+    expect(screen.queryByRole("button", { name: "Ressource" })).toBeNull();
     expect(
       screen.getByRole("combobox", { name: "Résultats par page" }),
     ).toHaveTextContent("20");
-    expect(screen.getByText("25 offres")).toBeInTheDocument();
+    const count = screen.getByText("25 offres");
+    expect(
+      count.compareDocumentPosition(screen.getByRole("table")) &
+        Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
     expect(screen.getByText("Page 1 sur 2")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Précédent" })).toBeDisabled();
     await user.click(screen.getByRole("button", { name: "Suivant" }));
@@ -128,6 +214,7 @@ function mockPageState(
 }
 
 const offer = {
+  resourceId: null,
   id: "offer-1",
   componentName: "Farine",
   label: "Farine tout usage",
