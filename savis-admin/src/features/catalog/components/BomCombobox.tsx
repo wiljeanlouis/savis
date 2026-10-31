@@ -61,7 +61,7 @@ export function BomCombobox({
           <span
             className={selected ? "truncate" : "truncate text-muted-foreground"}
           >
-            {selected?.name ?? "Sélectionner un BOM"}
+            {selected?.name ?? "Sélectionner une composition"}
           </span>
           <span aria-hidden="true">⌄</span>
         </Button>
@@ -73,7 +73,7 @@ export function BomCombobox({
         <Input
           autoFocus
           value={search}
-          placeholder="Rechercher un BOM..."
+          placeholder="Rechercher une composition..."
           onChange={(event) => setSearch(event.target.value)}
         />
         <div className="max-h-60 space-y-1 overflow-y-auto">
@@ -87,7 +87,7 @@ export function BomCombobox({
                 close();
               }}
             >
-              <span>Aucun BOM</span>
+              <span>Aucune composition</span>
               {!value && <span aria-hidden="true">✓</span>}
             </Button>
           )}
@@ -115,7 +115,7 @@ export function BomCombobox({
           ))}
           {availableBoms.length === 0 && (
             <p className="px-2 py-3 text-center text-muted-foreground">
-              Aucun BOM trouvé.
+              Aucune composition trouvée.
             </p>
           )}
         </div>

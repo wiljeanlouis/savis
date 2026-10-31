@@ -74,6 +74,7 @@ services:
     environment:
       VITE_API_URL: /savis-api
       VITE_EXECUTOR_API_URL: /executor-api
+      VITE_SAVIS_VERSION: ${SAVIS_VERSION:-dev}
       SAVIS_API_PROXY_TARGET: http://backend_api:8080
       EXECUTOR_API_PROXY_TARGET: http://executor_api:8000
     volumes:

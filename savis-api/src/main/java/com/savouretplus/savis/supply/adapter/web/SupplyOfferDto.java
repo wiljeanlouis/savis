@@ -13,6 +13,7 @@ import com.savouretplus.savis.supply.domain.Provider;
  */
 public record SupplyOfferDto(
         UUID id,
+        UUID resourceId,
         String url,
         String componentName,
         String brand,
@@ -20,7 +21,8 @@ public record SupplyOfferDto(
         String imageUrl,
         PriceDto price,
         PackageSizeDto packageSize,
-        ProviderDto provider) {
+        ProviderDto provider,
+        String status) {
 
     /**
      * Creates a DTO or API value from the provided domain object.
@@ -28,6 +30,7 @@ public record SupplyOfferDto(
     public static SupplyOfferDto from(Offer offer) {
         return new SupplyOfferDto(
                 offer.publicId(),
+                offer.resourceId(),
                 offer.url(),
                 offer.componentName(),
                 offer.brand(),
@@ -35,7 +38,7 @@ public record SupplyOfferDto(
                 offer.imageUrl(),
                 PriceDto.from(offer.price()),
                 PackageSizeDto.from(offer.packageSize()),
-                ProviderDto.from(offer.provider()));
+                ProviderDto.from(offer.provider()), offer.status().name());
     }
 
     /**

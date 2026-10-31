@@ -1,5 +1,18 @@
-import { NoData } from "@/shared/components/NoData";
+import { ApiErrorAlert } from "@/shared/components/ApiErrorAlert";
+import { Button } from "@/shared/ui/button";
+import {
+  Select,
+  SelectTrigger,
+  SelectValue,
+  SelectContent,
+  SelectItem,
+} from "@/shared/ui/select";
+import { getApiErrorMessage } from "@/shared/api/apiError";
 import { DataTable } from "@/shared/components/DataTable";
+import { PageNavigator } from "@/shared/components/PageNavigator";
+import { PageSelector } from "@/shared/components/PageSelector";
+import { PageItemCount } from "@/shared/components/PageItemCount";
+import { Label } from "@/shared/ui/label";
 import { Badge } from "@/shared/ui/badge";
 import { Spinner } from "@/shared/ui/spinner";
 import type {
@@ -10,7 +23,7 @@ import type {
 import { useEffect, useMemo } from "react";
 import { useSearchParams } from "react-router";
 import { toast } from "sonner";
-import type { SavisTask, SavisTaskStatus } from "../types";
+import type { SavisTask, SavisTaskStatus, SavisTaskType } from "../types";
 import { useGetBomComponentTasks } from "../hooks/useBomComponentTaskApi";
 
 const statusVariant: Record<
@@ -107,6 +120,14 @@ const columns: ColumnDef<SavisTask>[] = [
 
 export const BomComponentTaskList = () => {
   const [searchParams, setSearchParams] = useSearchParams();
+  const rawStatus = searchParams.get("status") ?? "ALL";
+  const status = Object.hasOwn(statusLabel, rawStatus)
+    ? (rawStatus as SavisTaskStatus)
+    : undefined;
+  const rawType = searchParams.get("type") ?? "ALL";
+  const type = Object.hasOwn(taskTypeLabel, rawType)
+    ? (rawType as SavisTaskType)
+    : undefined;
   const page = parsePositiveInteger(searchParams.get("page"), 1);
   const pageSize = parsePositiveInteger(searchParams.get("size"), 20);
   const sortBy = searchParams.get("sort_by") ?? "created_at";
@@ -117,11 +138,13 @@ export const BomComponentTaskList = () => {
     [sortBy, sortDirection],
   );
   const currentSort = sorting[0];
-  const { data, isPending, isError, error } = useGetBomComponentTasks(
+  const { data, isPending, isError, error, refetch } = useGetBomComponentTasks(
     page,
     pageSize,
     currentSort?.id,
     currentSort ? (currentSort.desc ? "desc" : "asc") : undefined,
+    status,
+    type,
   );
 
   useEffect(() => {
@@ -129,11 +152,8 @@ export const BomComponentTaskList = () => {
       return;
     }
 
-    const errorResponse = error as unknown as {
-      response?: { data?: { detail?: string } };
-    };
     toast.error("Une erreur est survenue lors de la récupération des tâches.", {
-      description: errorResponse.response?.data?.detail,
+      description: getApiErrorMessage(error),
     });
   }, [error, isError]);
 
@@ -164,34 +184,138 @@ export const BomComponentTaskList = () => {
     });
   };
 
-  if (isPending) {
-    return (
-      <div className="flex h-full items-center justify-center">
-        <Spinner />
-      </div>
-    );
-  }
-
-  if (!data?.items.length) {
-    return <NoData />;
-  }
-
   return (
-    <>
-      <DataTable
-        columns={columns}
-        data={data.items}
-        page={data.page}
-        pageSize={data.size}
-        totalPages={data.total_pages}
-        sorting={sorting}
-        onPageChange={(nextPage) => updateSearchParams({ page: `${nextPage}` })}
-        onPageSizeChange={handlePageSizeChange}
-        onSortingChange={handleSortingChange}
-      />
-      <p className="text-xs text-muted-foreground">
-        {data.total_items} tâche{data.total_items > 1 ? "s" : ""}
-      </p>
-    </>
+    <div className="space-y-6">
+      <section
+        aria-label="Filtres des tâches"
+        className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center"
+      >
+        <div className="flex items-center gap-2">
+          <Label
+            htmlFor="task-status"
+            className="whitespace-nowrap text-muted-foreground"
+          >
+            Filtrer par statut
+          </Label>
+          <Select
+            value={status ?? "ALL"}
+            onValueChange={(value) =>
+              updateSearchParams({ status: value, page: "1" })
+            }
+          >
+            <SelectTrigger
+              id="task-status"
+              className="flex-1 sm:w-48 sm:flex-none"
+              aria-label="Statut des tâches"
+            >
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="ALL">Tous les statuts</SelectItem>
+              {Object.entries(statusLabel).map(([value, label]) => (
+                <SelectItem key={value} value={value}>
+                  {label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+        <div className="flex items-center gap-2">
+          <Label
+            htmlFor="task-type"
+            className="whitespace-nowrap text-muted-foreground"
+          >
+            Type de tâche
+          </Label>
+          <Select
+            value={type ?? "ALL"}
+            onValueChange={(value) =>
+              updateSearchParams({ type: value, page: "1" })
+            }
+          >
+            <SelectTrigger
+              id="task-type"
+              className="flex-1 sm:w-48 sm:flex-none"
+              aria-label="Type de tâche"
+            >
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="ALL">Tous les types</SelectItem>
+              {Object.entries(taskTypeLabel).map(([value, label]) => (
+                <SelectItem key={value} value={value}>
+                  {label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+      </section>
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div className="flex flex-wrap items-center gap-3">
+          <Button variant="outline" size="sm" onClick={() => void refetch()}>
+            Actualiser
+          </Button>
+          <PageItemCount
+            itemName="tâche"
+            totalItems={isPending || isError ? undefined : data?.total_items}
+          />
+        </div>
+        <div className="flex items-center gap-2">
+          <PageSelector
+            pageSize={pageSize}
+            onPageChange={handlePageSizeChange}
+          />
+        </div>
+      </div>
+      {isPending ? (
+        <div
+          className="flex min-h-64 items-center justify-center"
+          aria-label="Chargement des tâches"
+        >
+          <Spinner />
+        </div>
+      ) : isError ? (
+        <ApiErrorAlert
+          title="Impossible de charger les tâches d'acquisition."
+          error={error}
+        >
+          <Button variant="outline" onClick={() => void refetch()}>
+            Réessayer
+          </Button>
+        </ApiErrorAlert>
+      ) : !data?.items.length ? (
+        <div className="rounded-xl border border-dashed p-10 text-center text-muted-foreground">
+          Aucune tâche ne correspond aux filtres sélectionnés.
+        </div>
+      ) : (
+        <>
+          <DataTable
+            showPagination={false}
+            columns={columns}
+            data={data.items}
+            page={data.page}
+            pageSize={data.size}
+            totalPages={data.total_pages}
+            sorting={sorting}
+            onPageChange={(nextPage) =>
+              updateSearchParams({ page: `${nextPage}` })
+            }
+            onPageSizeChange={handlePageSizeChange}
+            onSortingChange={handleSortingChange}
+          />
+          <PageNavigator
+            page={data.page}
+            totalPages={data.total_pages}
+            goToPreviousPage={() =>
+              updateSearchParams({ page: String(data.page - 1) })
+            }
+            goToNextPage={() =>
+              updateSearchParams({ page: String(data.page + 1) })
+            }
+          />
+        </>
+      )}
+    </div>
   );
 };

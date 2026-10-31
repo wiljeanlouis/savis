@@ -23,11 +23,13 @@ import { ArrowDown01Icon } from "@hugeicons/core-free-icons";
 interface NavItem {
   name: string;
   url?: string;
+  activeUrls?: string[];
   icon: React.ReactNode;
   children?: {
     name: string;
     url: string;
     activeUrls?: string[];
+    exact?: boolean;
   }[];
 }
 
@@ -38,11 +40,18 @@ interface Props {
 
 export function NavSection({ title, items }: Props) {
   const { pathname } = useLocation();
-  const isRouteActive = (url: string) =>
-    pathname === url || pathname.startsWith(`${url}/`);
+  const isRouteActive = (url: string, exact = false) =>
+    pathname === url || (!exact && pathname.startsWith(`${url}/`));
   const isChildRouteActive = (
     child: NonNullable<NavItem["children"]>[number],
-  ) => (child.activeUrls ?? [child.url]).some(isRouteActive);
+  ) =>
+    (child.activeUrls ?? [child.url]).some((url) =>
+      isRouteActive(url, child.exact),
+    );
+  const isItemRouteActive = (item: NavItem) =>
+    (item.activeUrls ?? (item.url ? [item.url] : [])).some((url) =>
+      isRouteActive(url),
+    );
 
   return (
     <SidebarGroup className="group-data-[collapsible=icon]:hidden">
@@ -105,7 +114,7 @@ export function NavSection({ title, items }: Props) {
             return null;
           }
 
-          const isActive = isRouteActive(item.url);
+          const isActive = isItemRouteActive(item);
           return (
             <SidebarMenuItem key={item.name}>
               <SidebarMenuButton

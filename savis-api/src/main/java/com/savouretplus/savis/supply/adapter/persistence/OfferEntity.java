@@ -36,6 +36,8 @@ public class OfferEntity {
     @Column(nullable = false)
     private String externalId;
 
+    private UUID resourceId;
+
     private String url;
 
     @Column(nullable = false)

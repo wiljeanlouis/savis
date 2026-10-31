@@ -84,6 +84,8 @@ jobs:
           provenance: mode=max
           cache-from: type=gha,scope=admin
           cache-to: type=gha,mode=max,scope=admin
+          build-args: |
+            SAVIS_VERSION=${{ steps.version.outputs.version }}
           tags: |
             ghcr.io/wiljeanlouis/savis-admin:${{ steps.version.outputs.version }}
             ghcr.io/wiljeanlouis/savis-admin:sha-${{ steps.version.outputs.short_sha }}

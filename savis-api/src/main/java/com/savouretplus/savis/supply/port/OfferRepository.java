@@ -1,10 +1,10 @@
 package com.savouretplus.savis.supply.port;
 
+import com.savouretplus.savis.supply.domain.Offer;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
-
-import com.savouretplus.savis.supply.domain.Offer;
 
 /**
  * Defines persistence operations for supplier offers.
@@ -27,8 +27,17 @@ public interface OfferRepository {
     List<Offer> searchAvailableByComponentName(String componentName);
 
     /**
+     * Searches the persisted offer catalog with database-backed filtering and pagination.
+     */
+    OfferCatalogPage searchCatalog(OfferCatalogQuery query);
+
+    /**
      * Persists the provided aggregate.
      */
     Offer save(Offer offer);
+
+    List<Offer> findPricingCandidates(Set<UUID> resourceIds, Set<UUID> offerIds);
+
+    List<Offer> findByResourceId(UUID resourceId);
 
 }

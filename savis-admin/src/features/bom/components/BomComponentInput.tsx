@@ -1,3 +1,5 @@
+import { useId, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { Input } from "@/shared/ui/input";
 import { type BomComponent } from "../types";
 import { Button } from "@/shared/ui/button";
@@ -19,6 +21,8 @@ import {
 import { useSearchAvailableOffers } from "../hooks/useBomApi";
 import { HugeiconsIcon } from "@hugeicons/react";
 import { Share } from "@hugeicons/core-free-icons";
+import { listResources, getResource } from "../../resource/api/resourceApi";
+import { resourceCategories } from "../../resource/types";
 
 interface Props {
   value: BomComponent;
@@ -27,8 +31,42 @@ interface Props {
 }
 
 export const BomComponentInput = ({ value, onChange, onRemove }: Props) => {
+  const resourceListId = useId();
+  const [resourceSearch, setResourceSearch] = useState(value.componentName);
+  const [showResourceResults, setShowResourceResults] = useState(false);
+  const resourceOptions = useQuery({
+    queryKey: ["resources", "active", resourceSearch.trim()],
+    queryFn: () => listResources(resourceSearch.trim(), 0, "ACTIVE"),
+    enabled: showResourceResults && resourceSearch.trim().length >= 2,
+  });
+  const resourceDetails = useQuery({
+    queryKey: ["resources", "by-id", value.resourceId],
+    queryFn: () => getResource(value.resourceId!),
+    enabled: Boolean(value.resourceId),
+  });
+  const selectedResource =
+    resourceDetails.data ??
+    resourceOptions.data?.content.find(
+      (resource) => resource.id === value.resourceId,
+    );
+  const resourceDisplayName = selectedResource?.name ?? value.componentName;
+  const unitChoices = [
+    { value: "g", base: "mass", label: "g" },
+    { value: "kg", base: "mass", label: "kg" },
+    { value: "l", base: "volume", label: "L" },
+    { value: "ml", base: "volume", label: "mL" },
+    { value: "piece", base: "piece", label: "unité" },
+    { value: "portion", base: "portion", label: "portion" },
+  ];
+  const referenceUnitBase = selectedResource?.referenceUnit
+    ? unitChoices.find((unit) => unit.value === selectedResource.referenceUnit)
+        ?.base
+    : undefined;
+  const compatibleUnitChoices = referenceUnitBase
+    ? unitChoices.filter((unit) => unit.base === referenceUnitBase)
+    : unitChoices;
   const { data: offers = [], isFetching } = useSearchAvailableOffers(
-    value.componentName,
+    value.resourceId,
   );
 
   const selectedOffer = offers.find(
@@ -69,19 +107,76 @@ export const BomComponentInput = ({ value, onChange, onRemove }: Props) => {
   return (
     <div className="space-y-3">
       <div className="grid grid-cols-3 gap-4 items-start my-1">
-        <Field className="col-span-2">
+        <Field className="col-span-2 relative">
           <Input
-            placeholder="Nom du composant BOM"
-            value={value.componentName}
+            placeholder="Rechercher une ressource"
+            value={showResourceResults ? resourceSearch : resourceDisplayName}
             required
-            onChange={(e) =>
-              onChange({
-                ...value,
-                componentName: e.target.value,
-                selectedOfferId: null,
-              })
+            role="combobox"
+            aria-label="Ressource du composant"
+            aria-autocomplete="list"
+            aria-expanded={showResourceResults}
+            aria-controls={resourceListId}
+            onFocus={() => {
+              setResourceSearch(resourceDisplayName);
+              setShowResourceResults(true);
+            }}
+            onBlur={() =>
+              window.setTimeout(() => setShowResourceResults(false), 150)
             }
+            onChange={(e) => setResourceSearch(e.target.value)}
           />
+          {showResourceResults && resourceSearch.trim().length >= 2 && (
+            <div
+              id={resourceListId}
+              role="listbox"
+              aria-label="Ressources actives"
+              className="absolute left-0 right-0 top-full z-30 mt-1 max-h-56 overflow-auto rounded-md border bg-popover p-1 shadow-md"
+            >
+              {(resourceOptions.data?.content ?? []).map((resource) => (
+                <button
+                  key={resource.id}
+                  type="button"
+                  role="option"
+                  aria-selected={resource.id === value.resourceId}
+                  className="flex w-full flex-col items-start rounded-sm px-3 py-2 text-left hover:bg-accent"
+                  onMouseDown={(event) => event.preventDefault()}
+                  onClick={() => {
+                    onChange({
+                      ...value,
+                      resourceId: resource.id,
+                      componentName: resource.name,
+                      unit: resource.referenceUnit ?? value.unit,
+                      selectedOfferId: null,
+                    });
+                    setResourceSearch(resource.name);
+                    setShowResourceResults(false);
+                  }}
+                >
+                  <span>{resource.name}</span>
+                  <span className="text-xs text-muted-foreground">
+                    {resourceCategories[resource.category]}
+                  </span>
+                </button>
+              ))}
+              {resourceOptions.isFetching && (
+                <p className="px-3 py-2 text-sm text-muted-foreground">
+                  Recherche…
+                </p>
+              )}
+              {!resourceOptions.isFetching &&
+                resourceOptions.data?.content.length === 0 && (
+                  <p className="px-3 py-2 text-sm text-muted-foreground">
+                    Aucune ressource active trouvée
+                  </p>
+                )}
+            </div>
+          )}
+          {value.resourceId && resourceDetails.data?.status === "INACTIVE" && (
+            <p className="text-xs text-amber-700" role="status">
+              Ressource inactive, conservée pour cette composition historique.
+            </p>
+          )}
         </Field>
 
         <div className="flex items-center gap-2">
@@ -108,24 +203,11 @@ export const BomComponentInput = ({ value, onChange, onRemove }: Props) => {
               </SelectTrigger>
               <SelectContent>
                 <SelectGroup>
-                  <SelectItem key="grams" value="g">
-                    g
-                  </SelectItem>
-                  <SelectItem key="kilograms" value="kg">
-                    kg
-                  </SelectItem>
-                  <SelectItem key="liters" value="l">
-                    L
-                  </SelectItem>
-                  <SelectItem key="milliliters" value="ml">
-                    mL
-                  </SelectItem>
-                  <SelectItem key="piece" value="piece">
-                    unité
-                  </SelectItem>
-                  <SelectItem key="portion" value="portion">
-                    portion
-                  </SelectItem>
+                  {compatibleUnitChoices.map((unit) => (
+                    <SelectItem key={unit.value} value={unit.value}>
+                      {unit.label}
+                    </SelectItem>
+                  ))}
                 </SelectGroup>
               </SelectContent>
             </Select>

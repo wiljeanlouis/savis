@@ -87,6 +87,7 @@ describe("useBomList", () => {
       id: null,
       name: "Boeuf bourguignon (copie)",
       price: null,
+      costing: null,
       components: [{ ...bom.components[0] }],
       activities: [
         { type: "PREP", minutes: 20, sequence: 1 },
@@ -94,7 +95,9 @@ describe("useBomList", () => {
       ],
       yield: { ...bom.yield },
     });
-    expect(toast.success).toHaveBeenCalledWith("BOM cloné avec succès.");
+    expect(toast.success).toHaveBeenCalledWith(
+      "Composition clonée avec succès.",
+    );
     expect(navigate).toHaveBeenCalledWith(
       "/boms/00000000-0000-4000-8000-000000000001",
     );
@@ -116,8 +119,11 @@ describe("useBomList", () => {
       await result.current.cloneBom(bom);
     });
 
-    expect(toast.error).toHaveBeenCalledWith("Le clonage du BOM a échoué.", {
-      description: "Nom invalide",
-    });
+    expect(toast.error).toHaveBeenCalledWith(
+      "Le clonage de la composition a échoué.",
+      {
+        description: "Nom invalide",
+      },
+    );
   });
 });

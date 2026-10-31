@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <style>
+    @page { size: Letter; margin: 0; }
+    * { box-sizing: border-box; }
+    body { margin: 0; padding: 18mm 24mm 17mm 30mm; color: #171717; font-family: 'Savis Sans'; font-size: 10pt; }
+    .accent { position: fixed; top: 13mm; bottom: 0; left: 10mm; width: 10mm; background: #f9e4e8; }
+    .accent-top { position: fixed; top: 3mm; left: 10mm; width: 10mm; height: 7mm; background: #efc2c6; }
+    .corner { position: fixed; right: 0; bottom: 0; width: 31mm; height: 27mm; background: #efc2c6; }
+    .corner-light { position: fixed; right: 19mm; bottom: 15mm; width: 12mm; height: 12mm; background: #f9e4e8; }
+    .header { width: 100%; border-collapse: collapse; margin-bottom: 7mm; }
+    .brand-logo { display: block; width: 58mm; height: auto; }
+    .title { font-family: 'Savis Title'; font-size: 37pt; font-weight: 700; letter-spacing: 1px; text-align: right; }
+    .metadata { border-bottom: 1.5px solid #222; padding-bottom: 2mm; margin-bottom: 3mm; font-weight: bold; }
+    .cancelled { margin: -3mm 0 4mm; padding: 2mm; border: 1px solid #a61b1b; color: #a61b1b; font-weight: bold; text-align: center; }
+    .parties { width: 100%; border-collapse: collapse; margin-bottom: 14mm; }
+    .party { width: 50%; vertical-align: top; line-height: 1.35; }
+    .party-right { text-align: right; }
+    .party-title { display: block; margin-bottom: 3mm; font-weight: bold; text-transform: uppercase; }
+    .party-name { font-weight: bold; }
+    .items { width: 100%; border-collapse: collapse; table-layout: fixed; }
+    .items thead { display: table-header-group; }
+    .items tr { page-break-inside: avoid; }
+    .items th { padding: 2mm 1mm 3mm; border-bottom: 1px solid #222; text-align: left; font-size: 9pt; }
+    .items td { padding: 2.2mm 1mm; border-bottom: 0.6px solid #777; vertical-align: top; }
+    .items .description { width: 48%; }
+    .items .quantity { width: 12%; text-align: right; }
+    .items .money { width: 20%; text-align: right; white-space: nowrap; }
+    .detail { margin-top: 1mm; color: #666; font-size: 8pt; line-height: 1.25; }
+    .totals { width: 54%; margin: 4mm 0 0 auto; border-collapse: collapse; }
+    .totals td { padding: 2mm 1mm; border-bottom: 0.6px solid #777; }
+    .totals .amount { text-align: right; white-space: nowrap; font-weight: bold; }
+    .totals .grand td { padding-top: 4mm; border-bottom: 0; font-size: 12pt; font-weight: bold; }
+    .document-note { margin-top: 12mm; page-break-inside: avoid; }
+    .document-note h2 { margin: 0 0 3mm; font-size: 12pt; text-transform: uppercase; }
+    .signature { width: 100%; margin-top: 13mm; border-collapse: collapse; page-break-inside: avoid; }
+    .signature td { padding-right: 4mm; font-weight: bold; white-space: nowrap; }
+    .signature td:first-child { width: 60%; }
+    .signature td:last-child { width: 40%; padding-right: 0; }
+    .line { display: inline-block; width: 42mm; border-bottom: 1px dotted #333; }
+    .thanks { margin-top: 15mm; color: #d74d7c; font-size: 11pt; font-style: italic; text-align: center; text-transform: uppercase; }
+    .page-number { position: running(pageNumber); }
+  </style>
+</head>
+<body>
+  <div class="accent"></div>
+  <div class="accent-top"></div>
+  <div class="corner"></div>
+  <div class="corner-light"></div>
+
+  <table class="header">
+    <tr>
+      <td><img class="brand-logo" th:src="${logoDataUri}" alt="Savour et Plus" /></td>
+      <td class="title" th:text="${title}">FACTURE</td>
+    </tr>
+  </table>
+
+  <div class="metadata">
+    DATE : <span th:text="${documentDate}">01/01/2026</span>
+    &#160;&#160;&#160; <span th:text="${referenceLabel}">COMMANDE</span> :
+    <span th:text="${referenceNumber}">WEB-00000001</span>
+    <span th:if="${quote}">&#160;&#160;&#160; VALIDE JUSQU'AU : <span th:text="${validUntil}">31/01/2026</span></span>
+    <span th:if="${hasSourceReference}">&#160;&#160;&#160; <span th:text="${sourceReferenceLabel}">COMMANDE</span> :
+      <span th:text="${sourceReferenceNumber}">ADM-00000001</span></span>
+  </div>
+
+  <div class="cancelled" th:if="${cancelled}">FACTURE ANNULÉE</div>
+
+  <table class="parties">
+    <tr>
+      <td class="party">
+        <span class="party-title">Émetteur :</span>
+        <div class="party-name" th:text="${issuer.name}">Savour et Plus</div>
+        <div th:each="line : ${issuer.addressLines}" th:text="${line}">Adresse</div>
+        <div th:if="${issuer.email}" th:text="${issuer.email}">courriel</div>
+        <div th:if="${issuer.phone}" th:text="${issuer.phone}">téléphone</div>
+      </td>
+      <td class="party party-right">
+        <span class="party-title">Destinataire :</span>
+        <div class="party-name" th:text="${customer.name}">Client</div>
+        <div th:each="line : ${customer.addressLines}" th:text="${line}">Adresse</div>
+        <div th:if="${customer.email}" th:text="${customer.email}">courriel</div>
+        <div th:if="${customer.phone}" th:text="${customer.phone}">téléphone</div>
+      </td>
+    </tr>
+  </table>
+
+  <table class="items">
+    <thead>
+      <tr>
+        <th class="description">Description</th>
+        <th class="quantity">Quantité</th>
+        <th class="money">Prix unitaire</th>
+        <th class="money">Total</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr th:each="item : ${items}">
+        <td class="description">
+          <span th:text="${item.description}">Produit</span>
+          <div class="detail" th:each="detail : ${item.details}" th:text="${detail}">Détail</div>
+        </td>
+        <td class="quantity" th:text="${item.quantity}">1</td>
+        <td class="money" th:text="${item.unitPrice}">0,00 CAD</td>
+        <td class="money" th:text="${item.lineTotal}">0,00 CAD</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <table class="totals">
+    <tr>
+      <td>Sous-total</td>
+      <td class="amount" th:text="${subtotal}">0,00 CAD</td>
+    </tr>
+    <tr th:if="${hasDiscount}">
+      <td>Rabais</td>
+      <td class="amount">-<span th:text="${discount}">0,00 CAD</span></td>
+    </tr>
+    <tr th:if="${hasDeliveryFee}">
+      <td>Frais de livraison</td>
+      <td class="amount" th:text="${deliveryFee}">0,00 CAD</td>
+    </tr>
+    <tr th:if="${hasGst}">
+      <td>TPS</td>
+      <td class="amount" th:text="${gst}">0,00 CAD</td>
+    </tr>
+    <tr th:if="${hasQst}">
+      <td>TVQ</td>
+      <td class="amount" th:text="${qst}">0,00 CAD</td>
+    </tr>
+    <tr class="grand">
+      <td th:text="${quote} ? 'Total de la soumission' : 'Total facturé'">Total</td>
+      <td class="amount" th:text="${total}">0,00 CAD</td>
+    </tr>
+  </table>
+
+  <div class="document-note" th:if="${hasNote}">
+    <h2>Notes</h2>
+    <span th:text="${note}">Notes commerciales</span>
+  </div>
+
+  <div class="document-note" th:if="${!quote}">
+    <h2>Règlement</h2>
+    <strong th:text="${paymentTerms}">Paiement à réception.</strong>
+  </div>
+
+  <div th:if="${quote}">
+    <table class="signature">
+      <tr>
+        <td>SIGNATURE DU CLIENT : <span class="line">&#160;</span></td>
+        <td>DATE : <span class="line">&#160;</span></td>
+      </tr>
+    </table>
+    <div class="thanks">Nous vous remercions de votre confiance</div>
+  </div>
+</body>
+</html>

@@ -3,7 +3,11 @@ import {
   createBomComponentTask,
   getBomComponentTasks,
 } from "../api/bomComponentTaskApi";
-import type { CreateSavisTaskPayload } from "../types";
+import type {
+  CreateSavisTaskPayload,
+  SavisTaskStatus,
+  SavisTaskType,
+} from "../types";
 
 export const BOM_COMPONENT_TASKS_QUERY_KEY = ["executor-tasks"];
 
@@ -12,6 +16,8 @@ export const useGetBomComponentTasks = (
   size: number,
   sortBy?: string,
   sortDirection?: "asc" | "desc",
+  status?: SavisTaskStatus,
+  type?: SavisTaskType,
 ) => {
   return useQuery({
     queryKey: [
@@ -20,8 +26,11 @@ export const useGetBomComponentTasks = (
       size,
       sortBy,
       sortDirection,
+      status,
+      type,
     ],
-    queryFn: () => getBomComponentTasks({ page, size, sortBy, sortDirection }),
+    queryFn: () =>
+      getBomComponentTasks({ page, size, sortBy, sortDirection, status, type }),
   });
 };
 

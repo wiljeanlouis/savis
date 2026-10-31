@@ -9,6 +9,7 @@ Le principe général est simple :
 - les Taux horaires définissent le taux horaire des activités des BOMs;
 - la Catégorie d'un produit organise le catalogue ;
 - la Sous-catégorie classe plus précisément un produit à l'intérieur de sa catégorie ;
+- la Nature commerciale distingue un Bien d'un Service ;
 - le Prix de vente et la Marge cible servent à vérifier la rentabilité ;
 - la Publication envoie les produits visibles vers la projection publique.
 
@@ -17,13 +18,22 @@ Le principe général est simple :
 Préparez ces éléments avant d'ouvrir le formulaire produit :
 
 - Les taux horaires des activités. C'est la première étape, car les activités des BOMs utilisent ces taux pour calculer correctement le coût de fabrication.
-- Les composants (offres fournisseurs) qui serviront à construire les BOMs. Ces offres sont nécessaires pour calculer le coût des BOMs. Ces composants peuvent être: farine, sucre ou beurre pour une recette de gâteau ; ballons, ruban ou structure pour une arche de ballons.
-- Un ou plusieurs BOMs avec composants, activités et rendement. Un BOM peut représenter une recette, une composition, un assemblage ou toute structure nécessaire pour fabriquer le produit.
+- Les composants (offres fournisseurs) qui serviront à construire les BOMs. Ces offres sont nécessaires pour calculer le coût des BOMs. Ces composants peuvent être: farine, sucre ou beurre pour une recette de gâteau ; ballons, ruban ou structure pour une arche décorative.
+- Si le bien ou le service a des coûts internes à suivre, un ou plusieurs BOMs avec composants, activités et rendement. Un BOM peut représenter une recette, une composition, un assemblage, du travail ou du matériel loué pour réaliser un service.
 - Savoir dans quelle catégorie ranger le produit et, si nécessaire, dans quelle sous-catégorie.
 - Une idée claire du prix de vente, de la marge cible et du format vendu.
 - Les images publiques du produit : image principale obligatoire, galerie optionnelle.
 
 Un produit peut être sauvegardé même si certains coûts sont incomplets, mais l'analyse affichera `INCOMPLETE` tant que tous les BOMs nécessaires ne peuvent pas être calculés.
+
+## Nature commerciale
+
+La Nature commerciale décrit ce qui est vendu, indépendamment de la Configuration :
+
+- `GOODS` — Bien physique remis au client ;
+- `SERVICE` — Prestation vendue au client.
+
+Un Bien ou un Service peut utiliser n'importe quelle Configuration (`STANDARD`, choix unique, formats composables ou ingrédients personnalisables). Un Service peut aussi ne posséder aucun BOM. Les locations de matériel, fournitures et activités nécessaires à sa réalisation restent des coûts internes dans ses BOMs ; elles ne deviennent pas des produits `RENTAL`.
 
 ## Catégories et sous-catégories
 
@@ -38,7 +48,7 @@ Sous-catégories actuellement disponibles pour Décoration :
 
 | Valeur SAVIS    | Libellé dans le formulaire | Code envoyé à la vitrine |
 | --------------- | -------------------------- | ------------------------ |
-| `BALLOON_ARCH`  | Arche de ballon            | `balloon-arch`           |
+| `DECORATIVE_ARCH` | Arche décorative          | `decorative-arch`        |
 | `CENTERPIECE`   | Centre de table            | `centerpiece`             |
 | `BIRTHDAY`      | Anniversaire               | `birthday`                |
 | `WEDDING`       | Mariage                    | `wedding`                 |
@@ -72,7 +82,8 @@ Exemple : un pâté simple vendu à l'unité.
 | Slug                   | Identifiant URL public, par exemple `pate-simple`.           |
 | Nom                    | Nom lisible par le client.                                   |
 | Description            | Description courte du produit.                               |
-| Type                   | Standard.                                                    |
+| Nature commerciale    | Bien ou Service selon ce qui est vendu.                      |
+| Configuration          | Standard.                                                    |
 | Catégorie              | Catégorie active du catalogue.                               |
 | Sous-catégorie         | Classement optionnel compatible avec la Catégorie.           |
 | BOM communs            | BOMs communs du produit, avec quantité et ordre d'affichage. |
@@ -86,7 +97,7 @@ Exemple : un pâté simple vendu à l'unité.
 - Catégorie, au moins un mode d'achat actif, Marge cible (%) et Image principale sont requis. La Sous-catégorie reste optionnelle.
 - Marge cible (%) doit être supérieure ou égale à 0 % et strictement inférieure à 100 %.
 - BOM communs représente la composition commune du produit.
-- Saveurs et choix et Ingrédients et extras ne sont pas utiles pour un produit Standard.
+- Options et Ingrédients et extras ne sont pas utiles pour un produit Standard.
 
 #### Exemple de configuration
 
@@ -113,9 +124,9 @@ Exemple : un pâté avec choix de farce : poulet, bœuf, morue.
 
 | Champ dans l'interface | Quoi mettre                                                            |
 | ---------------------- | ---------------------------------------------------------------------- |
-| Type                   | Choix unique.                                                          |
+| Configuration          | Choix unique.                                                          |
 | BOM communs            | BOMs communs à toutes les options, par exemple la pâte ou l'emballage. |
-| Saveurs et choix       | Section qui contient les options disponibles.                          |
+| Options       | Section qui contient les options disponibles.                          |
 | Libellé du groupe      | Nom du choix affiché, par exemple `Farce`.                             |
 | Choix obligatoire      | Cocher si le client doit choisir une option.                           |
 | Code                   | Code unique de l'option, par exemple `poulet`.                         |
@@ -124,7 +135,7 @@ Exemple : un pâté avec choix de farce : poulet, bœuf, morue.
 
 #### Règles à respecter
 
-- Un produit Choix unique doit avoir une section Saveurs et choix.
+- Un produit Choix unique doit avoir une section Options.
 - Si Choix obligatoire est coché, l'analyse de prix doit fournir un choix.
 - Le choix sélectionné doit correspondre à une option active.
 - Les BOMs des options ajoutent le coût de la variante choisie au coût commun du produit.
@@ -152,18 +163,18 @@ Exemple : une boîte de 12 pâtés où le client choisit 6 poulet et 6 bœuf.
 
 | Champ dans l'interface | Quoi mettre                                                 |
 | ---------------------- | ----------------------------------------------------------- |
-| Type                   | Formats composables.                                        |
+| Configuration          | Formats composables.                                        |
 | Modes d'achat          | Formats vendus, par exemple unité, demi-douzaine, douzaine. |
 | Code                   | Code unique du mode, par exemple `dozen`.                   |
 | Libellé                | Libellé affiché, par exemple `Boîte de 12`.                 |
 | Quantité               | Nombre d'unités dans ce format, par exemple `12`.           |
 | Prix                   | Prix de vente du format.                                    |
 | Répartition            | `Choix unique` ou `Composition`.                            |
-| Saveurs et choix       | Groupe des options possibles pour le lot.                   |
+| Options       | Groupe des options possibles pour le lot.                   |
 
 #### Règles à respecter
 
-- Un produit Formats composables doit avoir une section Saveurs et choix.
+- Un produit Formats composables doit avoir une section Options.
 - Le Mode d'achat utilisé pour l'analyse doit correspondre à un mode actif.
 - Avec Répartition = Choix unique, un seul choix est appliqué à toute la quantité du mode.
 - Avec Répartition = Composition, la somme des quantités réparties doit être égale à la Quantité du mode d'achat.
@@ -195,7 +206,7 @@ Exemple : un bol avec extra poulet ou fromage, avec quantité minimale, par déf
 
 | Champ dans l'interface | Quoi mettre                                                         |
 | ---------------------- | ------------------------------------------------------------------- |
-| Type                   | Ingrédients personnalisables.                                       |
+| Configuration          | Ingrédients personnalisables.                                       |
 | BOM communs            | BOMs communs du produit de base.                                    |
 | Ingrédients et extras  | Section qui contient les ingrédients personnalisables.              |
 | Code                   | Code unique, par exemple `poulet`.                                  |
@@ -292,6 +303,6 @@ Points importants :
 | Ordre                   | Ordre d'affichage. Plus petit signifie plus haut dans la liste.                                      |
 | Modes d'achat           | Formats de vente avec prix et quantité.                                                              |
 | Répartition             | Règle de choix pour un mode d'achat : aucune, choix unique ou composition.                           |
-| Saveurs et choix        | Groupe de choix affiché au client.                                                                   |
+| Options        | Groupe de choix affiché au client.                                                                   |
 | Ingrédients et extras   | Ingrédients ou extras personnalisables.                                                              |
 | Configuration d'analyse | Sélection temporaire utilisée pour analyser un prix ; ce n'est pas encore un panier ou une commande. |

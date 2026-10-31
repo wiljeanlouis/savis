@@ -24,6 +24,9 @@ import com.savouretplus.savis.common.Unit;
 import com.savouretplus.savis.supply.domain.Offer;
 import com.savouretplus.savis.supply.domain.OfferStatus;
 import com.savouretplus.savis.supply.domain.Provider;
+import com.savouretplus.savis.supply.port.OfferCatalogPage;
+import com.savouretplus.savis.supply.port.OfferCatalogQuery;
+import com.savouretplus.savis.supply.port.OfferCatalogSort;
 import com.savouretplus.savis.supply.port.OfferRepository;
 
 @ExtendWith(MockitoExtension.class)
@@ -32,8 +35,59 @@ class OfferServiceTest {
     @Mock
     OfferRepository repository;
 
+    @Mock
+    com.savouretplus.savis.resource.api.ResourceCatalogApi resources;
+
     @InjectMocks
     OfferService offerService;
+
+    @Test
+    void manualCreationRequiresValidatedResourceAndRejectsDuplicateProviderIdentity() {
+        UUID resource = UUID.randomUUID();
+        Offer manual = offer(UUID.randomUUID(), "manual", "provider", "Saisie manuelle", 10).associatedWith(resource);
+        when(resources.findReference(resource)).thenReturn(Optional.of(
+                new com.savouretplus.savis.resource.api.ResourceCatalogApi.ResourceReference(
+                        resource, "Farine", "INGREDIENT", "g", "ACTIVE")));
+        when(repository.save(manual)).thenReturn(manual);
+        Assertions.assertEquals(manual, offerService.createManualOffer(manual));
+        when(repository.findByExternalIdAndProviderIdentifier("manual", "provider"))
+                .thenReturn(Optional.of(manual));
+        Assertions.assertThrows(IllegalArgumentException.class, () -> offerService.createManualOffer(manual));
+        verify(repository).save(manual);
+    }
+
+    @Test
+    void associatesOnlyActiveCompatibleResourceWithoutChangingOfferSnapshot() {
+        UUID resource = UUID.randomUUID();
+        Offer original = offer(UUID.randomUUID(), "external", "provider", "Farine", 10);
+        when(repository.findByPublicId(original.publicId())).thenReturn(Optional.of(original));
+        when(resources.findReference(resource)).thenReturn(Optional.of(
+                new com.savouretplus.savis.resource.api.ResourceCatalogApi.ResourceReference(
+                        resource, "Nom différent", "INGREDIENT", original.packageSize().unit().getSymbole(), "ACTIVE")));
+        when(repository.save(original.associatedWith(resource))).thenReturn(original.associatedWith(resource));
+        Offer updated = offerService.associate(original.publicId(), resource);
+        Assertions.assertEquals(resource, updated.resourceId());
+        Assertions.assertEquals(original.publicId(), updated.publicId());
+        Assertions.assertEquals(original.price(), updated.price());
+        Assertions.assertEquals(original.packageSize(), updated.packageSize());
+        Assertions.assertEquals(original.lastSeen(), updated.lastSeen());
+    }
+
+    @Test
+    void rejectsMissingInactiveOrIncompatibleResources() {
+        UUID resource = UUID.randomUUID();
+        Offer original = offer(UUID.randomUUID(), "external", "provider", "Farine", 10);
+        when(repository.findByPublicId(original.publicId())).thenReturn(Optional.of(original));
+        when(resources.findReference(resource)).thenReturn(Optional.empty());
+        Assertions.assertThrows(IllegalArgumentException.class, () -> offerService.associate(original.publicId(), resource));
+        for (var reference : List.of(
+                new com.savouretplus.savis.resource.api.ResourceCatalogApi.ResourceReference(resource, "Farine", "INGREDIENT", "g", "INACTIVE"),
+                new com.savouretplus.savis.resource.api.ResourceCatalogApi.ResourceReference(resource, "Lait", "INGREDIENT", "l", "ACTIVE"))) {
+            when(resources.findReference(resource)).thenReturn(Optional.of(reference));
+            Assertions.assertThrows(IllegalArgumentException.class, () -> offerService.associate(original.publicId(), resource));
+        }
+        verify(repository, never()).save(org.mockito.ArgumentMatchers.any());
+    }
 
     @Test
     void processOffers_ShouldSaveEachOffer() {
@@ -57,6 +111,34 @@ class OfferServiceTest {
         Assertions.assertEquals(List.of(offer), offers);
         verify(repository).searchAvailableByComponentName("Flour");
         verifyNoMoreInteractions(repository);
+    }
+
+    @Test
+    void searchOfferCatalog_ShouldDelegateValidatedQueryToRepository() {
+        OfferCatalogQuery query = new OfferCatalogQuery(
+                1, 25, " farine ", OfferStatus.AVAILABLE, OfferCatalogSort.LAST_SEEN_DESC);
+        OfferCatalogPage expected = new OfferCatalogPage(List.of(), 0, 0);
+        when(repository.searchCatalog(query)).thenReturn(expected);
+
+        OfferCatalogPage result = offerService.searchOfferCatalog(query);
+
+        Assertions.assertSame(expected, result);
+        Assertions.assertEquals("farine", query.search());
+        verify(repository).searchCatalog(query);
+        verifyNoMoreInteractions(repository);
+    }
+
+    @Test
+    void offerCatalogQuery_ShouldRejectInvalidPagination() {
+        Assertions.assertThrows(IllegalArgumentException.class,
+                () -> new OfferCatalogQuery(-1, 20, null, OfferStatus.AVAILABLE,
+                        OfferCatalogSort.LAST_SEEN_DESC));
+        Assertions.assertThrows(IllegalArgumentException.class,
+                () -> new OfferCatalogQuery(0, 0, null, OfferStatus.AVAILABLE,
+                        OfferCatalogSort.LAST_SEEN_DESC));
+        Assertions.assertThrows(IllegalArgumentException.class,
+                () -> new OfferCatalogQuery(0, 101, null, OfferStatus.AVAILABLE,
+                        OfferCatalogSort.LAST_SEEN_DESC));
     }
 
     @Test
@@ -90,6 +172,9 @@ class OfferServiceTest {
         Assertions.assertTrue(offerPricing.isPresent());
         Assertions.assertEquals(Money.of(4), offerPricing.get().price());
         Assertions.assertEquals(new Quantity(1, Unit.KILOGRAM), offerPricing.get().packageSize());
+        Assertions.assertEquals("Flour", offerPricing.get().componentName());
+        Assertions.assertEquals("Provider", offerPricing.get().supplierName());
+        Assertions.assertEquals(cheapPerGram.lastSeen(), offerPricing.get().observedAt());
     }
 
     @Test
@@ -117,6 +202,17 @@ class OfferServiceTest {
         verify(repository).findByPublicId(publicId);
         verify(repository, never()).save(org.mockito.ArgumentMatchers.any());
         verifyNoMoreInteractions(repository);
+    }
+
+    @Test
+    void cheapestOfferIgnoresInvalidPackagesWithoutFailingTheCalculation() {
+        var candidates = java.util.stream.Stream.of(
+                new Quantity(0, Unit.GRAM), new Quantity(Double.NaN, Unit.GRAM),
+                new Quantity(Double.POSITIVE_INFINITY, Unit.GRAM), new Quantity(1, null))
+                .map(size -> offer(UUID.randomUUID(), "invalid", "provider-a", "Flour", Money.of(1), size))
+                .toList();
+        when(repository.searchAvailableByComponentName("Flour")).thenReturn(candidates);
+        Assertions.assertTrue(offerService.getCheapestOfferPricing("Flour", new Quantity(1, Unit.GRAM)).isEmpty());
     }
 
     private static Offer offer(UUID publicId, String externalId, String providerIdentifier, String componentName, double price) {

@@ -1,6 +1,7 @@
 package com.savouretplus.savis.catalog.usecase;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import java.math.BigDecimal;
 import java.util.List;
@@ -9,6 +10,7 @@ import java.util.UUID;
 import org.junit.jupiter.api.Test;
 
 import com.savouretplus.savis.catalog.domain.AllocationType;
+import com.savouretplus.savis.catalog.domain.CommercialType;
 import com.savouretplus.savis.catalog.domain.Product;
 import com.savouretplus.savis.catalog.domain.ProductCategory;
 import com.savouretplus.savis.catalog.domain.ProductChoiceGroup;
@@ -25,8 +27,9 @@ class PublishedCatalogProductMapperTest {
         UUID bomId = UUID.randomUUID();
         Product product = new Product(
                 null, "pate-four", "pate-four", "Pâté au four", "",
-                ProductType.SINGLE_CHOICE_BUNDLE, ProductCategory.DECORATION,
-                ProductSubcategory.BALLOON_ARCH, List.of(),
+                CommercialType.SERVICE, ProductType.SINGLE_CHOICE_BUNDLE,
+                ProductCategory.DECORATION,
+                ProductSubcategory.DECORATIVE_ARCH, List.of(),
                 new BigDecimal("0.35"), "/pate.jpg",
                 List.of("/pate-2.jpg"), "Disponible", true, true, 1,
                 List.of(
@@ -45,9 +48,27 @@ class PublishedCatalogProductMapperTest {
 
         assertEquals(1, result.purchaseModes().size());
         assertEquals("decoration", result.category());
-        assertEquals("balloon-arch", result.subcategory());
+        assertEquals("service", result.commercialType());
+        assertEquals("decorative-arch", result.subcategory());
         assertEquals("choice_allocation", result.purchaseModes().getFirst().get("allocation_type"));
         assertEquals(bomId.toString(),
                 ((java.util.Map<?, ?>) ((List<?>) result.choiceGroup().get("options")).getFirst()).get("bom_id"));
+    }
+
+    @Test
+    void rejectsANonCadPriceBeforeSupabasePublication() {
+        Product product = new Product(
+                null, "service", "service", "Service", "",
+                CommercialType.SERVICE, ProductType.STANDARD, ProductCategory.DECORATION,
+                null, List.of(), new BigDecimal("0.35"), "/service.jpg", List.of(),
+                "Disponible", true, true, 1,
+                List.of(new com.savouretplus.savis.catalog.domain.ProductPurchaseMode(
+                        null, "service", "Service", 1,
+                        new Money(new BigDecimal("30.00"), "USD"),
+                        AllocationType.NONE, true, 0)),
+                null, List.of());
+
+        assertThrows(IllegalArgumentException.class,
+                () -> new PublishedCatalogProductMapper().map(product));
     }
 }

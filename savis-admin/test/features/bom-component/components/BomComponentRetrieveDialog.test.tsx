@@ -14,9 +14,11 @@ describe("BomComponentRetrieveDialog", () => {
     );
 
     fireEvent.click(
-      screen.getByText("Récupérer un composant BOM", { selector: "button" }),
+      screen.getByText("Récupérer une offre", {
+        selector: "button",
+      }),
     );
-    fireEvent.change(screen.getByLabelText("Nom du composant BOM"), {
+    fireEvent.change(screen.getByLabelText("Nom du composant"), {
       target: { value: "farine" },
     });
     fireEvent.change(screen.getByLabelText("URL de l'offre"), {
@@ -24,7 +26,7 @@ describe("BomComponentRetrieveDialog", () => {
     });
     const dialog = document.querySelector('[role="dialog"]');
     fireEvent.submit(
-      screen.getByLabelText("Nom du composant BOM").closest("form")!,
+      screen.getByLabelText("Nom du composant").closest("form")!,
     );
 
     await waitFor(() => {
@@ -51,23 +53,25 @@ describe("BomComponentRetrieveDialog", () => {
     );
 
     fireEvent.click(
-      screen.getByText("Récupérer un composant BOM", { selector: "button" }),
+      screen.getByText("Récupérer une offre", {
+        selector: "button",
+      }),
     );
-    fireEvent.change(screen.getByLabelText("Nom du composant BOM"), {
+    fireEvent.change(screen.getByLabelText("Nom du composant"), {
       target: { value: "farine" },
     });
     fireEvent.change(screen.getByLabelText("URL de l'offre"), {
       target: { value: "https://www.maxi.ca/farine/p/12345" },
     });
     fireEvent.submit(
-      screen.getByLabelText("Nom du composant BOM").closest("form")!,
+      screen.getByLabelText("Nom du composant").closest("form")!,
     );
 
     await waitFor(() => {
       expect(onRetrieve).toHaveBeenCalledOnce();
     });
     expect(document.querySelector('[role="dialog"]')).toBeInTheDocument();
-    expect(screen.getByLabelText("Nom du composant BOM")).toHaveValue("farine");
+    expect(screen.getByLabelText("Nom du composant")).toHaveValue("farine");
     expect(screen.getByLabelText("URL de l'offre")).toHaveValue(
       "https://www.maxi.ca/farine/p/12345",
     );
@@ -84,12 +88,14 @@ describe("BomComponentRetrieveDialog", () => {
     );
 
     fireEvent.click(
-      screen.getByText("Récupérer un composant BOM", { selector: "button" }),
+      screen.getByText("Récupérer une offre", {
+        selector: "button",
+      }),
     );
 
     const submitButton = screen.getByText("Récupérer", { selector: "button" });
     expect(submitButton).toBeDisabled();
-    fireEvent.change(screen.getByLabelText("Nom du composant BOM"), {
+    fireEvent.change(screen.getByLabelText("Nom du composant"), {
       target: { value: "farine" },
     });
     expect(submitButton).toBeDisabled();
