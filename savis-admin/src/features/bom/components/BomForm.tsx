@@ -1,38 +1,24 @@
-import { Input } from "@/shared/ui/input";
-import { useBomForm } from "../hooks/useBomForm";
-import { BomComponentInput } from "./BomComponentInput";
-import { ActivityInput } from "./ActivityInput";
-import { Button } from "@/shared/ui/button";
-import type { BomActivity, BomComponent, BomType } from "../types";
-import {
-  FieldGroup,
-  FieldSet,
-  FieldLegend,
-  FieldDescription,
-  Field,
-  FieldLabel,
-} from "@/shared/ui/field";
-import { Textarea } from "@/shared/ui/textarea";
-import { PictureFrame } from "@/shared/components/PictureFrame";
-import { toast } from "sonner";
-import { DraftAlert } from "../../../shared/components/DraftAlert";
-import { Spinner } from "@/shared/ui/spinner";
-import {
-  Select,
-  SelectContent,
-  SelectGroup,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/shared/ui/select";
 import { useState } from "react";
+import { useBomForm } from "../hooks/useBomForm";
+import type { BomCosting } from "../types";
+import { Button } from "@/shared/ui/button";
+import { DraftAlert } from "@/shared/components/DraftAlert";
+import { Spinner } from "@/shared/ui/spinner";
 import { createUuid } from "@/shared/lib/utils";
+import { BomCostAnalysis } from "./BomCostAnalysis";
+import { BomEditorNavigation } from "./bom-editor/BomEditorNavigation";
+import { BomInformationSection } from "./bom-editor/BomInformationSection";
+import { BomProductionSection } from "./bom-editor/BomProductionSection";
+import { BomComponentsSection } from "./bom-editor/BomComponentsSection";
+import { BomActivitiesSection } from "./bom-editor/BomActivitiesSection";
 
-interface BomFormProps {
-  showTitle?: boolean;
-}
-
-export const BomForm = ({ showTitle = true }: BomFormProps) => {
+export const BomForm = ({
+  costing,
+  yieldUnit,
+}: {
+  costing?: BomCosting | null;
+  yieldUnit: string;
+}) => {
   const {
     form,
     updateField,
@@ -50,9 +36,6 @@ export const BomForm = ({ showTitle = true }: BomFormProps) => {
     isDraftAlertOpen,
     setIsDraftAlertOpen,
     isLoading,
-    isSuccess,
-    isError,
-    error,
   } = useBomForm();
   const [componentKeys, setComponentKeys] = useState(() =>
     form.components.map(() => createUuid()),
@@ -75,22 +58,6 @@ export const BomForm = ({ showTitle = true }: BomFormProps) => {
     ? "Modifier la composition"
     : "Ajouter une composition";
 
-  if (isSuccess) {
-    toast.success("Composition sauvegardée avec succès !");
-  }
-
-  if (isError) {
-    const errorResponse = error as unknown as {
-      response: { data?: { detail?: string } };
-    };
-    toast.error(
-      "Une erreur est survenue lors de la sauvegarde de la composition.",
-      {
-        description: errorResponse.response?.data?.detail,
-      },
-    );
-  }
-
   const submitForm = async (e: React.SubmitEvent<HTMLFormElement>) => {
     e.preventDefault();
     await submit();
@@ -98,232 +65,71 @@ export const BomForm = ({ showTitle = true }: BomFormProps) => {
 
   return (
     <>
-      {showTitle && <h1 className="text-2xl font-semibold">{formTitle}</h1>}
-
-      <form onSubmit={submitForm}>
-        <FieldGroup>
-          <div className="space-y-10">
-            <FieldSet>
-              <div className="grid gap-6 xl:grid-cols-[minmax(0,2fr)_minmax(18rem,1fr)]">
-                <FieldGroup>
-                  <FieldGroup className="grid grid-cols-1 gap-4 md:grid-cols-[minmax(0,2fr)_minmax(12rem,1fr)]">
-                    <Field>
-                      <FieldLabel htmlFor="bom-form-name">Nom</FieldLabel>
-                      <Input
-                        id="bom-form-name"
-                        placeholder="Boeuf bourgignon, Arche de ballons, Sac d'emballage 10'', etc"
-                        value={form.name}
-                        onChange={(e) => {
-                          updateField("name", e.target.value);
-                        }}
-                        required
-                      />
-                    </Field>
-
-                    <Field>
-                      <FieldLabel htmlFor="bom-form-type">
-                        Type de composition
-                      </FieldLabel>
-                      <Select
-                        value={form.type}
-                        onValueChange={(value) => {
-                          updateField("type", value as BomType);
-                        }}
-                      >
-                        <SelectTrigger id="bom-form-type" className="w-full">
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectGroup>
-                            <SelectItem value="FOOD">Aliment</SelectItem>
-                            <SelectItem value="MATERIAL">Matériel</SelectItem>
-                          </SelectGroup>
-                        </SelectContent>
-                      </Select>
-                    </Field>
-                  </FieldGroup>
-                  <Field>
-                    <FieldLabel htmlFor="bom-form-description">
-                      Description
-                    </FieldLabel>
-                    <Input
-                      id="bom-form-description"
-                      placeholder="Une recette à base de viande de boeuf, Un arche fait de ballon de taille 8'', Sac d'emballage 10'' "
-                      value={form.description}
-                      onChange={(e) => {
-                        updateField("description", e.target.value);
-                      }}
-                      required
-                    />
-                  </Field>
-
-                  <Field>
-                    <FieldLabel htmlFor="bom-form-image-url">Image</FieldLabel>
-                    <Input
-                      id="bom-form-image-url"
-                      placeholder="https://..."
-                      value={form.imageUrl}
-                      onChange={(e) => {
-                        updateField("imageUrl", e.target.value);
-                      }}
-                      required
-                    />
-                  </Field>
-
-                  <Field>
-                    <FieldLabel htmlFor="bom-form-instructions">
-                      Instructions
-                    </FieldLabel>
-                    <Textarea
-                      id="bom-form-instructions"
-                      placeholder="Add any instructions"
-                      className="resize-none"
-                      value={form.instructions}
-                      onChange={(e) => {
-                        updateField("instructions", e.target.value);
-                      }}
-                    />
-                  </Field>
-
-                  <FieldGroup className="grid grid-cols-2 gap-4">
-                    <Field>
-                      <FieldLabel htmlFor="bom-form-yield-quantity">
-                        Rendement
-                      </FieldLabel>
-                      <Input
-                        id="bom-form-yield-quantity"
-                        placeholder="12"
-                        type="number"
-                        min={0}
-                        value={form.yield.quantity}
-                        onChange={(e) => {
-                          updateYield("quantity", Number(e.target.value));
-                        }}
-                        required
-                      />
-                      <FieldDescription>quantité produite</FieldDescription>
-                    </Field>
-
-                    <Field>
-                      <FieldLabel htmlFor="bom-form-yield-unit">
-                        Unité de rendement
-                      </FieldLabel>
-                      <Select
-                        value={form.yield.unit}
-                        onValueChange={(value) => {
-                          updateYield("unit", value);
-                        }}
-                      >
-                        <SelectTrigger id="bom-form-yield-unit">
-                          <SelectValue placeholder="Unité" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectGroup>
-                            <SelectItem value="portion">portion</SelectItem>
-                            <SelectItem value="piece">pièce</SelectItem>
-                            <SelectItem value="g">g</SelectItem>
-                            <SelectItem value="kg">kg</SelectItem>
-                            <SelectItem value="l">L</SelectItem>
-                            <SelectItem value="ml">mL</SelectItem>
-                          </SelectGroup>
-                        </SelectContent>
-                      </Select>
-                      <FieldDescription>portion par défaut</FieldDescription>
-                    </Field>
-                  </FieldGroup>
-                </FieldGroup>
-
-                <Field>
-                  <FieldLabel>Aperçu</FieldLabel>
-                  <PictureFrame imageUrl={form.imageUrl} alt={form.name} />
-                </Field>
-              </div>
-            </FieldSet>
-
-            <FieldSet>
-              <FieldLegend>Intrants</FieldLegend>
-              <FieldDescription>
-                La liste des intrants nécessaires à cette composition.
-              </FieldDescription>
-              <FieldGroup>
-                {form.components.map(
-                  (component: BomComponent, index: number) => (
-                    <BomComponentInput
-                      key={componentKeys[index]}
-                      value={component}
-                      onChange={(val) => {
-                        updateComponent(index, val);
-                      }}
-                      onRemove={() => {
-                        setComponentKeys((current) =>
-                          current.filter((_, item) => item !== index),
-                        );
-                        removeComponent(index);
-                      }}
-                    />
-                  ),
-                )}
-                <Button
-                  type="button"
-                  variant="destructive"
-                  className="w-48"
-                  onClick={handleAddComponent}
-                >
-                  Ajouter un intrant
-                </Button>
-              </FieldGroup>
-            </FieldSet>
-
-            <FieldSet>
-              <FieldLegend>Activités</FieldLegend>
-              <FieldDescription>
-                Les étapes et le temps nécessaires à la production.
-              </FieldDescription>
-              <FieldGroup>
-                {form.activities.map((activity: BomActivity, index: number) => (
-                  <ActivityInput
-                    key={activity.id ?? activityKeys[index]}
-                    value={activity}
-                    canRemove={index > 1}
-                    onChange={(val) => {
-                      updateActivity(index, val);
-                    }}
-                    onRemove={() => {
-                      setActivityKeys((current) =>
-                        current.filter((_, item) => item !== index),
-                      );
-                      removeActivity(index);
-                    }}
-                  />
-                ))}
-                <Button
-                  type="button"
-                  variant="destructive"
-                  className="w-48"
-                  onClick={handleAddActivity}
-                >
-                  Ajouter autre activité
-                </Button>
-              </FieldGroup>
-            </FieldSet>
-
-            <Field orientation="horizontal" className="justify-end">
-              <Button type="submit" disabled={isLoading}>
-                {isLoading ? <Spinner /> : "Sauvegarder"}
-              </Button>
-              <Button
-                variant="outline"
-                type="button"
-                onClick={() => {
-                  void cancel();
-                }}
-              >
-                Annuler
-              </Button>
-            </Field>
+      <header>
+        <h1 className="text-2xl font-semibold">{formTitle}</h1>
+        <p className="text-sm text-muted-foreground">
+          Définissez les informations générales, les ressources et les activités
+          nécessaires à cette composition.
+        </p>
+      </header>
+      <div className="grid items-start gap-6 xl:grid-cols-[11rem_minmax(0,1fr)]">
+        <BomEditorNavigation showCost={Boolean(form.id)} />
+        <form className="grid min-w-0 gap-6" onSubmit={submitForm}>
+          <BomInformationSection form={form} updateField={updateField} />
+          <BomProductionSection
+            form={form}
+            updateField={updateField}
+            updateYield={updateYield}
+          />
+          <BomComponentsSection
+            components={form.components}
+            keys={componentKeys}
+            addComponent={handleAddComponent}
+            updateComponent={updateComponent}
+            removeComponent={(index) => {
+              setComponentKeys((current) =>
+                current.filter((_, item) => item !== index),
+              );
+              removeComponent(index);
+            }}
+          />
+          <BomActivitiesSection
+            activities={form.activities}
+            keys={activityKeys}
+            addActivity={handleAddActivity}
+            updateActivity={updateActivity}
+            removeActivity={(index) => {
+              setActivityKeys((current) =>
+                current.filter((_, item) => item !== index),
+              );
+              removeActivity(index);
+            }}
+          />
+          {form.id && (
+            <BomCostAnalysis costing={costing} yieldUnit={yieldUnit} />
+          )}
+          <div className="sticky bottom-3 z-20 flex flex-wrap justify-end gap-2 rounded-xl border bg-background/95 p-3 shadow-lg backdrop-blur">
+            <Button
+              variant="outline"
+              type="button"
+              onClick={() => {
+                void cancel();
+              }}
+            >
+              Annuler
+            </Button>
+            <Button type="submit" disabled={isLoading}>
+              {isLoading ? (
+                <>
+                  <Spinner /> Enregistrement...
+                </>
+              ) : (
+                "Enregistrer"
+              )}
+            </Button>
           </div>
-        </FieldGroup>
-      </form>
+        </form>
+      </div>
 
       <DraftAlert
         isOpen={isDraftAlertOpen}

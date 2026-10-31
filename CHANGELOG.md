@@ -1,5 +1,27 @@
 # Changelog
 
+## [1.13.1](https://github.com/wiljeanlouis/savis/compare/v1.13.0...v1.13.1) (2026-10-31)
+
+
+### Bug Fixes
+
+* Add Business Reference documentation for SAVIS API ([#171](https://github.com/wiljeanlouis/savis/issues/171)) ([5785661](https://github.com/wiljeanlouis/savis/commit/57856614721099342babbff4614a5a47af938d7e))
+
+## [1.13.0](https://github.com/wiljeanlouis/savis/compare/v1.12.0...v1.13.0) (2026-10-30)
+
+
+### Features
+
+* add batch resource controller for handling bulk resource requests ([c4c3447](https://github.com/wiljeanlouis/savis/commit/c4c3447440e43de811f96196f65fb9e5a9d89bcc))
+* implement batch resource fetching in ResourceJpaRepository and ResourceService ([c4c3447](https://github.com/wiljeanlouis/savis/commit/c4c3447440e43de811f96196f65fb9e5a9d89bcc))
+
+## [1.12.0](https://github.com/wiljeanlouis/savis/compare/v1.11.0...v1.12.0) (2026-10-24)
+
+
+### Features
+
+* improve product ([#163](https://github.com/wiljeanlouis/savis/issues/163)) ([3aa7082](https://github.com/wiljeanlouis/savis/commit/3aa70823d3778c9e04212fa8d805c10260ed3bd0))
+
 ## [1.11.0](https://github.com/wiljeanlouis/savis/compare/v1.10.0...v1.11.0) (2026-10-15)
 
 

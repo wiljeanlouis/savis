@@ -10,6 +10,7 @@ vi.mock("@/shared/api", () => ({
 const response: SupplyOfferCatalogPage = {
   content: [
     {
+      resourceId: null,
       id: "offer-1",
       componentName: "Farine",
       label: null,

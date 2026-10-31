@@ -31,6 +31,24 @@ describe("CatalogProductEditor", () => {
   beforeEach(() => {
     localStorage.clear();
     vi.restoreAllMocks();
+    Object.defineProperties(Element.prototype, {
+      hasPointerCapture: {
+        configurable: true,
+        value: vi.fn(() => false),
+      },
+      releasePointerCapture: {
+        configurable: true,
+        value: vi.fn(),
+      },
+      setPointerCapture: {
+        configurable: true,
+        value: vi.fn(),
+      },
+    });
+    Object.defineProperty(HTMLElement.prototype, "scrollIntoView", {
+      configurable: true,
+      value: vi.fn(),
+    });
     vi.stubGlobal(
       "ResizeObserver",
       class {
@@ -49,7 +67,13 @@ describe("CatalogProductEditor", () => {
     );
   });
 
-  afterEach(() => vi.unstubAllGlobals());
+  afterEach(() => {
+    vi.unstubAllGlobals();
+    Reflect.deleteProperty(Element.prototype, "hasPointerCapture");
+    Reflect.deleteProperty(Element.prototype, "releasePointerCapture");
+    Reflect.deleteProperty(Element.prototype, "setPointerCapture");
+    Reflect.deleteProperty(HTMLElement.prototype, "scrollIntoView");
+  });
 
   it("renders a full-page form with responsive section navigation", async () => {
     const user = userEvent.setup();
@@ -164,6 +188,35 @@ describe("CatalogProductEditor", () => {
 
     expect(code).toHaveValue("code-personnalise");
     expect(slug).toHaveValue("pate-dejeuner-cafe-familial");
+  });
+
+  it("fills a purchase mode from a preset and accepts a custom format", async () => {
+    const user = userEvent.setup();
+    renderEditor();
+
+    const modesSection = screen
+      .getByRole("heading", { name: "Modes d'achat" })
+      .closest("section");
+    expect(modesSection).not.toBeNull();
+    const format = within(modesSection!).getAllByRole("combobox")[0];
+
+    expect(format).toHaveTextContent("Unité · unit");
+    await user.click(format);
+    await user.click(screen.getByRole("option", { name: "Douzaine · dozen" }));
+
+    expect(screen.getByDisplayValue("dozen")).toBeInTheDocument();
+    expect(screen.getByDisplayValue("Douzaine")).toBeInTheDocument();
+
+    await user.click(format);
+    await user.click(screen.getByRole("option", { name: "Personnalisé" }));
+
+    const emptyInputs = within(modesSection!).getAllByRole("textbox");
+    fireEvent.change(emptyInputs[0], { target: { value: "family-size" } });
+    fireEvent.change(emptyInputs[1], { target: { value: "Format familial" } });
+
+    expect(format).toHaveTextContent("Personnalisé");
+    expect(screen.getByDisplayValue("family-size")).toBeInTheDocument();
+    expect(screen.getByDisplayValue("Format familial")).toBeInTheDocument();
   });
 
   it("offers to keep a new product draft before leaving", async () => {

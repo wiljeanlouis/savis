@@ -1,17 +1,8 @@
 package com.savouretplus.savis.supply.adapter.persistence;
 
-import java.util.List;
-import java.util.Optional;
-import java.util.UUID;
-
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageRequest;
-import org.springframework.data.domain.Sort;
-import org.springframework.stereotype.Repository;
-
 import com.savouretplus.savis.common.Money;
-import com.savouretplus.savis.common.Unit;
 import com.savouretplus.savis.common.Quantity;
+import com.savouretplus.savis.common.Unit;
 import com.savouretplus.savis.supply.domain.Offer;
 import com.savouretplus.savis.supply.domain.OfferStatus;
 import com.savouretplus.savis.supply.domain.Provider;
@@ -19,8 +10,15 @@ import com.savouretplus.savis.supply.port.OfferCatalogPage;
 import com.savouretplus.savis.supply.port.OfferCatalogQuery;
 import com.savouretplus.savis.supply.port.OfferCatalogSort;
 import com.savouretplus.savis.supply.port.OfferRepository;
-
+import java.util.List;
+import java.util.Optional;
+import java.util.Set;
+import java.util.UUID;
 import lombok.AllArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Sort;
+import org.springframework.stereotype.Repository;
 
 /**
  * Persists supplier offers through Spring Data JPA.
@@ -95,8 +93,21 @@ public class OfferRepositoryAdapter implements OfferRepository {
         return toDomain(jpaRepository.save(entity));
     }
 
+    @Override
+    public List<Offer> findPricingCandidates(Set<UUID> resourceIds, Set<UUID> offerIds) {
+        if (resourceIds.isEmpty() && offerIds.isEmpty()) return List.of();
+        return jpaRepository.findPricingCandidates(resourceIds, offerIds).stream().map(this::toDomain).toList();
+    }
+
+    @Override
+    public List<Offer> findByResourceId(UUID resourceId) {
+        return jpaRepository.findByResourceId(resourceId).stream().map(this::toDomain).toList();
+    }
+
     private void updateEntity(OfferEntity entity, Offer offer) {
-        entity.setPublicId(offer.publicId());
+        if (entity.getPublicId() == null) entity.setPublicId(offer.publicId());
+        // Acquisition refreshes never overwrite an operator-validated association.
+        if (offer.resourceId() != null) entity.setResourceId(offer.resourceId());
         entity.setExternalId(offer.externalId());
         entity.setUrl(offer.url());
         entity.setComponentName(offer.componentName());
@@ -145,7 +156,7 @@ public class OfferRepositoryAdapter implements OfferRepository {
                 packageSize,
                 toDomain(entity.getProvider()),
                 entity.getLastSeen(),
-                entity.getStatus());
+                entity.getStatus(), entity.getResourceId());
     }
 
     private ProviderEntity fromDomain(Provider provider) {

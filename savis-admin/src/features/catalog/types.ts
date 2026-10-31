@@ -12,7 +12,7 @@ export type AllocationType = "NONE" | "SINGLE_CHOICE" | "CHOICE_ALLOCATION";
 export type PriceHealthStatus = "GOOD" | "REVIEW" | "LOSS" | "INCOMPLETE";
 export type ProductCategory = "TASTING" | "DECORATION";
 export type ProductSubcategory =
-  | "BALLOON_ARCH"
+  | "DECORATIVE_ARCH"
   | "CENTERPIECE"
   | "BIRTHDAY"
   | "WEDDING";
@@ -28,8 +28,8 @@ export const productSubcategories: {
   category: ProductCategory;
 }[] = [
   {
-    value: "BALLOON_ARCH",
-    label: "Arche de ballon",
+    value: "DECORATIVE_ARCH",
+    label: "Arche décorative",
     category: "DECORATION",
   },
   {
@@ -146,8 +146,16 @@ export interface ProductPricingAnalysis {
   analysisType: "CONFIGURATION" | "WORST_CASE";
   analyzedQuantity: number;
   salePrice: Money;
-  unitCost: Money;
-  cost: Money;
+  unitCost: Money | null;
+  cost: Money | null;
+  knownSubtotal: Money;
+  diagnostics: {
+    bomId: string | null;
+    code: string;
+    source: string;
+    message: string;
+    blocking: boolean;
+  }[];
   actualMarginRate: number | null;
   targetMarginRate: number;
   recommendedPrice: Money | null;

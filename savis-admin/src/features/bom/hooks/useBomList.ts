@@ -1,4 +1,5 @@
 import type { Bom } from "../types";
+import { getApiErrorMessage } from "@/shared/api/apiError";
 import { useNavigate } from "react-router";
 import { toast } from "sonner";
 import { useDeleteBom, useGetBoms, usePostBom } from "./useBomApi";
@@ -9,6 +10,7 @@ const createBomClone = (bom: Bom): Bom => {
     id: null,
     name: `${bom.name} (copie)`,
     price: null,
+    costing: null,
     components: bom.components.map((component) => ({ ...component })),
     activities: bom.activities.map((activity) => {
       const activityClone = { ...activity };
@@ -36,11 +38,8 @@ export const useBomList = () => {
       toast.success("Composition clonée avec succès.");
       await navigate(`/boms/${clonedBomId}`);
     } catch (error) {
-      const errorResponse = error as {
-        response?: { data?: { detail?: string } };
-      };
       toast.error("Le clonage de la composition a échoué.", {
-        description: errorResponse.response?.data?.detail,
+        description: getApiErrorMessage(error),
       });
     }
   };
@@ -50,6 +49,7 @@ export const useBomList = () => {
     isLoading: useQuery.isPending,
     isError: useQuery.isError,
     error: useQuery.error,
+    refetch: useQuery.refetch,
     deleteBom: deleteBom,
     cloneBom,
     isCloning: cloneMutation.isPending,

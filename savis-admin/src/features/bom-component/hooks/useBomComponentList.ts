@@ -1,6 +1,7 @@
 import { useEffect, useMemo } from "react";
 import { useSearchParams } from "react-router";
 import { toast } from "sonner";
+import { getApiErrorMessage } from "@/shared/api/apiError";
 import { useCreateBomComponentTask } from "@/features/bom-component/task/hooks/useBomComponentTaskApi";
 import type {
   BomComponent,
@@ -22,9 +23,11 @@ interface BomComponentListState {
   sortBy: string;
   sortDirection: SortDirection;
   searchTerm?: string;
+  status: BomComponentStatus | "ALL";
 }
 
 const initialListState: BomComponentListState = {
+  status: "NEW",
   page: 1,
   pageSize: 20,
   sortBy: "last_retrieved_at",
@@ -59,9 +62,26 @@ const parseListState = (
       searchParams.get("size"),
       initialListState.pageSize,
     ),
-    sortBy: searchParams.get("sort_by") ?? initialListState.sortBy,
+    sortBy: [
+      "last_retrieved_at",
+      "label",
+      "brand",
+      "price",
+      "package_size",
+      "provider",
+      "search_term",
+      "status",
+      "next_refresh_at",
+    ].includes(searchParams.get("sort_by") ?? "")
+      ? searchParams.get("sort_by")!
+      : initialListState.sortBy,
     sortDirection: parseSortDirection(searchParams.get("sort_direction")),
     searchTerm,
+    status: ["NEW", "VALID", "REJECTED", "ALL"].includes(
+      searchParams.get("status") ?? "",
+    )
+      ? (searchParams.get("status") as BomComponentStatus | "ALL")
+      : "NEW",
   };
 };
 
@@ -76,6 +96,7 @@ const createSearchParamsFromListState = (
   nextSearchParams.set("sort_by", listState.sortBy);
   nextSearchParams.set("sort_direction", listState.sortDirection);
   nextSearchParams.delete("type");
+  nextSearchParams.set("status", listState.status);
 
   if (listState.searchTerm) {
     nextSearchParams.set("search_term", listState.searchTerm);
@@ -90,13 +111,15 @@ export const useBomComponentList = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   const listState = useMemo(() => parseListState(searchParams), [searchParams]);
 
-  const { data, isPending, isError, error } = useGetBomComponents(
-    listState.page,
-    listState.pageSize,
-    listState.sortBy,
-    listState.sortDirection,
-    listState.searchTerm,
-  );
+  const { data, isPending, isError, error, refetch, isFetching } =
+    useGetBomComponents(
+      listState.page,
+      listState.pageSize,
+      listState.sortBy,
+      listState.sortDirection,
+      listState.searchTerm,
+      listState.status === "ALL" ? undefined : listState.status,
+    );
   const patchBomComponent = usePatchBomComponent();
   const deleteBomComponent = useDeleteBomComponent();
   const createTask = useCreateBomComponentTask();
@@ -117,14 +140,10 @@ export const useBomComponentList = () => {
       return;
     }
 
-    const errorResponse = error as unknown as {
-      response?: { data?: { detail?: string } };
-    };
-
     toast.error(
       "Une erreur est survenue lors de la récupération des offres fournisseurs.",
       {
-        description: errorResponse.response?.data?.detail,
+        description: getApiErrorMessage(error),
       },
     );
   }, [error, isError]);
@@ -146,6 +165,23 @@ export const useBomComponentList = () => {
     });
   };
 
+  useEffect(() => {
+    if (data && data.page > Math.max(1, data.total_pages)) {
+      setSearchParams(
+        (current) => {
+          const next = new URLSearchParams(current);
+          next.set("page", String(Math.max(1, data.total_pages)));
+          return next;
+        },
+        { replace: true },
+      );
+    }
+  }, [data, setSearchParams]);
+
+  const handleStatusChange = (status: BomComponentStatus | "ALL") => {
+    updateListState((current) => ({ ...current, page: 1, status }));
+  };
+
   const handlePageSizeChange = (size: number) => {
     updateListState((current) => ({
       ...current,
@@ -159,6 +195,15 @@ export const useBomComponentList = () => {
       ...current,
       page: 1,
       sortBy: value,
+    }));
+  };
+
+  const handleSortChange = (sortBy: string, sortDirection: SortDirection) => {
+    updateListState((current) => ({
+      ...current,
+      page: 1,
+      sortBy,
+      sortDirection,
     }));
   };
 
@@ -207,8 +252,10 @@ export const useBomComponentList = () => {
       { id: bomComponent.id, payload: { status } },
       {
         onSuccess: () => toast.success(`Offre fournisseur ${action}.`),
-        onError: () =>
-          toast.error("La mise à jour de l'offre fournisseur a échoué."),
+        onError: (error) =>
+          toast.error("La mise à jour de l'offre fournisseur a échoué.", {
+            description: getApiErrorMessage(error),
+          }),
       },
     );
   };
@@ -226,8 +273,10 @@ export const useBomComponentList = () => {
             refresh_frequency_hours: values.refreshFrequencyHours,
           },
         });
-      } catch {
-        toast.error("La mise à jour de l'offre fournisseur a échoué.");
+      } catch (error) {
+        toast.error("La mise à jour de l'offre fournisseur a échoué.", {
+          description: getApiErrorMessage(error),
+        });
         return;
       }
 
@@ -246,9 +295,10 @@ export const useBomComponentList = () => {
             ? "Offre fournisseur mise à jour et actualisation lancée."
             : "Offre fournisseur mise à jour.",
         );
-      } catch {
+      } catch (error) {
         toast.error(
           "L'offre fournisseur est mise à jour, mais l'actualisation a échoué.",
+          { description: getApiErrorMessage(error) },
         );
       }
     })();
@@ -273,9 +323,10 @@ export const useBomComponentList = () => {
       });
       toast.success(`Récupération lancée pour « ${searchTerm} ».`);
       return true;
-    } catch {
+    } catch (error) {
       toast.error(
         `Impossible de lancer la récupération pour « ${searchTerm} ».`,
+        { description: getApiErrorMessage(error) },
       );
       return false;
     }
@@ -284,13 +335,20 @@ export const useBomComponentList = () => {
   const handleDelete = (bomComponent: BomComponent) => {
     deleteBomComponent.mutate(bomComponent.id, {
       onSuccess: () => toast.success("Offre fournisseur supprimée."),
-      onError: () =>
-        toast.error("La suppression de l'offre fournisseur a échoué."),
+      onError: (error) =>
+        toast.error("La suppression de l'offre fournisseur a échoué.", {
+          description: getApiErrorMessage(error),
+        }),
     });
   };
 
   return {
     data,
+    isError,
+    error,
+    refetch,
+    isFetching,
+    handleStatusChange,
     isLoading: isPending,
     isCreatingTask: createTask.isPending,
     isPatching: patchBomComponent.isPending || createTask.isPending,
@@ -303,6 +361,7 @@ export const useBomComponentList = () => {
     handleRetrieve,
     handleSearchTermChange,
     handleSortByChange,
+    handleSortChange,
     goToNextPage,
     goToPreviousPage,
     toggleSortDirection,

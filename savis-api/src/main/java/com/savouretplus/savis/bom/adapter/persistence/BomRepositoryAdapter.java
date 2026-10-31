@@ -127,6 +127,7 @@ public class BomRepositoryAdapter implements BomRepositoryPort {
         Unit unit = Unit.fromSymbole(entity.getUnit());
         return new BomComponent(
                 entity.getId(),
+                entity.getResourceId(),
                 entity.getComponentName(),
                 new Quantity(entity.getQuantity(), unit),
                 entity.getSelectedOfferId());
@@ -193,8 +194,27 @@ public class BomRepositoryAdapter implements BomRepositoryPort {
             return;
         }
 
+        var existingById = entity.getComponents().stream()
+                .filter(component -> component.getId() != null)
+                .collect(java.util.stream.Collectors.toMap(BomComponentEntity::getId, component -> component));
+        List<BomComponentEntity> reconciled = new ArrayList<>();
+        for (BomComponentEntity submitted : components) {
+            BomComponentEntity existing = submitted.getId() == null ? null : existingById.remove(submitted.getId());
+            if (existing == null) {
+                // A row ID is only reusable inside its owning BOM.
+                submitted.setId(null);
+                reconciled.add(submitted);
+            } else {
+                existing.setComponentName(submitted.getComponentName());
+                existing.setResourceId(submitted.getResourceId());
+                existing.setQuantity(submitted.getQuantity());
+                existing.setUnit(submitted.getUnit());
+                existing.setSelectedOfferId(submitted.getSelectedOfferId());
+                reconciled.add(existing);
+            }
+        }
         entity.getComponents().clear();
-        entity.getComponents().addAll(components);
+        entity.getComponents().addAll(reconciled);
     }
 
     private List<BomComponentEntity> toComponentEntities(List<BomComponent> components) {
@@ -214,7 +234,8 @@ public class BomRepositoryAdapter implements BomRepositoryPort {
 
         BomComponentEntity entity = new BomComponentEntity();
         entity.setId(component.id());
-        entity.setComponentName(component.componentName());
+        entity.setComponentName(component.resourceName());
+        entity.setResourceId(component.resourceId());
         entity.setQuantity(component.quantity().value());
         entity.setUnit(component.quantity().unit().getSymbole());
         entity.setSelectedOfferId(component.selectedOfferId());

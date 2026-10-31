@@ -5,8 +5,11 @@ owns the normalized business orders in its local PostgreSQL schema.
 
 ## Manual order import
 
-`public.customer_orders` receives storefront submissions with
-`sync_status = 'pending'`. There is deliberately no polling job. An
+`public.receive_customer_order(payload jsonb)` validates and receives storefront
+submissions into `public.customer_orders` with `sync_status = 'pending'`.
+Public roles cannot insert into the table directly. The RPC contract is
+documented in `../docs/integration/customer-order-reception-rpc.md`. There is
+deliberately no polling job. An
 administrator starts the import from **Commandes > Récupérer commandes web** in
 SAVIS Admin. The browser calls SAVIS API, and SAVIS API reads Supabase with the
 service-role key. That key must never be configured in the storefront or Admin
@@ -42,3 +45,16 @@ in `savis-api`:
 
 The Edge Function and email-provider integration are intentionally outside this
 repository for the MVP.
+
+## Public event quote reception
+
+`public.submit_quote_request(payload jsonb)` receives generic or catalog-backed
+event quote requests, including one mixed Catering + Decoration request without
+Organisation. It validates published offering snapshots and uses a private,
+transaction-safe idempotency ledger. Public roles can execute the RPC but
+cannot read or write the inbox tables directly.
+
+This boundary does not price, accept, or import a commercial quotation into
+SAVIS. The payload contract, retry rules, coordinated rollout and known SAVIS
+import limitation are documented in
+`../docs/integration/mixed-event-quote-request-rpc.md`.

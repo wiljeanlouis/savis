@@ -1,3 +1,4 @@
+import { OfferResourceEditor } from "./OfferResourceEditor";
 import { Button } from "@/shared/ui/button";
 import {
   Dialog,
@@ -84,6 +85,8 @@ export function SupplyOfferDetailsDialog({
                 </DetailValue>
               </dl>
             </div>
+
+            <OfferResourceEditor key={offer.id} offer={offer} />
 
             <DialogFooter>
               {providerSite ? (

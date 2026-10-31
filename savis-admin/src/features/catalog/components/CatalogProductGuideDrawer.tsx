@@ -71,6 +71,8 @@ const sectionGuides: Record<CatalogProductGuideSection, GuideSection> = {
     summary: "Définissez les formats, quantités et prix proposés au client.",
     tips: [
       "Au moins un mode d'achat doit être actif.",
+      "Le `Format` remplit automatiquement le code et le libellé pour les formats courants.",
+      "Choisissez `Personnalisé` pour saisir un autre code et un autre libellé.",
       "Le `Code` et le libellé identifient le format vendu; la quantité doit être supérieure à zéro.",
       "Le prix est un montant commercial en CAD et ne doit pas être négatif.",
       "Pour un format composable, la répartition détermine si le choix porte sur tout le lot ou sur sa composition.",

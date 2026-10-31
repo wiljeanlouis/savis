@@ -51,10 +51,12 @@ function SheetContent({
   children,
   side = "right",
   showCloseButton = true,
+  closeButtonLabel = "Close",
   ...props
 }: React.ComponentProps<typeof SheetPrimitive.Content> & {
   side?: "top" | "right" | "bottom" | "left";
   showCloseButton?: boolean;
+  closeButtonLabel?: string;
 }) {
   return (
     <SheetPortal>
@@ -77,7 +79,7 @@ function SheetContent({
               size="icon-sm"
             >
               <HugeiconsIcon icon={Cancel01Icon} strokeWidth={2} />
-              <span className="sr-only">Close</span>
+              <span className="sr-only">{closeButtonLabel}</span>
             </Button>
           </SheetPrimitive.Close>
         )}

@@ -12,6 +12,7 @@ import com.savouretplus.savis.common.Money;
 import com.savouretplus.savis.common.Quantity;
 import com.savouretplus.savis.common.Unit;
 import com.savouretplus.savis.bom.port.ComponentPricePort;
+import com.savouretplus.savis.bom.port.ComponentPrice;
 import com.savouretplus.savis.bom.port.ComponentPriceRequest;
 
 public class BomTest {
@@ -103,7 +104,7 @@ public class BomTest {
         bom.addComponent("Flour", 200, Unit.GRAM, UUID.fromString("59960a6c-9491-473a-87e9-3244396096d6"));
         bom.addComponent("Sugar", 100, Unit.GRAM, UUID.fromString("59960a6c-9491-473a-87e9-3244396096d1"));
 
-        Money total = bom.calculateTotal(new StubComponentPricePort());
+        Money total = bom.calculateCost(new StubComponentPricePort().getPrices(bom.componentPriceRequests()), Map.of()).totalCost();
         Assertions.assertEquals(Money.of(25), total);
 
     }
@@ -124,13 +125,13 @@ public class BomTest {
                 null);
         bom.addComponent("Flour", 200, Unit.GRAM, UUID.fromString("59960a6c-9491-473a-87e9-3244396096d6"));
 
-        Map<ComponentPriceRequest, Money> componentPrices = new StubComponentPricePort()
+        Map<ComponentPriceRequest, ComponentPrice> componentPrices = new StubComponentPricePort()
                 .getPrices(bom.componentPriceRequests());
         Map<ActivityType, Money> activityRates = Map.of(
                 ActivityType.PREP, Money.of(60),
                 ActivityType.COOK, Money.of(80));
 
-        Money total = bom.calculateTotal(componentPrices, activityRates);
+        Money total = bom.calculateCost(componentPrices, activityRates).totalCost();
 
         Assertions.assertEquals(0, total.amount().compareTo(Money.of(55).amount()));
         Assertions.assertEquals("CAD", total.currency());
@@ -162,20 +163,20 @@ public class BomTest {
 
     private static class StubComponentPricePort implements ComponentPricePort {
         @Override
-        public Money getPrice(ComponentPriceRequest request) {
+        public ComponentPrice getPrice(ComponentPriceRequest request) {
             UUID offerUuid = request.selectedOfferId();
 
             if (offerUuid.toString().equals("59960a6c-9491-473a-87e9-3244396096d6")) {
-                return Money.of(5);
+                return new ComponentPrice(Money.of(5), null, List.of());
             } else if (offerUuid.toString().equals("59960a6c-9491-473a-87e9-3244396096d1")) {
-                return Money.of(20);
+                return new ComponentPrice(Money.of(20), null, List.of());
             }
-            return Money.of(0);
+            return new ComponentPrice(Money.of(0), null, List.of());
         }
 
         @Override
-        public Map<ComponentPriceRequest, Money> getPrices(List<ComponentPriceRequest> requests) {
-            Map<ComponentPriceRequest, Money> prices = new LinkedHashMap<>();
+        public Map<ComponentPriceRequest, ComponentPrice> getPrices(List<ComponentPriceRequest> requests) {
+            Map<ComponentPriceRequest, ComponentPrice> prices = new LinkedHashMap<>();
 
             requests.stream().distinct().forEach(request -> prices.put(
                     request,
