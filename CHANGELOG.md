@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.13.1](https://github.com/wiljeanlouis/savis/compare/v1.13.0...v1.13.1) (2026-10-31)
+
+
+### Bug Fixes
+
+* Add Business Reference documentation for SAVIS API ([#171](https://github.com/wiljeanlouis/savis/issues/171)) ([5785661](https://github.com/wiljeanlouis/savis/commit/57856614721099342babbff4614a5a47af938d7e))
+
 ## [1.13.0](https://github.com/wiljeanlouis/savis/compare/v1.12.0...v1.13.0) (2026-10-30)
 
 
