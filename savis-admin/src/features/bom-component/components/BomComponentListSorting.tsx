@@ -12,15 +12,15 @@ import { ArrowDown01Icon, ArrowUp01Icon } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
 
 const bomComponentSortOptions = [
-  { value: "last_retrieved_at", label: "Dernier obtenu" },
+  { value: "last_retrieved_at", label: "Dernière observation" },
   { value: "label", label: "Produit" },
   { value: "brand", label: "Marque" },
   { value: "price", label: "Prix" },
   { value: "package_size", label: "Format" },
-  { value: "provider", label: "Provider" },
+  { value: "provider", label: "Fournisseur" },
   { value: "search_term", label: "Recherche" },
   { value: "status", label: "Statut" },
-  { value: "next_refresh_at", label: "Prochain refresh" },
+  { value: "next_refresh_at", label: "Prochaine actualisation" },
 ];
 
 interface BomComponentListSortingProps {

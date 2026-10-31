@@ -4,6 +4,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ProblemDetail;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.http.HttpStatusCode;
 
 import com.savouretplus.savis.bom.adapter.persistence.BomPersistenceException;
 
@@ -12,6 +13,14 @@ import com.savouretplus.savis.bom.adapter.persistence.BomPersistenceException;
  */
 @RestControllerAdvice
 public class BomExceptionHandler {
+
+    @ExceptionHandler(IllegalArgumentException.class)
+    public ProblemDetail handleInvalidBomReference(IllegalArgumentException e) {
+        ProblemDetail problemDetail = ProblemDetail.forStatus(HttpStatusCode.valueOf(400));
+        problemDetail.setTitle("Composition invalide");
+        problemDetail.setDetail(e.getMessage());
+        return problemDetail;
+    }
 
     /**
      * Converts BOM persistence failures to HTTP problem details.

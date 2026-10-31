@@ -33,6 +33,21 @@ class OfferRepositoryAdapterTest {
     @Autowired OfferRepository repository;
 
     @Test
+    void batchesMultipleSuppliersForOneResourceAndIncludesUnavailableSelections() {
+        UUID resourceId = UUID.randomUUID();
+        Offer first = save("00000000-0000-4000-8000-000000000201", "nom A", OfferStatus.AVAILABLE);
+        Offer second = saveDetailed("00000000-0000-4000-8000-000000000202", "nom B", "Produit B",
+                "Marque B", "Fournisseur B", "provider-b", OfferStatus.UNAVAILABLE, new BigDecimal("4.50"));
+        repository.save(first.associatedWith(resourceId));
+        repository.save(second.associatedWith(resourceId));
+        assertEquals(2, repository.findByResourceId(resourceId).size());
+        assertEquals(List.of(first.publicId()), repository.findPricingCandidates(java.util.Set.of(resourceId), java.util.Set.of())
+                .stream().map(Offer::publicId).toList());
+        assertEquals(2, repository.findPricingCandidates(java.util.Set.of(resourceId), java.util.Set.of(second.publicId())).size());
+        assertEquals(1, repository.findPricingCandidates(java.util.Set.of(), java.util.Set.of(second.publicId())).size());
+    }
+
+    @Test
     void filtersAvailableUnavailableAndAllOffers() {
         Offer available = save("00000000-0000-4000-8000-000000000001", "farine", OfferStatus.AVAILABLE);
         Offer unavailable = save("00000000-0000-4000-8000-000000000002", "sucre", OfferStatus.UNAVAILABLE);

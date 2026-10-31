@@ -10,6 +10,7 @@ const createBomClone = (bom: Bom): Bom => {
     id: null,
     name: `${bom.name} (copie)`,
     price: null,
+    costing: null,
     components: bom.components.map((component) => ({ ...component })),
     activities: bom.activities.map((activity) => {
       const activityClone = { ...activity };
@@ -48,6 +49,7 @@ export const useBomList = () => {
     isLoading: useQuery.isPending,
     isError: useQuery.isError,
     error: useQuery.error,
+    refetch: useQuery.refetch,
     deleteBom: deleteBom,
     cloneBom,
     isCloning: cloneMutation.isPending,

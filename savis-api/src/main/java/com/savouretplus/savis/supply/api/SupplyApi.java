@@ -1,17 +1,20 @@
 package com.savouretplus.savis.supply.api;
 
-import java.util.List;
-import java.util.Optional;
-import java.util.UUID;
-
 import com.savouretplus.savis.common.Money;
 import com.savouretplus.savis.common.Quantity;
 import com.savouretplus.savis.supply.domain.Offer;
+import java.util.List;
+import java.util.Optional;
+import java.util.Set;
+import java.util.UUID;
 
 /**
  * Exposes supplier offer pricing and search operations to other modules.
  */
 public interface SupplyApi {
+    /** One database read for all resources and explicit selections in a valuation. */
+    List<OfferPricing> getPricingCandidates(Set<UUID> resourceIds, Set<UUID> offerIds);
+
     /**
      * Returns pricing information for a specific supplier offer.
      */

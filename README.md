@@ -61,6 +61,7 @@ projection:
 Main capabilities:
 
 - technical BOMs, components, activities, yields, and cost calculation;
+- a material Resource reference catalog linked to BOM components by stable UUID;
 - global activity-rate management;
 - provider offer acquisition, review, selection, invalidation, and refresh;
 - asynchronous tasks with retries, request pacing, and provider circuit
