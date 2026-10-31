@@ -1,575 +1,215 @@
 # SAVIS Admin
 
-**SAVIS Admin** is the React back-office application for
-[SAVIS](../README.md). It provides the operational UI used to manage technical
-BOMs, provider offers, activity rates, sellable catalog products, pricing
-analysis, catalog publication, and imported customer orders.
+React back office for [SAVIS](../README.md), with a French-language interface.
 
-The frontend does not own business rules or persistence:
+- **SAVIS API:** owns resources, BOMs, supply offers, activity rates, catalog, quotations, orders, invoices, and business persistence.
+- **SAVIS Executor:** owns provider acquisition, offer review, refresh tasks, and execution history.
+- **Admin:** presents workflows through HTTP clients. Backend services enforce business rules and calculate authoritative prices.
 
-- [SAVIS API](../savis-api/README.md) owns BOM, supply, activity-rate, catalog,
-  and order workflows.
-- [SAVIS Executor](../savis-executor/README.md) owns provider-offer
-  acquisition, review state, refresh tasks, and task history.
+## Local Development
 
-## Navigation
+- Use Node.js 24 and npm, matching the Docker environment.
+- Run SAVIS API on port `8080` and Executor on port `8000` for acquisition screens.
+- Install and start from `savis-admin/`:
 
-- [SAVIS Admin](#savis-admin)
-  - [Navigation](#navigation)
-  - [Product Areas](#product-areas)
-  - [Business Flows](#business-flows)
-    - [Manage Technical BOMs](#manage-technical-boms)
-    - [Select Offers for BOM Components](#select-offers-for-bom-components)
-    - [Acquire and Review BOM Components](#acquire-and-review-bom-components)
-    - [Inspect Acquisition Tasks](#inspect-acquisition-tasks)
-    - [Configure Activity Rates](#configure-activity-rates)
-    - [Manage Catalog Products](#manage-catalog-products)
-    - [Manage Orders](#manage-orders)
-    - [Dashboard](#dashboard)
-  - [Frontend Architecture](#frontend-architecture)
-  - [Routing and Layout](#routing-and-layout)
-  - [Data and UI State](#data-and-ui-state)
-    - [Server State](#server-state)
-    - [URL State](#url-state)
-    - [Local State](#local-state)
-  - [Backend Integration](#backend-integration)
-    - [SAVIS API Proxy](#savis-api-proxy)
-    - [Executor Endpoints](#executor-endpoints)
-  - [Technology](#technology)
-  - [Configuration](#configuration)
-  - [Local Development](#local-development)
-  - [Docker](#docker)
-  - [Tests](#tests)
-  - [Current Boundaries](#current-boundaries)
+```bash
+npm ci
+npm run dev
+```
 
-## Product Areas
-
-| Area              | Route                   | Backend         | Purpose                                                                                   |
-| ----------------- | ----------------------- | --------------- | ----------------------------------------------------------------------------------------- |
-| Dashboard         | `/` and `/dashboard`    | Local demo data | Displays the current dashboard shell, charts, cards, and table.                           |
-| Sales             | `/sales/*`              | SAVIS API       | Groups quotations, orders, and invoices in one tabbed workspace.                          |
-| Orders            | `/sales/orders`         | SAVIS API       | Lists orders, imports web orders, and manages their lifecycle.                            |
-| New order         | `/orders/new`           | SAVIS API       | Creates an administrative order in the unified order editor.                              |
-| Order detail      | `/orders/:orderId`      | SAVIS API       | Displays an order and edits administrative orders that are still `NEW`.                   |
-| Products          | `/catalog-products`     | SAVIS API       | Manages sellable products, categories, BOM references, pricing analysis, and publication. |
-| BOM compositions  | `/boms`                 | SAVIS API       | Lists, searches, creates, edits, prices, and deletes technical BOMs.                      |
-| BOM components    | `/bom-components`       | SAVIS Executor  | Reviews and manages acquired provider offers used as BOM components.                      |
-| Acquisition tasks | `/bom-components/tasks` | SAVIS Executor  | Inspects offer collection and refresh tasks.                                              |
-| Activity rates    | `/activity-rates`       | SAVIS API       | Configures global hourly rates used in BOM activity costs.                                |
-
-The interface is currently presented in French.
+- Open <http://localhost:5173>. Vite proxies `/savis-api` to `http://localhost:8080/api` and `/executor-api` to `http://localhost:8000/api`.
+- No `.env` is required for these defaults. To use different backend hosts, set `SAVIS_API_PROXY_TARGET` and `EXECUTOR_API_PROXY_TARGET` before starting Vite.
+- To start the complete stack, run `make run-local` from the repository root; see the [setup instructions](../README.md#quick-start).
 
 ## Business Flows
 
-### Manage Technical BOMs
+The following sections follow the visible sidebar order and labels.
 
-The BOM area manages generic technical compositions. A BOM can represent a
-recipe, packaging, utensils, decoration, an activity-backed resource, or
-another reusable composition.
+### Tableau de bord
 
-Users can:
+- **Routes:** `/` and `/dashboard` display the same dashboard.
+- **Content:** cards, charts, and tables use static data from `src/features/dashboard/api/data.json`; they do not report live business activity.
 
-- list and search BOMs by name, description, instructions, or component name;
-- create or edit a BOM in a route-driven dialog;
-- define general information, image, instructions, and yield;
-- add components with quantity and unit;
-- select an optional available provider offer for each component;
-- add sequenced production activities and their duration;
-- inspect the cost returned by SAVIS API;
-- delete a BOM.
+### Approvisionnement
 
-The supported form units are `portion`, `piece`, `g`, `kg`, `l`, and `ml`.
-Preparation and cooking activities are provided by default. Additional
-activities can use preparation, cooking, assembly, packaging, installation,
-delivery, cleanup, or custom types.
+#### À valider
 
-New unsaved BOMs are stored in browser `localStorage` under the `bom-draft`
-key. Closing a form with a draft lets the user keep or discard it.
+- **Route:** `/offers` opens “Validation des offres”, backed by Executor.
+- **Acquisition:** “Récupérer une offre” starts a `GET_OFFER` task with component name, type (`FOOD` or `MATERIAL`), provider, and exact product URL. The current provider selector offers Maxi.
+- **Review:** filter by status and search-term facets, sort and paginate, then validate, reject, invalidate, edit, or delete an offer.
+- **Refresh:** configure refresh frequency or request an immediate `REFRESH_OFFER` task; provider product links open separately.
+- **Statuses:** `NEW`, `VALID`, and `REJECTED` describe review state. Executor can publish offer updates or invalidations to SAVIS API after review actions.
 
-### Select Offers for BOM Components
+#### Offres fournisseurs
 
-When a component name contains at least two characters, the BOM form queries
-SAVIS API for available supply offers:
+- **Route:** `/supply/offers` displays offers persisted by SAVIS API for production costing, separately from Executor review state.
+- **List:** server-side search, availability filtering, sorting, and pagination use URL parameters. The default shows available offers, ordered by latest observation.
+- **Details:** inspect supplier identity, product image, package size, price, availability, observation date, and product/provider links.
+- **Resource association:** view or change the material resource linked to an offer. Resource names are loaded in batches for the displayed page.
+- **Manual creation:** “Nouvelle offre” selects an existing resource and records supplier identifiers, product details, package price, currency, quantity, and unit.
 
-```text
-GET /api/supply/offers?componentName=...
-```
+#### Tâches d'acquisition
 
-The offer selector displays the provider product image, label, brand, price,
-package size, and provider. Selecting an offer stores its UUID as
-`selectedOfferId`; the provider product can be opened in a new browser tab.
+- **Route:** `/offers/tasks` displays Executor acquisition and refresh history.
+- **Inspection:** view task type (`GET_OFFER`, `GET_OFFERS`, `REFRESH_OFFER`), status (`IN_PROGRESS`, `COMPLETED`, `FAILED`), JSON payload, timestamps, and full error details.
+- **Navigation:** sorting and pagination remain in the URL; frontend code belongs to `src/features/bom-component/task/`.
 
-The form only consumes offers exposed by SAVIS API. It does not call the
-executor directly for this selection workflow.
+### Production
 
-### Acquire and Review BOM Components
+#### Ressources matérielles
 
-The `/bom-components` page calls SAVIS Executor directly and displays offers
-of every supported type:
+- **Route:** `/resources` manages the stable material-resource reference catalog used by BOM components and supplier offers.
+- **Categories:** ingredient, consumable, packaging, equipment, and decoration material (`INGREDIENT`, `CONSUMABLE`, `PACKAGING`, `EQUIPMENT`, `DECORATION_MATERIAL`).
+- **Editing:** modal forms capture name, description, category, and reference unit. Successful saves close the modal and refresh the list; failures preserve inputs.
+- **Units:** select `g`, `kg`, `l`, `ml`, or `piece`. Reference units are optional for equipment and decoration material.
+- **List:** search, category, active/inactive status, sorting, page, and page size are URL state. Users can activate/deactivate resources and inspect associated offers.
+- **Identity:** resources with identical names remain distinct; names do not trigger automatic merging.
 
-- `FOOD`;
-- `MATERIAL`.
+#### Compositions
 
-Users can:
+- **Routes:** `/boms` lists technical compositions; `/boms/add` and `/boms/:id` open the full-page editor.
+- **Composition:** define identity, image, instructions, yield, resource-based components, optional selected supplier offers, and sequenced activities.
+- **Resources and offers:** select an active resource, enter quantity and compatible unit, then select an available offer loaded by resource UUID. Historical inactive resources remain visible.
+- **Units:** form units are `portion`, `piece`, `g`, `kg`, `l`, and `ml`; preparation and cooking activities are provided by default.
+- **List:** search composition text and components, filter by type/activity, and sort columns. Filters, sorting, pagination, and selected composition are stored in the URL.
+- **Details:** only the selected composition loads its valuation; the list is unpriced. The detail drawer provides editing, cloning, deletion, and access to cost analysis.
+- **Saving:** stay on the composition and refresh its saved valuation. Creation replaces the new route with `/boms/:id`; failed saves preserve inputs and drafts.
+- **Drafts:** unsaved new compositions use `localStorage` key `bom-draft`; closing offers to keep or discard the draft.
+- **Cost analysis:** show saved yield, cost per output unit, category distribution, component/activity subtotals, diagnostics, and price/rate provenance supplied by SAVIS API.
+- **Incomplete costs:** distinguish known subtotals, complete totals, missing amounts, and explicit zeros. A draft is not repriced until saved.
+- **Precision:** format received amounts independently in `fr-CA` with two decimals. Rounding can make displayed subtotals differ from the displayed total; Admin does not recompute the total from them.
+- **Technical detail:** individual cost lines open an accessible panel with offer identifiers, observation timestamps, received precision, and diagnostics.
 
-- start a `GET_OFFER` task with a component name, type, provider, and exact
-  product URL;
-- filter offers with search-term facets;
-- paginate and sort the result list;
-- validate, reject, invalidate, edit, or delete an offer;
-- configure its refresh frequency;
-- request an immediate `REFRESH_OFFER` task;
-- open the provider product page.
+#### Activités et taux horaires
 
-Offer review statuses are `NEW`, `VALID`, and `REJECTED`. Validating,
-invalidating, or deleting an offer can cause the executor to publish an update
-or invalidation to SAVIS API.
+- **Route:** `/activity-rates` manages one global hourly rate and currency per activity type.
+- **Actions:** add an unconfigured activity type, edit its rate, or delete it. SAVIS API uses these rates in BOM valuations.
+- **Types:** `PREP`, `COOK`, `ASSEMBLY`, `PACKAGING`, `INSTALLATION`, `DELIVERY`, `CLEANUP`, and `CUSTOM`.
 
-### Inspect Acquisition Tasks
+### Catalogue
 
-Acquisition tasks are an implementation detail of BOM component management, so
-their frontend code and route are nested below the `bom-component` feature:
+#### Produits
 
-```text
-src/features/bom-component/task/
-  api/
-  components/
-  hooks/
-  pages/
-  types.ts
-```
+- **Routes:** `/catalog-products` lists products; `/catalog-products/new` and `/catalog-products/:productId/edit` open the editor. `/catalog-products/:productId/analysis` opens profitability analysis.
+- **List:** search, category/publication filters, sorting, pagination, and selected product use URL state. The selected product opens in a detail drawer.
+- **Product data:** edit identity, slug, descriptions, images, availability, display order, category, commercial nature, prices, target margin, and purchase modes.
+- **Commercial nature:** `GOODS` or `SERVICE`; a service can be sold without a BOM. Labor, supplies, and rented equipment may remain internal composition costs.
+- **Configuration:** support `STANDARD`, `SINGLE_CHOICE`, `SINGLE_CHOICE_BUNDLE`, and `INGREDIENT_CUSTOMIZATION` products.
+- **Composition:** common `productBoms` form the base; choice BOMs cover selections/flavors; ingredient BOMs cover customizable extras. BOM quantities can be decimal.
+- **Categories:** `TASTING` and `DECORATION`. Decoration subcategories are `DECORATIVE_ARCH`, `CENTERPIECE`, `BIRTHDAY`, and `WEDDING`; changing category clears an incompatible subcategory.
+- **Analysis:** compare purchase modes and configurations, including worst-case allocations. Show known costs, completeness, margins, and advisory recommended prices; incomplete costs suppress margins and recommendations.
+- **Publication:** publish or withdraw an individual product through SAVIS API using `/catalog/products/{id}/publish` or `/unpublish`. API handles the Supabase projection.
+- **Drafts:** new product drafts use `localStorage` key `catalog-product-draft`; the editor warns before abandoning unsaved changes.
+- **Help:** the application’s “Aide” drawer and product guide use [catalog product flows](src/content/catalog-product-flows.md).
 
-The `/bom-components/tasks` page displays:
+### Ventes
 
-- task type: `GET_OFFER`, `GET_OFFERS`, or `REFRESH_OFFER`;
-- status: `IN_PROGRESS`, `COMPLETED`, or `FAILED`;
-- complete JSON payload;
-- creation and update timestamps;
-- complete error message.
+#### Soumissions
 
-Pagination and sorting are stored in URL search parameters. The breadcrumb
-returns to BOM components, and the corresponding sidebar section remains
-active.
+- **Routes:** `/sales/quotations` lists quotations; `/quotations/new` and `/quotations/:quotationId` provide creation and details.
+- **Creation:** prepare an independent commercial offer with customer details, catalog-configured items, validity date, discount, and delivery fee.
+- **Editing:** only `DRAFT` quotations expose editing. New quotation drafts persist in the current tab’s `sessionStorage`.
+- **Lifecycle:** mark a draft `SENT`, then `ACCEPTED` or `REJECTED`. These actions record status; the interface does not send an email.
+- **Conversion:** convert an accepted quotation into an order, or open its already linked order.
+- **Document:** “Voir PDF” opens the quotation generated by SAVIS API.
 
-### Configure Activity Rates
+#### Commandes
 
-The activity-rate page manages one global hourly cost per activity type.
-Users can add an unconfigured type, edit its rate and currency, or delete it.
+- **Routes:** `/sales/orders` lists orders; `/orders/new` and `/orders/:orderId` provide creation and details.
+- **Creation:** capture customer, optional address, products, purchase modes, choices, allocations, ingredients, quantities, discount, and delivery fee. Admin estimates the total; SAVIS API validates and prices the order. Order entry does not calculate taxes.
+- **Product search:** debounce requests for up to 20 available catalog products; previously selected products remain in the draft when search changes.
+- **Contact details:** format Canadian phones and postal codes, send phones as E.164, and block invalid contact inputs. Product images use neutral fallbacks when unavailable.
+- **Drafts:** new orders persist in the current tab’s `sessionStorage`, with warnings before leaving unsaved changes.
+- **Web import:** “Récupérer commandes web” manually imports submissions through SAVIS API. Admin never reads Supabase directly or receives its service-role key.
+- **Editing:** administrative orders at `NEW` allow product edits and repricing from the current catalog. Web orders at `NEW` allow only customer/contact details and note corrections.
+- **Lifecycle:** apply the available acceptance, preparation, completion, rejection, or cancellation actions. Product/price snapshots become read-only beyond `NEW` and remain read-only for imported orders.
+- **Production needs:** “Besoins de production” aggregates compatible BOM quantities with supplier prices and product/BOM contributions. It does not deduct stock or infer package purchases.
+- **Invoicing:** create an invoice from orders at `ACCEPTED`, `IN_PREPARATION`, `READY`, or `COMPLETED`, then open the invoice detail page.
 
-These rates are consumed by SAVIS API when calculating BOM activity costs.
+#### Factures
 
-Supported activity types:
-
-- `PREP`
-- `COOK`
-- `ASSEMBLY`
-- `PACKAGING`
-- `INSTALLATION`
-- `DELIVERY`
-- `CLEANUP`
-- `CUSTOM`
-
-### Manage Catalog Products
-
-The catalog page manages products sold to customers. Product data includes:
-
-- identity, slug, description, images, availability, and display order;
-- category and optional subcategory;
-- commercial nature (`GOODS`/Bien or `SERVICE`/Service);
-- configuration type;
-- base sale price and target margin;
-- common `ProductBom` references with decimal quantities and display order;
-- purchase modes and their sale prices;
-- optional choice or flavor BOMs;
-- optional ingredient or extra BOMs.
-
-Supported product types:
-
-- `STANDARD`;
-- `SINGLE_CHOICE`;
-- `SINGLE_CHOICE_BUNDLE`;
-- `INGREDIENT_CUSTOMIZATION`.
-
-Commercial nature does not impose a BOM. A service can be sold without one; if
-a service uses labor, supplies, or rented equipment, those remain internal BOM
-costs rather than a separate `RENTAL` catalog product type.
-
-Categories are selected from the fixed catalog values `TASTING` and
-`DECORATION`.
-
-The optional subcategory selector is filtered by the selected category.
-Decoration currently exposes:
-
-- `BALLOON_ARCH` — Arche de ballon;
-- `CENTERPIECE` — Centre de table;
-- `BIRTHDAY` — Anniversaire;
-- `WEDDING` — Mariage.
-
-Changing the category clears a subcategory that no longer belongs to it.
-`TASTING` currently has no configured subcategories, so the selector only
-offers “Aucune sous-catégorie”.
-
-The product form treats:
-
-- `productBoms` as the common base composition;
-- choice-option BOMs as the cost of a selected flavor or choice;
-- ingredient-option BOMs as the cost of a customizable extra.
-
-Users can run a configuration analysis or a worst-case analysis. The UI
-displays cost, margin, status, completeness, and recommended price information.
-A recommended price is advisory and is never copied automatically into the
-sale price.
-
-For an operator-oriented guide to product creation flows and field usage, see
-[`src/content/catalog-product-flows.md`](src/content/catalog-product-flows.md).
-
-Products marked for publication are explicitly sent through:
-
-```text
-POST /api/catalog/products/publish
-```
-
-SAVIS API remains responsible for the customer-facing Supabase projection.
-SAVIS Admin never writes to Supabase directly.
-
-The current action triggers bulk publication of products still marked
-`published`; it does not yet reconcile Supabase rows for products newly changed
-to unpublished.
-
-### Manage Orders
-
-The `/sales/orders` page lists normalized local orders and provides the manual
-**Récupérer commandes web** action. **Nouvelle commande** opens `/orders/new`,
-which shares its section-based layout with the order detail page. The editor
-captures the customer, an optional address, products,
-purchase modes, choices, allocations, ingredients, quantities, an optional
-discount, and an optional delivery fee. Its total is an estimate; SAVIS API
-validates the catalog rules and calculates the authoritative prices before
-persisting the order. The browser keeps an unfinished new-order draft for the
-current tab and warns before leaving with unsaved changes. Taxes are not
-calculated.
-
-Customer phones are formatted as Canadian numbers while they are entered and
-sent to the API in E.164 form. The optional address uses a Canadian province
-selector and formats postal codes as `A1A 1A1`; an incomplete or invalid phone
-or postal code prevents submission. Order pages display phones in national
-format and addresses with the conventional comma before province and postal
-code.
-
-The product dropdown is searchable. Input is debounced before the browser asks
-Catalog for up to 20 currently available products, so the full catalog is not
-loaded into the order form. Products already added remain available to the
-draft when the search term changes.
-
-Product snapshot images are shown in search results, configured draft lines,
-the order list, and order-item details. The list uses one stable thumbnail in a
-dedicated Articles column alongside the total item count, keeping order numbers
-aligned. A neutral placeholder is used when an image is absent or cannot be
-loaded.
-
-The browser calls SAVIS API only; it never receives the Supabase service-role
-key or queries `customer_orders` directly.
-
-The `/orders/:orderId` page displays customer information, submitted prices,
-purchase mode, selected choice, flavor allocation, ingredients, and extras.
-An administrative order can be edited from the same page while its status is
-`NEW`; products and price snapshots are recalculated from the current catalog
-when it is saved. Imported web orders and orders that have advanced in the
-lifecycle keep their product configuration and price snapshots read-only. For
-a web order still at `NEW`, operators may correct only the customer name,
-phone, email, address, and note from the Client section.
-Operators can apply the valid lifecycle transitions from `NEW` through
-preparation and completion, or reject/cancel where allowed. Imported prices are
-read-only snapshots. Commercial PDFs are generated from the dedicated
-Quotation and Invoice modules rather than directly from an order.
-
-The detail page also generates a **Besoins de production** report. It aggregates
-compatible component quantities from all applicable BOMs, shows the current
-known supplier product and price, and exposes the product/BOM contribution for
-traceability. This is not a shopping list: stock is not deducted and no package
-purchase quantity is inferred.
-
-### Dashboard
-
-The dashboard currently uses static data from
-`src/features/dashboard/api/data.json`. Its cards, chart, and table demonstrate
-the application shell but are not yet connected to SAVIS business APIs.
+- **Routes:** `/sales/invoices` lists invoices; `/invoices/:invoiceId` shows details. Invoices are created from an order.
+- **List:** filter by `DRAFT`, `ISSUED`, or `CANCELLED` status.
+- **Draft editing:** update customer details, address, notes, discount, delivery fee, and explicit TPS/TVQ amounts. Product lines come from the order snapshot.
+- **Issuing:** save changes and issue the draft; issued invoices expose consultation and PDF generation instead of draft editing.
+- **Cancellation:** cancel a non-cancelled invoice through its dedicated action.
+- **Document:** “Voir PDF” opens the backend-generated invoice with commercial amounts and taxes.
 
 ## Frontend Architecture
 
-The application uses feature-oriented vertical slices:
+- **`src/app/`:** layout, global providers, route tree, and breadcrumbs.
+- **`src/features/`:** `activity-rate`, `bom`, `bom-component`, `catalog`, `dashboard`, `invoices`, `orders`, `quotations`, `resource`, `sales`, and `supply-offer` own their business UI.
+- **Feature structure:** keep API functions, hooks, types, model helpers, components, and pages within the owning feature; acquisition tasks are nested under `bom-component/task`.
+- **`src/shared/`:** Axios clients, application components, utilities, and shared UI primitives. Imports use the `@/` alias.
+- **Routing:** React Router’s `createBrowserRouter()` defines screens and route loaders; route `handle` metadata supplies breadcrumbs.
+- **Initial loading:** the root route displays “Chargement…” while an initial route loader resolves, including direct access to `/boms/:id`.
+- **Layout:** `MainLayout` provides the sidebar, header, breadcrumbs, toasts, help, and route outlet, with responsive navigation and light/dark/system themes.
+- **Sales navigation:** `/sales` defaults to orders. Legacy `/quotations`, `/orders`, `/invoices`, and `/supply-offers` list URLs redirect to current workspaces.
 
-```text
-src/
-|-- app/
-|   |-- layout/                 # Sidebar, header, responsive application shell
-|   |-- providers/              # Global providers such as TanStack Query
-|   `-- router/                 # React Router route tree and breadcrumbs
-|-- features/
-|   |-- activity-rate/
-|   |-- bom/
-|   |-- bom-component/
-|   |   `-- task/               # Child acquisition workflow
-|   |-- catalog/
-|   |-- orders/
-|   `-- dashboard/
-`-- shared/
-    |-- api/                    # Axios clients
-    |-- components/             # Cross-feature application components
-    |-- lib/
-    `-- ui/                     # shadcn/Radix primitives
-```
+## State and Data Loading
 
-A feature generally owns its:
+- **Server state:** TanStack Query hooks own feature query keys and invalidate affected data after successful mutations.
+- **BOM caching:** `["boms"]` holds the unpriced list for 60 seconds and serves catalog selectors. Selected details use a separate query; the editor route loader fetches saved valuation.
+- **Cost contract:** BOM details expose `costing`; `price` is null when incomplete. List responses leave both fields null; the dedicated `/boms/{id}/price` operation returns detailed valuation.
+- **List state:** URL parameters preserve supported filters, sorting, pagination, and detail selection. Supply/resource/task lists use backend pagination; BOM/catalog lists paginate the loaded collection.
+- **Forms:** component state holds current inputs; BOM/product drafts use `localStorage`, while new order/quotation drafts use `sessionStorage`.
+- **Boundaries:** backend amounts remain authoritative; Admin adds presentation formatting and estimates where described above.
 
-- API functions;
-- React Query hooks;
-- domain-facing TypeScript types;
-- components and dialogs;
-- page components;
-- feature-specific model helpers.
+## Backend Integration and Configuration
 
-Cross-feature UI primitives remain under `src/shared`.
+Axios clients are defined in `src/shared/api/index.ts`:
 
-## Routing and Layout
+| Client | Optional bundle variable | Default proxy | Owner |
+| --- | --- | --- | --- |
+| `api` | `VITE_API_URL` | `/savis-api` | SAVIS API business workflows. |
+| `executorApi` | `VITE_EXECUTOR_API_URL` | `/executor-api` | Offer review and acquisition tasks. |
 
-The application uses React Router's data router through
-`createBrowserRouter()`.
-
-- `MainLayout` owns the sidebar, header, breadcrumb area, toast host, and route
-  outlet.
-- BOM creation and editing use `/boms/add` and `/boms/:id`, rendered as an
-  always-open dialog above the shared layout.
-- `/boms/:id` uses a route loader to fetch the selected BOM.
-- `/bom-components/tasks` is a nested child route of `/bom-components`.
-- `/sales/quotations`, `/sales/orders`, and `/sales/invoices` share the Sales
-  workspace; `/sales` opens the order tab by default.
-- `/orders/:orderId`, `/quotations/:quotationId`, and `/invoices/:invoiceId`
-  keep the existing detail routes.
-- Breadcrumbs are declared in route `handle` metadata.
-- The BOM sidebar parent groups Compositions and Components with shadcn
-  collapsible menu primitives.
-
-The layout supports an off-canvas sidebar and light, dark, or system themes.
-
-## Data and UI State
-
-### Server State
-
-TanStack Query owns remote server state. Feature hooks define query keys and
-invalidate affected lists after successful mutations.
-
-Examples:
-
-- `["boms"]`;
-- `["available-offers", componentName]`;
-- `["executor-offers", ...filters]`;
-- `["executor-tasks", ...pagination]`;
-- `["activity-rates"]`;
-- `["catalog-products"]`;
-- `["orders"]`;
-- `["catalog-categories"]`.
-
-### URL State
-
-BOM component and acquisition-task pagination and sorting use URL search
-parameters. This makes list state navigable and preserves it in browser
-history.
-
-### Local State
-
-Dialog forms use component state. Only the new BOM draft is persisted in
-`localStorage`; there is no general client-side persistence layer.
-
-## Backend Integration
-
-Two Axios clients are defined in `src/shared/api/index.ts`:
-
-| Client        | Base URL                                         | Used for                                                                         |
-| ------------- | ------------------------------------------------ | -------------------------------------------------------------------------------- |
-| `api`         | `VITE_API_URL`, default `/savis-api`             | BOMs, supply offers, activity rates, catalog, publication, and orders.            |
-| `executorApi` | `VITE_EXECUTOR_API_URL`, default `/executor-api` | Executor offers and tasks.                                                       |
-
-### SAVIS API Proxy
-
-The frontend currently calls the `/savis-api` proxy. Direct SAVIS API endpoints
-are prefixed with `/api`:
-
-```text
-GET    /savis-api/boms
-GET    /savis-api/boms/{id}
-GET    /savis-api/boms/{id}/price
-POST   /savis-api/boms
-DELETE /savis-api/boms/{id}
-
-GET    /savis-api/supply/offers
-
-GET    /savis-api/activity-rates
-POST   /savis-api/activity-rates
-PUT    /savis-api/activity-rates/{activityType}
-DELETE /savis-api/activity-rates/{activityType}
-
-GET    /savis-api/catalog/products
-POST   /savis-api/catalog/products
-PUT    /savis-api/catalog/products/{id}
-DELETE /savis-api/catalog/products/{id}
-POST   /savis-api/catalog/products/{id}/pricing-analysis
-GET    /savis-api/catalog/products/{id}/worst-case-pricing
-POST   /savis-api/catalog/products/publish
-
-GET    /savis-api/orders
-GET    /savis-api/orders/{id}
-GET    /savis-api/orders/{id}/requirements
-POST   /savis-api/orders
-POST   /savis-api/orders/import
-PUT    /savis-api/orders/{id}
-PATCH  /savis-api/orders/{id}/customer
-PUT    /savis-api/orders/{id}/status
-```
-
-### Executor Endpoints
-
-The frontend currently calls the `/executor-api` proxy. Direct SAVIS Executor
-endpoints are prefixed with `/api`:
-
-```text
-GET    /api/offers
-GET    /api/offers/facets/search-terms
-PATCH  /api/offers/{id}
-DELETE /api/offers/{id}
-
-GET    /api/tasks
-POST   /api/tasks
-```
-
-## Technology
-
-- React 19
-- TypeScript 6
-- Vite 8
-- React Router 7
-- TanStack Query 5
-- TanStack Table 8
-- Tailwind CSS 4
-- shadcn with Radix primitives
-- Axios
-- Zod
-- Sonner
-- Recharts
-- Hugeicons
-- Vitest and Testing Library
-- ESLint and Prettier
-
-The shadcn registry configuration is stored in `components.json`. Shared
-generated primitives live in `src/shared/ui`.
-
-## Configuration
-
-Create a local `.env` file when running outside Docker:
+- **Proxy targets:** Vite uses `SAVIS_API_PROXY_TARGET` and `EXECUTOR_API_PROXY_TARGET`; these are development-server settings.
+- **Direct URLs:** optionally set the following in a local `.env` to bypass the frontend proxies:
 
 ```dotenv
 VITE_API_URL=http://localhost:8080/api
 VITE_EXECUTOR_API_URL=http://localhost:8000/api
 ```
 
-Both variables are optional. Without them, the clients use `/savis-api` and
-`/executor-api`, which are the Nginx proxy paths in the production image.
-Standalone Vite development should set the absolute URLs above.
+- **Build timing:** `VITE_*` values are embedded in the bundle; changing a running Nginx container’s environment does not reconfigure static assets.
+- **Version:** `VITE_SAVIS_VERSION` labels the sidebar, defaulting to `dev`. Docker maps build argument `SAVIS_VERSION` to this value.
+- **Contracts:** see the [API README](../savis-api/README.md), [Executor README](../savis-executor/README.md), and [system architecture](../docs/ARCHITECTURE.md).
 
-Vite environment variables are compiled into the static frontend bundle. For a
-production image, provide them during the image build rather than expecting a
-static Nginx container to read changed values at runtime.
+## Technology
 
-## Local Development
+- **Application:** React 19, TypeScript 6, Vite 8, React Router 8.
+- **Data and forms:** TanStack Query 5, TanStack Table 8, Axios, Zod, and libphonenumber-js.
+- **Interface:** Tailwind CSS 4, shadcn/Radix, Hugeicons, Sonner, Recharts, Embla Carousel, and dnd-kit.
+- **Help content:** React Markdown and remark-gfm render the embedded operator guide.
+- **Quality:** Vitest, Testing Library, ESLint, and Prettier; `components.json` configures shadcn primitives under `src/shared/ui`.
 
-Requirements:
+## Validation
 
-- Node.js 22 or newer; CI currently uses Node.js 24;
-- npm;
-- SAVIS API on `http://localhost:8080`;
-- SAVIS Executor API on `http://localhost:8000` for component acquisition
-  screens.
-
-Install dependencies:
+Run all frontend checks from `savis-admin/`:
 
 ```bash
-npm ci
-```
-
-Start Vite:
-
-```bash
-npm run dev
-```
-
-The development server normally runs at `http://localhost:5173`.
-
-Other available commands:
-
-```bash
-npm run build
-npm run preview
-npm run test
-npm run test:ui
-npm run coverage
 npm run lint
-npm run format
+npm test -- --run
+npm run build
 ```
+
+- Tests mirror source paths under `test/` and cover routing, procurement, resources, compositions/costing, catalog, sales, and shared utilities.
+- Run one test file with `npm test -- --run test/features/bom/hooks/useBomForm.test.ts`.
+- Additional commands: `npm run test:ui`, `npm run coverage`, `npm run preview`, and `npm run format`.
+- Dependency updates must keep `package.json` and `package-lock.json` synchronized.
 
 ## Docker
 
-The Dockerfile contains:
-
-- `development`: Vite development server;
-- `build`: TypeScript and Vite production build;
-- `production`: static assets served by unprivileged Nginx on port `8080`.
-
-The production Nginx configuration:
-
-- serves the SPA with history fallback;
-- proxies `/savis-api/*` to SAVIS API;
-- proxies `/executor-api/*` to SAVIS Executor;
-- exposes `/health` for Docker readiness.
-
-Run the complete SAVIS environment from the repository root:
-
-```bash
-docker compose up --build
-```
-
-The development override exposes Vite at `http://localhost:5173`. Production
-Compose exposes Nginx through the host bind and port configured by
-`SAVIS_HTTP_BIND` and `SAVIS_HTTP_PORT`.
-
-## Tests
-
-The current Vitest suite covers:
-
-- BOM draft storage;
-- BOM form behavior;
-- BOM component retrieval dialog;
-- BOM component list state and actions;
-- BOM component search-term facets.
-
-Run the suite:
-
-```bash
-npm test -- --run
-```
-
-Run a single file:
-
-```bash
-npm test -- --run test/features/bom/hooks/useBomForm.test.ts
-```
-
-Catalog, activity-rate, routing, and dashboard behavior do not yet have
-dedicated frontend tests.
+- **`development`:** Node.js 24 runs Vite with `--host`; the development Compose override exposes port `5173`.
+- **`build`:** TypeScript checks and Vite produce the static bundle, including the release version.
+- **`production`:** unprivileged Nginx serves assets on port `8080` with SPA history fallback and `/health` readiness.
+- **Backend proxies:** Nginx maps `/savis-api/*` to `backend_api:8080/api/*` and `/executor-api/*` to `executor_api:8000/api/*`.
+- **Host exposure:** production Compose uses `SAVIS_HTTP_BIND` and `SAVIS_HTTP_PORT`; operational commands are documented in the [root README](../README.md).
 
 ## Current Boundaries
 
-- Authentication and authorization are not implemented in SAVIS Admin.
-- The dashboard is still backed by local demonstration data.
-- The frontend relies on backend validation for business invariants.
-- SAVIS Admin does not connect directly to PostgreSQL, RabbitMQ, provider
-  websites, or Supabase.
+- Authentication and authorization are not implemented in Admin.
+- The dashboard remains a demonstration, and quotation status changes do not deliver emails.
+- Admin never connects directly to PostgreSQL, RabbitMQ, provider acquisition sessions, or Supabase. Provider links only open external product pages.
+- Credentials and Supabase service-role keys belong in trusted backend configuration, never in `VITE_*` variables or browser bundles.

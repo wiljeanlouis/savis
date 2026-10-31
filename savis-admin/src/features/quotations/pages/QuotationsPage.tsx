@@ -1,4 +1,5 @@
 import { NoData } from "@/shared/components/NoData";
+import { ApiErrorAlert } from "@/shared/components/ApiErrorAlert";
 import { Button } from "@/shared/ui/button";
 import { Spinner } from "@/shared/ui/spinner";
 import { Add01Icon } from "@hugeicons/core-free-icons";
@@ -38,9 +39,10 @@ export function QuotationsPage() {
           <Spinner />
         </div>
       ) : query.isError ? (
-        <p className="rounded-lg border border-destructive/30 bg-destructive/10 p-4 text-destructive">
-          Impossible de charger les soumissions.
-        </p>
+        <ApiErrorAlert
+          title="Impossible de charger les soumissions."
+          error={query.error}
+        />
       ) : quotations.length === 0 ? (
         <NoData />
       ) : (

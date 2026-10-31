@@ -2,7 +2,9 @@ insert into public.published_catalog_products (
   id,
   slug,
   name,
+  category,
   description,
+  commercial_type,
   product_type,
   purchase_modes,
   choice_group,
@@ -14,10 +16,12 @@ insert into public.published_catalog_products (
 )
 values
 (
-  'pate-four',
+  '33cfa6ba-0796-4a13-a0ac-00bcfdf75a27',
   'pate-cuit-au-four',
   'Pâté cuit au four',
+  'tasting',
   'Une pâte brisée croustillante enveloppe généreusement une farce savoureuse faite à partir d''ingrédients frais.',
+  'goods',
   'single_choice_bundle',
   '[
     {"id":"unit","label":"À l''unité","quantity":1,"price_cents":300,"allocation_type":"single_choice"},
@@ -44,10 +48,12 @@ values
   10
 ),
 (
-  'pate-kode',
+  'b6ee2082-6b70-4a95-b747-417cb75e5200',
   'pate-kode',
   'Pâté kòde',
+  'tasting',
   'Une pâte frite soigneusement dans l''huile, servie avec une sauce piquante haïtienne pour une expérience authentique.',
+  'goods',
   'ingredient_customization',
   '[
     {"id":"unit","label":"À l''unité","quantity":1,"price_cents":800,"allocation_type":"none"}
@@ -69,10 +75,17 @@ values
   20
 )
 on conflict (id) do update set
+  slug = excluded.slug,
   name = excluded.name,
+  category = excluded.category,
   description = excluded.description,
+  commercial_type = excluded.commercial_type,
+  product_type = excluded.product_type,
   purchase_modes = excluded.purchase_modes,
   choice_group = excluded.choice_group,
   ingredient_options = excluded.ingredient_options,
+  image_url = excluded.image_url,
   gallery = excluded.gallery,
+  availability_note = excluded.availability_note,
+  is_available = excluded.is_available,
   display_order = excluded.display_order;

@@ -8,22 +8,24 @@ import java.util.UUID;
 import java.util.stream.Collectors;
 
 import org.springframework.stereotype.Service;
+import org.springframework.beans.factory.annotation.Autowired;
 
 import com.savouretplus.savis.common.Money;
 import com.savouretplus.savis.bom.api.BomPricingApi;
 import com.savouretplus.savis.bom.api.BomRequirementsApi;
 import com.savouretplus.savis.bom.domain.ActivityRate;
 import com.savouretplus.savis.bom.domain.ActivityType;
-import com.savouretplus.savis.bom.domain.ComponentNeededEvent;
 import com.savouretplus.savis.bom.domain.Bom;
+import com.savouretplus.savis.bom.domain.BomCost;
+import com.savouretplus.savis.bom.domain.BomComponent;
+import com.savouretplus.savis.common.Unit;
+import com.savouretplus.savis.resource.api.ResourceCatalogApi;
+import com.savouretplus.savis.resource.api.ResourceCatalogApi.ResourceReference;
 import com.savouretplus.savis.bom.port.ActivityRateRepositoryPort;
 import com.savouretplus.savis.bom.port.BomRepositoryPort;
-import com.savouretplus.savis.bom.port.ComponentNeededEventPort;
 import com.savouretplus.savis.bom.port.ComponentPricePort;
-import com.savouretplus.savis.bom.port.ComponentPriceRequest;
 
 import jakarta.transaction.Transactional;
-import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
 /**
@@ -32,13 +34,28 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 @Service
 @Transactional
-@AllArgsConstructor
 public class BomService implements BomPricingApi, BomRequirementsApi {
 
     private final BomRepositoryPort repository;
     private final ComponentPricePort priceCalculator;
     private final ActivityRateRepositoryPort activityRateRepository;
-    private final ComponentNeededEventPort componentNeededEventPublisher;
+    private final ResourceCatalogApi resourceCatalogApi;
+
+    @Autowired
+    public BomService(BomRepositoryPort repository, ComponentPricePort priceCalculator,
+            ActivityRateRepositoryPort activityRateRepository,
+            ResourceCatalogApi resourceCatalogApi) {
+        this.repository = repository;
+        this.priceCalculator = priceCalculator;
+        this.activityRateRepository = activityRateRepository;
+        this.resourceCatalogApi = resourceCatalogApi;
+    }
+
+    /** Keeps isolated pricing tests independent from the Resource module. */
+    public BomService(BomRepositoryPort repository, ComponentPricePort priceCalculator,
+            ActivityRateRepositoryPort activityRateRepository) {
+        this(repository, priceCalculator, activityRateRepository, null);
+    }
 
     /**
      * Creates or replaces a BOM using the supplied identifier.
@@ -46,10 +63,43 @@ public class BomService implements BomPricingApi, BomRequirementsApi {
     public UUID saveBom(UUID bomId, Bom bom) {
         log.info("Save bom {} with id : {}", bom, bomId);
 
-        repository.save(bom);
-        publishComponentNeededEvents(bom);
+        Bom resolvedBom = resolveResourcesForSave(bomId, bom);
 
-        return bom.getPublicId();
+        repository.save(resolvedBom);
+
+        return resolvedBom.getPublicId();
+    }
+
+    private Bom resolveResourcesForSave(UUID bomId, Bom submitted) {
+        if (resourceCatalogApi == null) return submitted;
+        List<BomComponent> previous = bomId == null ? List.of()
+                : repository.findByPublicId(bomId).map(Bom::components).orElse(List.of());
+        List<BomComponent> components = submitted.components().stream().map(component -> {
+            ResourceReference resource = component.resourceId() == null ? null
+                    : resourceCatalogApi.findReference(component.resourceId()).orElse(null);
+            if (resource == null) {
+                throw new IllegalArgumentException("La ressource sélectionnée est introuvable");
+            }
+            boolean unchangedExistingReference = component.id() != null && previous.stream().anyMatch(existing ->
+                    component.id().equals(existing.id()) && component.resourceId().equals(existing.resourceId()));
+            if (!"ACTIVE".equals(resource.status()) && !unchangedExistingReference) {
+                throw new IllegalArgumentException("Une ressource inactive ne peut pas être ajoutée à une composition");
+            }
+            if (resource.referenceUnit() != null) {
+                Unit referenceUnit = Unit.fromSymbole(resource.referenceUnit());
+                if (!referenceUnit.baseUnit().equals(component.quantity().unit().baseUnit())) {
+                    throw new IllegalArgumentException("L'unité du composant est incompatible avec celle de la ressource");
+                }
+            }
+            String supplyNameSnapshot = unchangedExistingReference
+                    ? previous.stream().filter(existing -> component.id().equals(existing.id())).findFirst()
+                            .map(BomComponent::resourceName).orElse(resource.name())
+                    : resource.name();
+            return new BomComponent(component.id(), resource.id(), supplyNameSnapshot, component.quantity(),
+                    component.selectedOfferId());
+        }).toList();
+        return new Bom(submitted.getPublicId(), submitted.getName(), submitted.getDescription(), submitted.getImageUrl(),
+                submitted.getInstructions(), submitted.getType(), components, submitted.activities(), submitted.getYield());
     }
 
     /**
@@ -78,7 +128,7 @@ public class BomService implements BomPricingApi, BomRequirementsApi {
     /**
      * Calculates the total cost for a BOM.
      */
-    public Money calculateTotalCost(UUID bomId) {
+    public BomCost calculateTotalCost(UUID bomId) {
         Bom bom = getBom(bomId);
         /**
          * Calculates the total cost for the supplied bill of materials or identifier.
@@ -89,28 +139,10 @@ public class BomService implements BomPricingApi, BomRequirementsApi {
     /**
      * Calculates the total cost for a BOM.
      */
-    public Money calculateTotalCost(Bom bom) {
-        return bom.calculateTotal(
+    public BomCost calculateTotalCost(Bom bom) {
+        return bom.calculateCost(
                 priceCalculator.getPrices(bom.componentPriceRequests()),
                 activityRatesByType());
-    }
-
-    /**
-     * Calculates total costs for several BOMs in one pass.
-     */
-    public Map<UUID, Money> calculateTotalCosts(List<Bom> boms) {
-        List<ComponentPriceRequest> requests = boms.stream()
-                .flatMap(bom -> bom.componentPriceRequests().stream())
-                .distinct()
-                .toList();
-
-        Map<ComponentPriceRequest, Money> componentPrices = priceCalculator.getPrices(requests);
-        Map<ActivityType, Money> activityRates = activityRatesByType();
-
-        return boms.stream()
-                .collect(Collectors.toMap(
-                        Bom::getPublicId,
-                        bom -> bom.calculateTotal(componentPrices, activityRates)));
     }
 
     /**
@@ -126,10 +158,11 @@ public class BomService implements BomPricingApi, BomRequirementsApi {
      */
     @Override
     public BomPricing getBomPricing(UUID bomId) {
-        Bom bom = getBom(bomId);
-        return new BomPricing(
-                calculateTotalCost(bom),
-                BigDecimal.valueOf(bom.getYield().quantity().value()));
+        return repository.findByPublicId(bomId)
+                .map(bom -> BomPricingMapper.from(calculateTotalCost(bom)))
+                .orElseGet(() -> new BomPricing(null, null, Money.ZERO, Money.ZERO, Money.ZERO,
+                        false, List.of(), List.of(), List.of(new BomPricingApi.Diagnostic(
+                                "BOM_NOT_FOUND", String.valueOf(bomId), "Composition introuvable", true))));
     }
 
     /**
@@ -167,16 +200,6 @@ public class BomService implements BomPricingApi, BomRequirementsApi {
                 .collect(Collectors.toMap(
                         ActivityRate::activityType,
                         ActivityRate::hourlyRate));
-    }
-
-    private void publishComponentNeededEvents(Bom bom) {
-        bom.getComponents().forEach(component -> {
-            if (component.selectedOfferId() == null) {
-                componentNeededEventPublisher
-                        .publish(ComponentNeededEvent.of(component.componentName(), bom.getType()));
-
-            }
-        });
     }
 
 }

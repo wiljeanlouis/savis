@@ -1,8 +1,6 @@
 import { Button } from "@/shared/ui/button";
 
 interface PageNavigatorProps {
-  itemName: string;
-  totalItems: number;
   page: number;
   totalPages: number;
   goToPreviousPage: () => void;
@@ -10,20 +8,14 @@ interface PageNavigatorProps {
 }
 
 export const PageNavigator = ({
-  itemName,
-  totalItems,
   page,
   totalPages,
   goToPreviousPage,
   goToNextPage,
 }: PageNavigatorProps) => {
   return (
-    <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-      <p className="text-xs text-muted-foreground">
-        {totalItems} {itemName}
-        {totalItems > 1 ? "s" : ""}
-      </p>
-      <div className="flex items-center justify-end gap-3">
+    <div className="flex justify-end">
+      <div className="flex items-center gap-3">
         <Button
           variant="outline"
           size="sm"

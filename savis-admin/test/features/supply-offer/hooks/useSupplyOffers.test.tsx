@@ -1,3 +1,4 @@
+import { MemoryRouter, useLocation } from "react-router";
 import {
   SUPPLY_OFFERS_QUERY_KEY,
   useSupplyOffers,
@@ -105,6 +106,61 @@ describe("useSupplyOffers", () => {
       ),
     );
   });
+  it("restores sort from URL and keeps search, size and unrelated context when sorting or clearing filters", async () => {
+    const client = createQueryClient();
+    const { result } = renderHook(
+      () => ({ list: useSupplyOffers(), location: useLocation() }),
+      {
+        wrapper: ({ children }) => (
+          <MemoryRouter
+            initialEntries={[
+              "/supply/offers?search=farine&status=UNAVAILABLE&sort=componentName,desc&page=3&size=50&custom=keep",
+            ]}
+          >
+            <QueryClientProvider client={client}>
+              {children}
+            </QueryClientProvider>
+          </MemoryRouter>
+        ),
+      },
+    );
+    await waitFor(() =>
+      expect(getSupplyOffers).toHaveBeenLastCalledWith(
+        expect.objectContaining({
+          page: 3,
+          search: "farine",
+          status: "UNAVAILABLE",
+          sort: "componentName,desc",
+          size: 50,
+        }),
+      ),
+    );
+    act(() => result.current.list.setSort("price,asc"));
+    await waitFor(() =>
+      expect(getSupplyOffers).toHaveBeenLastCalledWith(
+        expect.objectContaining({
+          page: 0,
+          search: "farine",
+          status: "UNAVAILABLE",
+          sort: "price,asc",
+          size: 50,
+        }),
+      ),
+    );
+    act(() => result.current.list.setStatus("ALL"));
+    await waitFor(() =>
+      expect(getSupplyOffers).toHaveBeenLastCalledWith(
+        expect.objectContaining({
+          page: 0,
+          search: "farine",
+          status: "ALL",
+          sort: "price,asc",
+          size: 50,
+        }),
+      ),
+    );
+    expect(result.current.location.search).toContain("custom=keep");
+  });
 });
 
 function createQueryClient() {
@@ -116,7 +172,9 @@ function createQueryClient() {
 function queryWrapper(client: QueryClient) {
   return function QueryWrapper({ children }: { children: ReactNode }) {
     return (
-      <QueryClientProvider client={client}>{children}</QueryClientProvider>
+      <MemoryRouter>
+        <QueryClientProvider client={client}>{children}</QueryClientProvider>
+      </MemoryRouter>
     );
   };
 }

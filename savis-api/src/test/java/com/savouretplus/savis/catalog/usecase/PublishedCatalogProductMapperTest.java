@@ -29,7 +29,7 @@ class PublishedCatalogProductMapperTest {
                 null, "pate-four", "pate-four", "Pâté au four", "",
                 CommercialType.SERVICE, ProductType.SINGLE_CHOICE_BUNDLE,
                 ProductCategory.DECORATION,
-                ProductSubcategory.BALLOON_ARCH, List.of(),
+                ProductSubcategory.DECORATIVE_ARCH, List.of(),
                 new BigDecimal("0.35"), "/pate.jpg",
                 List.of("/pate-2.jpg"), "Disponible", true, true, 1,
                 List.of(
@@ -49,7 +49,7 @@ class PublishedCatalogProductMapperTest {
         assertEquals(1, result.purchaseModes().size());
         assertEquals("decoration", result.category());
         assertEquals("service", result.commercialType());
-        assertEquals("balloon-arch", result.subcategory());
+        assertEquals("decorative-arch", result.subcategory());
         assertEquals("choice_allocation", result.purchaseModes().getFirst().get("allocation_type"));
         assertEquals(bomId.toString(),
                 ((java.util.Map<?, ?>) ((List<?>) result.choiceGroup().get("options")).getFirst()).get("bom_id"));

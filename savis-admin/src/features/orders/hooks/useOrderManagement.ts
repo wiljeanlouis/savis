@@ -1,4 +1,5 @@
 import { toast } from "sonner";
+import { getApiErrorMessage } from "@/shared/api/apiError";
 import { useImportOrders, useOrders } from "./useOrderApi";
 
 export function useOrderManagement() {
@@ -21,11 +22,8 @@ export function useOrderManagement() {
       }
       return result;
     } catch (error) {
-      const response = error as {
-        response?: { data?: { detail?: string } };
-      };
       toast.error("Impossible de récupérer les commandes web.", {
-        description: response.response?.data?.detail,
+        description: getApiErrorMessage(error),
       });
       return null;
     }
@@ -35,6 +33,7 @@ export function useOrderManagement() {
     orders: orders.data ?? [],
     isLoading: orders.isPending,
     isError: orders.isError,
+    error: orders.error,
     isImporting: importer.isPending,
     retrieveWebOrders,
   };

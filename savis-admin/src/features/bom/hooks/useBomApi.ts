@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { createBom, deleteBom, getBoms } from "../api/bomApi";
+import { createBom, deleteBom, getBom, getBoms } from "../api/bomApi";
 import { searchAvailableOffers } from "../api/supplyOfferApi";
 
 const BOMS_QUERY_KEY = ["boms"];
@@ -9,6 +9,8 @@ export const useGetBoms = () => {
   return useQuery({
     queryKey: BOMS_QUERY_KEY,
     queryFn: getBoms,
+    // Reuse the unpriced list during navigation; mutations explicitly invalidate it.
+    staleTime: 60_000,
   });
 };
 
@@ -32,12 +34,18 @@ export const useDeleteBom = () => {
   });
 };
 
-export const useSearchAvailableOffers = (componentName: string) => {
-  const trimmedComponentName = componentName.trim();
-
+export const useSearchAvailableOffers = (resourceId?: string | null) => {
   return useQuery({
-    queryKey: [...AVAILABLE_OFFERS_QUERY_KEY, trimmedComponentName],
-    queryFn: () => searchAvailableOffers(trimmedComponentName),
-    enabled: trimmedComponentName.length >= 2,
+    queryKey: [...AVAILABLE_OFFERS_QUERY_KEY, resourceId],
+    queryFn: () => searchAvailableOffers(resourceId!),
+    enabled: Boolean(resourceId),
   });
 };
+
+export const useGetBom = (id?: string) =>
+  useQuery({
+    queryKey: [...BOMS_QUERY_KEY, "detail", id],
+    queryFn: () => getBom(id!),
+    staleTime: 60_000,
+    enabled: Boolean(id),
+  });
