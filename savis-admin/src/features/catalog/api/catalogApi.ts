@@ -8,6 +8,20 @@ import type {
 export const getCatalogProducts = async (): Promise<CatalogProduct[]> =>
   (await api.get<CatalogProduct[]>("/catalog/products")).data;
 
+export const getCatalogProduct = async (
+  productId: string,
+): Promise<CatalogProduct> =>
+  (await api.get<CatalogProduct>(`/catalog/products/${productId}`)).data;
+
+export const searchCatalogProducts = async (
+  search: string,
+): Promise<CatalogProduct[]> =>
+  (
+    await api.get<CatalogProduct[]>("/catalog/products", {
+      params: { search, availableOnly: true, limit: 20 },
+    })
+  ).data;
+
 export const saveCatalogProduct = async (
   product: CatalogProduct,
 ): Promise<string | CatalogProduct> => {

@@ -7,7 +7,9 @@ import {
   hasDraft,
 } from "../model/bomDraftStorage";
 import { usePostBom } from "./useBomApi";
-import { useLoaderData, useNavigate } from "react-router";
+import { useLoaderData, useNavigate, useRevalidator } from "react-router";
+import { toast } from "sonner";
+import { getApiErrorMessage } from "@/shared/api/apiError";
 
 export const useBomForm = () => {
   const data = useLoaderData<Bom | null>();
@@ -45,6 +47,8 @@ export const useBomForm = () => {
   });
 
   const mutation = usePostBom();
+  const revalidator = useRevalidator();
+  const [isSaving, setIsSaving] = useState(false);
 
   const [isDraftAlertOpen, setIsDraftAlertOpen] = useState(false);
 
@@ -85,7 +89,13 @@ export const useBomForm = () => {
       ...prev,
       components: [
         ...prev.components,
-        { componentName: "", quantity: 0, unit: "", selectedOfferId: null },
+        {
+          resourceId: null,
+          componentName: "",
+          quantity: 0,
+          unit: "",
+          selectedOfferId: null,
+        },
       ],
     }));
     setIsDirty(true);
@@ -140,10 +150,6 @@ export const useBomForm = () => {
   };
 
   const removeActivity = (index: number) => {
-    if (index < 2) {
-      return;
-    }
-
     setForm((prev) => ({
       ...prev,
       activities: prev.activities
@@ -162,11 +168,30 @@ export const useBomForm = () => {
   };
 
   const submit = async () => {
+    if (isSaving) return;
+    setIsSaving(true);
     try {
-      await mutation.mutateAsync(form);
-      await clearDraftAndNavigateBack();
+      const savedId = await mutation.mutateAsync(form);
+      if (!form.id) clearDraft();
+      setIsDirty(false);
+      toast.success("Composition sauvegardée avec succès !");
+      if (form.id) {
+        await revalidator.revalidate();
+      } else {
+        await navigate(`/boms/${savedId}`, {
+          replace: true,
+          preventScrollReset: true,
+        });
+      }
     } catch (error) {
-      console.error("Error creating bom:", error);
+      toast.error(
+        "Une erreur est survenue lors de la sauvegarde de la composition.",
+        {
+          description: getApiErrorMessage(error),
+        },
+      );
+    } finally {
+      setIsSaving(false);
     }
   };
 
@@ -202,7 +227,7 @@ export const useBomForm = () => {
     onKeepDraftAlert,
     isDraftAlertOpen,
     setIsDraftAlertOpen,
-    isLoading: mutation.isPending,
+    isLoading: isSaving || mutation.isPending,
     isSuccess: mutation.isSuccess,
     isError: mutation.isError,
     error: mutation.error,

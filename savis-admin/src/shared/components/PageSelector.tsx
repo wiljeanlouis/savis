@@ -16,13 +16,17 @@ interface PageSelectorProps {
 
 export const PageSelector = ({ pageSize, onPageChange }: PageSelectorProps) => {
   return (
-    <>
+    <div className="flex shrink-0 items-center gap-2 whitespace-nowrap">
       <span className="text-xs text-muted-foreground">Par page</span>
       <Select
         value={`${pageSize}`}
         onValueChange={(value) => onPageChange(Number(value))}
       >
-        <SelectTrigger size="sm" className="w-20">
+        <SelectTrigger
+          size="sm"
+          className="w-20"
+          aria-label="Résultats par page"
+        >
           <SelectValue />
         </SelectTrigger>
         <SelectContent side="top">
@@ -35,6 +39,6 @@ export const PageSelector = ({ pageSize, onPageChange }: PageSelectorProps) => {
           </SelectGroup>
         </SelectContent>
       </Select>
-    </>
+    </div>
   );
 };

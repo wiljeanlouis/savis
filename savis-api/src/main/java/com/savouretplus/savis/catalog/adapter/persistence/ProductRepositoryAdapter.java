@@ -9,6 +9,7 @@ import java.util.UUID;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
+import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Repository;
 
 import com.savouretplus.savis.catalog.domain.Product;
@@ -60,6 +61,16 @@ public class ProductRepositoryAdapter implements ProductRepository {
     }
 
     /**
+     * Searches products by their customer-facing identity and availability.
+     */
+    @Override
+    public List<Product> search(String search, boolean availableOnly, int limit) {
+        return repository.search(search, availableOnly, PageRequest.of(0, limit)).stream()
+                .map(this::toDomain)
+                .toList();
+    }
+
+    /**
      * Returns all products currently marked as published.
      */
     @Override
@@ -81,6 +92,7 @@ public class ProductRepositoryAdapter implements ProductRepository {
         entity.setSlug(product.slug());
         entity.setName(product.name());
         entity.setDescription(product.description());
+        entity.setCommercialType(product.commercialType());
         entity.setProductType(product.productType());
         entity.setCategory(product.category());
         entity.setSubcategory(product.subcategory());
@@ -112,7 +124,8 @@ public class ProductRepositoryAdapter implements ProductRepository {
                 .toList();
         return new Product(
                 entity.getPublicId(), entity.getCode(), entity.getSlug(), entity.getName(),
-                entity.getDescription(), entity.getProductType(), entity.getCategory(), entity.getSubcategory(),
+                entity.getDescription(), entity.getCommercialType(), entity.getProductType(),
+                entity.getCategory(), entity.getSubcategory(),
                 productBoms, entity.getTargetMarginRate(), entity.getImageUrl(),
                 entity.getGallery(), entity.getAvailabilityNote(), entity.isAvailable(), entity.isPublished(),
                 entity.getDisplayOrder(), modes,

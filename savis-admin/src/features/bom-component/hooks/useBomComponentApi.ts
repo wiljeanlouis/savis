@@ -1,3 +1,4 @@
+import type { BomComponentStatus } from "../types";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   deleteBomComponent,
@@ -19,6 +20,7 @@ export const useGetBomComponents = (
   sortBy?: string,
   sortDirection?: "asc" | "desc",
   searchTerm?: string,
+  status?: BomComponentStatus,
 ) => {
   return useQuery({
     queryKey: [
@@ -28,16 +30,26 @@ export const useGetBomComponents = (
       sortBy,
       sortDirection,
       searchTerm,
+      status,
     ],
     queryFn: () =>
-      getBomComponents({ page, size, sortBy, sortDirection, searchTerm }),
+      getBomComponents({
+        page,
+        size,
+        sortBy,
+        sortDirection,
+        searchTerm,
+        status,
+      }),
   });
 };
 
-export const useGetBomComponentSearchTermFacets = () => {
+export const useGetBomComponentSearchTermFacets = (
+  status?: BomComponentStatus,
+) => {
   return useQuery({
-    queryKey: BOM_COMPONENT_SEARCH_TERM_FACETS_QUERY_KEY,
-    queryFn: getBomComponentSearchTermFacets,
+    queryKey: [...BOM_COMPONENT_SEARCH_TERM_FACETS_QUERY_KEY, status],
+    queryFn: () => getBomComponentSearchTermFacets(status),
   });
 };
 

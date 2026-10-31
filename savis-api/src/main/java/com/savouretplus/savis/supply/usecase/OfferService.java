@@ -1,23 +1,25 @@
 package com.savouretplus.savis.supply.usecase;
 
+import com.savouretplus.savis.common.Money;
+import com.savouretplus.savis.common.Quantity;
+import com.savouretplus.savis.common.Unit;
+import com.savouretplus.savis.resource.api.ResourceCatalogApi;
+import com.savouretplus.savis.supply.api.OfferPricing;
+import com.savouretplus.savis.supply.api.SupplyApi;
+import com.savouretplus.savis.supply.domain.Offer;
+import com.savouretplus.savis.supply.port.OfferCatalogPage;
+import com.savouretplus.savis.supply.port.OfferCatalogQuery;
+import com.savouretplus.savis.supply.port.OfferRepository;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
-
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-
-import com.savouretplus.savis.common.Money;
-import com.savouretplus.savis.common.Quantity;
-import com.savouretplus.savis.supply.api.OfferPricing;
-import com.savouretplus.savis.supply.api.SupplyApi;
-import com.savouretplus.savis.supply.domain.Offer;
-import com.savouretplus.savis.supply.port.OfferRepository;
-
-import lombok.extern.slf4j.Slf4j;
 
 /**
  * Coordinates offer ingestion, invalidation, searching, and pricing lookup.
@@ -29,11 +31,56 @@ public class OfferService implements SupplyApi {
 
     private final OfferRepository repository;
 
-    /**
-     * Creates the service with its offer repository dependency.
-     */
-    public OfferService(OfferRepository repository) {
+    private final ResourceCatalogApi resources;
+
+    public OfferService(OfferRepository repository,
+            ResourceCatalogApi resources) {
         this.repository = repository;
+        this.resources = resources;
+    }
+
+    @Override
+    public List<OfferPricing> getPricingCandidates(Set<UUID> resourceIds, Set<UUID> offerIds) {
+        return repository.findPricingCandidates(resourceIds, offerIds).stream().map(OfferPricing::from).toList();
+    }
+
+    public List<Offer> resourceOffers(UUID resourceId) {
+        return repository.findByResourceId(resourceId);
+    }
+
+    public Offer associate(UUID offerId, UUID resourceId) {
+        Offer offer = repository.findByPublicId(offerId)
+                .orElseThrow(() -> new IllegalArgumentException("Offre introuvable"));
+        validateAssociation(offer, resourceId);
+        return repository.save(offer.associatedWith(resourceId));
+    }
+
+    public Offer createManualOffer(Offer offer) {
+        if (offer.externalId() == null || offer.externalId().isBlank()
+                || offer.provider() == null || offer.provider().identifier() == null
+                || offer.provider().identifier().isBlank() || offer.provider().name() == null
+                || offer.provider().name().isBlank() || offer.price() == null
+                || offer.packageSize() == null || !Double.isFinite(offer.packageSize().value())
+                || offer.packageSize().value() <= 0) {
+            throw new IllegalArgumentException("Fournisseur, référence, prix et conditionnement positif requis");
+        }
+        if (repository.findByExternalIdAndProviderIdentifier(offer.externalId(), offer.provider().identifier()).isPresent()) {
+            throw new IllegalArgumentException("Cette référence fournisseur existe déjà");
+        }
+        validateAssociation(offer, offer.resourceId());
+        return repository.save(offer);
+    }
+
+    private void validateAssociation(Offer offer, UUID resourceId) {
+        if (resourceId == null) throw new IllegalArgumentException("La ressource est requise");
+        var resource = resources.findReference(resourceId)
+                .orElseThrow(() -> new IllegalArgumentException("Ressource introuvable"));
+        if (!"ACTIVE".equals(resource.status())) throw new IllegalArgumentException("La ressource est inactive");
+        if (offer.packageSize() == null || resource.referenceUnit() == null
+                || !offer.packageSize().unit().baseUnit().equals(
+                        Unit.fromSymbole(resource.referenceUnit()).baseUnit())) {
+            throw new IllegalArgumentException("Unités de la ressource et du conditionnement incompatibles");
+        }
     }
 
     /**
@@ -51,6 +98,14 @@ public class OfferService implements SupplyApi {
     public List<Offer> searchAvailableOffers(String componentName) {
         log.info("Search available offers for component {}", componentName);
         return repository.searchAvailableByComponentName(componentName);
+    }
+
+    /**
+     * Returns one filtered page of persisted supplier offers.
+     */
+    @Transactional(readOnly = true)
+    public OfferCatalogPage searchOfferCatalog(OfferCatalogQuery query) {
+        return repository.searchCatalog(query);
     }
 
     /**
@@ -125,7 +180,9 @@ public class OfferService implements SupplyApi {
     private boolean hasPricedPackage(Offer offer) {
         return offer.price() != null
                 && offer.packageSize() != null
-                && offer.packageSize().baseValue().compareTo(BigDecimal.ZERO) > 0;
+                && offer.packageSize().unit() != null
+                && Double.isFinite(offer.packageSize().value())
+                && offer.packageSize().value() > 0;
     }
 
 }

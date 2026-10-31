@@ -1,6 +1,5 @@
 package com.savouretplus.savis.catalog.usecase;
 
-import java.math.RoundingMode;
 import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -14,7 +13,6 @@ import com.savouretplus.savis.catalog.domain.ProductChoiceOption;
 import com.savouretplus.savis.catalog.domain.ProductIngredientOption;
 import com.savouretplus.savis.catalog.domain.ProductPurchaseMode;
 import com.savouretplus.savis.catalog.port.PublishedCatalogProduct;
-import com.savouretplus.savis.common.Money;
 
 /**
  * Maps catalog domain objects into publishable catalog product payloads.
@@ -50,6 +48,7 @@ public class PublishedCatalogProductMapper {
                 product.slug(), product.name(), product.category().code(),
                 product.subcategory() != null ? product.subcategory().code() : null,
                 product.description(),
+                product.commercialType().name().toLowerCase(Locale.ROOT),
                 product.productType().name().toLowerCase(Locale.ROOT),
                 modes, choiceGroup, ingredients, product.imageUrl(), product.gallery(), product.availabilityNote(),
                 product.available(), product.displayOrder());
@@ -60,7 +59,7 @@ public class PublishedCatalogProductMapper {
         value.put("id", mode.code());
         value.put("label", mode.label());
         value.put("quantity", mode.quantity());
-        value.put("price_cents", cents(mode.price()));
+        value.put("price_cents", CatalogCommercialPrice.toCents(mode.price()));
         value.put("allocation_type", mode.allocationType().name().toLowerCase(Locale.ROOT));
         return value;
     }
@@ -81,11 +80,8 @@ public class PublishedCatalogProductMapper {
         value.put("default_quantity", option.defaultQuantity());
         value.put("min_quantity", option.minQuantity());
         value.put("max_quantity", option.maxQuantity());
-        value.put("extra_price_cents", cents(option.extraPrice()));
+        value.put("extra_price_cents", CatalogCommercialPrice.toCents(option.extraPrice()));
         return value;
     }
 
-    private int cents(Money money) {
-        return money.amount().movePointRight(2).setScale(0, RoundingMode.HALF_UP).intValueExact();
-    }
 }

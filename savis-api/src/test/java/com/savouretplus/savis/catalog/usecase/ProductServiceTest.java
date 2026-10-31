@@ -1,6 +1,8 @@
 package com.savouretplus.savis.catalog.usecase;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.math.BigDecimal;
@@ -13,6 +15,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import com.savouretplus.savis.catalog.domain.Product;
+import com.savouretplus.savis.catalog.domain.CommercialType;
 import com.savouretplus.savis.catalog.domain.ProductBom;
 import com.savouretplus.savis.catalog.domain.ProductCategory;
 import com.savouretplus.savis.catalog.domain.ProductPurchaseMode;
@@ -31,7 +34,8 @@ class ProductServiceTest {
     void refusesUnknownProductBomOnCreate() {
         UUID bomId = UUID.randomUUID();
         Product product = new Product(
-                null, "pate", "pate", "Pâté", "", ProductType.STANDARD,
+                null, "pate", "pate", "Pâté", "", CommercialType.GOODS,
+                ProductType.STANDARD,
                 ProductCategory.TASTING, null,
                 List.of(new ProductBom(null, bomId, BigDecimal.ONE, 0)),
                 new BigDecimal("0.30"),
@@ -43,5 +47,22 @@ class ProductServiceTest {
 
         assertThrows(IllegalArgumentException.class,
                 () -> new ProductService(products, bomPricing).create(product));
+    }
+
+    @Test
+    void delegatesANormalizedBoundedProductSearch() {
+        when(products.search("Pâté", true, 20)).thenReturn(List.of());
+        ProductService service = new ProductService(products, bomPricing);
+
+        assertEquals(List.of(), service.search("  Pâté  ", true, 20));
+
+        verify(products).search("Pâté", true, 20);
+    }
+
+    @Test
+    void refusesAnUnboundedProductSearch() {
+        ProductService service = new ProductService(products, bomPricing);
+
+        assertThrows(IllegalArgumentException.class, () -> service.search("", true, 101));
     }
 }

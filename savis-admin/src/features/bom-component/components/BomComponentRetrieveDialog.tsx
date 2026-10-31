@@ -1,3 +1,5 @@
+import { HugeiconsIcon } from "@hugeicons/react";
+import { Download01Icon } from "@hugeicons/core-free-icons";
 import { Button } from "@/shared/ui/button";
 import {
   Dialog,
@@ -63,12 +65,15 @@ export const BomComponentRetrieveDialog = ({
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogTrigger asChild>
-        <Button>Récupérer un composant BOM</Button>
+        <Button>
+          <HugeiconsIcon icon={Download01Icon} strokeWidth={2} />
+          Récupérer une offre
+        </Button>
       </DialogTrigger>
       <DialogContent className="sm:max-w-md">
         <form onSubmit={handleSubmit}>
           <DialogHeader>
-            <DialogTitle>Récupérer un composant BOM</DialogTitle>
+            <DialogTitle>Récupérer une offre fournisseur</DialogTitle>
             <DialogDescription>
               Indiquez une offre précise à récupérer depuis le site du
               fournisseur.
@@ -131,7 +136,7 @@ export const BomComponentRetrieveDialog = ({
 
             <div className="grid gap-2">
               <Label htmlFor="bom-component-retrieve-name">
-                Nom du composant BOM
+                Nom du composant
               </Label>
               <Input
                 id="bom-component-retrieve-name"

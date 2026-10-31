@@ -56,11 +56,12 @@ projection:
 | **SAVIS Admin**    | React 19, TypeScript 6, Vite 8 | Internal management interface            | [README](savis-admin/README.md)    |
 | **SAVIS API**      | Java 25, Spring Boot 4.1       | Business rules and system of record      | [README](savis-api/README.md)      |
 | **SAVIS Executor** | Python 3.14, FastAPI, Celery   | Provider acquisition and background work | [README](savis-executor/README.md) |
-| **Supabase**       | PostgreSQL, RLS                | Public catalog and commerce projection   | [Migrations](supabase/migrations)  |
+| **Supabase**       | PostgreSQL, RLS                | Public catalog projection and order inbox | [Documentation](supabase/README.md) |
 
 Main capabilities:
 
 - technical BOMs, components, activities, yields, and cost calculation;
+- a material Resource reference catalog linked to BOM components by stable UUID;
 - global activity-rate management;
 - provider offer acquisition, review, selection, invalidation, and refresh;
 - asynchronous tasks with retries, request pacing, and provider circuit
@@ -69,6 +70,9 @@ Main capabilities:
   ingredients;
 - product cost, margin, worst-case, and recommended-price analysis;
 - explicit catalog publication to Supabase;
+- administrative order entry with catalog-backed configuration and pricing;
+- manual, idempotent import of Supabase web orders into normalized local
+  order aggregates;
 - immutable Docker releases with SBOM and provenance metadata.
 
 Supabase is not the SAVIS business backend. PostgreSQL schemas owned by the API
@@ -84,7 +88,9 @@ The French-language administration UI provides:
 - offer review and acquisition-task monitoring;
 - activity-rate configuration;
 - catalog product editing and pricing analysis;
-- catalog publication.
+- catalog publication;
+- administrative order entry, web-order retrieval, detail display, and
+  lifecycle management.
 
 In production, Nginx serves the single-page application and proxies:
 
@@ -95,10 +101,11 @@ In production, Nginx serves the single-page application and proxies:
 
 The Java application owns:
 
-- BOM, supply, activity-rate, and catalog business rules;
+- BOM, supply, activity-rate, catalog, and order business rules;
 - pricing and margin analysis;
 - offer requests and result consumption through RabbitMQ;
-- publication of customer-facing catalog data to Supabase.
+- publication of customer-facing catalog data to Supabase;
+- manual reads and acknowledgements of the Supabase customer-order inbox.
 
 Its PostgreSQL schema is `savis_api`. Flyway manages the schema and Hibernate
 validates it at startup.
@@ -327,7 +334,7 @@ RABBIT_MQ_USER=
 RABBIT_MQ_PASSWORD=
 ```
 
-### Supabase Publication
+### Supabase Integration
 
 ```env
 SUPABASE_ENABLED=false

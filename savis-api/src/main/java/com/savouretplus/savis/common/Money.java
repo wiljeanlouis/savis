@@ -1,6 +1,9 @@
 package com.savouretplus.savis.common;
 
 import java.math.BigDecimal;
+import java.util.Currency;
+import java.util.Locale;
+import java.util.Objects;
 
 /**
  * Represents a monetary amount in a specific currency.
@@ -14,8 +17,18 @@ public record Money(
      * Validates and normalizes a monetary amount.
      */
     public Money {
-        if (amount == null)
+        if (amount == null) {
             throw new IllegalArgumentException("Montant requis");
+        }
+        if (currency == null || currency.isBlank()) {
+            throw new IllegalArgumentException("Devise requise");
+        }
+        currency = currency.trim().toUpperCase(Locale.ROOT);
+        try {
+            Currency.getInstance(currency);
+        } catch (IllegalArgumentException exception) {
+            throw new IllegalArgumentException("Devise invalide: " + currency, exception);
+        }
     }
 
      /**
@@ -42,6 +55,7 @@ public record Money(
      * Returns the sum of this money amount and another amount with the same currency.
      */
     public Money add(Money other) {
+        Objects.requireNonNull(other, "Le montant à additionner est requis");
         if (!this.currency.equals(other.currency)) {
             throw new IllegalArgumentException("Devises différentes !");
         }

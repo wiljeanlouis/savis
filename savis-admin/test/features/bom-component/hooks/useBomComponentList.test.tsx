@@ -57,7 +57,7 @@ const mutateDelete = vi.fn();
 describe("useBomComponentList", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    window.history.pushState({}, "", "/bom-components");
+    window.history.pushState({}, "", "/offers");
 
     mockUseGetBomComponents.mockReturnValue({
       data: bomComponentsPage,
@@ -85,7 +85,7 @@ describe("useBomComponentList", () => {
     window.history.pushState(
       {},
       "",
-      "/bom-components?page=3&size=50&sort_by=price&sort_direction=asc&search_term=lait&type=FOOD",
+      "/offers?page=3&size=50&sort_by=price&sort_direction=asc&search_term=lait&type=FOOD",
     );
 
     const { result } = renderHook(() => useBomComponentList(), {
@@ -98,6 +98,7 @@ describe("useBomComponentList", () => {
       sortBy: "price",
       sortDirection: "asc",
       searchTerm: "lait",
+      status: "NEW",
     });
     expect(mockUseGetBomComponents).toHaveBeenLastCalledWith(
       3,
@@ -105,6 +106,7 @@ describe("useBomComponentList", () => {
       "price",
       "asc",
       "lait",
+      "NEW",
     );
 
     await waitFor(() => {
@@ -116,7 +118,7 @@ describe("useBomComponentList", () => {
     window.history.pushState(
       {},
       "",
-      "/bom-components?page=-2&size=abc&sort_direction=sideways&type=FOOD",
+      "/offers?page=-2&size=abc&sort_direction=sideways&type=FOOD",
     );
 
     const { result } = renderHook(() => useBomComponentList(), {
@@ -129,6 +131,7 @@ describe("useBomComponentList", () => {
       sortBy: "last_retrieved_at",
       sortDirection: "desc",
       searchTerm: undefined,
+      status: "NEW",
     });
 
     await waitFor(() => {
@@ -146,7 +149,7 @@ describe("useBomComponentList", () => {
     window.history.pushState(
       {},
       "",
-      "/bom-components?page=4&size=30&sort_by=brand&sort_direction=asc",
+      "/offers?page=4&size=30&sort_by=brand&sort_direction=asc",
     );
 
     const { result } = renderHook(() => useBomComponentList(), {
@@ -196,6 +199,39 @@ describe("useBomComponentList", () => {
       expect(searchParams.get("sort_direction")).toBe("asc");
       expect(searchParams.has("type")).toBe(false);
     });
+  });
+
+  it("resets the page when changing review status and scopes the server query", async () => {
+    window.history.pushState({}, "", "/offers?page=4");
+    const { result } = renderHook(() => useBomComponentList(), {
+      wrapper: Wrapper,
+    });
+    act(() => result.current.handleStatusChange("REJECTED"));
+    await waitFor(() =>
+      expect(mockUseGetBomComponents).toHaveBeenLastCalledWith(
+        1,
+        20,
+        "last_retrieved_at",
+        "desc",
+        undefined,
+        "REJECTED",
+      ),
+    );
+    act(() => result.current.handleStatusChange("VALID"));
+    await waitFor(() => expect(result.current.listState.status).toBe("VALID"));
+  });
+
+  it("returns to the preceding page after its last matching offer disappears", async () => {
+    window.history.pushState({}, "", "/offers?page=2");
+    mockUseGetBomComponents.mockReturnValue({
+      data: { ...bomComponentsPage, page: 2, total_pages: 1 },
+      isPending: false,
+      isError: false,
+    } as never);
+    const { result } = renderHook(() => useBomComponentList(), {
+      wrapper: Wrapper,
+    });
+    await waitFor(() => expect(result.current.listState.page).toBe(1));
   });
 
   it("creates a GET_OFFER task for a provider URL", async () => {

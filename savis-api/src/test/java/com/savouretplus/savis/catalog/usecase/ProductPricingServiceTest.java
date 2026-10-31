@@ -52,7 +52,9 @@ class ProductPricingServiceTest {
 
         UUID missingBom = UUID.randomUUID();
         Product incomplete = standard(missingBom, Money.of(10), new BigDecimal("0.30"));
-        when(bomPricing.getPricing(missingBom)).thenThrow(new RuntimeException("missing"));
+        when(bomPricing.getPricing(missingBom)).thenReturn(new BomPricingPort.BomPricing(
+                null, null, Money.ZERO, false, List.of(new CostDiagnostic(missingBom,
+                        "BOM_NOT_FOUND", "Composition", "Composition introuvable", true))));
         ProductPricingAnalysis result = pricing.analyze(incomplete, ProductConfiguration.empty());
         assertEquals(PriceHealthStatus.INCOMPLETE, result.status());
         assertNull(result.recommendedPrice());
@@ -184,7 +186,8 @@ class ProductPricingServiceTest {
                 product, new ProductConfiguration(null, "chicken", List.of(), List.of()));
 
         assertEquals(PriceHealthStatus.INCOMPLETE, result.status());
-        assertMoney("2", result.cost());
+        assertMoney("2", result.knownSubtotal());
+        assertNull(result.cost());
     }
 
     @Test
@@ -206,7 +209,72 @@ class ProductPricingServiceTest {
         ProductPricingAnalysis result = pricing.analyze(product, ProductConfiguration.empty());
 
         assertEquals(PriceHealthStatus.INCOMPLETE, result.status());
-        assertMoney("3", result.cost());
+        assertMoney("3", result.knownSubtotal());
+        assertNull(result.cost());
+    }
+
+    @Test
+    void keepsPartialCostsAcrossBomsAndSuppressesMarginsAndRecommendations() {
+        UUID first = UUID.randomUUID();
+        UUID second = UUID.randomUUID();
+        Product product = product(ProductType.STANDARD, List.of(
+                new ProductBom(null, first, new BigDecimal("2"), 0),
+                new ProductBom(null, second, new BigDecimal("3"), 1)),
+                Money.of(20), new BigDecimal("0.30"), List.of(), null, List.of());
+        when(bomPricing.getPricing(first)).thenReturn(new BomPricingPort.BomPricing(Money.of(8), new BigDecimal("4")));
+        var diagnostic = new CostDiagnostic(second, "ACTIVITY_RATE_MISSING", "COOK", "Taux horaire absent", true);
+        when(bomPricing.getPricing(second)).thenReturn(new BomPricingPort.BomPricing(null,
+                new BigDecimal("2"), Money.of(4), false, List.of(diagnostic)));
+        var result = pricing.analyze(product, ProductConfiguration.empty());
+        assertMoney("10", result.knownSubtotal());
+        assertNull(result.cost());
+        assertNull(result.unitCost());
+        assertNull(result.actualMarginRate());
+        assertNull(result.recommendedPrice());
+        assertEquals(PriceHealthStatus.INCOMPLETE, result.status());
+        assertEquals(List.of(diagnostic), result.diagnostics());
+        assertEquals(Money.of(20), result.salePrice());
+    }
+
+    @Test
+    void doesNotTurnUnexpectedTechnicalFailuresIntoMissingBoms() {
+        UUID id = UUID.randomUUID();
+        var failure = new IllegalStateException("database unavailable");
+        when(bomPricing.getPricing(id)).thenThrow(failure);
+        assertSame(failure, assertThrows(IllegalStateException.class,
+                () -> pricing.analyze(standard(id, Money.of(10), new BigDecimal("0.3")), ProductConfiguration.empty())));
+    }
+
+    @Test
+    void invalidYieldCannotBeScaledIntoAProductSubtotal() {
+        UUID id = UUID.randomUUID();
+        when(bomPricing.getPricing(id)).thenReturn(new BomPricingPort.BomPricing(null,
+                BigDecimal.ZERO, Money.of(4), false, List.of()));
+        var result = pricing.analyze(standard(id, Money.of(10), new BigDecimal("0.3")), ProductConfiguration.empty());
+        assertMoney("0", result.knownSubtotal());
+        assertFalse(result.complete());
+        assertNull(result.recommendedPrice());
+        assertEquals("INVALID_YIELD", result.diagnostics().getFirst().code());
+    }
+
+    @Test
+    void incompleteBundleOptionPreventsAWorstCaseRecommendation() {
+        UUID known = UUID.randomUUID();
+        UUID missing = UUID.randomUUID();
+        var choices = new ProductChoiceGroup(null, "Saveur", true, List.of(
+                new ProductChoiceOption(null, "known", "Connue", known, true, 0),
+                new ProductChoiceOption(null, "missing", "Incomplète", missing, true, 1)));
+        var mode = new ProductPurchaseMode(null, "box", "Boîte", 12, Money.of(30), AllocationType.CHOICE_ALLOCATION, true, 0);
+        Product product = product(ProductType.SINGLE_CHOICE_BUNDLE, List.of(), Money.of(30),
+                new BigDecimal("0.3"), List.of(mode), choices, List.of());
+        when(bomPricing.getPricing(known)).thenReturn(new BomPricingPort.BomPricing(Money.of(2), BigDecimal.ONE));
+        when(bomPricing.getPricing(missing)).thenReturn(new BomPricingPort.BomPricing(null, BigDecimal.ONE,
+                Money.of(1), false, List.of(new CostDiagnostic(missing, "OFFER_PRICE_MISSING", "Farine", "Prix absent", true))));
+        var result = pricing.analyzeWorstCase(product, "box");
+        assertFalse(result.complete());
+        assertNull(result.actualMarginRate());
+        assertNull(result.recommendedPrice());
+        assertEquals("OFFER_PRICE_MISSING", result.diagnostics().getFirst().code());
     }
 
     private Product standard(UUID bomId, Money price, BigDecimal margin) {
@@ -238,7 +306,8 @@ class ProductPricingServiceTest {
                 ? List.of(new ProductPurchaseMode(
                         null, "unit", "À l'unité", 1, price, AllocationType.NONE, true, 0))
                 : modes;
-        return new Product(null, "code", "slug", "Produit", "", type, ProductCategory.TASTING, null, productBoms,
+        return new Product(null, "code", "slug", "Produit", "", CommercialType.GOODS,
+                type, ProductCategory.TASTING, null, productBoms,
                 margin, "/image.jpg", List.of(), "Disponible", true, true,
                 0, safeModes, group, ingredients);
     }
