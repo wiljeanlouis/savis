@@ -1,19 +1,26 @@
+import type { BomComponentStatus } from "../types";
 import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import { getApiErrorMessage } from "@/shared/api/apiError";
 import { useGetBomComponentSearchTermFacets } from "./useBomComponentApi";
 
 interface UseBomComponentSearchTermFacetsParams {
+  status?: BomComponentStatus;
   selectedSearchTerm?: string;
   onSearchTermChange: (searchTerm: string | undefined) => void;
 }
 
 export const useBomComponentSearchTermFacets = ({
+  status,
   selectedSearchTerm,
   onSearchTermChange,
 }: UseBomComponentSearchTermFacetsParams) => {
   const [searchQuery, setSearchQuery] = useState("");
-  const { data: facets, isError, error } = useGetBomComponentSearchTermFacets();
+  const {
+    data: facets,
+    isError,
+    error,
+  } = useGetBomComponentSearchTermFacets(status);
 
   useEffect(() => {
     if (!isError) {

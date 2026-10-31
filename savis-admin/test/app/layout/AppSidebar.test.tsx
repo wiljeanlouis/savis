@@ -37,12 +37,13 @@ describe("AppSidebar", () => {
     expect(
       screen.getByRole("link", { name: "Offres fournisseurs" }),
     ).toHaveAttribute("href", "/supply/offers");
-    expect(
-      screen.getByRole("link", { name: "Gestion des offres" }),
-    ).toHaveAttribute("href", "/bom-components");
+    expect(screen.getByRole("link", { name: "À valider" })).toHaveAttribute(
+      "href",
+      "/offers",
+    );
     expect(
       screen.getByRole("link", { name: "Tâches d'acquisition" }),
-    ).toHaveAttribute("href", "/bom-components/tasks");
+    ).toHaveAttribute("href", "/offers/tasks");
 
     fireEvent.click(screen.getByRole("button", { name: /Production/ }));
     expect(screen.getByRole("link", { name: "Compositions" })).toHaveAttribute(
@@ -131,11 +132,12 @@ describe("AppSidebar", () => {
   });
 
   it("keeps management and acquisition tasks mutually exclusive", () => {
-    renderSidebar("/bom-components/tasks");
+    renderSidebar("/offers/tasks");
 
-    expect(
-      screen.getByRole("link", { name: "Gestion des offres" }),
-    ).toHaveAttribute("data-active", "false");
+    expect(screen.getByRole("link", { name: "À valider" })).toHaveAttribute(
+      "data-active",
+      "false",
+    );
     expect(
       screen.getByRole("link", { name: "Tâches d'acquisition" }),
     ).toHaveAttribute("data-active", "true");
@@ -145,11 +147,12 @@ describe("AppSidebar", () => {
   });
 
   it("highlights offer management only on its own route", () => {
-    renderSidebar("/bom-components");
+    renderSidebar("/offers");
 
-    expect(
-      screen.getByRole("link", { name: "Gestion des offres" }),
-    ).toHaveAttribute("data-active", "true");
+    expect(screen.getByRole("link", { name: "À valider" })).toHaveAttribute(
+      "data-active",
+      "true",
+    );
     expect(
       screen.getByRole("link", { name: "Tâches d'acquisition" }),
     ).toHaveAttribute("data-active", "false");
@@ -158,11 +161,12 @@ describe("AppSidebar", () => {
   it("keeps the procurement group open while navigating between its routes", () => {
     renderSidebar("/supply/offers");
 
-    fireEvent.click(screen.getByRole("link", { name: "Gestion des offres" }));
+    fireEvent.click(screen.getByRole("link", { name: "À valider" }));
 
-    expect(
-      screen.getByRole("link", { name: "Gestion des offres" }),
-    ).toHaveAttribute("data-active", "true");
+    expect(screen.getByRole("link", { name: "À valider" })).toHaveAttribute(
+      "data-active",
+      "true",
+    );
     expect(
       screen.getByRole("link", { name: "Tâches d'acquisition" }),
     ).toBeVisible();

@@ -16,7 +16,7 @@ interface PageSelectorProps {
 
 export const PageSelector = ({ pageSize, onPageChange }: PageSelectorProps) => {
   return (
-    <>
+    <div className="flex shrink-0 items-center gap-2 whitespace-nowrap">
       <span className="text-xs text-muted-foreground">Par page</span>
       <Select
         value={`${pageSize}`}
@@ -39,6 +39,6 @@ export const PageSelector = ({ pageSize, onPageChange }: PageSelectorProps) => {
           </SelectGroup>
         </SelectContent>
       </Select>
-    </>
+    </div>
   );
 };

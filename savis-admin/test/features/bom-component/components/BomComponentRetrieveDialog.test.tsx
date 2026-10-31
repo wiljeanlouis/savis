@@ -14,7 +14,7 @@ describe("BomComponentRetrieveDialog", () => {
     );
 
     fireEvent.click(
-      screen.getByText("Récupérer une offre fournisseur", {
+      screen.getByText("Récupérer une offre", {
         selector: "button",
       }),
     );
@@ -53,7 +53,7 @@ describe("BomComponentRetrieveDialog", () => {
     );
 
     fireEvent.click(
-      screen.getByText("Récupérer une offre fournisseur", {
+      screen.getByText("Récupérer une offre", {
         selector: "button",
       }),
     );
@@ -88,7 +88,7 @@ describe("BomComponentRetrieveDialog", () => {
     );
 
     fireEvent.click(
-      screen.getByText("Récupérer une offre fournisseur", {
+      screen.getByText("Récupérer une offre", {
         selector: "button",
       }),
     );

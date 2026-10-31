@@ -3,21 +3,19 @@ package com.savouretplus.savis.bom.port;
 import java.util.List;
 import java.util.Map;
 
-import com.savouretplus.savis.common.Money;
-
 /**
- * Defines the pricing operations needed to cost BOM components.
+ * Resolves expected valuation failures explicitly. Unexpected technical failures propagate to the caller.
  */
 public interface ComponentPricePort {
 
     /**
      * Returns the calculated price for one component price request.
      */
-    Money getPrice(ComponentPriceRequest request);
+    ComponentPrice getPrice(ComponentPriceRequest request);
 
     /**
      * Returns calculated prices for multiple component price requests.
      */
-    Map<ComponentPriceRequest, Money> getPrices(List<ComponentPriceRequest> requests);
+    Map<ComponentPriceRequest, ComponentPrice> getPrices(List<ComponentPriceRequest> requests);
 
 }
