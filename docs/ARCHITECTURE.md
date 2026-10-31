@@ -554,6 +554,9 @@ It is not yet an operational read model.
 
 ### State and Navigation
 
+- The root route defines an initial loading fallback while route loaders resolve,
+  including direct navigation to a saved BOM; it renders an accessible French
+  loading status before the page is ready.
 - `src/app` owns routing, providers and layout; `src/features` owns API calls,
   hooks, models, components and pages; `src/shared` owns Axios clients and UI primitives.
 - TanStack Query owns server state and feature query invalidation. Supported

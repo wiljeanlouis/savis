@@ -142,6 +142,7 @@ The following sections follow the visible sidebar order and labels.
 - **Feature structure:** keep API functions, hooks, types, model helpers, components, and pages within the owning feature; acquisition tasks are nested under `bom-component/task`.
 - **`src/shared/`:** Axios clients, application components, utilities, and shared UI primitives. Imports use the `@/` alias.
 - **Routing:** React Router’s `createBrowserRouter()` defines screens and route loaders; route `handle` metadata supplies breadcrumbs.
+- **Initial loading:** the root route displays “Chargement…” while an initial route loader resolves, including direct access to `/boms/:id`.
 - **Layout:** `MainLayout` provides the sidebar, header, breadcrumbs, toasts, help, and route outlet, with responsive navigation and light/dark/system themes.
 - **Sales navigation:** `/sales` defaults to orders. Legacy `/quotations`, `/orders`, `/invoices`, and `/supply-offers` list URLs redirect to current workspaces.
 
