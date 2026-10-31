@@ -113,6 +113,10 @@ src/main/java/com/savouretplus/savis/
 |   |   |-- bom/
 |   |   `-- supabase/
 |   `-- config/
+|-- sales/                      # Structural parent, no shared business service
+|   |-- quotation/              # domain, usecase, port, adapter
+|   |-- order/                  # api, domain, usecase, port, adapter
+|   `-- invoice/                # domain, usecase, port, adapter
 `-- common/                     # Money, Quantity, and Unit
 ```
 
@@ -128,7 +132,13 @@ The slices collaborate through explicit public contracts:
   exposes an immutable reference view and never exposes Resource persistence.
 
 `SavisApiModularityTests` uses Spring Modulith to verify module boundaries and
-generate documentation snippets.
+generate documentation snippets. Sales children are explicitly declared closed
+nested modules with stable IDs `sales.quotation`, `sales.order`, and
+`sales.invoice` and public-interface dependency allowlists. Order retains the
+`order` named interface (`QuotationOrderApi`, `OrderInvoicingApi`). Catalog
+remains a separate top-level module and has no Sales dependency. Negative fixture
+tests prove that sibling entity and repository access fails verification.
+See [Sales audit, options, and module graphs](../docs/SALES_REFACTORING.md).
 
 ## Business Slices
 
@@ -910,7 +920,7 @@ Additional runtime settings:
 
 - Java 25
 - Spring Boot 4.1
-- Spring Modulith 2.0.5
+- Spring Modulith 2.1.0
 - Spring MVC
 - Spring Data JPA and Hibernate
 - Flyway

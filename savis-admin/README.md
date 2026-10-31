@@ -414,7 +414,11 @@ src/
 |   |-- bom-component/
 |   |   `-- task/               # Child acquisition workflow
 |   |-- catalog/
-|   |-- orders/
+|   |-- sales/
+|   |   |-- pages/              # Shared Sales tab layout
+|   |   |-- quotations/         # api, hooks, model, components, pages, types
+|   |   |-- orders/             # api, hooks, model, components, pages, types
+|   |   `-- invoices/           # api, hooks, components, pages, types
 |   `-- dashboard/
 `-- shared/
     |-- api/                    # Axios clients
@@ -433,6 +437,16 @@ A feature generally owns its:
 - feature-specific model helpers.
 
 Cross-feature UI primitives remain under `src/shared`.
+
+Sales groups the existing `quotations`, `orders`, and `invoices` slices under
+`src/features/sales/`; their tests mirror that structure under
+`test/features/sales/`. Each child retains its API functions, query hooks,
+components, pages and types. The existing `SalesLayout` stays in
+`sales/pages/`. Catalog remains independent under `src/features/catalog/`.
+This grouping changes import paths only: routes, REST payloads, query keys,
+draft storage keys and user workflows remain unchanged. Existing reuse between
+Sales children is retained without adding a central Sales service or moving
+business-specific code into shared primitives.
 
 ## Routing and Layout
 

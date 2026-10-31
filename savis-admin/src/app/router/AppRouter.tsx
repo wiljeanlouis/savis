@@ -26,12 +26,12 @@ import { ActivityRatesPage } from "@/features/activity-rate/pages/ActivityRatesP
 import { CatalogProductAnalysisPage } from "@/features/catalog/pages/CatalogProductAnalysisPage";
 import { CatalogProductsPage } from "@/features/catalog/pages/CatalogProductsPage";
 import { CatalogProductEditorPage } from "@/features/catalog/pages/CatalogProductEditorPage";
-import { OrdersPage } from "@/features/orders/pages/OrdersPage";
-import { OrderDetailsPage } from "@/features/orders/pages/OrderDetailsPage";
-import { QuotationsPage } from "@/features/quotations/pages/QuotationsPage";
-import { QuotationDetailsPage } from "@/features/quotations/pages/QuotationDetailsPage";
-import { InvoicesPage } from "@/features/invoices/pages/InvoicesPage";
-import { InvoiceDetailsPage } from "@/features/invoices/pages/InvoiceDetailsPage";
+import { OrdersPage } from "@/features/sales/orders/pages/OrdersPage";
+import { OrderDetailsPage } from "@/features/sales/orders/pages/OrderDetailsPage";
+import { QuotationsPage } from "@/features/sales/quotations/pages/QuotationsPage";
+import { QuotationDetailsPage } from "@/features/sales/quotations/pages/QuotationDetailsPage";
+import { InvoicesPage } from "@/features/sales/invoices/pages/InvoicesPage";
+import { InvoiceDetailsPage } from "@/features/sales/invoices/pages/InvoiceDetailsPage";
 import { SalesLayout } from "@/features/sales/pages/SalesLayout";
 import { SupplyOffersPage } from "@/features/supply-offer/pages/SupplyOffersPage";
 

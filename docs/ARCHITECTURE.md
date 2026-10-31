@@ -297,13 +297,21 @@ flowchart TB
       CatalogAdapters["Adapters<br/>JPA<br/>BOM public API<br/>Supabase"]
     end
 
-    subgraph Orders["Order module"]
+    subgraph Sales["Sales domain"]
+    subgraph Orders["sales.order module"]
       OrderWeb["Web adapter<br/>OrderController"]
       OrderUse["Use cases<br/>OrderService<br/>ImportOrdersUseCase"]
       OrderDomain["Domain<br/>Order aggregate and snapshots"]
       OrderPorts["Ports<br/>OrderRepository<br/>OrderInbox<br/>OrderCatalog<br/>OrderBomRequirements<br/>OrderSourcing"]
       OrderAdapters["Adapters<br/>JPA<br/>Supabase PostgREST<br/>Catalog, BOM, Supply APIs"]
     end
+
+    Quotation["sales.quotation<br/>Devis et conversion"]
+    Invoice["sales.invoice<br/>Factures et documents"]
+    Quotation -->|QuotationOrderApi| OrderUse
+    Invoice -->|OrderInvoicingApi| OrderUse
+    end
+    Quotation -->|CatalogOrderingApi| CatalogUse
 
     Common["Shared value objects<br/>Money, Quantity, Unit"]
   end
@@ -358,7 +366,16 @@ flowchart TB
 - HTTP, JPA, RabbitMQ, and Supabase dependencies remain in adapters.
 
 `SavisApiModularityTests` uses Spring Modulith to verify module dependencies and
-generate module documentation snippets.
+generate module documentation snippets. `sales` is a structural parent containing
+three explicitly annotated, closed nested modules: `sales.quotation`,
+`sales.order`, and `sales.invoice`. Their allowlists restrict dependencies to
+existing public named interfaces. Quotation converts through `QuotationOrderApi`;
+Invoice reads immutable order snapshots through `OrderInvoicingApi`. Catalog
+remains outside Sales and depends only on Common and the BOM public contract.
+The parent contains no shared business implementation because nested modules can
+access parent internals under Spring Modulith rules. Tests assert child ownership,
+API exposure, Catalog independence, and rejection of sibling internal access.
+See [the preliminary audit, alternatives, and before/after graphs](SALES_REFACTORING.md).
 
 ### Pricing Boundary
 
@@ -448,6 +465,14 @@ within the same task attempt.
 
 ## Admin Components
 
+Admin mirrors the Sales grouping with `src/features/sales/quotations`,
+`sales/orders`, and `sales/invoices`; tests mirror those paths. The parent keeps
+the existing tab layout in `sales/pages/SalesLayout.tsx`. Each child owns its
+API client functions, query hooks, types and UI. Catalog remains an independent
+feature. This directory refactoring preserves routes, HTTP/JSON contracts,
+query keys and draft storage keys. Unlike the backend, Admin has no Spring
+Modulith boundary model; its existing cross-child presentation reuse is retained.
+
 ### C4 Level 3
 
 ```mermaid
@@ -465,7 +490,12 @@ flowchart TB
       Tasks["bom-component/task"]
       Rates["activity-rate"]
       Catalog["catalog"]
-      Orders["orders"]
+      subgraph SalesFeatures["sales"]
+        SalesLayout["pages/SalesLayout"]
+        Quotations["quotations"]
+        Orders["orders"]
+        Invoices["invoices"]
+      end
     end
   end
 
@@ -476,7 +506,13 @@ flowchart TB
   Components --> Tasks
   Router --> Rates
   Router --> Catalog
+  Router --> SalesLayout
+  SalesLayout --> Quotations
+  SalesLayout --> Orders
+  SalesLayout --> Invoices
   Router --> Orders
+  Router --> Quotations
+  Router --> Invoices
 
   Bom --> ApiClients
   Components --> ApiClients
@@ -484,12 +520,16 @@ flowchart TB
   Rates --> ApiClients
   Catalog --> ApiClients
   Orders --> ApiClients
+  Quotations --> ApiClients
+  Invoices --> ApiClients
 
   Bom --> SharedUi
   Components --> SharedUi
   Rates --> SharedUi
   Catalog --> SharedUi
   Orders --> SharedUi
+  Quotations --> SharedUi
+  Invoices --> SharedUi
 ```
 
 | Client        | Default production path | Target         |
