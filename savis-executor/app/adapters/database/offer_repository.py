@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from datetime import datetime  # noqa: TC003
-from decimal import Decimal
+from decimal import ROUND_HALF_EVEN, Decimal
 from uuid import UUID
 
 from sqlalchemy import (
@@ -29,6 +29,8 @@ from app.core.models import (
     SortDirection,
 )
 from app.core.ports import OfferRepository
+
+SUPPLY_PRICE_QUANTUM = Decimal("0.01")
 
 
 class OfferEntity(Base):
@@ -135,7 +137,7 @@ def _to_model(entity: OfferEntity) -> Offer:
             None
             if entity.price_amount is None or entity.price_currency is None
             else Price(
-                amount=format(entity.price_amount, ".2f"),
+                amount=_supply_price_amount(entity.price_amount),
                 currency=entity.price_currency,
             )
         ),
@@ -161,6 +163,14 @@ def _to_model(entity: OfferEntity) -> Offer:
         next_refresh_at=entity.next_refresh_at,
         refresh_frequency_hours=entity.refresh_frequency_hours,
         last_seen_task_id=UUID(entity.last_seen_task_id),
+    )
+
+
+def _supply_price_amount(amount: Decimal) -> str:
+    """Round a persisted executor price explicitly to Supply's cent contract."""
+    return format(
+        amount.quantize(SUPPLY_PRICE_QUANTUM, rounding=ROUND_HALF_EVEN),
+        ".2f",
     )
 
 

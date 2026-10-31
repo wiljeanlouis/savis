@@ -7,19 +7,20 @@ import {
   SelectValue,
 } from "@/shared/ui/select";
 import { Button } from "@/shared/ui/button";
+import { Label } from "@/shared/ui/label";
 import { ArrowDown01Icon, ArrowUp01Icon } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
 
 const bomComponentSortOptions = [
-  { value: "last_retrieved_at", label: "Dernier obtenu" },
+  { value: "last_retrieved_at", label: "Dernière observation" },
   { value: "label", label: "Produit" },
   { value: "brand", label: "Marque" },
   { value: "price", label: "Prix" },
   { value: "package_size", label: "Format" },
-  { value: "provider", label: "Provider" },
+  { value: "provider", label: "Fournisseur" },
   { value: "search_term", label: "Recherche" },
   { value: "status", label: "Statut" },
-  { value: "next_refresh_at", label: "Prochain refresh" },
+  { value: "next_refresh_at", label: "Prochaine actualisation" },
 ];
 
 interface BomComponentListSortingProps {
@@ -37,8 +38,18 @@ export const BomComponentListSorting = ({
 }: BomComponentListSortingProps) => {
   return (
     <>
+      <Label
+        htmlFor="bom-component-sort"
+        className="whitespace-nowrap text-muted-foreground"
+      >
+        Trier par
+      </Label>
       <Select value={sortBy} onValueChange={handleSortByChange}>
-        <SelectTrigger className="w-44">
+        <SelectTrigger
+          id="bom-component-sort"
+          className="w-44"
+          aria-label="Trier les offres par"
+        >
           <SelectValue />
         </SelectTrigger>
         <SelectContent>

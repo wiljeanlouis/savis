@@ -38,10 +38,10 @@ export const MainLayout = () => {
         }
       >
         <AppSidebar variant="inset" />
-        <SidebarInset>
+        <SidebarInset className="min-w-0">
           <Header />
-          <div className="flex flex-1 flex-col gap-4 p-4">
-            <div className="mx-auto w-full max-w-6xl space-y-6">
+          <div className="flex min-w-0 flex-1 flex-col gap-4 p-4">
+            <div className="mx-auto w-full min-w-0 max-w-6xl space-y-6">
               <Outlet />
               <Toaster position="top-center" />
             </div>

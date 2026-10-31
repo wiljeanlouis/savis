@@ -13,6 +13,7 @@ public record PublishedCatalogProduct(
         String category,
         String subcategory,
         String description,
+        String commercialType,
         String productType,
         List<Map<String, Object>> purchaseModes,
         Map<String, Object> choiceGroup,

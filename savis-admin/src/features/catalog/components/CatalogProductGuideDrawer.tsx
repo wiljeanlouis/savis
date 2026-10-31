@@ -1,169 +1,218 @@
 import { Badge } from "@/shared/ui/badge";
 import { Button } from "@/shared/ui/button";
-import { HelpCircleIcon } from "@hugeicons/core-free-icons";
+import {
+  Sheet,
+  SheetContent,
+  SheetDescription,
+  SheetHeader,
+  SheetTitle,
+  SheetTrigger,
+} from "@/shared/ui/sheet";
+import { BookOpenTextIcon, HelpCircleIcon } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
+import type { ProductType } from "../types";
 
-const flows = [
-  {
-    type: "STANDARD",
-    label: "Standard",
-    title: "Produit simple",
-    example: "Pâté simple vendu à l'unité.",
-    when: "Le client ne choisit pas de variante au moment de l'achat.",
-    fields: [
-      "Les `Modes d'achat` portent les formats, quantités et prix.",
-      "Les `BOM communs` contiennent la composition de base.",
-    ],
-    warning:
-      "Un produit sans BOM peut être sauvegardé, mais son analyse de coût risque d'être incomplète.",
-  },
-  {
-    type: "SINGLE_CHOICE",
-    label: "Choix unique",
-    title: "Choix unique",
-    example: "Pâté avec choix de farce : poulet, bœuf ou morue.",
-    when: "Le client sélectionne une seule option dans un groupe.",
-    fields: [
-      "La section `Saveurs et choix` est obligatoire.",
-      "Chaque option active doit avoir un `code` unique.",
-      "Le BOM de l'option représente le coût de la variante choisie.",
-    ],
-    warning:
-      "Ne mettez pas le BOM d'une option dans les BOMs communs, sinon le coût sera compté pour toutes les variantes.",
-  },
-  {
-    type: "SINGLE_CHOICE_BUNDLE",
-    label: "Formats composables",
-    title: "Bundle composable",
-    example: "Boîte de 12 pâtés répartie entre plusieurs farces.",
-    when: "Le produit est vendu en lot avec un choix unique ou une répartition.",
-    fields: [
-      "Les `Modes d'achat` définissent les formats, quantités et prix.",
-      "`Répartition` = `Choix unique` applique un choix à tout le lot.",
-      "`Répartition` = `Composition` exige que les quantités réparties totalisent la quantité du mode.",
-    ],
-    warning:
-      "Pour une boîte de 12, les allocations doivent totaliser 12. Sinon l'analyse est rejetée.",
-  },
-  {
-    type: "INGREDIENT_CUSTOMIZATION",
-    label: "Ingrédients personnalisables",
-    title: "Ingrédients personnalisables",
-    example: "Bol avec extra poulet ou fromage.",
-    when: "Le client ajuste des ingrédients ou extras.",
-    fields: [
-      "La section `Ingrédients et extras` doit contenir au moins un ingrédient.",
-      "`Défaut`, `Minimum` et `Maximum` définissent la plage permise.",
-      "Le `Prix extra` s'ajoute seulement au-dessus de la quantité par défaut.",
-    ],
-    warning:
-      "Sans BOM extra, le prix peut augmenter sans que le coût additionnel soit bien mesuré.",
-  },
-];
+export type CatalogProductGuideSection =
+  | "product-information"
+  | "product-classification"
+  | "product-boms"
+  | "product-purchase-modes"
+  | "product-options"
+  | "product-availability";
 
-const statuses = [
-  ["GOOD", "La marge réelle atteint ou dépasse la marge cible."],
-  ["REVIEW", "Le produit est rentable, mais sous la marge cible."],
-  ["LOSS", "Le coût est plus élevé que le prix de vente."],
-  ["INCOMPLETE", "Tous les BOMs nécessaires ne peuvent pas être calculés."],
-] as const;
-
-const publication =
-  "`Disponible` indique si le produit est achetable. La publication vers SavouretPlus se fait directement depuis la carte du produit.";
-
-export function CatalogProductGuideButton({
-  open,
-  onOpenChange,
-}: {
-  open: boolean;
-  onOpenChange: (open: boolean) => void;
-}) {
-  return (
-    <Button
-      type="button"
-      variant={open ? "default" : "outline"}
-      size="icon-sm"
-      aria-label="Guide produits"
-      aria-expanded={open}
-      onClick={() => onOpenChange(!open)}
-    >
-      <HugeiconsIcon icon={HelpCircleIcon} strokeWidth={2} />
-    </Button>
-  );
+interface GuideSection {
+  title: string;
+  summary: string;
+  tips: string[];
+  warning?: string;
 }
 
-export function CatalogProductGuidePanel() {
-  return (
-    <aside
-      aria-label="Guide de création produit"
-      className="flex max-h-[calc(92vh-7rem)] flex-col overflow-hidden rounded-md border bg-background xl:sticky xl:top-0"
-    >
-      <header className="border-b p-4">
-        <div>
-          <h2 className="font-semibold">Guide de création produit</h2>
-          <p className="mt-1 text-xs text-muted-foreground">
-            Choisir le bon type, remplir les champs critiques et lire l'analyse.
-          </p>
-        </div>
-      </header>
+const sectionGuides: Record<CatalogProductGuideSection, GuideSection> = {
+  "product-information": {
+    title: "Informations générales",
+    summary:
+      "Définissez l'identité du produit telle qu'elle sera reconnue et présentée.",
+    tips: [
+      "Le `Nom` et la `Description` sont les principaux contenus visibles par le client.",
+      "Le `Code` est une référence interne stable; évitez de le réutiliser pour un autre produit.",
+      "Le `Slug` identifie le produit dans une URL et devrait rester court et lisible.",
+      "Utilisez des images accessibles publiquement et placez une URL par ligne dans la galerie.",
+    ],
+    warning:
+      "Une URL d'image invalide n'empêche pas la sauvegarde, mais l'image ne pourra pas être affichée.",
+  },
+  "product-classification": {
+    title: "Classification",
+    summary:
+      "Choisissez la nature commerciale et le comportement de configuration du produit.",
+    tips: [
+      "La `Nature commerciale` indique si vous vendez un bien ou un service.",
+      "La `Configuration` détermine les choix proposés au client; elle ne décrit pas la nature commerciale.",
+      "La `Marge cible` sert à comparer le prix de vente au coût calculé. Entrez 30 pour 30 %.",
+    ],
+    warning:
+      "Changer la configuration peut masquer certaines options. Vérifiez les sections affichées avant d'enregistrer.",
+  },
+  "product-boms": {
+    title: "Compositions",
+    summary:
+      "Associez ce qui est toujours nécessaire pour produire le bien ou réaliser le service.",
+    tips: [
+      "Une `Composition de base` s'applique à toutes les configurations du produit.",
+      "La quantité multiplie les besoins et le coût de la composition sélectionnée.",
+      "L'ordre contrôle la présentation lorsque plusieurs compositions sont associées.",
+      "Un service peut rester sans composition lorsqu'aucun coût de production ne doit être calculé.",
+    ],
+    warning:
+      "Ne placez pas ici une composition propre à une option, sinon son coût sera compté pour toutes les variantes.",
+  },
+  "product-purchase-modes": {
+    title: "Modes d'achat",
+    summary: "Définissez les formats, quantités et prix proposés au client.",
+    tips: [
+      "Au moins un mode d'achat doit être actif.",
+      "Le `Format` remplit automatiquement le code et le libellé pour les formats courants.",
+      "Choisissez `Personnalisé` pour saisir un autre code et un autre libellé.",
+      "Le `Code` et le libellé identifient le format vendu; la quantité doit être supérieure à zéro.",
+      "Le prix est un montant commercial en CAD et ne doit pas être négatif.",
+      "Pour un format composable, la répartition détermine si le choix porte sur tout le lot ou sur sa composition.",
+    ],
+  },
+  "product-options": {
+    title: "Options et Choix",
+    summary:
+      "Décrivez les variantes ou extras permis par la configuration actuelle.",
+    tips: [],
+  },
+  "product-availability": {
+    title: "Disponibilité",
+    summary:
+      "Contrôlez si le produit peut être acheté et comment il est ordonné.",
+    tips: [
+      "`Disponible` indique si le produit peut être acheté par le client.",
+      "La note de disponibilité précise les délais ou conditions particulières.",
+      "L'ordre permet de stabiliser la position du produit dans les listes.",
+      "La publication vers SavouretPlus se fait ensuite depuis la carte du produit.",
+    ],
+  },
+};
 
-      <div className="space-y-4 overflow-y-auto p-4">
-        {flows.map((flow) => (
-          <section key={flow.type} className="rounded-md border p-4">
-            <div className="flex flex-wrap items-center gap-2">
-              Type: <Badge variant="outline">{flow.label}</Badge>
+const flows: Record<
+  ProductType,
+  { label: string; example: string; tips: string[]; warning?: string }
+> = {
+  STANDARD: {
+    label: "Standard",
+    example: "Exemple : pâté simple vendu à l'unité.",
+    tips: ["Aucune option client supplémentaire n'est requise."],
+  },
+  SINGLE_CHOICE: {
+    label: "Choix unique",
+    example: "Exemple : pâté avec choix de farce.",
+    tips: [
+      "Chaque option active doit avoir un code unique.",
+      "La composition de l'option représente le coût de la variante choisie.",
+    ],
+  },
+  SINGLE_CHOICE_BUNDLE: {
+    label: "Formats composables",
+    example: "Exemple : boîte de 12 pâtés répartie entre plusieurs farces.",
+    tips: [
+      "En choix unique, la même option est appliquée à tout le lot.",
+      "En composition, les quantités réparties doivent totaliser la quantité du mode d'achat.",
+    ],
+    warning:
+      "Une répartition dont le total diffère de la taille du lot sera rejetée.",
+  },
+  INGREDIENT_CUSTOMIZATION: {
+    label: "Ingrédients personnalisables",
+    example: "Exemple : bol avec extra poulet ou fromage.",
+    tips: [
+      "Défaut, minimum et maximum définissent la plage permise.",
+      "Le prix extra s'ajoute seulement au-dessus de la quantité par défaut.",
+      "La composition de l'extra permet de mesurer son coût additionnel.",
+    ],
+  },
+};
+
+export function CatalogProductGuide({
+  section,
+  productType,
+}: {
+  section: CatalogProductGuideSection;
+  productType: ProductType;
+}) {
+  const guide = sectionGuides[section];
+  const flow = flows[productType];
+  const tips =
+    section === "product-options" ? [...guide.tips, ...flow.tips] : guide.tips;
+  const warning = section === "product-options" ? flow.warning : guide.warning;
+
+  return (
+    <Sheet>
+      <SheetTrigger asChild>
+        <Button
+          type="button"
+          variant="outline"
+          aria-label={`Aide contextuelle — ${guide.title}`}
+        >
+          <HugeiconsIcon icon={HelpCircleIcon} strokeWidth={2} />
+          <span className="hidden sm:inline">Aide contextuelle</span>
+        </Button>
+      </SheetTrigger>
+      <SheetContent className="data-[side=right]:w-[min(92vw,28rem)] data-[side=right]:sm:max-w-md">
+        <SheetHeader className="border-b pr-14">
+          <div className="flex items-start gap-3">
+            <div className="mt-0.5 flex size-8 shrink-0 items-center justify-center rounded-md bg-primary/10 text-primary">
+              <HugeiconsIcon icon={BookOpenTextIcon} strokeWidth={2} />
             </div>
-            <p className="mt-2 text-xs text-muted-foreground">{flow.when}</p>
-            <p className="mt-2 text-xs">{flow.example}</p>
-            <ul className="mt-3 list-disc space-y-1 pl-5 text-xs text-muted-foreground">
-              {flow.fields.map((field) => (
-                <li key={field}>
-                  <InlineCode text={field} />
+            <div>
+              <Badge variant="outline" className="mb-2">
+                Section actuelle
+              </Badge>
+              <SheetTitle>Aide — {guide.title}</SheetTitle>
+              <SheetDescription>{guide.summary}</SheetDescription>
+            </div>
+          </div>
+        </SheetHeader>
+
+        <div className="min-h-0 flex-1 space-y-4 overflow-y-auto p-6 text-sm">
+          {section === "product-options" && (
+            <section className="rounded-lg border bg-muted/30 p-4">
+              <div className="flex flex-wrap items-center gap-2">
+                <h3 className="font-medium">Configuration actuelle</h3>
+                <Badge variant="secondary">{flow.label}</Badge>
+              </div>
+              <p className="mt-2 text-sm text-muted-foreground">
+                {flow.example}
+              </p>
+            </section>
+          )}
+
+          <section className="rounded-lg border p-4">
+            <h3 className="font-medium">Points à vérifier</h3>
+            <ul className="mt-3 list-disc space-y-2 pl-5 text-sm text-muted-foreground">
+              {tips.map((tip) => (
+                <li key={tip}>
+                  <InlineCode text={tip} />
                 </li>
               ))}
             </ul>
-            <p className="mt-3 rounded-md bg-muted px-3 py-2 text-xs text-muted-foreground">
-              {flow.warning}
-            </p>
           </section>
-        ))}
 
-        <section className="rounded-md border p-4">
-          <h3 className="font-semibold">Analyse de prix</h3>
-          <p className="mt-2 text-xs text-muted-foreground">
-            Le prix recommandé est indicatif et n'est jamais copié
-            automatiquement.
-          </p>
-          <div className="mt-3 grid gap-2">
-            {statuses.map(([status, description]) => (
-              <div key={status} className="flex items-start gap-2 text-xs">
-                <Badge
-                  variant={
-                    status === "GOOD"
-                      ? "default"
-                      : status === "LOSS"
-                        ? "destructive"
-                        : "secondary"
-                  }
-                >
-                  {status}
-                </Badge>
-                <span className=" text-xs text-muted-foreground">
-                  {description}
-                </span>
-              </div>
-            ))}
-          </div>
-        </section>
-
-        <section className="rounded-md border p-4">
-          <h3 className="font-semibold">Publication</h3>
-          <p className="mt-2 text-xs text-muted-foreground">
-            <InlineCode text={publication} />
-          </p>
-        </section>
-      </div>
-    </aside>
+          {warning && (
+            <section className="rounded-lg border border-amber-500/30 bg-amber-500/10 p-4">
+              <h3 className="font-medium text-amber-900 dark:text-amber-100">
+                Attention
+              </h3>
+              <p className="mt-2 text-sm text-amber-800 dark:text-amber-200">
+                {warning}
+              </p>
+            </section>
+          )}
+        </div>
+      </SheetContent>
+    </Sheet>
   );
 }
 

@@ -27,6 +27,11 @@ public interface ProductRepository {
     List<Product> findAll();
 
     /**
+     * Searches products by their customer-facing identity and availability.
+     */
+    List<Product> search(String search, boolean availableOnly, int limit);
+
+    /**
      * Returns all products currently marked as published.
      */
     List<Product> findAllPublished();

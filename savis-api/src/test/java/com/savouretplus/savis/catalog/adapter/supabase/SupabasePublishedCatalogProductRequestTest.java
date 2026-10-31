@@ -13,10 +13,12 @@ class SupabasePublishedCatalogProductRequestTest {
 
     @Test
     void includesThePublicSubcategoryCode() {
-        PublishedCatalogProduct product = product("balloon-arch");
+        PublishedCatalogProduct product = product("decorative-arch");
 
-        assertEquals("balloon-arch",
+        assertEquals("decorative-arch",
                 SupabasePublishedCatalogProductRequest.from(product).subcategory());
+        assertEquals("service",
+                SupabasePublishedCatalogProductRequest.from(product).commercialType());
     }
 
     @Test
@@ -29,7 +31,7 @@ class SupabasePublishedCatalogProductRequestTest {
     private PublishedCatalogProduct product(String subcategory) {
         return new PublishedCatalogProduct(
                 "product-1", "product", "Produit", "decoration", subcategory,
-                "", "standard", List.of(), null, List.of(), "/image.jpg",
+                "", "service", "standard", List.of(), null, List.of(), "/image.jpg",
                 List.of(), "Disponible", true, 0);
     }
 }

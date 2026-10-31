@@ -22,17 +22,17 @@
   {
     "name": "savis.supabase.enabled",
     "type": "java.lang.String",
-    "description": "A description for 'savis.supabase.enabled'"
+    "description": "Enables Supabase catalog publication and manual web-order import."
   },
   {
     "name": "savis.supabase.url",
     "type": "java.lang.String",
-    "description": "A description for 'savis.supabase.url'"
+    "description": "Base URL of the Supabase project."
   },
   {
     "name": "savis.supabase.service-role-key",
     "type": "java.lang.String",
-    "description": "A description for 'savis.supabase.service-role-key'"
+    "description": "Server-only Supabase service-role credential."
   },
   {
     "name": "savis.offer.listener.auto-startup",

@@ -5,9 +5,9 @@ import java.util.List;
 import java.util.UUID;
 
 import com.savouretplus.savis.catalog.domain.AllocationType;
+import com.savouretplus.savis.catalog.domain.CommercialType;
 import com.savouretplus.savis.catalog.domain.Product;
 import com.savouretplus.savis.catalog.domain.ProductBom;
-import com.savouretplus.savis.catalog.domain.ProductCategory;
 import com.savouretplus.savis.catalog.domain.ProductCategory;
 import com.savouretplus.savis.catalog.domain.ProductChoiceGroup;
 import com.savouretplus.savis.catalog.domain.ProductChoiceOption;
@@ -31,6 +31,7 @@ public record CatalogProductDto(
         @NotBlank String slug,
         @NotBlank String name,
         String description,
+        @NotNull CommercialType commercialType,
         @NotNull ProductType productType,
         @NotNull ProductCategory category,
         ProductSubcategory subcategory,
@@ -57,7 +58,8 @@ public record CatalogProductDto(
      * Converts this DTO into its domain representation.
      */
     public Product toDomain(UUID productId) {
-        return new Product(productId, code, slug, name, description, productType, category, subcategory,
+        return new Product(productId, code, slug, name, description, commercialType,
+                productType, category, subcategory,
                 safe(productBoms).stream().map(ProductBomDto::toDomain).toList(),
                 targetMarginRate, imageUrl, gallery, availabilityNote,
                 available, published, displayOrder,
@@ -72,7 +74,7 @@ public record CatalogProductDto(
     public static CatalogProductDto from(Product product) {
         return new CatalogProductDto(
                 product.publicId(), product.code(), product.slug(), product.name(), product.description(),
-                product.productType(), product.category(), product.subcategory(),
+                product.commercialType(), product.productType(), product.category(), product.subcategory(),
                 product.productBoms().stream().map(ProductBomDto::from).toList(),
                 product.targetMarginRate(), product.imageUrl(), product.gallery(),
                 product.availabilityNote(), product.available(), product.published(), product.displayOrder(),

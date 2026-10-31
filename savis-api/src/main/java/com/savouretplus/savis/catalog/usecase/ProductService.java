@@ -49,6 +49,17 @@ public class ProductService {
     }
 
     /**
+     * Searches a bounded set of products for administrative selectors.
+     */
+    @Transactional(readOnly = true)
+    public List<Product> search(String search, boolean availableOnly, int limit) {
+        if (limit < 1 || limit > 100) {
+            throw new IllegalArgumentException("La limite doit être comprise entre 1 et 100");
+        }
+        return repository.search(search == null ? "" : search.trim(), availableOnly, limit);
+    }
+
+    /**
      * Updates an existing resource from the request payload.
      */
     public Product update(UUID productId, Product product) {

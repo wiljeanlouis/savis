@@ -1,4 +1,5 @@
 import { NoData } from "@/shared/components/NoData";
+import { getApiErrorMessage } from "@/shared/api/apiError";
 import { DeleteAlert } from "@/shared/components/DeleteAlert";
 import { Badge } from "@/shared/ui/badge";
 import { Spinner } from "@/shared/ui/spinner";
@@ -45,7 +46,10 @@ export function ActivityRatesPage() {
   const handleCreate = (values: ActivityRateValues) => {
     createMutation.mutate(toActivityRate(values), {
       onSuccess: () => toast.success("Taux d'activité ajouté."),
-      onError: () => toast.error("Impossible d'ajouter le taux horaire."),
+      onError: (error) =>
+        toast.error("Impossible d'ajouter le taux horaire.", {
+          description: getApiErrorMessage(error),
+        }),
     });
   };
 
@@ -57,7 +61,10 @@ export function ActivityRatesPage() {
       { ...toActivityRate(values), id: activityRate.id },
       {
         onSuccess: () => toast.success("Taux horaire modifié."),
-        onError: () => toast.error("Impossible de modifier le taux horaire."),
+        onError: (error) =>
+          toast.error("Impossible de modifier le taux horaire.", {
+            description: getApiErrorMessage(error),
+          }),
       },
     );
   };
@@ -65,13 +72,17 @@ export function ActivityRatesPage() {
   const handleDelete = (activityRate: ActivityRate) => {
     deleteMutation.mutate(activityRate.activityType, {
       onSuccess: () => toast.success("Taux d'activité supprimé."),
-      onError: () => toast.error("Impossible de supprimer le taux horaire."),
+      onError: (error) =>
+        toast.error("Impossible de supprimer le taux horaire.", {
+          description: getApiErrorMessage(error),
+        }),
     });
   };
 
   if (activityRatesQuery.isError) {
     toast.error(
       "Une erreur est survenue lors de la récupération des taux horaires.",
+      { description: getApiErrorMessage(activityRatesQuery.error) },
     );
   }
 
@@ -79,9 +90,10 @@ export function ActivityRatesPage() {
     <>
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div className="space-y-1">
-          <h1 className="text-2xl font-semibold">Taux horaire</h1>
+          <h1 className="text-2xl font-semibold">Activités et taux horaires</h1>
           <p className="text-sm text-muted-foreground">
-            Coûts horaires globaux utilisés dans le calcul des BOM.
+            Coûts horaires des activités utilisés dans le calcul des
+            compositions.
           </p>
         </div>
         <ActivityRateDialog
@@ -98,7 +110,7 @@ export function ActivityRatesPage() {
       ) : activityRates.length === 0 ? (
         <NoData />
       ) : (
-        <div className="rounded-md border">
+        <div className="min-w-0">
           <Table>
             <TableHeader>
               <TableRow>

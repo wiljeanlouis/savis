@@ -12,6 +12,7 @@ interface GetBomComponentsParams {
   sortBy?: string;
   sortDirection?: "asc" | "desc";
   searchTerm?: string;
+  status?: BomComponentStatus;
 }
 
 export const getBomComponents = async ({
@@ -20,11 +21,13 @@ export const getBomComponents = async ({
   sortBy,
   sortDirection,
   searchTerm,
+  status,
 }: GetBomComponentsParams): Promise<BomComponentsPage> => {
   const { data }: { data: BomComponentsPage } = await executorApi.get(
     "/offers",
     {
       params: {
+        status,
         page,
         size,
         search_term: searchTerm,
@@ -36,11 +39,12 @@ export const getBomComponents = async ({
   return data;
 };
 
-export const getBomComponentSearchTermFacets = async (): Promise<
-  SearchTermFacet[]
-> => {
+export const getBomComponentSearchTermFacets = async (
+  status?: BomComponentStatus,
+): Promise<SearchTermFacet[]> => {
   const { data }: { data: SearchTermFacet[] } = await executorApi.get(
     "/offers/facets/search-terms",
+    { params: { status } },
   );
   return data;
 };
