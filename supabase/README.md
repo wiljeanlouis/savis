@@ -1,7 +1,8 @@
 # Supabase commerce boundary
 
-Supabase owns the public catalog projection and the raw web-order inbox. SAVIS
-owns the normalized business orders in its local PostgreSQL schema.
+Supabase owns the public catalog projection and raw order/quote-request inboxes.
+SAVIS owns normalized orders, qualified requests and commercial quotations in
+its local PostgreSQL schema.
 
 ## Manual order import
 
@@ -54,7 +55,31 @@ Organisation. It validates published offering snapshots and uses a private,
 transaction-safe idempotency ledger. Public roles can execute the RPC but
 cannot read or write the inbox tables directly.
 
-This boundary does not price, accept, or import a commercial quotation into
-SAVIS. The payload contract, retry rules, coordinated rollout and known SAVIS
-import limitation are documented in
-`../docs/integration/mixed-event-quote-request-rpc.md`.
+The RPC itself does not price or create a commercial quotation. SAVIS manually
+imports the need into the separate `QuoteRequest` aggregate in `sales.quotation`,
+qualifies it and can explicitly create multiple independent quotations.
+The [public payload contract](../docs/integration/mixed-event-quote-request-rpc.md)
+and [SAVIS workflow](../docs/integration/quote-request-implementation.md) describe
+the two boundaries.
+
+`20261031120000_quote_request_sync.sql` adds `sync_status` (`pending`, `synced`,
+`failed`), `synced_at`, `sync_error` and a pending index. Public roles have no direct
+table privileges; service-role can SELECT and UPDATE only sync columns. The
+business `status='new'` remains separate. Local commits precede acknowledgements;
+retrying a pending acknowledgement never resets SAVIS qualification.
+
+`20261031130000_fix_quote_request_replays.sql` rejects missing/null `type` and
+resolves an existing receipt before current Catalog validation. An identical
+replay therefore survives product changes or unpublication. New receptions still
+validate the published catalogue. Apply both migrations forward-only.
+
+Run `python3 test/integration/quote_requests_supabase.py` from the repository root
+to apply the full chain, SQL contract/privilege tests and concurrent submissions
+in a disposable database. Set `SAVIS_TEST_SUPABASE_LINT=1` to also lint that database.
+The existing local application database is not reset.
+
+## Demandes de soumission Sales
+
+La réception manuelle, la qualification et les propositions multiples appartiennent
+à `sales.quotation`. Voir le [contrat et les procédures QuoteRequest](../docs/integration/quote-request-implementation.md)
+pour les routes, migrations, tests et la reprise.

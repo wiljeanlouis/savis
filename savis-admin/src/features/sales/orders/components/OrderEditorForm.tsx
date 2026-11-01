@@ -378,7 +378,7 @@ function addressAutoComplete(field: keyof AdminOrderDraft["customerAddress"]) {
   }[field];
 }
 
-function OrderItemEditor({
+export function OrderItemEditor({
   item,
   product,
   onChange,

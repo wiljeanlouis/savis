@@ -32,7 +32,7 @@ projection.
     - [Executor](#executor)
   - [Configuration](#configuration)
     - [Shared Compose Variables](#shared-compose-variables)
-    - [Supabase Publication](#supabase-publication)
+    - [Supabase Integration](#supabase-integration)
     - [Standalone Admin](#standalone-admin)
     - [Standalone Executor](#standalone-executor)
   - [Tests and Quality](#tests-and-quality)
@@ -45,6 +45,7 @@ projection.
     - [Deploy a Release Package](#deploy-a-release-package)
   - [Useful Commands](#useful-commands)
   - [Further Documentation](#further-documentation)
+  - [Demandes de soumission Sales](#demandes-de-soumission-sales)
 
 ## Overview
 
@@ -73,6 +74,8 @@ Main capabilities:
 - administrative order entry with catalog-backed configuration and pricing;
 - manual, idempotent import of Supabase web orders into normalized local
   order aggregates;
+- manual reception and qualification of public quote requests, with multiple
+  independent Catalog-priced quotations per request;
 - immutable Docker releases with SBOM and provenance metadata.
 
 Supabase is not the SAVIS business backend. PostgreSQL schemas owned by the API
@@ -374,7 +377,7 @@ Pull requests run `.github/workflows/ci.yml` on GitHub-hosted runners:
 
 | Job                    | Checks                                                             |
 | ---------------------- | ------------------------------------------------------------------ |
-| API Java               | Maven tests                                                        |
+| API Java               | Maven tests, including QuoteRequest PostgreSQL integration tests                                                        |
 | Executor Python        | Locked install, Ruff, pytest, Alembic chain, container smoke tests |
 | Admin frontend         | Locked install, ESLint, Vitest, production build                   |
 | Deployment definitions | Production Compose validation and Supabase migration lint          |
@@ -577,3 +580,11 @@ docker compose \
 - [SAVIS API](savis-api/README.md)
 - [SAVIS Executor](savis-executor/README.md)
 - [Changelog](CHANGELOG.md)
+
+## Demandes de soumission Sales
+
+La réception manuelle, la qualification et les propositions multiples appartiennent
+à `sales.quotation`. Voir le [contrat et les procédures QuoteRequest](docs/integration/quote-request-implementation.md)
+pour les routes, migrations, tests et la reprise. Les routes sont enregistrées
+dès le démarrage ; les protections d'accès et la journalisation des données
+personnelles restent à vérifier avant utilisation avec des données réelles.

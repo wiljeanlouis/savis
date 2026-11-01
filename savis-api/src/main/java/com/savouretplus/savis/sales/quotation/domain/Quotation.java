@@ -29,7 +29,18 @@ public record Quotation(
         Instant acceptedAt,
         Instant rejectedAt,
         UUID convertedOrderId,
-        List<QuotationItem> items) {
+        List<QuotationItem> items, UUID sourceQuoteRequestId) {
+
+    /** Compatibility constructor for standalone quotations. */
+    public Quotation(Long id, UUID publicId, String quotationNumber, QuotationStatus status,
+            String customerName, String customerPhone, String customerEmail, QuotationAddress customerAddress,
+            LocalDate validUntil, String note, int discountCents, int deliveryFeeCents, int totalCents,
+            Instant createdAt, Instant updatedAt, Instant sentAt, Instant acceptedAt, Instant rejectedAt,
+            UUID convertedOrderId, List<QuotationItem> items) {
+        this(id,publicId,quotationNumber,status,customerName,customerPhone,customerEmail,customerAddress,
+                validUntil,note,discountCents,deliveryFeeCents,totalCents,createdAt,updatedAt,sentAt,acceptedAt,
+                rejectedAt,convertedOrderId,items,null);
+    }
 
     /** Validates required commercial terms and immutable snapshots. */
     public Quotation {
@@ -92,7 +103,7 @@ public record Quotation(
                 next == QuotationStatus.SENT && sentAt == null ? changedAt : sentAt,
                 next == QuotationStatus.ACCEPTED && acceptedAt == null ? changedAt : acceptedAt,
                 next == QuotationStatus.REJECTED && rejectedAt == null ? changedAt : rejectedAt,
-                convertedOrderId, items);
+                convertedOrderId, items, sourceQuoteRequestId);
     }
 
     /** Records the order created from this accepted quotation. */
@@ -106,7 +117,7 @@ public record Quotation(
         return new Quotation(
                 id, publicId, quotationNumber, status, customerName, customerPhone, customerEmail,
                 customerAddress, validUntil, note, discountCents, deliveryFeeCents, totalCents,
-                createdAt, changedAt, sentAt, acceptedAt, rejectedAt, orderId, items);
+                createdAt, changedAt, sentAt, acceptedAt, rejectedAt, orderId, items, sourceQuoteRequestId);
     }
 
     private Set<QuotationStatus> allowedNextStatuses() {

@@ -1,5 +1,8 @@
 # Audit — demandes de soumission publiques vers SAVIS Admin
 
+> État historique. La [mise en œuvre Sales](quote-request-implementation.md)
+> remplace les chemins antérieurs, la cardinalité 0..1 et les statuts proposés.
+
 Date : 31 octobre 2026. Référence analysée : branche `main`, commit `538f11f`.
 Le répertoire de travail était propre au début de l'audit. Ce document propose
 des changements ; aucun comportement applicatif ni schéma n'est implémenté.

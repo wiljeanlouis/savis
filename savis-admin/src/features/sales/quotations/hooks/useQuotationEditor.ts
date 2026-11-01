@@ -17,6 +17,8 @@ import {
   type QuotationDraft,
 } from "../model/quotationDraft";
 
+import { quotationDraftForStorage } from "../model/quotationDraftStorage";
+
 const NEW_QUOTATION_DRAFT_KEY = "savis:quotations:new-draft";
 
 export function useQuotationEditor({
@@ -53,7 +55,7 @@ export function useQuotationEditor({
     if (persistNewDraft) {
       window.sessionStorage.setItem(
         NEW_QUOTATION_DRAFT_KEY,
-        JSON.stringify(draft),
+        JSON.stringify(quotationDraftForStorage(draft)),
       );
     }
   }, [draft, persistNewDraft]);

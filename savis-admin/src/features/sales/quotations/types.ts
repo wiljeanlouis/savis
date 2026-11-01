@@ -7,6 +7,7 @@ import type {
 export type QuotationStatus = "DRAFT" | "SENT" | "ACCEPTED" | "REJECTED";
 
 export interface Quotation {
+  sourceQuoteRequestId?: string | null;
   id: string;
   quotationNumber: string;
   status: QuotationStatus;

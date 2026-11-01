@@ -9,6 +9,12 @@ import { Outlet, useLocation, useNavigate } from "react-router";
 
 const salesTabs = [
   {
+    label: "Demandes",
+    value: "quote-requests",
+    to: "/sales/quote-requests",
+    icon: File01Icon,
+  },
+  {
     label: "Soumissions",
     value: "quotations",
     to: "/sales/quotations",
@@ -33,7 +39,8 @@ export function SalesLayout() {
   const { pathname } = useLocation();
   const navigate = useNavigate();
   const activeTab =
-    salesTabs.find(({ to }) => pathname === to)?.value ?? "orders";
+    salesTabs.find(({ to }) => pathname === to || pathname.startsWith(`${to}/`))
+      ?.value ?? "orders";
 
   return (
     <div className="space-y-6">
@@ -43,7 +50,7 @@ export function SalesLayout() {
       >
         <TabsList
           aria-label="Sections des ventes"
-          className="grid w-full grid-cols-3 group-data-horizontal/tabs:h-10 sm:w-fit"
+          className="grid w-full grid-cols-4 group-data-horizontal/tabs:h-10 sm:w-fit"
         >
           {salesTabs.map((tab) => (
             <TabsTrigger

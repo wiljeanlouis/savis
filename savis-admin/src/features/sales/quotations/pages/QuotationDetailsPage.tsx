@@ -140,6 +140,14 @@ function QuotationDetailsContent({ quotationId }: { quotationId?: string }) {
 
   return (
     <div className="space-y-6">
+      {quotation?.sourceQuoteRequestId && (
+        <Link
+          className="underline"
+          to={`/sales/quote-requests/${quotation.sourceQuoteRequestId}`}
+        >
+          Demande d’origine
+        </Link>
+      )}
       <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
         <div>
           <Link

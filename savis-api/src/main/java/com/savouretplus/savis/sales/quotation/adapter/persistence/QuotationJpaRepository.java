@@ -11,6 +11,8 @@ import jakarta.persistence.LockModeType;
 
 /** Spring Data repository for quotation entities. */
 interface QuotationJpaRepository extends JpaRepository<QuotationEntity, Long> {
+    Optional<QuotationEntity> findBySourceQuoteRequestIdAndProposalRequestId(UUID requestId,UUID proposalId);
+    List<QuotationEntity> findBySourceQuoteRequestIdOrderByCreatedAtAscPublicIdAsc(UUID requestId);
     Optional<QuotationEntity> findByPublicId(UUID publicId);
 
     @Lock(LockModeType.PESSIMISTIC_WRITE)

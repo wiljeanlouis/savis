@@ -20,6 +20,22 @@ import lombok.AllArgsConstructor;
 public class QuotationRepositoryAdapter implements QuotationRepository {
     private final QuotationJpaRepository repository;
 
+    @Override @Transactional(readOnly=true)
+    public Optional<Proposal> findProposal(UUID sourceId,UUID proposalId) {
+        return repository.findBySourceQuoteRequestIdAndProposalRequestId(sourceId,proposalId)
+                .map(e -> new Proposal(toDomain(e),e.getProposalFingerprint()));
+    }
+    @Override @Transactional
+    public Quotation attachSource(UUID quotationId,UUID sourceId,UUID proposalId,String fingerprint,java.util.Map<String,String> exclusions) {
+        var entity=repository.findForUpdateByPublicId(quotationId).orElseThrow();
+        if(entity.getSourceQuoteRequestId()!=null) throw new IllegalStateException("Origine déjà définie");
+        entity.setSourceQuoteRequestId(sourceId);entity.setProposalRequestId(proposalId);entity.setProposalFingerprint(fingerprint);entity.setProposalExclusions(exclusions);
+        return toDomain(repository.saveAndFlush(entity));
+    }
+    @Override @Transactional(readOnly=true)
+    public List<Quotation> findBySource(UUID sourceId) {
+        return repository.findBySourceQuoteRequestIdOrderByCreatedAtAscPublicIdAsc(sourceId).stream().map(this::toDomain).toList();
+    }
     @Override
     @Transactional
     public Quotation save(Quotation quotation) {
@@ -83,6 +99,6 @@ public class QuotationRepositoryAdapter implements QuotationRepository {
                 address.isEmpty() ? null : address, entity.getValidUntil(), entity.getNote(),
                 entity.getDiscountCents(), entity.getDeliveryFeeCents(), entity.getTotalCents(),
                 entity.getCreatedAt(), entity.getUpdatedAt(), entity.getSentAt(), entity.getAcceptedAt(),
-                entity.getRejectedAt(), entity.getConvertedOrderId(), entity.getItems());
+                entity.getRejectedAt(), entity.getConvertedOrderId(), entity.getItems(), entity.getSourceQuoteRequestId());
     }
 }

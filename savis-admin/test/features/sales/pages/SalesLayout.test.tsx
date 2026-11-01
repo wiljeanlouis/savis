@@ -13,6 +13,11 @@ function createSalesRouter(initialEntry: string) {
         children: [
           { index: true, element: <Navigate replace to="/sales/orders" /> },
           { path: "quotations", element: <p>Liste des soumissions</p> },
+          { path: "quote-requests", element: <p>Liste des demandes</p> },
+          {
+            path: "quote-requests/:requestId",
+            element: <p>Détail de demande</p>,
+          },
           { path: "orders", element: <p>Liste des commandes</p> },
           { path: "invoices", element: <p>Liste des factures</p> },
         ],
@@ -23,6 +28,16 @@ function createSalesRouter(initialEntry: string) {
 }
 
 describe("SalesLayout", () => {
+  it("keeps requests selected when consulting a request detail", async () => {
+    const router = createSalesRouter("/sales/quote-requests/test");
+    render(<RouterProvider router={router} />);
+    expect(screen.getByText("Détail de demande")).toBeInTheDocument();
+    expect(screen.getByRole("tab", { name: "Demandes" })).toHaveAttribute(
+      "aria-selected",
+      "true",
+    );
+  });
+
   it("opens orders by default", async () => {
     const router = createSalesRouter("/sales");
 
@@ -41,7 +56,7 @@ describe("SalesLayout", () => {
     expect(screen.getByText("Liste des soumissions")).toBeInTheDocument();
     expect(screen.getByRole("tablist")).toHaveClass(
       "w-full",
-      "grid-cols-3",
+      "grid-cols-4",
       "group-data-horizontal/tabs:h-10",
       "sm:w-fit",
     );

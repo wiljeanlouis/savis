@@ -30,6 +30,11 @@ import lombok.Setter;
 @Entity
 @Table(name = "quotations")
 class QuotationEntity {
+    @JdbcTypeCode(SqlTypes.JSON) @Column(columnDefinition="jsonb") private java.util.Map<String,String> proposalExclusions;
+    @Column private UUID sourceQuoteRequestId;
+    @Column private UUID proposalRequestId;
+    @Column(length=64) private String proposalFingerprint;
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;

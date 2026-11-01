@@ -12,21 +12,46 @@ PostgreSQL, and publishes a customer-facing catalog projection to Supabase.
 
 ## Navigation
 
-- [Responsibilities](#responsibilities)
-- [Runtime Context](#runtime-context)
-- [Architecture](#architecture)
-- [Business Slices](#business-slices)
-- [HTTP API](#http-api)
-- [Supabase Integration](#supabase-integration)
-- [RabbitMQ Contracts](#rabbitmq-contracts)
-- [Persistence](#persistence)
-- [Configuration](#configuration)
-- [Technology](#technology)
-- [Local Development](#local-development)
-- [Docker](#docker)
-- [Health and Operations](#health-and-operations)
-- [Tests](#tests)
-- [Further Documentation](#further-documentation)
+- [SAVIS API](#savis-api)
+  - [Navigation](#navigation)
+  - [Responsibilities](#responsibilities)
+  - [Runtime Context](#runtime-context)
+  - [Architecture](#architecture)
+  - [Business Slices](#business-slices)
+    - [Resource](#resource)
+    - [Supply](#supply)
+    - [BOM](#bom)
+    - [Catalog](#catalog)
+    - [Order](#order)
+    - [Quotation](#quotation)
+    - [Invoice](#invoice)
+  - [HTTP API](#http-api)
+    - [Errors](#errors)
+    - [Resource Endpoints](#resource-endpoints)
+    - [Supply Endpoints](#supply-endpoints)
+    - [BOM Endpoints](#bom-endpoints)
+    - [Activity-Rate Endpoints](#activity-rate-endpoints)
+    - [Product Endpoints](#product-endpoints)
+    - [Order Endpoints](#order-endpoints)
+    - [Quotation Endpoints](#quotation-endpoints)
+    - [QuoteRequest Endpoints](#quoterequest-endpoints)
+    - [Invoice Endpoints](#invoice-endpoints)
+  - [Supabase Integration](#supabase-integration)
+    - [Catalog projection](#catalog-projection)
+    - [Customer-order inbox](#customer-order-inbox)
+    - [Quote-request inbox](#quote-request-inbox)
+  - [RabbitMQ Contracts](#rabbitmq-contracts)
+    - [Component Requests](#component-requests)
+    - [Offer Results](#offer-results)
+    - [Offer Invalidations](#offer-invalidations)
+  - [Persistence](#persistence)
+  - [Configuration](#configuration)
+  - [Technology](#technology)
+  - [Local Development](#local-development)
+  - [Docker](#docker)
+  - [Health and Operations](#health-and-operations)
+  - [Tests](#tests)
+  - [Further Documentation](#further-documentation)
 
 ## Responsibilities
 
@@ -239,7 +264,16 @@ configuration, generate its PDF, and convert acceptance into an order.
   an `ACCEPTED` order from agreed snapshots without repricing against Catalog.
 - Quotation PDFs use persisted snapshots and the quotation validity date.
   Business coordinates and payment conditions are fixed template values.
-- Supabase quote requests are separate inbox data and are not imported here.
+- `QuoteRequest` is a distinct aggregate in this same nested module. Manual
+  import receives and preserves the initial customer need without creating a
+  quotation or order. Qualification uses `RECEIVED`, `IN_PROGRESS`, `QUOTED`,
+  and `CLOSED` (mandatory closing reason), with an explicitly compared client version.
+- One request can produce multiple independent quotations. Each creation intention
+  has a stable UUID and canonical fingerprint; identical replays return the
+  original quotation, conflicting replays return 409. Existing quotations retain
+  their snapshots and optional `sourceQuoteRequestId` through later edits.
+- See the [QuoteRequest contract](../docs/integration/quote-request-implementation.md)
+  for qualification, transaction boundaries, HTTP payloads and operational limitations.
 
 ### Invoice
 
@@ -467,6 +501,31 @@ already imported, failed, and acknowledgement-failed rows; see
 | `POST` | `/api/quotations/{quotationId}/convert` | Convert an accepted quotation to an order. |
 | `GET` | `/api/quotations/{quotationId}/pdf` | Download the quotation PDF. |
 
+### QuoteRequest Endpoints
+
+| Method | Path | Purpose |
+| --- | --- | --- |
+| `POST` | `/api/quote-requests/import` | Import a bounded pending batch and acknowledge committed requests. |
+| `GET` | `/api/quote-requests` | List summaries with bounded pagination, name search, status and stable date sorting. |
+| `GET` | `/api/quote-requests/{id}` | Retrieve original need, qualification, history and version. |
+| `PUT` | `/api/quote-requests/{id}/qualification` | Save separate qualified data with `expectedVersion`. |
+| `PUT` | `/api/quote-requests/{id}/status` | Change business status with `expectedVersion`; closure requires a reason. |
+| `GET` | `/api/quote-requests/{id}/quotations` | List every linked quotation. |
+| `POST` | `/api/quote-requests/{id}/quotations` | Create a Catalog-priced proposal with `proposalRequestId` and `expectedVersion`. |
+
+Expected business validation/conflict responses expose a controlled French reason
+in Problem Details `detail`; unexpected technical exception messages stay hidden.
+Import failures include `externalId`, stable `code` and a user-facing `reason`,
+without echoing submitted contact details or remote error bodies.
+
+These routes are registered unconditionally. `SUPABASE_ENABLED` controls remote
+inbox access only; there is no QuoteRequest activation flag. Authentication and
+authorization remain external deployment responsibilities. Current import logging
+includes full Supabase rows; review the
+[security prerequisites](../docs/integration/quote-request-implementation.md#sécurité--protections-à-vérifier-avant-exposition)
+before using personal data. Responses use `Cache-Control: no-store`, which does
+not provide access control.
+
 ### Invoice Endpoints
 
 | Method | Path | Purpose |
@@ -510,6 +569,21 @@ can acknowledge a still-pending row without duplicating it. Failed source rows
 require review and reset to `pending` before retry. The import response reports
 local-import and acknowledgement failures separately. With Supabase disabled,
 local business operations remain available, but publication and import are rejected.
+
+### Quote-request inbox
+
+`POST /api/quote-requests/import` reads at most 100 pending rows, ordered by
+`created_at,id`, and validates them individually. Local uniqueness on
+`(source,external_id)` and a canonical payload fingerprint prevent duplicate or
+contradictory imports. Each local transaction completes before the Supabase
+acknowledgement. An acknowledgement retry preserves qualification and history.
+The response separates invalid imports from acknowledgement failures and returns
+stable error codes. Rows marked `failed` require privileged review/reset.
+
+Supabase tracks `sync_status`, `synced_at` and `sync_error` independently from its
+public business `status`. `SUPABASE_ENABLED=false` or an unavailable/missing inbox
+schema makes the import return 503; local request consultation and qualification
+remain available. The service-role key stays exclusively in this backend.
 
 ## RabbitMQ Contracts
 
@@ -607,7 +681,8 @@ Main tables:
 - `order_item_choice_selections`;
 - `order_item_choice_allocations`;
 - `order_item_ingredient_selections`;
-- `quotations` (item snapshots in JSONB);
+- `quote_requests` (immutable original JSONB, separate qualification, history and version);
+- `quotations` (item snapshots in JSONB and optional request origin);
 - `invoices` (item snapshots in JSONB);
 - `event_publication`, managed by Spring Modulith for event-publication
   infrastructure.
@@ -642,9 +717,11 @@ Flyway owns schema evolution through versioned SQL files under
 `src/main/resources/db/migration`. Hibernate validates the mapped model against
 the migrated schema at startup and does not modify production tables.
 
-The Flyway chain runs from V1 through V13, including orders (V5–V6), quotations
-(V8), invoices (V9), resources (V11), BOM-resource links (V12), and offer-resource
-links (V13). Add forward migrations rather than editing applied SQL.
+The Flyway chain runs from V1 through V16, including orders (V5–V6), quotations
+(V8), invoices (V9), resources (V11), BOM-resource links (V12), offer-resource
+links (V13), QuoteRequest reception (V14), qualification/history/version (V15),
+and the 1:N proposal link with persistent idempotency keys (V16). Add forward
+migrations rather than editing applied SQL.
 
 For Resource-link migration checks, see the
 [Business Reference](../docs/SAVIS_API_BUSINESS_REFERENCE.md#resource-backed-bom-components)

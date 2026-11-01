@@ -1,3 +1,5 @@
+import { QuoteRequestsPage } from "@/features/sales/quote-requests/pages/QuoteRequestsPage";
+import { QuoteRequestDetailsPage } from "@/features/sales/quote-requests/pages/QuoteRequestDetailsPage";
 import { catalogReturnTo } from "@/features/catalog/model/catalogProductNavigation";
 import { ResourcesPage } from "@/features/resource/pages/ResourcesPage";
 import {
@@ -119,6 +121,13 @@ const router = createBrowserRouter([
             element: <Navigate replace to="/sales/orders" />,
           },
           {
+            path: "quote-requests",
+            element: <QuoteRequestsPage />,
+            handle: {
+              breadcrumb: () => <SalesBreadcrumb section="Demandes" />,
+            },
+          },
+          {
             path: "quotations",
             element: <QuotationsPage />,
             handle: {
@@ -140,6 +149,13 @@ const router = createBrowserRouter([
             },
           },
         ],
+      },
+      {
+        path: "/sales/quote-requests/:requestId",
+        element: <QuoteRequestDetailsPage />,
+        handle: {
+          breadcrumb: () => <SalesBreadcrumb section="Détail de la demande" />,
+        },
       },
       {
         path: "/quotations",

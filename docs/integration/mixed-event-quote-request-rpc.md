@@ -66,13 +66,15 @@ correspondre exactement au type.
 Chaque ligne conserve la quantité, la note et le snapshot de configuration.
 Pour une ligne issue de la sélection, le snapshot peut contenir
 `product_type`, `purchase_mode`, `selection`, `allocation` et `ingredients`.
-Les identifiants, slug, nom, catégorie et options sont vérifiés contre
-`published_catalog_products` et l'offre doit être disponible. Une demande sans
+Pour une nouvelle réception, les identifiants, slug, nom, catégorie et options
+sont vérifiés contre `published_catalog_products` et l'offre doit être disponible.
+Un rejeu identique déjà reçu est résolu avant cette validation du catalogue courant. Une demande sans
 ligne reste autorisée pour les formulaires événementiels génériques.
 
 La réponse de succès est l'UUID de `quote_requests.id`. Les données complètes
 sont conservées telles quelles dans `quote_requests.payload`, avec
-`status = 'new'` et `source = 'savouretplus'`.
+`status = 'new'` et `source = 'savouretplus'`. Le suivi d'import séparé commence
+à `sync_status='pending'` ; SAVIS acquitte avec `synced_at` ou un code `sync_error`.
 
 ## Idempotence et reprises
 
@@ -122,21 +124,28 @@ peuvent ni lire ni insérer directement dans `quote_requests`, et n'ont aucun
 accès au registre privé. Les données personnelles ne doivent pas être loguées
 par le frontend.
 
-## Limite SAVIS actuelle
+## Traitement dans SAVIS
 
-Le dépôt ne contient aucun DTO, mapper ou workflow d'importation de
-`quote_requests`. Le module `quotation` de SAVIS représente une soumission
-commerciale interne et tarifée; le relier directement à cette boîte de
-réception modifierait la logique métier et sort de cette phase. La réception
-Supabase est donc sécurisée, mais la reprise manuelle ou l'import métier des
-demandes reste à concevoir.
+L'opérateur appelle `POST /api/quote-requests/import` depuis « Ventes > Demandes ».
+L'API reçoit un besoin `QuoteRequest` distinct du devis chiffré `Quotation`, tous
+deux dans `sales.quotation`. L'import conserve le payload et les identifiants de
+réception/soumission, sans créer automatiquement de devis ou de commande.
+Après qualification, une demande peut produire plusieurs propositions indépendantes
+avec leurs propres clés d'idempotence. Les prix sont alors recalculés par Catalog,
+jamais repris comme prix autoritatifs du payload public.
+
+Voir le [contrat QuoteRequest](quote-request-implementation.md) pour les routes,
+la reprise, les migrations locales et les prérequis de sécurité. Les endpoints
+SAVIS sont désormais enregistrés sans flag ; leur protection ne découle pas de la
+sécurisation de la RPC Supabase.
 
 ## Déploiement coordonné
 
 1. Exécuter les tests frontend et les tests SQL sur une base locale jetable.
 2. Déployer le frontend qui génère `request_id`; l'ancienne RPC tolère ce champ.
 3. Sans délai, appliquer les migrations SAVIS en ordre jusqu'à
-   `20261023120000_secure_mixed_quote_requests.sql` inclus. Cela applique
+   `20261031130000_fix_quote_request_replays.sql` inclus, avec le suivi technique
+   `20261031120000_quote_request_sync.sql`. Cela applique
    notamment le renommage antérieur `decorative-arch` avant la validation des
    snapshots de catalogue.
 4. Vérifier les privilèges puis effectuer le smoke test ci-dessous.
@@ -144,7 +153,7 @@ demandes reste à concevoir.
 
 Pour éliminer entièrement la courte fenêtre où le nouveau frontend peut parler
 à l'ancienne RPC moins stricte, suspendre temporairement l'envoi des demandes
-pendant les étapes 2 et 3. La migration n'est pas appliquée par ce livrable.
+pendant les étapes 2 et 3. L'application des migrations reste une opération de déploiement explicite.
 
 ## Smoke test
 
@@ -160,6 +169,10 @@ pendant les étapes 2 et 3. La migration n'est pas appliquée par ce livrable.
 7. Couper le réseau lors d'un nouvel envoi et confirmer que la sélection reste
    disponible pour réessai.
 
-Tests PostgreSQL : `supabase/tests/submit_quote_request_test.sql` et
+Les tests SQL couvrent aussi `type` absent/null et le rejeu après dépublication.
+Le runner `test/integration/quote_requests_supabase.py` vérifie la chaîne complète,
+les privilèges et la concurrence sur une base jetable.
+
+Autres scripts disponibles : `supabase/tests/submit_quote_request_test.sql` et
 `supabase/tests/submit_quote_request_concurrency.sh`. Le second exige
 `DATABASE_URL` vers une base jetable déjà migrée.

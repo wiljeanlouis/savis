@@ -2,7 +2,7 @@ begin;
 
 create extension if not exists pgtap with schema extensions;
 
-select extensions.plan(22);
+select extensions.plan(25);
 
 insert into public.published_catalog_products (
   id, slug, name, category, subcategory, description, commercial_type, product_type,
@@ -319,6 +319,21 @@ select extensions.is(
    )),
   2::bigint,
   'only the two valid logical requests were persisted'
+);
+
+select extensions.throws_ok(
+  $$select public.submit_quote_request(pg_temp.mixed_quote_payload('92000000-0000-4000-8000-000000000020') - 'type')$$,
+  '22023', 'QUOTE_INVALID_CUSTOMER', 'missing type is rejected'
+);
+select extensions.throws_ok(
+  $$select public.submit_quote_request(jsonb_set(pg_temp.mixed_quote_payload('92000000-0000-4000-8000-000000000021'),'{type}','null'))$$,
+  '22023', 'QUOTE_INVALID_CUSTOMER', 'null type is rejected'
+);
+update public.published_catalog_products set is_available=false
+where id='91000000-0000-4000-8000-000000000001';
+select extensions.lives_ok(
+  $$select public.submit_quote_request(pg_temp.mixed_quote_payload('92000000-0000-4000-8000-000000000001'))$$,
+  'identical replay survives catalog unpublication'
 );
 
 select * from extensions.finish();

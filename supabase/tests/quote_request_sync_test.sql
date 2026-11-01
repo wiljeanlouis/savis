@@ -1,0 +1,15 @@
+begin;
+create extension if not exists pgtap with schema extensions;
+select extensions.plan(10);
+select extensions.ok(not has_table_privilege('anon','public.quote_requests','SELECT'),'anon cannot read requests');
+select extensions.ok(not has_table_privilege('authenticated','public.quote_requests','SELECT'),'authenticated cannot read requests');
+select extensions.ok(not has_table_privilege('anon','public.quote_requests','INSERT'),'anon cannot bypass submission RPC');
+select extensions.ok(not has_table_privilege('authenticated','public.quote_requests','UPDATE'),'authenticated cannot modify requests');
+select extensions.ok(has_table_privilege('service_role','public.quote_requests','SELECT'),'backend can read inbox');
+select extensions.ok(has_column_privilege('service_role','public.quote_requests','sync_status','UPDATE'),'backend can acknowledge');
+select extensions.ok(not has_column_privilege('service_role','public.quote_requests','payload','UPDATE'),'backend cannot rewrite original payload');
+select extensions.ok(not has_table_privilege('service_role','public.quote_requests','DELETE'),'backend cannot purge receipts');
+select extensions.ok(not exists(select 1 from pg_policies where schemaname='public' and tablename='quote_requests' and cmd in ('SELECT','ALL')),'no public read policy');
+select extensions.ok(has_function_privilege('anon','public.submit_quote_request(jsonb)','EXECUTE'),'public submission contract remains available');
+select * from extensions.finish();
+rollback;
