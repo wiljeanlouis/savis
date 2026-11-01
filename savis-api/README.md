@@ -2,8 +2,8 @@
 
 **SAVIS API** is the Java business backend for [SAVIS](../README.md). It owns
 the system of record for technical BOMs, provider offers consumed by BOMs,
-activity rates, sellable catalog products, pricing analysis, and catalog
-publication.
+activity rates, resources, sellable catalog products, pricing analysis, catalog
+publication, orders, quotations, and invoices.
 
 The service exposes the business HTTP API used by
 [SAVIS Admin](../savis-admin/README.md), exchanges offer messages with
@@ -13,32 +13,28 @@ PostgreSQL, and publishes a customer-facing catalog projection to Supabase.
 ## Navigation
 
 - [Responsibilities](#responsibilities)
+- [Runtime Context](#runtime-context)
 - [Architecture](#architecture)
 - [Business Slices](#business-slices)
 - [HTTP API](#http-api)
+- [Supabase Integration](#supabase-integration)
 - [RabbitMQ Contracts](#rabbitmq-contracts)
 - [Persistence](#persistence)
 - [Configuration](#configuration)
 - [Technology](#technology)
 - [Local Development](#local-development)
 - [Docker](#docker)
+- [Health and Operations](#health-and-operations)
 - [Tests](#tests)
-- [Current Boundaries](#current-boundaries)
+- [Further Documentation](#further-documentation)
 
 ## Responsibilities
 
-- Manage generic technical BOMs, components, activities, and yields.
-- Calculate BOM costs from provider offers and global activity rates.
-- Value BOM components using existing Supply offers.
-- Consume valid offer results and invalidations from SAVIS Executor.
-- Expose available offers for BOM component selection.
-- Manage product categories and sellable catalog products.
-- Validate product structures and common BOM references.
-- Analyze product configuration costs, margins, and conservative worst cases.
-- Publish products marked for publication to Supabase.
-
-SAVIS API does not scrape provider websites, execute asynchronous acquisition
-tasks, or serve the customer-facing catalog directly.
+The API owns business validation, technical costing, commercial pricing,
+customer documents, and persistence for the seven modules described below.
+It integrates with Executor for supplier offers and Supabase for catalog
+publication and manual web-order import. Provider scraping and acquisition tasks
+belong to Executor; the customer-facing catalog is served from Supabase.
 
 ## Runtime Context
 
@@ -51,11 +47,13 @@ SAVIS Admin
 | SAVIS API                 |
 | Spring Boot               |
 |                           |
-| BOM | Supply | Catalog    |
+| BOM, Resource, Supply     |
+| Catalog, Order, Quotation |
+| Invoice                   |
 +-----+--------+------------+
       |        |
       |        +------> Supabase REST API
-      |                  published catalog projection
+      |                  catalog publication + order inbox
       |
       +<-------------> RabbitMQ <-------------> SAVIS Executor
       |               offer queues
@@ -69,56 +67,20 @@ views and cross-system business flows.
 
 ## Architecture
 
-The codebase is a Spring Modulith application organized as pragmatic vertical
-slices with domain, use-case, port, and adapter packages:
+The codebase is a Spring Modulith application with seven vertical business
+slices under `src/main/java/com/savouretplus/savis/`:
 
 ```text
-src/main/java/com/savouretplus/savis/
-|-- bom/
-|   |-- api/                    # Public pricing and requirements interfaces
-|   |-- domain/
-|   |-- usecase/
-|   |-- port/
-|   |-- adapter/
-|   |   |-- web/
-|   |   |-- persistence/
-|   |   |-- messaging/
-|   |   `-- external/
-|   `-- config/
-|-- resource/
-|   |-- api/                    # Public ResourceCatalogApi reference view
-|   |-- domain/
-|   |-- usecase/
-|   |-- port/
-|   `-- adapter/
-|       |-- web/
-|       `-- persistence/
-|-- supply/
-|   |-- api/                    # Public offer pricing interface
-|   |-- domain/
-|   |-- usecase/
-|   |-- port/
-|   |-- adapter/
-|   |   |-- web/
-|   |   |-- persistence/
-|   |   `-- messaging/
-|   `-- config/
-|-- catalog/
-|   |-- domain/
-|   |-- usecase/
-|   |-- port/
-|   |-- adapter/
-|   |   |-- web/
-|   |   |-- persistence/
-|   |   |-- bom/
-|   |   `-- supabase/
-|   `-- config/
-|-- sales/                      # Structural parent, no shared business service
-|   |-- quotation/              # domain, usecase, port, adapter
-|   |-- order/                  # api, domain, usecase, port, adapter
-|   `-- invoice/                # domain, usecase, port, adapter
-`-- common/                     # Money, Quantity, and Unit
+bom/          resource/     supply/       catalog/
+order/        quotation/    invoice/      common/
 ```
+
+Each business slice separates `domain` (invariants and value objects), `usecase`
+(workflow orchestration), `port` (dependencies), and `adapter` (HTTP,
+persistence, messaging, external services, or PDF rendering). Modules with public
+contracts expose an `api` package; Spring wiring belongs in `config` where needed.
+`common` holds shared quantities, money, units, and PDF font support.
+
 
 The slices collaborate through explicit public contracts:
 
@@ -126,9 +88,13 @@ The slices collaborate through explicit public contracts:
 - Catalog consumes `BomPricingApi` through its own `BomPricingPort`.
 - Order consumes `CatalogOrderingApi`, `BomRequirementsApi`, and `SupplyApi`
   through local ports to generate production-requirement reports.
+- Quotation consumes `CatalogOrderingApi` for price snapshots and
+  `QuotationOrderApi` for conversion.
+- Invoice consumes `OrderInvoicingApi` for locked snapshots, without accessing
+  Order persistence or repricing through Catalog.
 - Catalog stores BOM UUIDs as values and does not access BOM entities or
   repositories.
-- BOM validates component resource UUIDs through `ResourceCatalogApi`; the API
+- BOM and Supply validate resource UUIDs through `ResourceCatalogApi`; the API
   exposes an immutable reference view and never exposes Resource persistence.
 
 `SavisApiModularityTests` uses Spring Modulith to verify module boundaries and
@@ -142,393 +108,155 @@ See [Sales audit, options, and module graphs](../docs/SALES_REFACTORING.md).
 
 ## Business Slices
 
-### BOM
+Each module owns a distinct part of the business workflow:
 
-A BOM is a reusable technical composition. It can currently be typed as:
+| Module | Role |
+| --- | --- |
+| Resource | Define the ingredients, materials, and equipment used by BOMs. |
+| Supply | Maintain supplier offers and their association with resources. |
+| BOM | Describe how something is produced and calculate its technical cost. |
+| Catalog | Define what can be sold, its configurations, prices, and publication. |
+| Order | Record customer commitments and derive production requirements. |
+| Quotation | Prepare a commercial proposal and convert acceptance into an order. |
+| Invoice | Bill an order using its agreed commercial snapshots. |
 
-- `FOOD`;
-- `DECORATION`.
+Detailed formulas, valuation diagnostics, and migration procedures are in the
+[Business Reference](../docs/SAVIS_API_BUSINESS_REFERENCE.md).
 
-A BOM contains:
+### Resource
 
-- public UUID and descriptive information;
-- components with name, quantity, unit, and optional selected offer UUID;
-- sequenced activities with type and duration in minutes;
-- a yield quantity and unit.
+**Role:** maintain the reference catalog shared by BOM components and supplier
+offers. A resource identifies what is consumed or used, independently of a
+supplier's product or packaging.
 
-Supported component and yield units:
+**Key rules:**
 
-- `g`;
-- `kg`;
-- `l`;
-- `ml`;
-- `piece`;
-- `portion`.
-
-Units are normalized to base dimensions for cost calculation: kilograms to
-grams and liters to milliliters. Piece and portion remain distinct dimensions.
-
-Supported activity types:
-
-- `PREP`;
-- `COOK`;
-- `ASSEMBLY`;
-- `PACKAGING`;
-- `INSTALLATION`;
-- `DELIVERY`;
-- `CLEANUP`;
-- `CUSTOM`.
-
-#### BOM Cost
-
-BOM costing covers the existing component and activity scope only. Each line has
-an explicit `KNOWN`, `MISSING`, or explicitly justified `NOT_APPLICABLE` status.
-A known zero is valid; absent prices and rates are never inferred to be zero.
-
-For each component, the BOM slice:
-
-1. uses its selected offer when that UUID resolves and belongs to its resource;
-2. otherwise searches for the cheapest available compatible offer of the same resource, retaining a
-   `SELECTED_OFFER_NOT_FOUND` warning when a selected UUID no longer resolves;
-3. prorates the package price to the requested component quantity.
-
-A resolved selected offer marked unavailable retains its last observed price,
-with a non-blocking `SELECTED_OFFER_UNAVAILABLE` warning and **no automatic
-fallback**. This preserves the previous selection policy. A selected offer with
-missing price, invalid package, incompatible units, or another resource produces a missing line,
-without switching supplier silently. If no usable fallback exists, `OFFER_NOT_FOUND`
-explains that no available compatible priced package was found. Unexpected
-technical failures propagate as errors, rather than incomplete valuations.
-
-```text
-component consumption cost = package price * requested base quantity / package base quantity
-activity cost = minutes / 60 * global hourly rate
-known subtotal = sum of known component and activity costs
-```
-
-Consumption cost is not the budget for purchasing whole packages. Source data
-include the selected and used offer UUIDs, observation date, package price and
-size. Activity lines include the duration and hourly rate used. These are current
-calculation responses, not persisted historical snapshots.
-
-Missing activity rates produce `ACTIVITY_RATE_MISSING`; an explicitly configured
-zero rate remains known. Activity semantics and the existing formula are
-unchanged: **COOK may currently describe elapsed oven time, not human labor**.
-Separating labor, equipment and energy is deferred to the Resource/equipment phase.
-
-`GET /api/boms/{id}/price` now returns a structured `BomPricing` object, replacing
-the former bare `Money` response. It contains `knownSubtotal`, `componentSubtotal`,
-`activitySubtotal`, `components`, `activities`, `diagnostics`, `yieldQuantity`,
-`complete`, and nullable `totalCost`. Each line carries its own diagnostics;
-aggregate diagnostics retain their source and blocking/non-blocking distinction.
-A non-positive yield produces `INVALID_YIELD`, preserves the known batch subtotal,
-and prevents a complete valuation usable by Catalog.
-
-`GET /api/boms` returns composition data only: it does not consult supplier
-prices or activity rates, and does not calculate costs. The existing `price` and
-`costing` DTO fields remain null for compatibility. Components and activities
-remain available for search, cloning and Catalog's BOM selectors.
-
-`GET /api/boms/{id}` includes the detailed result in `costing`; the legacy `price`
-field contains only a complete total and is null for an incomplete BOM.
-`GET /api/boms/{id}/price` remains available for explicit cost analysis.
-The public `BomPricingApi` continues to serve Catalog without exposing internal
-BOM objects. The former multi-BOM list calculation has been removed because the
-list was its only consumer. Per-BOM `ComponentPricePort.getPrices` batching,
-request deduplication and supplier lookup caches remain active for detail and
-Catalog pricing, along with the activity-rate read for each BOM calculation.
-
-#### Component Acquisition
-
-BOM creation, replacement and component changes validate Resource references and
-persist the aggregate only. They publish no acquisition events and enqueue no
-scraping, even without offers. Cost reads use existing Supply offers only,
-preserving selected offers, cheapest-compatible fallback and missing-price
-diagnostics. Acquisition remains an explicit Executor task action or independent
-scheduled maintenance.
-
-### Resource-backed BOM Components
-
-Each saved BOM component now carries a `resourceId` UUID, a quantity/unit, and
-an optional selected offer UUID. The component row also keeps its resource name
-as a display/acquisition snapshot. BOM pricing uses the resource UUID, with a
-batched Supply lookup and strict selected-offer resource validation. BOM checks that
-new references point to active resources and that units share the same base
-unit (for example, `kg` and `g`). A component already attached to an inactive
-resource remains readable and can be saved without changing that reference.
-
-Flyway V12 groups legacy components by trimmed name with consecutive whitespace
-collapsed and case ignored. It performs no synonym, accent or approximate matching.
-Mass (`g`/`kg`) and volume (`ml`/`l`) are compatible within their dimension;
-`piece` and legacy `portion` each form separate dimensions. Unknown units, blank
-names and incompatible dimensions abort with the normalized name and component IDs.
-A portion maps only to a Resource with no physical reference unit.
-
-One existing resource with the same normalized name and compatible dimension is
-reused without changing its UUID or metadata (including status). Multiple matches
-or incompatible existing units abort with the matching UUIDs for explicit review.
-Otherwise one resource is created with a deterministic UUID derived from the name,
-and a base reference unit (`GRAM`, `MILLILITER`, `PIECE`, or null for portions).
-All-material groups use `DECORATION_MATERIAL`; other physical groups use
-`INGREDIENT`. Portions use `DECORATION_MATERIAL`. Names over 160 characters abort.
-Component IDs, original names, quantities, units and selected offers stay unchanged;
-no quantities are converted and pricing continues to use the original snapshots.
-
-V12 was replaced during development with the user's confirmation that no retained
-database has received it. Do not use Flyway repair to conceal a checksum mismatch
-on another environment: stop and prepare a reviewed forward migration instead.
-For production, back up the database, validate data and run the complete Flyway
-chain on a restored staging copy first. Apply with application writers stopped.
-A preflight failure rolls back the entire migration; correct the reported source
-data explicitly and retry. Flyway history prevents replay after success.
-No reset, deletion or automatic consolidation of pre-existing resources occurs.
-
-Real PostgreSQL migration tests (use an isolated empty database, never business data):
-
-```bash
-docker run --rm -d --name savis-bom-migration-test \
-  -e POSTGRES_PASSWORD=postgres -p 127.0.0.1:55439:5432 postgres:18.3-alpine
-BOM_MIGRATION_TEST_URL=jdbc:postgresql://127.0.0.1:55439/postgres \
-  ./mvnw -Dtest=BomResourceMigrationTest test
-docker stop savis-bom-migration-test
-```
-
-Wait for PostgreSQL readiness before running Maven. The tests roll back each fixture
-and its DDL. Run these tests explicitly against an isolated PostgreSQL database;
-without the environment variable they are skipped, including in CI.
-
-Post-migration integrity checks:
-
-```sql
-select count(*) as components_without_resource
-from savis_api.bom_components where resource_id is null;
-
-select count(*) as broken_resource_references
-from savis_api.bom_components component
-left join savis_api.resources resource on resource.public_id = component.resource_id
-where resource.public_id is null;
-
--- Expected: no rows (multiple resources referenced for one component name).
-select lower(trim(regexp_replace(component_name, '[[:space:]]+', ' ', 'g'))) as normalized_name,
-       count(distinct resource_id) as resource_count,
-       array_agg(distinct resource_id) as resource_ids
-from savis_api.bom_components
-group by 1 having count(distinct resource_id) > 1;
-
--- Also inspect duplicate names anywhere in the independent Resource catalog.
-select lower(trim(regexp_replace(name, '[[:space:]]+', ' ', 'g'))) as normalized_name,
-       count(*) as resource_count, array_agg(public_id order by public_id) as resource_ids
-from savis_api.resources
-group by 1 having count(*) > 1;
-```
+- Categories are `INGREDIENT`, `CONSUMABLE`, `PACKAGING`, `EQUIPMENT`, and
+  `DECORATION_MATERIAL`.
+- Ingredients, consumables, and packaging require a reference unit.
+- Resources can be active or inactive. New BOM references require an active
+  resource; unchanged historical references to inactive resources remain valid.
+- This module does not track stock quantities or equipment availability.
 
 ### Supply
 
-The Supply slice stores the provider offers that SAVIS Executor has validated
-and published.
+**Role:** maintain the local supplier-offer projection used to value BOMs.
+Offers contain supplier identity, price, package size, availability, and an
+optional resource association. They arrive from Executor or manual entry.
 
-An offer includes:
+**Key rules:**
 
-- public and provider product identifiers;
-- component search term (acquisition metadata) and optional resource UUID;
-- label, brand, image, and product URL;
-- price and package size;
-- provider identity;
-- last-seen timestamp;
-- availability status.
+- Incoming offers are reconciled by public UUID, then by supplier product identity.
+- Invalidation marks an offer unavailable rather than deleting it.
+- Resource associations are explicit and validated against Resource. Acquisition
+  search terms are metadata, not resource identifiers.
+- Automatic price selection considers available offers. Existing unavailable
+  selections remain readable with their last observed price.
+- Executor owns scraping, acquisition tasks, and offer review.
 
-Incoming offers are reconciled first by public UUID, then by
-`(externalId, provider.identifier)`. An invalidation marks the corresponding
-offer unavailable instead of deleting it.
+### BOM
 
-Automatic cheapest-offer searches expose only available offers; direct UUID lookup also exposes unavailable selected references with their availability. Searches are
-case-insensitive and ordered by package price on the legacy name-search endpoint.
-BOM pricing uses batched resource UUID lookup and compares normalized base-unit
-prices. Supply validates manual associations using ResourceCatalogApi.
+**Role:** describe a reusable technical composition (`FOOD` or `DECORATION`):
+resource quantities, optional selected offers, sequenced activities, and yield.
+BOM also owns the global hourly rate for each activity type.
+
+**Key rules:**
+
+- Component units must match the resource dimension. Mass and volume units can
+  be converted within their dimension; pieces and portions remain distinct.
+- Activity types are `PREP`, `COOK`, `ASSEMBLY`, `PACKAGING`, `INSTALLATION`,
+  `DELIVERY`, `CLEANUP`, and `CUSTOM`, with one hourly rate per type.
+- Material cost prorates package price to the quantity consumed. Activity cost
+  is duration in hours multiplied by the configured hourly rate.
+- A valid selected offer takes precedence. Without a selection, or when its UUID
+  no longer resolves, pricing searches for the cheapest compatible available
+  offer for the same resource. An invalid resolved selection blocks valuation;
+  an unavailable selection keeps its observed price with a warning.
+- Missing prices or activity rates make valuation incomplete; they never imply
+  zero cost. An explicit zero is valid. A positive yield is required for a
+  complete valuation usable by Catalog.
+- Saving a BOM does not trigger acquisition. List reads return composition;
+  detail and price reads calculate current costs from existing Supply data.
 
 ### Catalog
 
-The Catalog slice owns:
+**Role:** define sellable products, purchase modes, customer choices, ingredient
+options, profitability analysis, and publication to Supabase. Catalog consumes
+BOM costs and yields; it does not own technical compositions.
 
-- product categories;
-- sellable products;
-- purchase modes;
-- common product BOM references;
-- customer choice groups;
-- customizable ingredient options;
-- pricing analysis;
-- Supabase publication.
+**Key rules:**
 
-Commercial nature is independent from product configuration:
+- Commercial nature (`GOODS` or `SERVICE`) is independent of configuration type:
+  `STANDARD`, `SINGLE_CHOICE`, `SINGLE_CHOICE_BUNDLE`, or
+  `INGREDIENT_CUSTOMIZATION`.
+- Every product requires an active purchase mode. Sale prices come from purchase
+  modes, with ingredient surcharges only above default quantities.
+- Common BOM references require an existing BOM and a positive quantity. Choice
+  and ingredient BOM references are optional. An optional subcategory must belong
+  to the product's category.
+- Costs combine common BOMs with the selected configuration, using each BOM's
+  yield. Incomplete costs expose diagnostics rather than a complete total or margin.
+- Recommended prices use the target margin and round upward to CAD 0.25. They
+  are advisory and never overwrite sale prices.
+- Publication is explicit and requires Supabase to be enabled. The public
+  projection excludes internal costs and margins. Bulk publication does not
+  remove newly unpublished products; use the single-product unpublish operation.
 
-- `GOODS` identifies a physical good;
-- `SERVICE` identifies a service sold through the same catalog and order flows.
+### Order
 
-Both commercial types may reference zero or more BOMs. Equipment rental and
-other inputs used to deliver a service remain internal BOM costs; they are not
-modeled as a third commercial product type.
+**Role:** record customer orders, preserve commercial item/configuration
+snapshots, manage fulfilment, and generate current production requirements.
+Orders originate from Admin, manual Supabase import, or accepted quotations.
 
-Supported product types:
+**Key rules:**
 
-- `STANDARD`;
-- `SINGLE_CHOICE`;
-- `SINGLE_CHOICE_BUNDLE`;
-- `INGREDIENT_CUSTOMIZATION`.
+- Administrative entry validates selections and prices against Catalog. Web
+  import preserves submitted snapshots and is idempotent by source/external UUID;
+  Supabase acknowledgement follows successful local persistence. Both entry
+  paths create `NEW` orders; accepted quotation conversions enter as `ACCEPTED`.
+- Administrative orders can be replaced only while `NEW`. Imported web orders
+  allow customer corrections while `NEW`, without changing item or price snapshots.
+- The normal lifecycle is `NEW → ACCEPTED → IN_PREPARATION → READY → COMPLETED`.
+  Rejection is available from `NEW`; cancellation is available before completion.
+- Order total is item subtotal minus discount plus delivery fee; orders do not
+  calculate taxes. Customer phones use Canada as the default region and are
+  stored in E.164 format. Addresses normalize whitespace and province casing,
+  and validate Canadian postal codes.
+- Production requirements use current Catalog, BOM, and Supply data. They do not
+  change agreed prices or estimate inventory-adjusted purchases.
 
-#### Product BOM References
+### Quotation
 
-A product owns an ordered collection of common `ProductBom` values:
+**Role:** prepare a commercial proposal (soumission), preserve its priced
+configuration, generate its PDF, and convert acceptance into an order.
 
-```json
-{
-  "id": null,
-  "bomId": "4a7a05f4-c5f6-4e9e-a11d-855a349f5300",
-  "quantity": 1.5,
-  "displayOrder": 0
-}
-```
+**Key rules:**
 
-Each `ProductBom` requires:
+- Creation captures current Catalog prices and requires a validity date.
+- Only `DRAFT` quotations can be edited. The lifecycle is `DRAFT → SENT`, then
+  `SENT → ACCEPTED` or `SENT → REJECTED`.
+- Only accepted quotations can be converted. Conversion is idempotent and creates
+  an `ACCEPTED` order from agreed snapshots without repricing against Catalog.
+- Quotation PDFs use persisted snapshots and the quotation validity date.
+  Business coordinates and payment conditions are fixed template values.
+- Supabase quote requests are separate inbox data and are not imported here.
 
-- a BOM UUID;
-- a strictly positive decimal quantity;
-- a non-negative display order.
+### Invoice
 
-The collection may be empty. Product creation and update reject a
-`ProductBom.bomId` that does not exist at save time.
+**Role:** bill an eligible order from its persisted commercial snapshots and
+produce the final invoice PDF.
 
-Choice-option and ingredient-option `bomId` values remain optional and are not
-validated during product save. They represent customer-specific costs rather
-than the common base composition.
+**Key rules:**
 
-#### Product Cost
-
-Catalog retrieves each referenced BOM's total cost and yield through
-`BomPricingPort`.
-
-```text
-unitCost(bomId) = BOM total cost / BOM yield quantity
-commonCost = sum(unitCost(productBom.bomId) * productBom.quantity)
-```
-
-Cost rules:
-
-- standard: `commonCost`;
-- single choice: `commonCost + choice unit cost * purchase-mode quantity`;
-- single choice without a selected mode: use a quantity of `1`;
-- choice allocation: `commonCost + sum(choice unit cost * allocated quantity)`;
-- ingredient customization:
-  `commonCost + sum(extra unit cost * max(0, selected - default))`.
-
-Default extras are not counted twice. Removing an ingredient below its default
-quantity does not reduce the reference cost.
-
-The conservative bundle analysis adds the common cost to the most expensive
-active choice BOM multiplied by the selected mode quantity.
-
-An analysis becomes `INCOMPLETE` when a required BOM UUID is absent, no longer
-resolves, contains a missing component price or activity rate, has no valid cost,
-or has a non-positive yield. This also covers a
-common `ProductBom` deleted after product save. Missing UUIDs are returned when
-known.
-
-#### Pricing Analysis
-
-Pricing analysis returns:
-
-- analyzed quantity;
-- selected sale price;
-- `knownSubtotal`, plus nullable complete total `cost` and unit cost `unitCost`;
-- source diagnostics propagated from BOM, including non-blocking warnings;
-- actual and target margin;
-- recommended price;
-- completeness and missing BOM UUIDs;
-- status: `GOOD`, `REVIEW`, `LOSS`, or `INCOMPLETE`.
-
-The sale price comes from the active purchase mode when selected, otherwise
-from the product base price. Customizable ingredient prices are added only for
-quantities above their defaults.
-
-Recommended price:
-
-```text
-cost / (1 - target margin)
-```
-
-Incomplete analyses expose their known subtotal and diagnostics, but return null
-for `cost`, `unitCost`, `actualMarginRate`, and `recommendedPrice`. Known BOM
-subtotals are scaled by valid yields; an invalid yield cannot be used to convert
-a batch subtotal into a product subtotal. For a worst-case bundle with an
-incomplete candidate, the retained subtotal covers common BOMs only: no candidate
-is asserted to be the maximum. A missing optional reference remains a business
-diagnostic; unexpected technical exceptions are not caught as missing BOMs.
-
-The recommendation is rounded upward to the next CAD 0.25. The recommendation is advisory and
-never changes a product or purchase-mode sale price.
-
-#### Product Categories and Subcategories
-
-Every catalog product has a `ProductCategory` and may have one
-`ProductSubcategory`. A subcategory declares its parent category in the domain,
-and SAVIS rejects an incompatible association.
-
-The initial public mappings are:
-
-| API value | Public code | Parent category |
-| --- | --- | --- |
-| `DECORATIVE_ARCH` | `decorative-arch` | `DECORATION` |
-| `CENTERPIECE` | `centerpiece` | `DECORATION` |
-| `BIRTHDAY` | `birthday` | `DECORATION` |
-| `WEDDING` | `wedding` | `DECORATION` |
-
-The PostgreSQL and Supabase columns are nullable text columns without a
-hardcoded value constraint. Adding a subcategory therefore requires updating
-the domain/admin/storefront contracts, but does not require a Flyway or
-Supabase schema migration.
-
-#### Catalog Publication
-
-`CatalogPublicationService.publishAll()` publishes products whose `published`
-flag is true. Publication can be triggered:
-
-- explicitly through the HTTP API.
-
-When Supabase is disabled, publication returns a bad-request error.
-
-The Supabase adapter upserts rows into:
-
-```text
-published_catalog_products
-```
-
-The public projection includes customer-facing product content, category,
-optional subcategory public code, active purchase modes, active choices,
-active ingredients, availability, images, and prices in cents. It excludes:
-
-- common `productBoms`;
-- internal costs and missing-BOM diagnostics;
-- target margins;
-- recommended prices.
-
-Optional choice and ingredient `bom_id` values remain in the projection.
-PostgreSQL remains the catalog system of record; Supabase is a read projection.
-
-Bulk publication reads only products whose `published` flag is currently true.
-It does not yet reconcile Supabase rows for products newly changed to
-unpublished. The single-product publication path supports unpublishing, but it
-is exposed by the HTTP controller.
-
-### Orders
-
-The Order slice owns the normalized local order aggregate, immutable item and
-configuration snapshots, lifecycle transitions, administrative order entry,
-and the manual external inbox import. Supabase `customer_orders.id` is stored
-as `externalOrderId`; the local database additionally assigns a public UUID and
-a sequence-backed order number.
-
-Web imports are idempotent through the unique `(source, externalOrderId)` key.
-The source row is retained as JSONB for audit. Successful local imports are
-acknowledged in Supabase only after persistence completes.
+- An order must be `ACCEPTED`, `IN_PREPARATION`, `READY`, or `COMPLETED` to be
+  invoiced. Only one invoice is allowed per order, including after cancellation.
+- New invoices are `DRAFT` without a number. Draft edits allow customer details,
+  notes, discount, delivery fee, and explicit GST/QST amounts; item snapshots stay
+  fixed. Taxes start at zero and are not calculated from rates.
+- Issuing assigns a permanent number and freezes editable data. Draft or issued
+  invoices can be cancelled; cancellation does not create a credit note.
+- Final PDFs require prior issuance. An issued invoice remains documentable after
+  cancellation and is never repriced from current Catalog data.
 
 ## HTTP API
 
@@ -539,76 +267,57 @@ available at:
 http://localhost:8080/swagger-ui.html
 ```
 
-Spring Problem Details is enabled. Catalog not-found errors return `404`;
-invalid catalog structures and disabled explicit publication return `400`.
+The OpenAPI JSON is available at `/v3/api-docs`. Paths below are direct API
+paths; Admin reaches them through its `/savis-api` proxy. Public identifiers are
+UUIDs. Request/response schemas are defined by the controller DTOs and OpenAPI.
 
-### Order Endpoints
+### Errors
 
-| Method | Path                                 | Purpose                                      |
-| ------ | ------------------------------------ | -------------------------------------------- |
-| `POST` | `/api/orders`                        | Create an administrative order from catalog selections. |
-| `POST` | `/api/orders/import`                 | Manually import orders from the configured inbox. |
-| `GET`  | `/api/orders`                        | List normalized local orders.                |
-| `GET`  | `/api/orders/{orderId}`              | Retrieve one order and its item snapshots.   |
-| `PUT`  | `/api/orders/{orderId}`              | Replace a `NEW` administrative order from current catalog selections. |
-| `PATCH` | `/api/orders/{orderId}/customer`     | Correct customer information on a `NEW` imported web order. |
-| `GET`  | `/api/orders/{orderId}/requirements` | Generate current aggregated production-component requirements. |
-| `PUT`  | `/api/orders/{orderId}/status`       | Apply a valid lifecycle transition.          |
+Spring Problem Details is enabled. Feature exception handlers map validation
+errors to `400`, missing Catalog/Resource/Order/Quotation/Invoice references to
+`404`, and forbidden Order/Quotation/Invoice lifecycle operations to `409`.
+Catalog invalid state and disabled publication return `400`; disabled order
+import returns `409`. Business validation messages are in French. These mappings
+are feature-specific; BOM persistence failures, for example, return `500`.
 
-The import endpoint is the only import trigger. It reads Supabase with the
-server-side service-role key and does not use a webhook, scheduler, polling
-loop, or Executor task. Imported orders always start as `NEW`. Product names,
-purchase modes, choices, allocations, ingredient quantities, and prices are
-stored as submitted snapshots; Catalog is not consulted during import.
+### Resource Endpoints
 
-Administrative creation accepts customer details plus product identifiers,
-quantities, and configuration codes. The API validates each selection against
-the current Catalog aggregate, calculates authoritative prices, and stores an
-immutable snapshot with source `ADMIN` and initial status `NEW`. Names and
-prices supplied by the browser are never trusted.
+| Method | Path | Purpose |
+| --- | --- | --- |
+| `GET` | `/api/resources?search=&category=&status=&page=&size=&sort=` | Search/paginate resources. |
+| `GET` | `/api/resources/batch?ids=<uuid>,<uuid>` | Resolve 1–100 distinct resource references. |
+| `GET` | `/api/resources/{id}` | Retrieve a resource, including inactive historical references. |
+| `POST` | `/api/resources` | Create a resource. |
+| `PUT` | `/api/resources/{id}` | Update resource definition. |
+| `PATCH` | `/api/resources/{id}/status` | Activate/deactivate a resource. |
 
-The same payload can replace an administrative order while it remains `NEW`.
-Replacement is atomic and rebuilds all item, configuration, image, and price
-snapshots from the current Catalog. Imported web orders and administrative
-orders in any later lifecycle status are rejected with `409 Conflict`.
+Resource search defaults to page `0`, size `20`, and `sort=name,asc`.
+Pages are zero-based and size must be 1–100. Optional filters are `search`,
+`category`, and `status`; search is limited to 160 characters. Sorting accepts
+`name`, `category`, or `referenceUnit` with `asc`/`desc`. Unknown sorts return
+`400`. Filtering and sorting precede database pagination; the response contains
+`content`, `totalElements`, `page`, `size`, and `totalPages`. Category sorting
+follows French labels; units use displayed symbols, with nulls last.
 
-For a web order that is still `NEW`, the customer name, phone, email, address,
-and note may be corrected through the dedicated customer endpoint. Product
-configuration, quantities, price snapshots, totals, source payload, and source
-identifiers are preserved. Web orders in later statuses are rejected with
-`409 Conflict`.
+The batch endpoint accepts 1–100 input UUIDs, collapses duplicates, and returns
+an array of Resource responses, including inactive resources. Unknown UUIDs are
+omitted; invalid input returns `400`.
 
-Administrative orders can also include an optional customer address, a
-non-negative discount, and a non-negative delivery fee. The order total is the
-catalog subtotal minus the discount plus delivery. Taxes are not calculated.
-Customer phones are validated with Canada as the default region and persisted
-in E.164 form. Optional addresses normalize whitespace, uppercase the province,
-and validate Canadian postal codes in `A1A 1A1` form. The same normalization is
-applied to administrative creation and replacement, imported web orders, and
-customer corrections.
-The PDF documents use the persisted price snapshots and adjustments; the
-business coordinates, payment conditions, and 30-day quote validity are
-currently configured as fixed document-template values.
+### Supply Endpoints
 
-Order-list summaries include the total item count and up to three product image
-previews captured from the immutable order snapshots.
+| Method | Path                                      | Purpose                                      |
+| ------ | ----------------------------------------- | -------------------------------------------- |
+| `GET`  | `/api/supply/offers?componentName={name}` | Legacy name-based available-offer search. |
+| `GET` | `/api/supply/offers/catalog?page=&size=&search=&status=&sort=` | Search persisted offers with database pagination. |
+| `POST` | `/api/supply/offers` | Create a manual offer with a validated resource. |
+| `PUT` | `/api/supply/offers/{id}/resource` | Validate or change the resource association. |
+| `GET` | `/api/supply/offers/resource/{resourceId}` | Resource offers; optional `availableOnly=true`. |
 
-The requirement report resolves the ordered configuration through Catalog,
-explodes each applicable BOM, converts compatible component quantities, and
-aggregates them across the whole order. Each requirement retains its order-item
-and BOM sources and is enriched with the selected or cheapest compatible Supply
-offer when one exists. It is an operational production report: it does not
-change order snapshots or prices and does not estimate purchases because SAVIS
-does not yet track inventory. Catalog, BOM, and Supply data are read at report
-generation time; warnings and `complete=false` identify unresolved production
-inputs.
-
-Actuator health endpoints:
-
-| Path                         | Purpose                                       |
-| ---------------------------- | --------------------------------------------- |
-| `/actuator/health/liveness`  | Confirms that the API process is alive.       |
-| `/actuator/health/readiness` | Reports whether the API is ready for traffic. |
+Supply catalog defaults: page `0`, size `20`, status `AVAILABLE`, and
+`sort=lastSeen,desc`. Status accepts `AVAILABLE`, `UNAVAILABLE`, or `ALL`. Sort
+accepts `lastSeen`, `componentName`, or `price` with `asc` or `desc`. This is the
+persisted Supply view. Pages are zero-based and size must be 1–100.
+The resource-specific endpoint defaults `availableOnly` to `false`.
 
 ### BOM Endpoints
 
@@ -620,7 +329,17 @@ Actuator health endpoints:
 | `POST`   | `/api/boms`               | Create or replace a BOM using the payload UUID. |
 | `DELETE` | `/api/boms/{bomId}`       | Delete one BOM.                                 |
 
-Example:
+BOM component writes require `resourceId`. New or reselected resources supply
+the current resource name; unchanged components retain their name snapshot.
+Preserve component `id` values during edits to keep row identities. Supported
+quantity/yield symbols are `g`, `kg`, `ml`, `l`, `piece`, and `portion`.
+
+List responses leave `price` and `costing` null. Detail responses include
+`costing`, with `price` populated only for complete valuation. The price endpoint
+returns the structured valuation (subtotals, lines, diagnostics, yield,
+`complete`, and nullable `totalCost`).
+
+Example write payload (use an existing active Resource UUID):
 
 ```json
 {
@@ -665,54 +384,14 @@ Example:
 | `PUT`    | `/api/activity-rates/{activityType}` | Update one rate.       |
 | `DELETE` | `/api/activity-rates/{activityType}` | Delete one rate.       |
 
-Only one rate can exist for each activity type.
-
-### Resource Endpoints
-
-| Method | Path | Purpose |
-| --- | --- | --- |
-| `GET` | `/api/resources?search=&category=&status=&page=&size=&sort=` | Search/paginate resources. |
-| `GET` | `/api/resources/{id}` | Retrieve a resource, including inactive historical references. |
-| `POST` | `/api/resources` | Create a resource. |
-| `PUT` | `/api/resources/{id}` | Update resource definition. |
-| `PATCH` | `/api/resources/{id}/status` | Activate/deactivate a resource. |
-
-Resource search accepts `sort=name,asc|desc`, `category,asc|desc`, or
-`referenceUnit,asc|desc` (default `name,asc`). Unknown fields/directions return
-HTTP 400. Filtering by search/category/status and ordering happen in PostgreSQL
-before pagination; totals count all matches. Category ordering follows the French
-Admin labels (Consommable, Emballage, Équipement, Ingrédient, Matériel de décoration).
-Unit ordering uses displayed symbols; null units remain last for both directions.
-Name comparison is case-insensitive, with ascending name/public UUID tie-breakers
-for stable pages. Existing callers without `sort` keep name-ascending ordering.
-No schema migration is required.
-
-New BOM components must include `resourceId`. `componentName` remains a
-display/acquisition compatibility snapshot; new or reselected resources
-use the current Resource name, while an unchanged historical component keeps
-its snapshot for acquisition traceability. Pricing uses the resource UUID. Admin displays
-the current Resource name and can identify inactive references. `id` is
-returned and accepted for each BOM line to preserve component row identities
-during edits.
+Example rate payload:
 
 ```json
 {
   "activityType": "PREP",
-  "hourlyRate": {
-    "amount": 60,
-    "currency": "CAD"
-  }
+  "hourlyRate": { "amount": 60, "currency": "CAD" }
 }
 ```
-
-### Supply Endpoints
-
-| Method | Path                                      | Purpose                                      |
-| ------ | ----------------------------------------- | -------------------------------------------- |
-| `GET`  | `/api/supply/offers?componentName={name}` | Legacy name-based available-offer search. |
-| `POST` | `/api/supply/offers` | Create a manual offer with a validated resource. |
-| `PUT` | `/api/supply/offers/{id}/resource` | Validate or change the resource association. |
-| `GET` | `/api/supply/offers/resource/{resourceId}` | Resource offers; optional `availableOnly=true`. |
 
 ### Product Endpoints
 
@@ -755,10 +434,92 @@ Pricing configuration payload:
 }
 ```
 
+### Order Endpoints
+
+| Method | Path                                 | Purpose                                      |
+| ------ | ------------------------------------ | -------------------------------------------- |
+| `POST` | `/api/orders`                        | Create an administrative order from catalog selections. |
+| `POST` | `/api/orders/import`                 | Manually import orders from the configured inbox. |
+| `GET`  | `/api/orders`                        | List normalized local orders.                |
+| `GET`  | `/api/orders/{orderId}`              | Retrieve one order and its item snapshots.   |
+| `PUT`  | `/api/orders/{orderId}`              | Replace a `NEW` administrative order from current catalog selections. |
+| `PATCH` | `/api/orders/{orderId}/customer`     | Correct customer information on a `NEW` imported web order. |
+| `GET`  | `/api/orders/{orderId}/requirements` | Generate current aggregated production-component requirements. |
+| `PUT`  | `/api/orders/{orderId}/status`       | Apply a valid lifecycle transition.          |
+
+`POST /api/orders` and replacement accept customer details, product UUIDs,
+quantities, and configuration codes; names and prices are calculated by the API.
+The customer PATCH accepts customer details only. List summaries include an item
+count and up to three image previews. Requirement responses include source lines,
+warnings, and a `complete` flag. Import responses distinguish fetched, imported,
+already imported, failed, and acknowledgement-failed rows; see
+[Supabase Integration](#supabase-integration) for retry behavior.
+
+### Quotation Endpoints
+
+| Method | Path | Purpose |
+| --- | --- | --- |
+| `POST` | `/api/quotations` | Create a draft from Catalog selections. |
+| `GET` | `/api/quotations` | List quotations. |
+| `GET` | `/api/quotations/{quotationId}` | Retrieve a quotation. |
+| `PUT` | `/api/quotations/{quotationId}` | Replace a draft. |
+| `PUT` | `/api/quotations/{quotationId}/status` | Apply a lifecycle transition. |
+| `POST` | `/api/quotations/{quotationId}/convert` | Convert an accepted quotation to an order. |
+| `GET` | `/api/quotations/{quotationId}/pdf` | Download the quotation PDF. |
+
+### Invoice Endpoints
+
+| Method | Path | Purpose |
+| --- | --- | --- |
+| `POST` | `/api/invoices` | Create or retrieve an invoice from orderId. |
+| `GET` | `/api/invoices?status=` | List invoices, optionally filtered by status. |
+| `GET` | `/api/invoices/{invoiceId}` | Retrieve an invoice. |
+| `PUT` | `/api/invoices/{invoiceId}` | Update editable draft fields. |
+| `POST` | `/api/invoices/{invoiceId}/issue` | Issue and number an invoice. |
+| `POST` | `/api/invoices/{invoiceId}/cancel` | Cancel an invoice. |
+| `GET` | `/api/invoices/{invoiceId}/pdf` | Download a final invoice PDF. |
+
+## Supabase Integration
+
+The API accesses Supabase through server-side PostgREST adapters. Enable it with
+`SUPABASE_ENABLED=true`, a project URL, and a service-role key. The key must never
+reach Admin or public clients. Supabase schema/RLS setup is documented in the
+[Supabase README](../supabase/README.md).
+
+### Catalog projection
+
+Explicit publish operations upsert `published_catalog_products`; unpublish
+removes the selected product's projection. Published data includes customer
+content, availability, images, active purchase modes/choices/ingredients, and
+CAD prices in cents. Common BOM composition, internal costs, margins, and price
+recommendations stay private. Optional choice/ingredient BOM UUIDs remain in the
+projection. PostgreSQL remains the source of truth.
+
+### Customer-order inbox
+
+`POST /api/orders/import` is the only trigger: no webhook, scheduler, or polling
+loop runs imports. It fetches `customer_orders` with `sync_status=pending` in
+creation order. Each row is handled independently:
+
+1. Persist a normalized local order, or recognize its existing source/external UUID.
+2. Mark the source `synced` after local persistence.
+3. On an import failure, attempt to mark the source `failed` with its error.
+
+An acknowledgement failure leaves the local order intact. A later manual run
+can acknowledge a still-pending row without duplicating it. Failed source rows
+require review and reset to `pending` before retry. The import response reports
+local-import and acknowledgement failures separately. With Supabase disabled,
+local business operations remain available, but publication and import are rejected.
+
 ## RabbitMQ Contracts
 
 The application declares durable classic queues and uses Jackson JSON message
-conversion.
+conversion. Request bindings use the durable direct exchange
+`savis.offer.requests.exchange` and routing key `savis.offer.requests`.
+Results and invalidations are consumed from their queues by Supply listeners.
+The listener factory uses the default automatic acknowledgement mode and
+`defaultRequeueRejected=false`; failures are not requeued indefinitely. No
+API-side dead-letter queue or retry policy is declared by these configurations.
 
 ### Component Requests
 
@@ -823,21 +584,18 @@ Queue: `savis.offer.invalidations`
 }
 ```
 
-The listener container sets `defaultRequeueRejected=false`, preventing malformed
-or permanently failing messages from being redelivered indefinitely.
-
 ## Persistence
 
 PostgreSQL data is stored in the `savis_api` schema.
 
 Main tables:
 
+- `resources`;
 - `boms`;
 - `bom_components`;
 - `bom_activities`;
 - `activity_rates`;
 - `offers`;
-- `catalog_product_categories`;
 - `catalog_products`;
 - `catalog_product_boms`;
 - `catalog_product_purchase_modes`;
@@ -849,6 +607,8 @@ Main tables:
 - `order_item_choice_selections`;
 - `order_item_choice_allocations`;
 - `order_item_ingredient_selections`;
+- `quotations` (item snapshots in JSONB);
+- `invoices` (item snapshots in JSONB);
 - `event_publication`, managed by Spring Modulith for event-publication
   infrastructure.
 
@@ -861,7 +621,9 @@ Persistence conventions:
 - `ProductBom.bomId`, choice BOM UUIDs, and ingredient BOM UUIDs are plain UUID
   columns, not JPA relationships to BOM entities;
 - the product gallery is stored as PostgreSQL `jsonb`;
-- supply offers are reconciled by public UUID or provider identity.
+- quotation and invoice item snapshots are JSONB; their entities carry optimistic
+  versions, while conversion/issuance workflows also lock the relevant rows;
+- invoices enforce a unique source order and invoice number;
 - web orders are unique by `(source, external_order_id)` and retain their raw
   Supabase row as JSONB for audit.
 
@@ -880,8 +642,14 @@ Flyway owns schema evolution through versioned SQL files under
 `src/main/resources/db/migration`. Hibernate validates the mapped model against
 the migrated schema at startup and does not modify production tables.
 
-Tests use H2 in PostgreSQL compatibility mode with `ddl-auto=create-drop`;
-Flyway is disabled in the test profile.
+The Flyway chain runs from V1 through V13, including orders (V5–V6), quotations
+(V8), invoices (V9), resources (V11), BOM-resource links (V12), and offer-resource
+links (V13). Add forward migrations rather than editing applied SQL.
+
+For Resource-link migration checks, see the
+[Business Reference](../docs/SAVIS_API_BUSINESS_REFERENCE.md#resource-backed-bom-components)
+and [V13 migration](src/main/resources/db/migration/V13__link_supply_offers_to_resources.sql).
+Validate migrations on a restored staging database before production use.
 
 ## Configuration
 
@@ -898,28 +666,31 @@ Flyway is disabled in the test profile.
 | `SUPABASE_URL`               | empty                                         | Supabase project URL.                |
 | `SUPABASE_SERVICE_ROLE_KEY`  | empty                                         | Supabase service-role credential.    |
 
-Application properties can also override:
+Messaging properties (overridable with Spring configuration):
 
-- `savis.offer.request.queue`;
-- `savis.offer.result.queue`;
-- `savis.offer.invalidation.queue`;
-- `savis.offer.listener.auto-startup`.
+| Property | Default |
+| --- | --- |
+| `savis.offer.request.queue` | `savis.offer.requests` |
+| `savis.offer.request.exchange` | `savis.offer.requests.exchange` |
+| `savis.offer.result.queue` | `savis.offer.results` |
+| `savis.offer.invalidation.queue` | `savis.offer.invalidations` |
+| `savis.offer.listener.auto-startup` | `true` |
+
+`SERVER_PORT` overrides the HTTP port (default `8080`). Supabase values are
+required only when the integration is enabled.
 
 Additional runtime settings:
 
 - Spring MVC Problem Details is enabled;
 - virtual threads are enabled;
 - Hibernate SQL logging is disabled;
-- Flyway applies API migrations before Hibernate validation;
-- Actuator exposes `health` and `info`, including liveness and readiness probes;
-- Actuator and Spring Modulith observability dependencies are present;
-- CORS on current business controllers allows `http://localhost:5173`;
-- authentication and authorization are not currently configured.
+- no application-level CORS configuration, authentication, or authorization is
+  currently defined; Admin normally accesses the API through its proxy.
 
 ## Technology
 
 - Java 25
-- Spring Boot 4.1
+- Spring Boot 4.1.2
 - Spring Modulith 2.1.0
 - Spring MVC
 - Spring Data JPA and Hibernate
@@ -930,6 +701,8 @@ Additional runtime settings:
 - Springdoc OpenAPI
 - MapStruct annotation processing
 - Lombok
+- Thymeleaf and OpenHTMLToPDF for PDF documents
+- libphonenumber for customer phone normalization
 - JUnit 5, Mockito, and WireMock
 
 ## Local Development
@@ -940,16 +713,17 @@ Requirements:
 - PostgreSQL;
 - RabbitMQ.
 
+For standalone development against Compose PostgreSQL, configure the JDBC URL
+`SPRING_DATASOURCE_URL=jdbc:postgresql://localhost:5434/savis` and provide
+`SPRING_DATASOURCE_USERNAME`, `SPRING_DATASOURCE_PASSWORD`,
+`SPRING_RABBITMQ_USERNAME`, and `SPRING_RABBITMQ_PASSWORD` with local values.
+The root `.env.local` is consumed by Compose; standalone Maven does not load it
+automatically. The Supabase service-role key belongs in backend configuration only.
+
 Run the application:
 
 ```bash
 ./mvnw spring-boot:run
-```
-
-Run all tests:
-
-```bash
-./mvnw test
 ```
 
 Build the executable JAR:
@@ -958,27 +732,60 @@ Build the executable JAR:
 ./mvnw clean package
 ```
 
-The API starts at `http://localhost:8080`.
-
-Flyway runs automatically at startup. The configured PostgreSQL database must
-be reachable before launching the application.
+Run these commands from `savis-api/`. PostgreSQL and RabbitMQ must be reachable.
+The API starts at `http://localhost:8080`; Flyway runs during startup.
 
 To run the complete SAVIS environment from the repository root:
 
 ```bash
-docker compose up --build
+make run-local
 ```
 
 ## Docker
 
-The Dockerfile provides:
+The [Dockerfile](Dockerfile) provides:
 
 - `development`: Maven with Java 25 and `spring-boot:run`;
 - `build`: executable JAR packaging without tests;
 - `production`: a non-root Java 25 runtime image exposing port `8080`, with a
   readiness health check at `/actuator/health/readiness`.
 
+Production Compose supplies database, broker, and optional Supabase settings to
+`backend_api`. Container startup, migration order, and deployment health checks
+are maintained with the root [deployment documentation](../README.md#production-deployment).
+
+## Health and Operations
+
+Actuator exposes `health` and `info` on the API port:
+
+| Path | Purpose |
+| --- | --- |
+| `/actuator/health` | Aggregate application health. |
+| `/actuator/health/liveness` | Process liveness probe. |
+| `/actuator/health/readiness` | Readiness probe used by the Docker health check. |
+
+No custom readiness group that explicitly includes PostgreSQL or RabbitMQ is
+configured. Use aggregate health and service logs when diagnosing dependency
+failures; the readiness probe alone does not establish end-to-end integration health.
+
+For a local Compose deployment, run from the repository root:
+
+```bash
+docker compose logs -f backend_api
+curl --fail http://localhost:8080/actuator/health
+```
+
+Flyway errors occur during startup, before Hibernate validation. Investigate the
+failed migration and source data; do not conceal checksum mismatches with repair
+or rewrite an applied migration. Production startup and recovery procedures are
+in [Production Commands](../deploy/PRODUCTION_COMMANDS.md).
+
 ## Tests
+
+From `savis-api/`, run the complete suite with `./mvnw test`.
+The test profile uses H2 in PostgreSQL mode with `ddl-auto=create-drop`, disables
+Flyway, and stops Supply listeners from consuming RabbitMQ. Most tests therefore
+do not require the running stack. WireMock covers external HTTP adapters.
 
 The test suite covers:
 
@@ -990,6 +797,10 @@ The test suite covers:
 - product creation, update, configuration pricing, and worst-case pricing;
 - catalog publication and Supabase requests;
 - published projection mapping;
+- Resource search, batching, and persistence;
+- order snapshots, inbox import, lifecycle, and sourcing reports;
+- quotation lifecycle, conversion, persistence, HTTP, and PDF rendering;
+- invoice lifecycle, concurrency, migrations, persistence, HTTP, and PDF rendering;
 - Spring context startup with H2;
 - Spring Modulith boundary verification.
 
@@ -998,38 +809,26 @@ Useful targeted checks:
 ```bash
 ./mvnw -Dtest=BomTest,BomDtoTest,MinuteTest,ActivityRateServiceTest,BomServiceTest test
 ./mvnw -Dtest=OfferServiceTest,OffersListenerTest,SpringSupplyConfigTest test
+./mvnw -Dtest=QuotationServiceTest,InvoiceServiceTest,InvoiceConcurrencyTest test
 ./mvnw -Dtest=ProductBomTest,ProductServiceTest,ProductPricingServiceTest test
 ./mvnw -Dtest=CatalogPublicationServiceTest,SupabaseCatalogAdapterTest,SavisApiModularityTests test
 ```
 
-## Current Boundaries
+PostgreSQL-specific Resource migration tests are conditional and are skipped
+unless `BOM_MIGRATION_TEST_URL` or `SUPPLY_MIGRATION_TEST_URL` is provided.
+Use an isolated empty PostgreSQL database with the test credentials
+`postgres`/`postgres`, never business data. The BOM setup example is in the
+[Business Reference](../docs/SAVIS_API_BUSINESS_REFERENCE.md#resource-backed-bom-components).
+For Supply, set `SUPPLY_MIGRATION_TEST_URL` and run
+`./mvnw -Dtest=SupplyResourceMigrationTest test` against the same kind of isolated
+database. H2 tests alone do not validate the full PostgreSQL migration chain.
 
-- SAVIS API is the business system of record; Supabase is only a published
-  projection and raw public-submission inbox.
-- SAVIS Executor owns scraping, acquisition task execution, and offer review.
-- Catalog references BOMs only by UUID and public pricing contract.
-- BOM references Supply through its public API instead of Supply persistence.
-- Flyway owns the Java schema; Hibernate only validates it in production.
-- Bulk catalog publication does not yet reconcile newly unpublished Supabase
-  rows.
-- No authentication or authorization layer is currently present.
+For container-level Flyway/Alembic integration verification, run
+`make smoke-database` from the repository root when Docker is available.
 
-## Supply resource association
+## Further Documentation
 
-Supply offers reference Resource by UUID. Admin supports manual offer creation,
-explicit association from offer details, and resource offer consultation. BOM and
-Catalog cost valuation use resource UUIDs and batched offer reads; foreign selected
-offers produce a blocking diagnostic. Executor messages remain compatible and
-discoveries await operator association. See [phase 2.3 migration and validation](../docs/SUPPLY_RESOURCE_MIGRATION.md)
-for V13 preflight, unresolved offers, HTTP contracts and verification.
-
-### Batched Resource names for procurement
-
-`GET /api/resources/batch?ids=<uuid>,<uuid>` resolves between 1 and 100 resource
-identifiers in a single repository query. Duplicates are collapsed, unknown
-identifiers are omitted, and active and inactive resources can be returned.
-The response is a JSON array using the existing Resource response fields.
-Malformed identifiers and requests outside the bound return HTTP 400. Admin uses
-this read-only endpoint for resource labels on the current Supply catalog page;
-no full catalog loading or per-row lookup is required. Supply review, acquisition
-and RabbitMQ contracts are unchanged.
+- [Business formulas and migration procedures](../docs/SAVIS_API_BUSINESS_REFERENCE.md)
+- [System architecture](../docs/ARCHITECTURE.md)
+- [Supabase schema and public access](../supabase/README.md)
+- [Local stack and production operations](../README.md)

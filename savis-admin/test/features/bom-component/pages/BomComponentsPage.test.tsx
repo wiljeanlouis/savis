@@ -116,6 +116,21 @@ describe("Procurement review", () => {
     const offerList = await screen.findByRole("table", {
       name: "Offres découvertes",
     });
+    expect(
+      screen.getByRole("heading", { name: "Validation des offres" }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText("Statut", { exact: true, selector: "label" }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText("Terme de recherche", { exact: true, selector: "span" }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: "Récupérer une offre" }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("link", { name: /Tâches d'acquisition/ }),
+    ).toHaveAttribute("href", "/offers/tasks");
     const count = screen.getByText("1 offre");
     expect(
       count.compareDocumentPosition(offerList) &

@@ -1,7 +1,7 @@
 import { Button } from "@/shared/ui/button";
 import { DataTable } from "@/shared/components/DataTable";
 import type { ColumnDef, SortingState } from "@tanstack/react-table";
-import { LinkSquare01Icon, ViewIcon } from "@hugeicons/core-free-icons";
+import { ViewIcon } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
 import {
   formatSupplyOfferDate,
@@ -9,7 +9,7 @@ import {
   formatSupplyOfferPrice,
 } from "../format";
 import type { SupplyOffer, SupplyOfferSort } from "../types";
-import { safeExternalUrl, SupplyOfferImage } from "./SupplyOfferImage";
+import { SupplyOfferImage } from "./SupplyOfferImage";
 import { SupplyOfferStatusBadge } from "./SupplyOfferStatusBadge";
 
 interface SupplyOffersTableProps {
@@ -136,24 +136,10 @@ const columns: ColumnDef<SupplyOffer>[] = [
     cell: ({ row, table }) => {
       const offer = row.original;
       const { onViewDetails } = table.options.meta as OfferTableMeta;
-      const productUrl = safeExternalUrl(offer.url);
       const displayName = offer.label ?? offer.componentName;
       return (
         <>
           <div className="flex justify-end gap-2">
-            {productUrl ? (
-              <Button asChild size="sm" variant="outline">
-                <a
-                  href={productUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  aria-label={`Ouvrir ${displayName} chez le fournisseur`}
-                >
-                  <HugeiconsIcon icon={LinkSquare01Icon} strokeWidth={2} />
-                  Produit
-                </a>
-              </Button>
-            ) : null}
             <Button
               type="button"
               size="sm"
