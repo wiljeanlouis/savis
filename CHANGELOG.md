@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.13.2](https://github.com/wiljeanlouis/savis/compare/v1.13.1...v1.13.2) (2026-11-01)
+
+
+### Bug Fixes
+
+* add Dependabot auto-merge workflow ([6e6d71b](https://github.com/wiljeanlouis/savis/commit/6e6d71b21da4627e5afd39cede3b85a7df1cf87f))
+
 ## [1.13.1](https://github.com/wiljeanlouis/savis/compare/v1.13.0...v1.13.1) (2026-10-31)
 
 
