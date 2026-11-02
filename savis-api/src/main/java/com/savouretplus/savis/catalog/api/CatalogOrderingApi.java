@@ -14,6 +14,11 @@ public interface CatalogOrderingApi {
      */
     ProductSnapshot snapshot(ProductSelection selection);
 
+    /** Resolves identity and availability independently of configuration validity. */
+    ProductIdentity identify(UUID productId);
+
+    record ProductIdentity(UUID productId, String productName, boolean available) {}
+
     /**
      * Resolves the BOM contributions for a configured catalog product.
      */

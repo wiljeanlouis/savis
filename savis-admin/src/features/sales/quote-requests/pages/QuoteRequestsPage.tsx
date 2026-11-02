@@ -39,7 +39,7 @@ export function QuoteRequestsPage() {
           <h1 className="text-2xl font-semibold">Demandes de soumission</h1>
           <p className="text-sm text-muted-foreground">
             Réception et qualification des besoins clients avant la création
-            d’un devis.
+            d’une soumission.
           </p>
         </div>
         <Button disabled={importer.isPending} onClick={() => importer.mutate()}>

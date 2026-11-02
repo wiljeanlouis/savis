@@ -23,7 +23,7 @@ export function RequestProposals({ request }: { request: QuoteRequest }) {
       <CardHeader className="border-b">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
-            <CardTitle>Devis associés</CardTitle>
+            <CardTitle>Soumissions associées</CardTitle>
             <p className="mt-1 text-muted-foreground">
               Chaque proposition conserve ses propres prix et son statut.
             </p>
@@ -34,7 +34,7 @@ export function RequestProposals({ request }: { request: QuoteRequest }) {
       <CardContent>
         {query.isError ? (
           <ApiErrorAlert
-            title="Impossible de charger les devis."
+            title="Impossible de charger les soumissions."
             error={query.error}
           />
         ) : query.isPending ? (
@@ -88,7 +88,7 @@ export function RequestProposals({ request }: { request: QuoteRequest }) {
           </Table>
         ) : (
           <p className="py-6 text-center text-muted-foreground">
-            Aucun devis créé.
+            Aucune soumission créée.
           </p>
         )}
       </CardContent>

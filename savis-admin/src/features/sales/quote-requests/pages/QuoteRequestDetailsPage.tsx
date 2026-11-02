@@ -105,8 +105,10 @@ export function QuoteRequestDetailsPage() {
       <Tabs defaultValue="request" className="space-y-4">
         <TabsList aria-label="Détail de la demande">
           <TabsTrigger value="request">Demande originale</TabsTrigger>
-          <TabsTrigger value="qualification">Qualification</TabsTrigger>
-          <TabsTrigger value="quotations">Devis associés</TabsTrigger>
+          <TabsTrigger value="qualification">
+            Préparation de la soumission
+          </TabsTrigger>
+          <TabsTrigger value="quotations">Soumissions associées</TabsTrigger>
         </TabsList>
         <TabsContent value="request" className="space-y-4">
           <OriginalRequest payload={r.originalPayload} />
@@ -117,7 +119,7 @@ export function QuoteRequestDetailsPage() {
           forceMount
           className="data-[state=inactive]:hidden"
         >
-          <QualificationPanel key={`${r.publicId}:${r.version}`} request={r} />
+          <QualificationPanel key={r.publicId} request={r} />
         </TabsContent>
         <TabsContent
           value="quotations"

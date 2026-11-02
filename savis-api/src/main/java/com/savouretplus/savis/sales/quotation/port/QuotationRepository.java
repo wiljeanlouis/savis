@@ -10,7 +10,7 @@ import com.savouretplus.savis.sales.quotation.domain.Quotation;
 public interface QuotationRepository {
     record Proposal(Quotation quotation,String fingerprint) {}
     Optional<Proposal> findProposal(UUID sourceId,UUID proposalId);
-    Quotation attachSource(UUID quotationId,UUID sourceId,UUID proposalId,String fingerprint,java.util.Map<String,String> exclusions);
+    Quotation attachSource(UUID quotationId,UUID sourceId,UUID proposalId,String fingerprint,java.util.Map<String,String> exclusions,java.util.Map<UUID,java.util.Set<String>> inclusions);
     List<Quotation> findBySource(UUID sourceId);
 
     /** Persists the quotation aggregate and returns its stored representation. */

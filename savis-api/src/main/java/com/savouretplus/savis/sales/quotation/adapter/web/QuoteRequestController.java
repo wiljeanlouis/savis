@@ -35,6 +35,7 @@ public class QuoteRequestController {
     private final CreateQuoteRequestProposal proposals;
     private final QuotationRepository quotations;
     private final QuoteRequestService service;
+    private final com.savouretplus.savis.sales.quotation.usecase.PrepareQuoteRequest preparation;
 
     @GetMapping("/{id}/quotations")
     public java.util.List<QuotationResponse> quotations(@PathVariable UUID id) {
@@ -94,8 +95,9 @@ public class QuoteRequestController {
 
     @GetMapping("/{id}")
     public ResponseEntity<QuoteRequestResponse> get(@PathVariable UUID id) {
+        var request = repository.find(id)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Demande introuvable"));
         return ResponseEntity.ok().cacheControl(org.springframework.http.CacheControl.noStore())
-                .body(QuoteRequestResponse.from(repository.find(id)
-                        .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Demande introuvable"))));
+                .body(QuoteRequestResponse.from(request, preparation.execute(request)));
     }
 }

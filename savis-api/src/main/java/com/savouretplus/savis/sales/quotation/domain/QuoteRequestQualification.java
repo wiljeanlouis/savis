@@ -27,7 +27,7 @@ public record QuoteRequestQualification(String customerName, String customerPhon
             covered.addAll(line.needKeys());
         }
         if(!needs.containsAll(covered)) throw new QuoteRequestValidationException("Référence à un besoin inconnu");
-        // Incomplete qualifications can be saved; proposal creation requires complete coverage.
+        // A proposal may include only a subset of the request needs.
     }
     public record Line(UUID id, UUID productId, int quantity, String purchaseModeCode, String choiceCode,
             List<Allocation> allocations, List<Ingredient> ingredients, Set<String> needKeys) {

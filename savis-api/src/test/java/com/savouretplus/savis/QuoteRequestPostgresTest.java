@@ -35,6 +35,7 @@ class QuoteRequestPostgresTest {
     @org.springframework.test.context.bean.override.mockito.MockitoSpyBean QuoteRequestRepository requests;
     @Autowired QuoteRequestService qualification;
     @Autowired CreateQuoteRequestProposal proposals;
+    @Autowired PrepareQuoteRequest preparation;
     @Autowired QuotationRepository quotations;
     @Autowired QuotationService quotationService;
     @Autowired ImportQuoteRequests importer;
@@ -44,6 +45,7 @@ class QuoteRequestPostgresTest {
     @MockitoBean QuoteRequestInbox inbox;
     static final UUID PRODUCT=UUID.fromString("10000000-0000-4000-8000-000000000001");
     @BeforeEach void pricing() {
+        when(catalog.identify(PRODUCT)).thenReturn(new CatalogOrderingApi.ProductIdentity(PRODUCT,"Service",true));
         when(catalog.snapshot(any())).thenReturn(new CatalogOrderingApi.ProductSnapshot(PRODUCT,"Service","SERVICE","STANDARD",null,
                 1200,1200,new CatalogOrderingApi.PurchaseModeSnapshot("unit","Unité",1,"NONE"),null,List.of(),List.of()));
     }
@@ -66,6 +68,54 @@ class QuoteRequestPostgresTest {
             var a=executor.submit(job);var b=executor.submit(job);assertTrue(ready.await(10,TimeUnit.SECONDS));start.countDown();
             return List.of(a.get(30,TimeUnit.SECONDS),b.get(30,TimeUnit.SECONDS));
         }
+    }
+    @Test void importedPublicSelectionsProduceDifferentPartialQuotationsWithoutSavingAndKeepInvoiceTraceability() {
+        String row = """
+            {"id":"%s","source":"savouretplus","created_at":"2026-10-31T12:00:00Z","payload":{
+              "type":"QUOTE_REQUEST","request_id":"%s","customer":{"name":"Client","phone":"5145550123"},
+              "requested_services":["traiteur","decoration"],
+              "event_details":{"request_type":"traiteur-decoration","event_type":"Mariage","event_date":"2027-06-12","event_address":"Montréal","budget":"À préciser"},
+              "items":[{"offering_id":"%s","name":"Traiteur","requested_quantity":2,"configuration":{"purchase_mode":{"id":"unit"}}},
+                       {"offering_id":"%s","name":"Décoration","requested_quantity":3,"configuration":{"purchase_mode":{"id":"unit"}}}]
+            }}
+            """.formatted(UUID.randomUUID(),UUID.randomUUID(),PRODUCT,PRODUCT);
+        var decoded = new com.savouretplus.savis.sales.quotation.adapter.supabase.SupabaseQuoteRequestInbox("http://localhost", "unused", false, Clock.systemUTC()).decode(row);
+        when(inbox.pending(100)).thenReturn(List.of(row));when(inbox.receptionId(row)).thenReturn(decoded.externalId());when(inbox.decode(row)).thenReturn(decoded);
+        assertEquals(1,importer.execute().imported());
+        var r=requests.findExternal(decoded.source(),decoded.externalId()).orElseThrow();
+        var prepared=preparation.execute(r);
+        assertEquals(2,prepared.qualification().lines().size());
+        assertEquals(prepared,preparation.execute(r));assertNull(requests.find(r.publicId()).orElseThrow().qualification());
+        var firstCommand=new CreateQuoteRequestProposal.Command(UUID.randomUUID(),r.version(),List.of(prepared.qualification().lines().get(0).id()),Map.of(),LocalDate.now().plusDays(30),null,0,0);
+        var first=proposals.execute(r.publicId(),firstCommand);
+        assertEquals(2400,first.totalCents());
+        assertEquals(Set.of("item:0"),first.proposalCoverage().inclusions().values().iterator().next());
+        assertTrue(first.proposalCoverage().exclusions().isEmpty());
+        when(catalog.identify(PRODUCT)).thenThrow(new IllegalArgumentException("Retiré après création"));
+        assertEquals(first.publicId(),proposals.execute(r.publicId(),firstCommand).publicId());
+        doReturn(new CatalogOrderingApi.ProductIdentity(PRODUCT,"Service",true)).when(catalog).identify(PRODUCT);
+        var current=requests.find(r.publicId()).orElseThrow();assertNull(current.qualification());
+        var secondCommand=new CreateQuoteRequestProposal.Command(UUID.randomUUID(),current.version(),List.of(prepared.qualification().lines().get(1).id()),Map.of(),LocalDate.now().plusDays(30),null,0,0);
+        var second=proposals.execute(r.publicId(),secondCommand);
+        assertEquals(3600,second.totalCents());assertNotEquals(first.publicId(),second.publicId());
+        assertEquals(Set.of("item:1"),second.proposalCoverage().inclusions().values().iterator().next());
+        assertThrows(QuoteRequestConflictException.class,()->proposals.execute(r.publicId(),new CreateQuoteRequestProposal.Command(UUID.randomUUID(),0L,firstCommand.lineIds(),Map.of(),firstCommand.validUntil(),null,0,0)));
+        quotationService.changeStatus(first.publicId(),QuotationStatus.SENT);quotationService.changeStatus(first.publicId(),QuotationStatus.ACCEPTED);
+        UUID orderId=quotationService.convert(first.publicId());
+        var invoice=invoices.createFromOrder(orderId);
+        assertEquals(2400,invoice.totalCents());assertEquals(orderId,invoice.sourceOrderId());
+        assertEquals(r.publicId(),quotationService.get(first.publicId()).sourceQuoteRequestId());
+        assertEquals(first.proposalCoverage(),quotationService.get(first.publicId()).proposalCoverage());
+        assertEquals(orderId,quotationService.get(first.publicId()).convertedOrderId());
+        assertEquals(2,quotations.findBySource(r.publicId()).size());
+    }
+    @Test void contradictoryAndUnknownExclusionsAreRejected() {
+        var r=qualified();var cmd=command(r,UUID.randomUUID());
+        for (String need : List.of("service:traiteur","service:unknown")) {
+            var invalid=new CreateQuoteRequestProposal.Command(UUID.randomUUID(),r.version(),cmd.lineIds(),Map.of(need,"Motif"),cmd.validUntil(),null,0,0);
+            assertThrows(QuoteRequestValidationException.class,()->proposals.execute(r.publicId(),invalid));
+        }
+        assertTrue(quotations.findBySource(r.publicId()).isEmpty());
     }
     @Test void concurrentImportCommitsOneAggregateAndRetriesAcknowledgementWithoutResettingQualification() throws Exception {
         var incoming=incoming();when(inbox.pending(100)).thenReturn(List.of("row"));when(inbox.receptionId("row")).thenReturn(incoming.externalId());when(inbox.decode("row")).thenReturn(incoming);
@@ -112,18 +162,21 @@ class QuoteRequestPostgresTest {
     @Test void failureAfterQuotationInsertionRollsBackOriginAndStatusTogether() {
         var r=qualified();
         doThrow(new IllegalStateException("Échec simulé après insertion du devis")).when(requests).save(any());
-        assertThrows(IllegalStateException.class,()->proposals.execute(r.publicId(),command(r,UUID.randomUUID())));
+        assertThrows(org.springframework.dao.InvalidDataAccessApiUsageException.class,()->proposals.execute(r.publicId(),command(r,UUID.randomUUID())));
         assertTrue(quotations.findBySource(r.publicId()).isEmpty());
         assertEquals(r.version(),requests.find(r.publicId()).orElseThrow().version());
     }
-    @Test void proposalCannotIgnoreOrInventNeeds() {
+    @Test void partialProposalMayOmitNeedsWithoutExcludingThem() {
         var incoming=incoming();
         var received=requests.insert(new QuoteRequest(null,incoming.publicId(),incoming.source(),incoming.externalId(),incoming.submissionRequestId(),
                 incoming.fingerprint(),incoming.originalPayload(),incoming.customerName(),incoming.customerPhone(),null,incoming.receivedAt(),incoming.importedAt(),
                 QuoteRequestStatus.RECEIVED,0,null,null,List.of(),Set.of("service:traiteur","service:organisation")));
         var r=qualification.qualify(received.publicId(),0,new QuoteRequestQualification("Client","5145550123",null,null,List.of(
                 new QuoteRequestQualification.Line(UUID.randomUUID(),PRODUCT,1,"unit",null,List.of(),List.of(),Set.of("service:traiteur"))),Map.of()));
-        assertThrows(IllegalArgumentException.class,()->proposals.execute(r.publicId(),command(r,UUID.randomUUID())));
+        var partial=proposals.execute(r.publicId(),command(r,UUID.randomUUID()));
+        assertTrue(partial.proposalCoverage().exclusions().isEmpty());
+        assertEquals(Set.of("service:traiteur"),partial.proposalCoverage().inclusions().values().iterator().next());
+        r=requests.find(r.publicId()).orElseThrow();
         var cmd=command(r,UUID.randomUUID());
         var explicit=new CreateQuoteRequestProposal.Command(cmd.proposalRequestId(),cmd.expectedVersion(),cmd.lineIds(),Map.of("service:organisation","À traiter dans une autre proposition"),cmd.validUntil(),null,0,0);
         assertNotNull(proposals.execute(r.publicId(),explicit));

@@ -127,9 +127,9 @@ par le frontend.
 ## Traitement dans SAVIS
 
 L'opérateur appelle `POST /api/quote-requests/import` depuis « Ventes > Demandes ».
-L'API reçoit un besoin `QuoteRequest` distinct du devis chiffré `Quotation`, tous
+L'API reçoit un besoin `QuoteRequest` distinct de la soumission chiffrée `Quotation`, tous
 deux dans `sales.quotation`. L'import conserve le payload et les identifiants de
-réception/soumission, sans créer automatiquement de devis ou de commande.
+réception/soumission, sans créer automatiquement de soumission ou de commande.
 Après qualification, une demande peut produire plusieurs propositions indépendantes
 avec leurs propres clés d'idempotence. Les prix sont alors recalculés par Catalog,
 jamais repris comme prix autoritatifs du payload public.

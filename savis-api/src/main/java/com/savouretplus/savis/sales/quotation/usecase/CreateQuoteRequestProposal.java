@@ -17,6 +17,7 @@ public class CreateQuoteRequestProposal {
     private final QuotationRepository quotations;
     private final QuotationService service;
     private final Clock clock;
+    private final PrepareQuoteRequest preparation;
     /** Parent lock serializes qualification and proposal intentions; database uniqueness is the final guard. */
     @Transactional
     public Quotation execute(UUID requestId,Command command) {
@@ -28,8 +29,7 @@ public class CreateQuoteRequestProposal {
             return replay.get().quotation();
         }
         request.editable(command.expectedVersion());
-        var qualification=request.qualification();
-        if(qualification==null) throw new QuoteRequestConflictException("Qualifiez la demande avant de créer un devis");
+        var qualification=request.qualification() != null ? request.qualification() : preparation.execute(request).qualification();
         var byId=qualification.lines().stream().collect(java.util.stream.Collectors.toMap(QuoteRequestQualification.Line::id,l -> l));
         var selected=command.lineIds().stream().map(byId::get).filter(Objects::nonNull).toList();
         if(selected.size()!=command.lineIds().size() || selected.isEmpty()) throw new QuoteRequestValidationException("Lignes commerciales invalides");
@@ -38,7 +38,7 @@ public class CreateQuoteRequestProposal {
         var excluded=new HashSet<>(command.exclusions().keySet());
         if(!Collections.disjoint(covered,excluded)) throw new QuoteRequestValidationException("Un besoin ne peut pas être retenu et exclu");
         covered.addAll(excluded);
-        if(!covered.equals(request.needKeys())) throw new QuoteRequestValidationException("Chaque besoin doit être retenu ou explicitement exclu avec un motif");
+        if(!request.needKeys().containsAll(covered)) throw new QuoteRequestValidationException("Référence à un besoin inconnu");
         var items=selected.stream().map(l -> new SaveQuotationCommand.Item(l.productId(),l.quantity(),l.purchaseModeCode(),l.choiceCode(),
                 l.allocations().stream().map(a -> new SaveQuotationCommand.ChoiceAllocation(a.choiceCode(),a.quantity())).toList(),
                 l.ingredients().stream().map(i -> new SaveQuotationCommand.IngredientSelection(i.ingredientCode(),i.quantity())).toList())).toList();
@@ -49,7 +49,10 @@ public class CreateQuoteRequestProposal {
         } catch (IllegalArgumentException error) {
             throw new QuoteRequestValidationException(error.getMessage()==null ? "La configuration commerciale est invalide" : error.getMessage());
         }
-        var linked=quotations.attachSource(quotation.publicId(),requestId,command.proposalRequestId(),fingerprint,command.exclusions());
+        var inclusions = new LinkedHashMap<UUID,Set<String>>();
+        for (int index = 0; index < selected.size(); index++)
+            inclusions.put(quotation.items().get(index).publicId(), selected.get(index).needKeys());
+        var linked=quotations.attachSource(quotation.publicId(),requestId,command.proposalRequestId(),fingerprint,command.exclusions(),inclusions);
         requests.save(request.quoted(command.expectedVersion(),clock.instant()));
         return linked;
     }

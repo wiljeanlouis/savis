@@ -18,16 +18,16 @@ Catalog et des exclusions motivées. Chaque article original possède une réfé
 stable `item:0`, `item:1`, etc. Chaque service est un besoin `service:traiteur`,
 `service:decoration` ou `service:organisation`. Une ligne commerciale peut couvrir
 plusieurs besoins sans facturation dupliquée. La qualification peut être partielle ;
-la proposition doit couvrir exactement tous les besoins par ses lignes retenues
-ou ses exclusions explicites. Une exclusion et une inclusion simultanées sont
+la proposition peut elle aussi être partielle. Un besoin absent reste ouvert pour
+une autre proposition ; seule une exclusion explicite nécessite un motif. Une exclusion et une inclusion simultanées sont
 refusées. Les configurations sont validées et tarifées par le `QuotationService`
 existant lors de la création, via `CatalogOrderingApi`.
 
 Workflow : `RECEIVED → IN_PROGRESS → QUOTED`, puis clôture possible avec motif.
-`QUOTED` n'est pas terminal. La qualification reste modifiable et d'autres devis
-peuvent être créés. `CLOSED` bloque les nouvelles modifications et propositions,
+`QUOTED` n'est pas terminal. La qualification reste modifiable et d'autres soumissions
+peuvent être créées. `CLOSED` bloque les nouvelles modifications et propositions,
 mais pas le rejeu identique d'une proposition déjà créée. Pas de réouverture ni
-de versionnement commercial des devis dans cette phase. L'historique conserve les
+de versionnement commercial des soumissions dans cette phase. L'historique conserve les
 qualifications et changements de statut ; aucune identité opérateur n'est inventée.
 
 ## Transactions et idempotence
@@ -48,13 +48,13 @@ lecture à 15 s. Aucun appel réseau Supabase dans une transaction métier local
 Pour les propositions, le verrou pessimiste de la demande sérialise qualification
 et créations. La clé UUID `proposalRequestId` identifie une intention, pas la
 demande. Une empreinte SHA-256 canonique inclut version attendue, ordre des lignes,
-exclusions, validité et termes commerciaux. Même clé et même contenu : même devis.
+exclusions, validité et termes commerciaux. Même clé et même contenu : même soumission.
 Même clé et contenu différent : 409. Nouvelle clé : nouvelle proposition, avec
 version actuelle obligatoire. Le rejeu est vérifié avant le statut et la version.
 La contrainte unique `(source_quote_request_id,proposal_request_id)` est persistante.
 La création, le lien et le passage à `QUOTED` sont atomiques. Les exclusions de la
-proposition sont capturées sur le devis ; les qualifications antérieures restent
-dans l'historique. Un devis existant ne change pas si la demande est requalifiée.
+proposition sont capturées sur la soumission ; les qualifications antérieures restent
+dans l'historique. Une soumission existante ne change pas si la demande est requalifiée.
 
 ## Contrats HTTP
 
@@ -66,16 +66,17 @@ plus de flag `QUOTE_REQUESTS_ENABLED` dans la configuration actuelle.
 | --- | --- | --- |
 | POST | `/api/quote-requests/import` | Bilan `fetched`, `imported`, `alreadyImported`, `failed`, `acknowledgmentFailed`, `failures[]` (UUID externe, code et `reason`) |
 | GET | `/api/quote-requests` | `page` 0..100000, `size` 1..100, `search` nom (200 caractères), `status` optionnel, `sort=receivedAt,asc\|desc` ; page de résumés, départage UUID |
-| GET | `/api/quote-requests/{id}` | Original, qualification, besoins, historique, statut et version |
+| GET | `/api/quote-requests/{id}` | Original, qualification, besoins, historique, statut, version et préparation sans effet secondaire |
 | PUT | `/api/quote-requests/{id}/qualification` | `{expectedVersion, qualification:{customerName,customerPhone,customerEmail,internalNotes,lines,exclusions}}` |
 | PUT | `/api/quote-requests/{id}/status` | `{expectedVersion,status,reason}` ; motif requis pour `CLOSED` |
-| GET | `/api/quote-requests/{id}/quotations` | Tous les devis associés, dans un ordre stable |
+| GET | `/api/quote-requests/{id}/quotations` | Toutes les soumissions associées, dans un ordre stable |
 | POST | `/api/quote-requests/{id}/quotations` | `{proposalRequestId,expectedVersion,lineIds,exclusions,validUntil,note,discountCents,deliveryFeeCents}` |
 
 Une ligne qualifiée contient `id` UUID, `productId`, `quantity`,
 `purchaseModeCode`, `choiceCode`, `allocations[{choiceCode,quantity}]`,
 `ingredients[{ingredientCode,quantity}]` et `needKeys[]`. `exclusions` est un objet
-clé de besoin → motif. Une proposition choisit les UUID de lignes persistées,
+clé de besoin → motif. Une proposition choisit les UUID de lignes persistées ou,
+sans qualification enregistrée, de lignes proposées par le serveur,
 et ne peut pas fournir des prix autoritatifs ou d'autres coordonnées client.
 
 Les erreurs utilisent Problem Details : 400 saisie invalide, 404 demande inconnue,
@@ -86,7 +87,7 @@ lorsqu’une validation échoue à la construction du DTO JSON. Les exceptions
 techniques non identifiées conservent un message générique, sans corps distant,
 stack trace ou données personnelles. Les réponses
 de demandes portent `Cache-Control: no-store`. `sourceQuoteRequestId` est ajouté
-aux réponses Quotation ; les devis autonomes gardent `null`. Les modifications,
+aux réponses Quotation ; les soumissions autonomes gardent `null`. Les modifications,
 transitions et conversions conservent cette origine.
 
 ## Admin
@@ -94,12 +95,12 @@ transitions et conversions conservent cette origine.
 `features/sales/quote-requests` contient API, hooks Query, modèle, composants et
 pages. L'onglet « Demandes » mène à la liste avec pagination/recherche/statut/tri
 en URL. Le détail affiche client, événement, services, articles/configurations,
-notes/allergies, original, qualification et tous les devis associés avec liens.
+notes/allergies, original, qualification et toutes les soumissions associées avec liens.
 La liste réutilise les filtres partagés, les badges, le tableau et la pagination
-SAVIS. Le détail s’ouvre hors du conteneur de listes Sales, comme les devis et
-commandes, avec les onglets « Demande originale », « Qualification » et « Devis
-associés ». La qualification passe par une action d’édition avec Annuler/Enregistrer ;
-la création de devis et la clôture utilisent les dialogues partagés. Les onglets
+SAVIS. Le détail s’ouvre hors du conteneur de listes Sales, comme les soumissions et
+commandes, avec les onglets « Demande originale », « Préparation de la soumission » et « Soumissions
+associées ». La qualification passe par une action d’édition avec Annuler/Enregistrer ;
+la création de soumissions et la clôture utilisent les dialogues partagés. Les onglets
 conservent les formulaires et la clé de proposition en mémoire pendant la navigation.
 Les configurations sont présentées par leurs libellés ; les données JSON originales
 restent disponibles dans une section repliée. Les ajustements sont saisis en dollars
@@ -111,7 +112,7 @@ un libellé de repli pour les réponses plus anciennes ne fournissant que le cod
 Le formulaire de proposition garde la commande et sa clé lors d'une erreur réseau
 pour permettre un rejeu identique. Il faut conserver la page pour ce rejeu ; la
 commande n'est pas persistée dans le navigateur. Après rechargement, consulter les
-devis associés avant de préparer une nouvelle intention.
+soumissions associées avant de préparer une nouvelle intention.
 
 Les formulaires issus des demandes n'utilisent aucun stockage navigateur.
 Les sauvegardes du brouillon autonome conservent les lignes commerciales et
@@ -159,7 +160,7 @@ le registre de reçus ; aucune purge automatique n'est implémentée ici.
 ## Migrations, déploiement et reprise
 
 Flyway : V14 réception, V15 qualification/version/historique, V16 lien 1:N et clés
-par proposition. Supabase : `20261031120000_quote_request_sync.sql` ajoute les
+par proposition, V17 inclusions JSONB sans réécriture des soumissions existantes. Supabase : `20261031120000_quote_request_sync.sql` ajoute les
 colonnes techniques et privilèges ; `20261031130000_fix_quote_request_replays.sql`
 rejette `type` absent/null et résout les reçus avant de revalider le catalogue.
 Les migrations historiques ne sont pas modifiées.
@@ -222,4 +223,28 @@ Les prestations hors Catalog restent à créer dans Catalog ou à exclure avec
 motif. Une future évolution vers des lignes personnalisées devra définir validation
 des prix manuels et snapshots jusqu'à Order et Invoice ; elle n'est pas implémentée.
 Envoi et acceptation restent manuels. Pas d'envoi courriel, de portail public,
-d'exclusivité entre devis ou de recalcul automatique après création.
+d'exclusivité entre soumissions ou de recalcul automatique après création.
+
+## Préparation déterministe
+
+Le GET de détail ajoute `preparation: {qualification, needs, saved}`. Les articles
+sont classés `RECOGNIZED`, `REVIEW`, `UNRESOLVED` et les besoins libres `CUSTOM`.
+Chaque diagnostic donne `needKey`, les noms demandé et Catalog, `issue`, et la
+sélection `requestedLine` lorsqu'elle est décodable. `offering_id` est directement
+le UUID public Catalog ; les `id` de mode/ingrédient et `choice_id` correspondent
+aux codes de publication. Les libellés, prix et métadonnées publics n'imposent
+aucune donnée commerciale actuelle. `identify` puis `snapshot` valident le produit.
+Seules les lignes valides sont proposées ; une sélection problématique peut être
+reprise explicitement dans l'éditeur pour correction. Aucun produit n'est créé.
+
+Les UUID de ligne sont déterministes depuis le UUID de demande et `item:N`.
+La qualification enregistrée est prioritaire en totalité ; aucune fusion,
+duplication ou écriture ne résulte du GET. La création explicite accepte les UUID
+proposés si aucune qualification n'existe. La tarification, la transaction, le
+verrou et l'idempotence restent ceux de la création existante.
+
+Les réponses de soumissions ajoutent `proposalCoverage` (nullable pour l'historique) :
+`inclusions` associe les UUID des lignes de la soumission aux clés de besoins et
+`exclusions` conserve les motifs explicites. Ce snapshot décrit les décisions à
+la création ; il reste inchangé après correction de la préparation ou édition du
+soumission. Les soumissions historiques ne sont ni complétées ni recalculées.

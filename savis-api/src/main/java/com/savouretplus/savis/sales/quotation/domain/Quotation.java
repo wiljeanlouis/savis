@@ -29,7 +29,28 @@ public record Quotation(
         Instant acceptedAt,
         Instant rejectedAt,
         UUID convertedOrderId,
-        List<QuotationItem> items, UUID sourceQuoteRequestId) {
+        List<QuotationItem> items, UUID sourceQuoteRequestId, ProposalCoverage proposalCoverage) {
+
+    /** Compatibility constructor: origin metadata is attached separately at creation. */
+    public Quotation(Long id, UUID publicId, String quotationNumber, QuotationStatus status,
+            String customerName, String customerPhone, String customerEmail, QuotationAddress customerAddress,
+            LocalDate validUntil, String note, int discountCents, int deliveryFeeCents, int totalCents,
+            Instant createdAt, Instant updatedAt, Instant sentAt, Instant acceptedAt, Instant rejectedAt,
+            UUID convertedOrderId, List<QuotationItem> items, UUID sourceQuoteRequestId) {
+        this(id,publicId,quotationNumber,status,customerName,customerPhone,customerEmail,customerAddress,
+                validUntil,note,discountCents,deliveryFeeCents,totalCents,createdAt,updatedAt,sentAt,acceptedAt,
+                rejectedAt,convertedOrderId,items,sourceQuoteRequestId,null);
+    }
+
+    /** Immutable need decisions captured for this proposal, keyed by quotation item UUID. */
+    public record ProposalCoverage(java.util.Map<UUID, Set<String>> inclusions, java.util.Map<String, String> exclusions) {
+        public ProposalCoverage {
+            var copy = new java.util.LinkedHashMap<UUID, Set<String>>();
+            inclusions.forEach((id, keys) -> copy.put(id, Set.copyOf(keys)));
+            inclusions = java.util.Map.copyOf(copy);
+            exclusions = java.util.Map.copyOf(exclusions);
+        }
+    }
 
     /** Compatibility constructor for standalone quotations. */
     public Quotation(Long id, UUID publicId, String quotationNumber, QuotationStatus status,
@@ -103,7 +124,7 @@ public record Quotation(
                 next == QuotationStatus.SENT && sentAt == null ? changedAt : sentAt,
                 next == QuotationStatus.ACCEPTED && acceptedAt == null ? changedAt : acceptedAt,
                 next == QuotationStatus.REJECTED && rejectedAt == null ? changedAt : rejectedAt,
-                convertedOrderId, items, sourceQuoteRequestId);
+                convertedOrderId, items, sourceQuoteRequestId, proposalCoverage);
     }
 
     /** Records the order created from this accepted quotation. */
@@ -117,7 +138,7 @@ public record Quotation(
         return new Quotation(
                 id, publicId, quotationNumber, status, customerName, customerPhone, customerEmail,
                 customerAddress, validUntil, note, discountCents, deliveryFeeCents, totalCents,
-                createdAt, changedAt, sentAt, acceptedAt, rejectedAt, orderId, items, sourceQuoteRequestId);
+                createdAt, changedAt, sentAt, acceptedAt, rejectedAt, orderId, items, sourceQuoteRequestId, proposalCoverage);
     }
 
     private Set<QuotationStatus> allowedNextStatuses() {

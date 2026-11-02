@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useQuotationEditor } from "@/features/sales/quotations/hooks/useQuotationEditor";
+import { PreparationNeeds } from "./PreparationNeeds";
 import { QualificationProducts } from "./QualificationProducts";
 import { Button } from "@/shared/ui/button";
 import { Input } from "@/shared/ui/input";
@@ -11,7 +12,11 @@ import { parseOriginalRequest, needLabel } from "../model/originalRequest";
 import { Textarea } from "@/shared/ui/textarea";
 import { ApiErrorAlert } from "@/shared/components/ApiErrorAlert";
 import { useSaveQualification } from "../hooks/useQuoteRequests";
-import type { QuoteRequest, Qualification } from "../model/types";
+import {
+  effectiveQualification,
+  type QuoteRequest,
+  type Qualification,
+} from "../model/types";
 import { emptyQuotationDraft } from "@/features/sales/quotations/model/quotationDraft";
 
 export function QualificationForm({
@@ -25,23 +30,27 @@ export function QualificationForm({
 }) {
   const editor = useQuotationEditor({ editable: request.status !== "CLOSED" });
   const [initialized, setInitialized] = useState(false);
+  const [expectedVersion] = useState(request.version);
   const [notes, setNotes] = useState(
-    request.qualification?.internalNotes ?? "",
+    () => effectiveQualification(request)?.internalNotes ?? "",
   );
   const [coverage, setCoverage] = useState<Record<string, string[]>>(() =>
     Object.fromEntries(
-      (request.qualification?.lines ?? []).map((l) => [l.id, l.needKeys]),
+      (effectiveQualification(request)?.lines ?? []).map((l) => [
+        l.id,
+        l.needKeys,
+      ]),
     ),
   );
   const [exclusions, setExclusions] = useState(
-    request.qualification?.exclusions ?? {},
+    () => effectiveQualification(request)?.exclusions ?? {},
   );
   const save = useSaveQualification();
   const original = parseOriginalRequest(request.originalPayload);
   if (!initialized) {
     setInitialized(true);
     const draft = emptyQuotationDraft();
-    const q = request.qualification;
+    const q = effectiveQualification(request);
     draft.commercial.customerName = q?.customerName ?? request.customerName;
     draft.commercial.customerPhone = q?.customerPhone ?? request.customerPhone;
     draft.commercial.customerEmail =
@@ -50,8 +59,8 @@ export function QualificationForm({
       key: l.id,
       productId: l.productId,
       quantity: l.quantity,
-      purchaseModeCode: l.purchaseModeCode,
-      choiceCode: l.choiceCode,
+      purchaseModeCode: l.purchaseModeCode ?? "",
+      choiceCode: l.choiceCode ?? "",
       allocations: Object.fromEntries(
         l.allocations.map((v) => [v.choiceCode, v.quantity]),
       ),
@@ -74,8 +83,8 @@ export function QualificationForm({
         id: l.key,
         productId: l.productId,
         quantity: l.quantity,
-        purchaseModeCode: l.purchaseModeCode,
-        choiceCode: l.choiceCode,
+        purchaseModeCode: l.purchaseModeCode ?? "",
+        choiceCode: l.choiceCode ?? "",
         allocations: Object.entries(l.allocations).map(
           ([choiceCode, quantity]) => ({ choiceCode, quantity }),
         ),
@@ -91,7 +100,7 @@ export function QualificationForm({
     save.mutate(
       {
         id: request.publicId,
-        expectedVersion: request.version,
+        expectedVersion,
         qualification,
       },
       { onSuccess: onSaved },
@@ -107,7 +116,9 @@ export function QualificationForm({
     >
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h2 className="text-lg font-semibold">Qualifier la demande</h2>
+          <h2 className="text-lg font-semibold">
+            Préparation de la soumission
+          </h2>
           <p className="mt-1 text-sm text-muted-foreground">
             Complétez les coordonnées et les produits à retenir pour vos
             propositions.
@@ -123,17 +134,52 @@ export function QualificationForm({
             Annuler
           </Button>
           <Button type="submit" disabled={save.isPending}>
-            {save.isPending && <Spinner />}Enregistrer la qualification
+            {save.isPending && <Spinner />}Enregistrer les modifications
           </Button>
         </div>
       </div>
+      <PreparationNeeds
+        request={request}
+        onUseSelection={(line) => {
+          if (
+            editor.draft.commercial.items.some((item) => item.key === line.id)
+          )
+            return;
+          editor.setCommercial({
+            ...editor.draft.commercial,
+            items: [
+              ...editor.draft.commercial.items,
+              {
+                key: line.id,
+                productId: line.productId,
+                quantity: line.quantity,
+                purchaseModeCode: line.purchaseModeCode ?? "",
+                choiceCode: line.choiceCode ?? "",
+                allocations: Object.fromEntries(
+                  line.allocations.map((value) => [
+                    value.choiceCode,
+                    value.quantity,
+                  ]),
+                ),
+                ingredients: Object.fromEntries(
+                  line.ingredients.map((value) => [
+                    value.ingredientCode,
+                    value.quantity,
+                  ]),
+                ),
+              },
+            ],
+          });
+          setCoverage((old) => ({ ...old, [line.id]: line.needKeys }));
+        }}
+      />
       <QualificationProducts editor={editor} />
       <Card>
         <CardHeader className="border-b">
           <CardTitle>Traitement des besoins</CardTitle>
           <p className="text-muted-foreground">
-            Associez chaque besoin aux produits retenus, ou précisez son motif
-            d’exclusion. Vous pouvez enregistrer une qualification incomplète.
+            Les articles reconnus sont déjà associés. Les autres besoins peuvent
+            rester non inclus, ou être explicitement exclus avec un motif.
           </p>
         </CardHeader>
         <CardContent className="space-y-4">
@@ -168,7 +214,7 @@ export function QualificationForm({
                 <Label htmlFor={`exclude-${need}`}>Motif d’exclusion</Label>
                 <Input
                   id={`exclude-${need}`}
-                  placeholder="Si ce besoin n’est pas retenu"
+                  placeholder="Exclusion explicite uniquement"
                   value={exclusions[need] ?? ""}
                   onChange={(e) =>
                     setExclusions((old) => ({ ...old, [need]: e.target.value }))

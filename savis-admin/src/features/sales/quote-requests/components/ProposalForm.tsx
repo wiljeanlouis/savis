@@ -22,41 +22,44 @@ import { ApiErrorAlert } from "@/shared/components/ApiErrorAlert";
 import { dollarsToSafeCents } from "@/shared/lib/money";
 import { useCreateProposal } from "../hooks/useQuoteRequests";
 import { parseOriginalRequest, needLabel } from "../model/originalRequest";
-import type { QuoteRequest } from "../model/types";
+import { effectiveQualification, type QuoteRequest } from "../model/types";
 import type { ProposalCommand } from "../api/quoteRequestApi";
 export function ProposalForm({ request }: { request: QuoteRequest }) {
   const mutation = useCreateProposal();
   const [open, setOpen] = useState(false);
+  const [expectedVersion, setExpectedVersion] = useState(request.version);
   const [selected, setSelected] = useState(
-    request.qualification?.lines.map((l) => l.id) ?? [],
+    () => effectiveQualification(request)?.lines.map((l) => l.id) ?? [],
   );
   const [exclusions, setExclusions] = useState(
-    request.qualification?.exclusions ?? {},
+    () => effectiveQualification(request)?.exclusions ?? {},
   );
   const [validUntil, setValidUntil] = useState("");
   const [note, setNote] = useState("");
   const [discount, setDiscount] = useState(0),
     [delivery, setDelivery] = useState(0);
   const [intention, setIntention] = useState<ProposalCommand | null>(null);
-  const lines = request.qualification?.lines ?? [];
+  const lines = effectiveQualification(request)?.lines ?? [];
   const original = parseOriginalRequest(request.originalPayload);
   const covered = new Set(
     lines.filter((l) => selected.includes(l.id)).flatMap((l) => l.needKeys),
   );
   const missing = request.needKeys.filter((n) => !covered.has(n));
-  if (!request.qualification)
+  if (!effectiveQualification(request))
     return (
       <p className="text-muted-foreground">
-        Qualifiez la demande pour créer un devis.
+        Préparez au moins une ligne pour créer une soumission.
       </p>
     );
   function submit() {
     const command = intention ?? {
       proposalRequestId: crypto.randomUUID(),
-      expectedVersion: request.version,
+      expectedVersion,
       lineIds: selected,
       exclusions: Object.fromEntries(
-        missing.map((n) => [n, exclusions[n] ?? ""]),
+        missing
+          .filter((n) => exclusions[n]?.trim())
+          .map((n) => [n, exclusions[n]]),
       ),
       validUntil,
       note: note || null,
@@ -70,18 +73,28 @@ export function ProposalForm({ request }: { request: QuoteRequest }) {
     <Dialog
       open={open}
       onOpenChange={(value) => {
-        if (!mutation.isPending) setOpen(value);
+        if (!mutation.isPending) {
+          if (value && !intention) {
+            setExpectedVersion(request.version);
+            setSelected(
+              effectiveQualification(request)?.lines.map((line) => line.id) ??
+                [],
+            );
+            setExclusions(effectiveQualification(request)?.exclusions ?? {});
+          }
+          setOpen(value);
+        }
       }}
     >
       <DialogTrigger asChild>
         <Button>
           <HugeiconsIcon icon={Add01Icon} strokeWidth={2} />
-          Créer un devis
+          Créer une soumission
         </Button>
       </DialogTrigger>
       <DialogContent className="max-h-[85dvh] overflow-y-auto sm:max-w-2xl">
         <DialogHeader>
-          <DialogTitle>Créer un devis</DialogTitle>
+          <DialogTitle>Créer une soumission</DialogTitle>
           <DialogDescription>
             Choisissez les produits retenus et les conditions de cette
             proposition. Les prix seront calculés depuis le catalogue.
@@ -128,14 +141,20 @@ export function ProposalForm({ request }: { request: QuoteRequest }) {
                 </Label>
               ))}
             </div>
+            {missing.length > 0 && (
+              <p className="text-sm text-muted-foreground">
+                Les besoins non inclus restent ouverts pour une autre
+                proposition. Un motif est requis uniquement pour une exclusion
+                explicite.
+              </p>
+            )}
             {missing.map((key) => (
               <div className="space-y-2" key={key}>
                 <Label htmlFor={`proposal-exclude-${key}`}>
-                  Motif d’exclusion : {needLabel(key, original)}
+                  Exclusion explicite (facultative) : {needLabel(key, original)}
                 </Label>
                 <Input
                   id={`proposal-exclude-${key}`}
-                  required
                   value={exclusions[key] ?? ""}
                   onChange={(e) =>
                     setExclusions((old) => ({ ...old, [key]: e.target.value }))
@@ -204,7 +223,7 @@ export function ProposalForm({ request }: { request: QuoteRequest }) {
           )}
           {mutation.data && (
             <Alert>
-              <AlertTitle>Devis créé</AlertTitle>
+              <AlertTitle>Soumission créée</AlertTitle>
               <AlertDescription>
                 <Link
                   className="font-medium text-primary hover:underline"
@@ -231,24 +250,25 @@ export function ProposalForm({ request }: { request: QuoteRequest }) {
                 disabled={mutation.isPending}
                 onClick={() => {
                   setIntention(null);
+                  setExpectedVersion(request.version);
                   setSelected(
-                    request.qualification?.lines.map((l) => l.id) ?? [],
+                    effectiveQualification(request)?.lines.map((l) => l.id) ??
+                      [],
                   );
-                  setExclusions(request.qualification?.exclusions ?? {});
+                  setExclusions(
+                    effectiveQualification(request)?.exclusions ?? {},
+                  );
                   mutation.reset();
                 }}
               >
-                Nouvelle proposition
+                Créer une autre soumission
               </Button>
             )}
             {!mutation.data && (
               <Button
                 type="submit"
                 disabled={
-                  mutation.isPending ||
-                  !validUntil ||
-                  selected.length === 0 ||
-                  missing.some((key) => !exclusions[key]?.trim())
+                  mutation.isPending || !validUntil || selected.length === 0
                 }
               >
                 {mutation.isPending && <Spinner />}

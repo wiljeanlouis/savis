@@ -57,7 +57,9 @@ describe("RequestProposals", () => {
         <RequestProposals request={request} />
       </MemoryRouter>,
     );
-    fireEvent.click(screen.getByRole("button", { name: "Créer un devis" }));
+    fireEvent.click(
+      screen.getByRole("button", { name: "Créer une soumission" }),
+    );
     fireEvent.change(screen.getByLabelText("Date de validité"), {
       target: { value: "2027-01-01" },
     });
@@ -85,13 +87,74 @@ describe("RequestProposals", () => {
       "Confidentiel",
     );
   });
-  it("affiche explicitement une demande sans devis", () => {
+  it("crée une soumission partielle depuis les propositions sans qualification enregistrée", () => {
+    const prepared = {
+      ...request,
+      qualification: null,
+      needKeys: ["service:traiteur", "service:decoration"],
+      preparation: {
+        qualification: request.qualification!,
+        saved: false,
+        needs: [],
+      },
+    };
+    render(
+      <MemoryRouter>
+        <RequestProposals request={prepared} />
+      </MemoryRouter>,
+    );
+    fireEvent.click(
+      screen.getByRole("button", { name: "Créer une soumission" }),
+    );
+    fireEvent.change(screen.getByLabelText("Date de validité"), {
+      target: { value: "2027-01-01" },
+    });
+    expect(
+      screen.getByRole("button", { name: "Confirmer la création" }),
+    ).toBeEnabled();
+    fireEvent.click(
+      screen.getByRole("button", { name: "Confirmer la création" }),
+    );
+    expect(mocks.mutate.mock.calls[0][0].command).toMatchObject({
+      lineIds: ["line"],
+      exclusions: {},
+      expectedVersion: 4,
+    });
+  });
+  it("conserve une exclusion explicite pour les besoins non inclus", () => {
+    const partial = {
+      ...request,
+      needKeys: ["service:traiteur", "service:decoration"],
+      qualification: {
+        ...request.qualification!,
+        exclusions: { "service:decoration": "Non proposé" },
+      },
+    };
+    render(
+      <MemoryRouter>
+        <RequestProposals request={partial} />
+      </MemoryRouter>,
+    );
+    fireEvent.click(
+      screen.getByRole("button", { name: "Créer une soumission" }),
+    );
+    fireEvent.change(screen.getByLabelText("Date de validité"), {
+      target: { value: "2027-01-01" },
+    });
+    fireEvent.click(
+      screen.getByRole("button", { name: "Confirmer la création" }),
+    );
+    expect(mocks.mutate.mock.calls[0][0].command.exclusions).toEqual({
+      "service:decoration": "Non proposé",
+    });
+  });
+  it("affiche explicitement une demande sans soumission", () => {
     render(
       <MemoryRouter>
         <RequestProposals request={request} />
       </MemoryRouter>,
     );
-    expect(screen.getByText("Aucun devis créé.")).toBeInTheDocument();
+    expect(screen.getByText("Aucune soumission créée.")).toBeInTheDocument();
   });
 });
 

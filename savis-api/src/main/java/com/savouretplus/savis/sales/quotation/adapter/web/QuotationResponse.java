@@ -31,7 +31,7 @@ public record QuotationResponse(
         Instant acceptedAt,
         Instant rejectedAt,
         UUID convertedOrderId,
-        List<ItemResponse> items, UUID sourceQuoteRequestId) {
+        List<ItemResponse> items, UUID sourceQuoteRequestId, Quotation.ProposalCoverage proposalCoverage) {
 
     /** Maps a quotation aggregate to its REST representation. */
     static QuotationResponse from(Quotation quotation) {
@@ -41,7 +41,7 @@ public record QuotationResponse(
                 quotation.validUntil(), quotation.note(), quotation.subtotalCents(), quotation.discountCents(),
                 quotation.deliveryFeeCents(), quotation.totalCents(), quotation.createdAt(), quotation.updatedAt(),
                 quotation.sentAt(), quotation.acceptedAt(), quotation.rejectedAt(), quotation.convertedOrderId(),
-                quotation.items().stream().map(ItemResponse::from).toList(),quotation.sourceQuoteRequestId());
+                quotation.items().stream().map(ItemResponse::from).toList(),quotation.sourceQuoteRequestId(),quotation.proposalCoverage());
     }
 
     /** Represents the optional structured customer address. */

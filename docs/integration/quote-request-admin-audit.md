@@ -15,10 +15,10 @@ qui représente l'offre commerciale tarifée. Aucun module Java `sales` à crée
 Le dossier frontend `features/sales` existe déjà et reste une organisation de
 navigation, sans responsabilité métier serveur.
 
-Une demande publique ne doit devenir ni un devis automatiquement, ni une
+Une demande publique ne doit devenir ni une soumission automatiquement, ni une
 commande importée. Elle peut être générique, sans articles, et ses configurations
 ne sont pas nécessairement suffisantes pour établir un prix. Réutiliser
-`QuotationService` pour créer le devis après qualification, `CatalogOrderingApi`
+`QuotationService` pour créer la soumission après qualification, `CatalogOrderingApi`
 pour valider et tarifer, puis le parcours existant de conversion vers Order.
 
 ## 2. Inventaire fondé sur le code
@@ -28,11 +28,11 @@ Les chemins Java ci-dessous sont relatifs à
 
 | Zone | Sources principales | Comportement constaté |
 | --- | --- | --- |
-| Devis | `quotation/domain/Quotation.java`, `QuotationItem.java`, `QuotationStatus.java` | Numéro, contact, adresse facultative, validité, ajustements, total en cents, dates et snapshots d'articles. Au moins une ligne obligatoire. |
+| Soumission | `quotation/domain/Quotation.java`, `QuotationItem.java`, `QuotationStatus.java` | Numéro, contact, adresse facultative, validité, ajustements, total en cents, dates et snapshots d'articles. Au moins une ligne obligatoire. |
 | Orchestration | `quotation/usecase/QuotationService.java` | Création et remplacement en brouillon depuis les prix actuels du catalogue ; transitions explicites ; conversion transactionnelle. |
-| HTTP devis | `quotation/adapter/web/QuotationController.java` | Liste/détail/création/modification, `PUT /api/quotations/{id}/status`, `POST /{id}/convert`, `GET /{id}/pdf`. |
-| Persistance devis | `quotation/adapter/persistence/{QuotationEntity,QuotationJpaRepository,QuotationRepositoryAdapter}.java` | Articles JSONB, `@Version`, lectures pour modification sous verrou pessimiste. |
-| Contrat Order | `order/api/QuotationOrderApi.java`, `order/usecase/QuotationOrderService.java` | Crée une commande `ACCEPTED`, source `QUOTATION`, depuis les snapshots, sans recalcul Catalog. L'UUID du devis devient `externalOrderId`. |
+| HTTP soumission | `quotation/adapter/web/QuotationController.java` | Liste/détail/création/modification, `PUT /api/quotations/{id}/status`, `POST /{id}/convert`, `GET /{id}/pdf`. |
+| Persistance soumission | `quotation/adapter/persistence/{QuotationEntity,QuotationJpaRepository,QuotationRepositoryAdapter}.java` | Articles JSONB, `@Version`, lectures pour modification sous verrou pessimiste. |
+| Contrat Order | `order/api/QuotationOrderApi.java`, `order/usecase/QuotationOrderService.java` | Crée une commande `ACCEPTED`, source `QUOTATION`, depuis les snapshots, sans recalcul Catalog. L'UUID de la soumission devient `externalOrderId`. |
 | Contrat Catalog | `catalog/api/CatalogOrderingApi.java`, `catalog/usecase/CatalogOrderingService.java` | `snapshot(ProductSelection)` valide disponibilité, mode et options et calcule le prix ; `bomPlan` expose les contributions BOM. |
 | Publication | `catalog/usecase/PublishedCatalogProductMapper.java` | ID publié = UUID public du produit sous forme de texte ; IDs de mode/choix/ingrédient = codes métier. |
 | Import web | `order/usecase/ImportOrdersUseCase.java`, `order/adapter/supabase/SupabaseOrderInboxAdapter.java` | Déclenchement manuel, lecture des commandes `pending`, sauvegarde locale avant acquittement distant, bilan par ligne. |
@@ -61,11 +61,11 @@ même statut est sans effet métier ; les dates initiales sont conservées.
 d'accepter après cette date n'est implémentée. Ne pas ajouter cette règle
 implicitement dans l'intégration des demandes.
 
-`QuotationService.convert` verrouille le devis, retourne la commande déjà liée
+`QuotationService.convert` verrouille la soumission, retourne la commande déjà liée
 le cas échéant, sinon exige `ACCEPTED`, appelle `QuotationOrderApi.create`, puis
 enregistre le lien. Les transactions Spring participent normalement à la même
 transaction locale. La protection principale des conversions concurrentes par
-ce chemin est le verrou du devis, complété par l'unicité côté Order.
+ce chemin est le verrou de la soumission, complété par l'unicité côté Order.
 `QuotationOrderService.create` effectue lui-même une recherche puis une insertion :
 son unicité protège les données, mais ce service seul ne résout pas explicitement
 une course d'insertion en retournant systématiquement l'UUID existant.
@@ -159,19 +159,19 @@ l'affichage et indexer les champs nécessaires aux recherches. Ne pas faire
 circuler des `JsonNode` ou DTO Supabase dans les invariants métier. Les lignes
 doivent être identifiables même si un même produit apparaît plusieurs fois.
 
-Proposition initiale : **0 ou 1 devis par demande**. La FK locale facultative
+Proposition initiale : **0 ou 1 soumission par demande**. La FK locale facultative
 `quotations.source_quote_request_id` vers l'UUID de la demande, unique, garantit
-la cardinalité ; les devis autonomes gardent `NULL`. Le détail demande retrouve
-son devis par ce lien plutôt que de maintenir deux références réciproques.
-Le refus d'un devis ne rouvre pas automatiquement la demande. Si des variantes
+la cardinalité ; les soumissions autonomes gardent `NULL`. Le détail demande retrouve
+sa soumission par ce lien plutôt que de maintenir deux références réciproques.
+Le refus d'une soumission ne rouvre pas automatiquement la demande. Si des variantes
 ou révisions multiples sont nécessaires, valider un modèle 1:N et une clé de
 création/révision avant d'adopter cette contrainte.
 
 Statuts proposés de demande : `RECEIVED → QUALIFYING → QUALIFIED → QUOTED`,
 avec `CLOSED` depuis les états précédant `QUOTED`, motif obligatoire. Passer de
-`QUALIFIED` à `QUALIFYING` pour corriger est permis avant création du devis.
-`QUOTED` signifie qu'un devis existe, pas qu'il est envoyé, accepté ou commandé.
-Afficher ensuite les statuts du devis et son `convertedOrderId`, sans les
+`QUALIFIED` à `QUALIFYING` pour corriger est permis avant création de la soumission.
+`QUOTED` signifie qu'une soumission existe, pas qu'elle est envoyée, acceptée ou commandée.
+Afficher ensuite les statuts de la soumission et son `convertedOrderId`, sans les
 dupliquer dans l'état demande. Un refus public initial ou une demande abandonnée
 n'est pas un `Quotation.REJECTED`.
 
@@ -196,14 +196,14 @@ Les lignes historiques deviennent importables via la valeur par défaut `pending
 5. **Création explicite** : `POST /api/quote-requests/{id}/quotation` avec termes
    commerciaux et version attendue ; exige `QUALIFIED`, au moins une ligne
    Catalog valide, une validité et le traitement de tous les besoins. Sous verrou
-   demande, appelle `QuotationService.create`, lie le devis et passe à `QUOTED`
-   dans la même transaction. Un rejeu retrouve le même devis. Un payload de
+   demande, appelle `QuotationService.create`, lie la soumission et passe à `QUOTED`
+   dans la même transaction. Un rejeu retrouve la même soumission. Un payload de
    création contradictoire doit produire 409, pas remplacer silencieusement
    l'offre ; conserver l'empreinte de commande initiale pour cette comparaison.
 6. **Envoi** : PDF et « Marquer envoyée » existants ; puis acceptation/refus par
    l'opérateur, sans inventer de preuve d'envoi ou de consentement client.
 7. **Commande** : `POST /api/quotations/{id}/convert` existant ; commande
-   `QUOTATION/ACCEPTED`, montants capturés conservés. La chaîne demande → devis →
+   `QUOTATION/ACCEPTED`, montants capturés conservés. La chaîne demande → soumission →
    commande assure la provenance sans changer `externalOrderId` côté Order.
 
 Mapping de configuration après qualification : `offering_id → productId`,
@@ -215,7 +215,7 @@ Les enums publics en minuscules sont traduits à la frontière ; la tarification
 relit les valeurs courantes via Catalog, jamais les prix/libellés publics.
 
 Les demandes d'organisation ou sur mesure sans produit vendable restent
-qualifiables mais ne peuvent produire aujourd'hui un devis à lignes libres.
+qualifiables mais ne peuvent produire aujourd'hui une soumission à lignes libres.
 Choix recommandé pour cette phase : configurer un produit/service dans Catalog
 ou clôturer avec motif. Ajouter des lignes libres et prix négociés serait une
 évolution commerciale distincte, à propager jusqu'à Order et Invoice.
@@ -228,8 +228,8 @@ ou clôturer avec motif. Ajouter des lignes libres et prix négociés serait une
 | Crash après commit local | Au rejeu, retrouver la demande puis refaire seulement l'acquittement. Ne jamais réinitialiser sa qualification. |
 | Course d'import | Insertion dans une transaction par ligne ; après violation d'unicité, relire dans une transaction saine. Ne pas continuer dans une transaction marquée rollback-only. |
 | Modification distante du même UUID | Comparer l'empreinte ; conflit explicite et audit, aucun écrasement local silencieux. |
-| Double création de devis | Verrou demande + unicité du lien + empreinte de la commande de création. Vérifier le rejeu avant le refus lié au statut `QUOTED`. |
-| Échec du devis | Rollback du lien et du passage à `QUOTED` ; aucune demande marquée traitée sans devis durable. |
+| Double création de soumission | Verrou demande + unicité du lien + empreinte de la commande de création. Vérifier le rejeu avant le refus lié au statut `QUOTED`. |
+| Échec de la soumission | Rollback du lien et du passage à `QUOTED` ; aucune demande marquée traitée sans soumission durable. |
 | Concurrence de qualification | Version attendue exposée au client, contrôle sous verrou ou verrou optimiste réellement comparé ; 409 en cas de formulaire périmé. Un `@Version` JPA seul ne compare pas la version du formulaire. |
 | Échec Supabase | Aucun appel distant dans la transaction métier de qualification/création. Pas de transaction distribuée ; acquittement après commit uniquement. |
 | Lot partiellement invalide | Décodage et validation par ligne ; bilan `fetched/imported/alreadyImported/failed/acknowledgmentFailed`, identifiant externe et code d'erreur. |
@@ -280,15 +280,15 @@ Chemins relatifs à `savis-admin/src/` :
 | `features/quotations/hooks/useQuotationEditor.ts`, `model/quotationDraft.ts` | Base des termes commerciaux ; initialiser un brouillon issu de qualification sans écraser le brouillon autonome. |
 | `features/orders/components/OrderEditorForm.tsx` | Déjà utilisé par Quotation, prop `documentContext="soumission"`, contact, ajustements et configurations ; ne pas le réutiliser pour tarifer une demande non qualifiée. |
 | `features/orders/components/CatalogProductDropdown.tsx`, `features/catalog/hooks/useCatalogApi.ts` | Recherche et chargement des produits retenus, remplacement explicite d'un produit retiré. |
-| `features/orders/components/OrderItemsDetails.tsx` | Détail tarifé du devis existant ; créer un détail propre aux lignes demandées sans prix. |
+| `features/orders/components/OrderItemsDetails.tsx` | Détail tarifé de la soumission existante ; créer un détail propre aux lignes demandées sans prix. |
 | `shared/components/{DataTable,ListFilters,ListFilterPopover,DetailSheet,ApiErrorAlert,NoData,PageNavigator}.tsx` | Liste, filtres, détail et erreurs ; URL pour page/recherche/statut/services/tri/sélection. |
-| `features/quotations/hooks/useQuotationApi.ts`, `shared/api`, `shared/lib/openPdfInNewTab.ts` | Conventions Axios, Query et PDF. Nouvelle clé `['quote-requests', ...params]` ; invalider demandes et devis après création liée. |
+| `features/quotations/hooks/useQuotationApi.ts`, `shared/api`, `shared/lib/openPdfInNewTab.ts` | Conventions Axios, Query et PDF. Nouvelle clé `['quote-requests', ...params]` ; invalider demandes et soumissions après création liée. |
 
 Créer `features/quote-requests` avec sections nommées (client, événement,
-services, lignes, qualification) ; éviter d'agrandir la page de devis en écran
+services, lignes, qualification) ; éviter d'agrandir la page de soumission en écran
 universel. Les dépendances frontend vers Orders existent déjà ; aucune extraction
 générique vers `shared` n'est indispensable pour cette phase.
-Le brouillon actuel des nouveaux devis est stocké en `sessionStorage` sous une
+Le brouillon actuel des nouvelles soumissions est stocké en `sessionStorage` sous une
 clé unique : ne pas y déposer automatiquement les demandes/allergies importées.
 Préférer une qualification persistée côté API et un état d'édition local borné.
 
@@ -303,7 +303,7 @@ Préférer une qualification persistée côté API et un état d'édition local 
 | `ImportOrdersUseCaseTest` : nouveau, doublon, erreur de mapping | Ajouter perte d'acquittement, collision d'unicité, erreur d'acquittement d'échec et panne avant lecture. |
 | `SupabaseOrderInboxAdapterTest` : contrat HTTP et credentials serveur | Ne prouve pas un PATCH affectant zéro ligne, pagination, données invalides dans un lot ou droits RLS réels. |
 | `CatalogOrderingServiceTest` et tests prix/publication | À compléter avec mapping de demande et catalogue modifié depuis la réception. |
-| Admin : `quotations/api/quotationApi.test.ts`, `quotations/model/quotationDraft.test.ts`, tests SalesLayout et AppRouter | Pas de test dédié trouvé pour pages/hooks du parcours Quotation ; ajouter qualification → devis et transitions observables. |
+| Admin : `quotations/api/quotationApi.test.ts`, `quotations/model/quotationDraft.test.ts`, tests SalesLayout et AppRouter | Pas de test dédié trouvé pour pages/hooks du parcours Quotation ; ajouter qualification → soumission et transitions observables. |
 | Supabase : `submit_quote_request_test.sql` (22 assertions), script concurrence | RPC mixte/générique, privilèges anon, rejouabilité, conflit, validation, rollback ; compléter authenticated, droits backend, type absent et rejeu après changement catalogue. |
 
 La CI `.github/workflows/ci.yml` lance Maven, Vitest et le lint Supabase, mais
@@ -314,7 +314,7 @@ Documentation : la limite « demandes Supabase non gérées par SAVIS » dans
 `docs/ARCHITECTURE.md` et le contrat RPC est exacte. En revanche, le README racine
 présente surtout Catalog/Order et omet Quotation/Invoice ; les listes d'endpoints,
 modules et tests du README API et du README Admin sont incomplètes concernant
-les devis/factures présents dans le code. Le README Admin décrit encore le BOM
+les soumissions/factures présentes dans le code. Le README Admin décrit encore le BOM
 comme dialogue toujours ouvert dans sa section Routing, alors que d'autres
 sections décrivent l'éditeur pleine page : nettoyer cette dérive documentaire
 dans une tâche distincte. Les documents doivent présenter « envoi » comme
@@ -367,9 +367,9 @@ forward-only pour les champs non livrés en slice 1.
 Acceptation : transitions contrôlées côté API ; générique et produit retiré
 qualifiables ; client/événement/notes conservés séparément ; besoins écartés
 motivés ; formulaire périmé refusé sans perte de la saisie ; rechargement retrouve
-la qualification ; aucun devis/commande créé par la simple qualification.
+la qualification ; aucune soumission/commande créée par la simple qualification.
 
-### Slice 3 — créer exactement un devis lié
+### Slice 3 — créer exactement une soumission liée
 
 Créer `usecase/{CreateQuotationFromQuoteRequestUseCase,CreateQuotationFromQuoteRequestCommand}.java`
 et DTO HTTP associé ; ajouter lien source facultatif et empreinte initiale via
@@ -388,14 +388,14 @@ Acceptation : un clic produit un brouillon tarifé par Catalog ; deux clics/reje
 réseau/concurrence produisent le même UUID ; commande de création contradictoire
 → 409 ; prix publics ignorés ; options invalides à corriger ; erreur Catalog
 annule création et transition ; aucune ligne/service perdu silencieusement ;
-devis autonome et modifications de brouillon conservent leur comportement.
+soumission autonome et modifications de brouillon conservent leur comportement.
 
 ### Slice 4 — parcourir le cycle commercial existant
 
-Modifier le détail demande pour afficher le devis, son état et le lien commande ;
+Modifier le détail demande pour afficher la soumission, son état et le lien commande ;
 compléter les tests de `QuotationDetailsPage`, `useQuotationApi` et du retour à
 la demande. Étendre `QuotationServiceTest`, `QuotationOrderServiceTest` et ajouter
-un test d'intégration PostgreSQL demande → devis → commande, incluant accès
+un test d'intégration PostgreSQL demande → soumission → commande, incluant accès
 concurrents et rollback. Conserver contrôleur et règles de conversion actuels.
 
 Acceptation : PDF puis marquage envoyé, acceptation/refus et conversion
@@ -411,7 +411,7 @@ Ajouter les tests SQL à `.github/workflows/ci.yml`. Mettre à jour
 `supabase/README.md`, `savis-api/README.md`, `savis-admin/README.md`,
 `docs/ARCHITECTURE.md`, le contrat RPC et le README racine.
 Si une migration Supabase manque, le nouveau parcours doit signaler son
-indisponibilité sans perturber Catalog, devis ou commandes.
+indisponibilité sans perturber Catalog, soumissions ou commandes.
 
 Acceptation : crash après commit, timeout distant, import concurrent et reprise
 après correction couverts sur PostgreSQL ; aucun secret dans le bundle ou les
@@ -427,7 +427,7 @@ contraintes/verrous/migrations PostgreSQL. Pas de smoke Executor nécessaire.
 ## 10. Décisions à valider avant développement
 
 1. Propriété de `QuoteRequest` dans Quotation, deux agrégats distincts.
-2. Cardinalité 0..1 devis par demande pour commencer, ou besoin immédiat de révisions.
+2. Cardinalité 0..1 soumission par demande pour commencer, ou besoin immédiat de révisions.
 3. Import manuel et acquittement technique séparé du traitement commercial.
 4. Statuts et motifs de qualification/clôture, critères de passage à `QUALIFIED`.
 5. Traitement des services non catalogués : blocage explicite et passage par
@@ -443,7 +443,7 @@ contraintes/verrous/migrations PostgreSQL. Pas de smoke Executor nécessaire.
    publique (type absent et rejeu après évolution catalogue).
 
 Ces décisions conditionnent le schéma et les critères métier ; elles ne demandent
-aucune modification préalable des commandes ou des devis autonomes.
+aucune modification préalable des commandes ou des soumissions autonomes.
 
 ## 11. Vérifications exécutées pour cet audit
 

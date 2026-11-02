@@ -1,5 +1,6 @@
 import { Tabs, TabsList, TabsTrigger } from "@/shared/ui/tabs";
 import {
+  InboxDownloadIcon,
   File01Icon,
   Money03Icon,
   ShoppingCart02Icon,
@@ -12,7 +13,7 @@ const salesTabs = [
     label: "Demandes",
     value: "quote-requests",
     to: "/sales/quote-requests",
-    icon: File01Icon,
+    icon: InboxDownloadIcon,
   },
   {
     label: "Soumissions",

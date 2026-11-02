@@ -507,7 +507,7 @@ already imported, failed, and acknowledgement-failed rows; see
 | --- | --- | --- |
 | `POST` | `/api/quote-requests/import` | Import a bounded pending batch and acknowledge committed requests. |
 | `GET` | `/api/quote-requests` | List summaries with bounded pagination, name search, status and stable date sorting. |
-| `GET` | `/api/quote-requests/{id}` | Retrieve original need, qualification, history and version. |
+| `GET` | `/api/quote-requests/{id}` | Retrieve original need, qualification, history, version and read-only `preparation`. |
 | `PUT` | `/api/quote-requests/{id}/qualification` | Save separate qualified data with `expectedVersion`. |
 | `PUT` | `/api/quote-requests/{id}/status` | Change business status with `expectedVersion`; closure requires a reason. |
 | `GET` | `/api/quote-requests/{id}/quotations` | List every linked quotation. |
@@ -909,3 +909,27 @@ For container-level Flyway/Alembic integration verification, run
 - [System architecture](../docs/ARCHITECTURE.md)
 - [Supabase schema and public access](../supabase/README.md)
 - [Local stack and production operations](../README.md)
+
+### Quote preparation and partial proposals
+
+`GET /api/quote-requests/{id}` adds `preparation: {qualification, needs, saved}`.
+Each need exposes `needKey`, `requestedName`, `productName`, `state`
+(`RECOGNIZED`, `REVIEW`, `UNRESOLVED`, `CUSTOM`), `issue` and `requestedLine`.
+The qualification is either the existing saved object, unchanged, or valid
+Catalog selections decoded from the immutable public payload. Reads do not save,
+change status/version or create quotations. Public `offering_id` is Catalog's
+public UUID; purchase-mode `id`, `choice_id` and ingredient `id` are published
+Catalog codes. Prices and display labels from the public payload have no authority.
+`CatalogOrderingApi.identify(UUID)` resolves identity/availability before the
+existing `snapshot` validates configuration. No new module or synchronization.
+
+The existing proposal POST accepts `lineIds` from saved qualification or, when
+absent, deterministic prepared lines. Its body remains unchanged. Any nonempty
+subset is valid; omitted needs stay open, explicit exclusions require reasons,
+and contradictions/unknown needs are rejected. Catalog prices again at creation.
+Locking, version checks, atomic persistence and proposal idempotence are unchanged.
+Quotation responses add nullable `proposalCoverage` with `inclusions` mapping
+quotation item UUIDs to need keys, and `exclusions` mapping need keys to reasons.
+These capture the creation decisions; they are not recalculated after draft edits.
+Flyway V17 adds nullable `quotations.proposal_inclusions` JSONB, without backfill or
+changes to existing quotations. Existing Order/Invoice origin links remain intact.

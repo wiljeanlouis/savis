@@ -89,6 +89,11 @@ const data = {
       icon: <HugeiconsIcon icon={MoneyReceiveCircleIcon} strokeWidth={2} />,
       children: [
         {
+          name: "Demandes",
+          url: "/sales/quote-requests",
+          activeUrls: ["/sales/quote-requests", "/quote-requests"],
+        },
+        {
           name: "Soumissions",
           url: "/sales/quotations",
           activeUrls: ["/sales/quotations", "/quotations"],

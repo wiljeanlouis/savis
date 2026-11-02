@@ -24,6 +24,7 @@ import com.savouretplus.savis.sales.quotation.port.QuotationRepository;
 @Transactional
 class QuotationRepositoryAdapterTest {
     @Autowired QuotationRepository repository;
+    @Autowired QuotationJpaRepository entities;
 
     @Test
     void persistsCommercialTermsAndConfiguredProductSnapshots() {
@@ -40,6 +41,18 @@ class QuotationRepositoryAdapterTest {
         assertEquals("Vanille", reloaded.items().getFirst().choices().getFirst().name());
         assertEquals(1200, reloaded.items().getFirst().unitPriceCents());
         assertEquals(2450, reloaded.totalCents());
+    }
+
+    @Test
+    void exposesHistoricalExclusionsWithoutInventingInclusionsOrBackfilling() {
+        var saved = repository.save(quotation());
+        var entity = entities.findByPublicId(saved.publicId()).orElseThrow();
+        entity.setProposalExclusions(java.util.Map.of("service:organisation", "Non proposé"));
+        entities.saveAndFlush(entity);
+        var reloaded = repository.findByPublicId(saved.publicId()).orElseThrow();
+        assertEquals(java.util.Map.of(), reloaded.proposalCoverage().inclusions());
+        assertEquals(java.util.Map.of("service:organisation", "Non proposé"), reloaded.proposalCoverage().exclusions());
+        org.junit.jupiter.api.Assertions.assertNull(entity.getProposalInclusions());
     }
 
     private Quotation quotation() {

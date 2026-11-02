@@ -26,10 +26,10 @@ public class QuotationRepositoryAdapter implements QuotationRepository {
                 .map(e -> new Proposal(toDomain(e),e.getProposalFingerprint()));
     }
     @Override @Transactional
-    public Quotation attachSource(UUID quotationId,UUID sourceId,UUID proposalId,String fingerprint,java.util.Map<String,String> exclusions) {
+    public Quotation attachSource(UUID quotationId,UUID sourceId,UUID proposalId,String fingerprint,java.util.Map<String,String> exclusions,java.util.Map<UUID,java.util.Set<String>> inclusions) {
         var entity=repository.findForUpdateByPublicId(quotationId).orElseThrow();
         if(entity.getSourceQuoteRequestId()!=null) throw new IllegalStateException("Origine déjà définie");
-        entity.setSourceQuoteRequestId(sourceId);entity.setProposalRequestId(proposalId);entity.setProposalFingerprint(fingerprint);entity.setProposalExclusions(exclusions);
+        entity.setSourceQuoteRequestId(sourceId);entity.setProposalRequestId(proposalId);entity.setProposalFingerprint(fingerprint);entity.setProposalExclusions(exclusions);entity.setProposalInclusions(inclusions);
         return toDomain(repository.saveAndFlush(entity));
     }
     @Override @Transactional(readOnly=true)
@@ -99,6 +99,9 @@ public class QuotationRepositoryAdapter implements QuotationRepository {
                 address.isEmpty() ? null : address, entity.getValidUntil(), entity.getNote(),
                 entity.getDiscountCents(), entity.getDeliveryFeeCents(), entity.getTotalCents(),
                 entity.getCreatedAt(), entity.getUpdatedAt(), entity.getSentAt(), entity.getAcceptedAt(),
-                entity.getRejectedAt(), entity.getConvertedOrderId(), entity.getItems(), entity.getSourceQuoteRequestId());
+                entity.getRejectedAt(), entity.getConvertedOrderId(), entity.getItems(), entity.getSourceQuoteRequestId(),
+                entity.getProposalInclusions() == null && entity.getProposalExclusions() == null ? null : new Quotation.ProposalCoverage(
+                        entity.getProposalInclusions() == null ? java.util.Map.of() : entity.getProposalInclusions(),
+                        entity.getProposalExclusions() == null ? java.util.Map.of() : entity.getProposalExclusions()));
     }
 }

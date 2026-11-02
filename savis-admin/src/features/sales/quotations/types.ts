@@ -8,6 +8,10 @@ export type QuotationStatus = "DRAFT" | "SENT" | "ACCEPTED" | "REJECTED";
 
 export interface Quotation {
   sourceQuoteRequestId?: string | null;
+  proposalCoverage?: {
+    inclusions: Record<string, string[]>;
+    exclusions: Record<string, string>;
+  } | null;
   id: string;
   quotationNumber: string;
   status: QuotationStatus;

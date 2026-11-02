@@ -104,13 +104,15 @@ The following sections follow the visible sidebar order and labels.
 
 ### Ventes
 
+Le flux commercial suit les étapes : demande de soumission → soumission → commande → facture.
+
 #### Demandes de soumission
 
 - **Routes:** `/sales/quote-requests` lists requests; `/sales/quote-requests/:requestId` opens a request within the Sales workspace.
 - **Reception:** “Importer les demandes” imports a bounded Supabase batch through SAVIS API and displays imported, duplicate, invalid and acknowledgement-failed counts. Receiving a request creates no quotation or order.
-- **Consultation:** use the shared list filters, table, status badges and pagination. The standalone detail page groups original data, qualification and associated quotations in tabs, with readable configuration labels and a collapsed original JSON section. Search, status, sort and page are URL state.
-- **Qualification:** explicitly open editing, save or cancel changes; correct contact details, add internal notes, configure Catalog lines, and associate or explicitly exclude every original need. Partial qualification can be saved; a proposal requires complete coverage. Saves and status changes carry the expected version; conflicts require reviewing/reloading the request.
-- **Proposals:** shared dialogs handle proposal creation and reasoned closure; show all associated quotations with number, status, amount and detail/order links. “Créer un devis” selects persisted qualified lines, justified exclusions, validity and commercial terms. Retries retain the same intention in memory; a new intention gets a new UUID. Requalifying a request does not update existing quotations.
+- **Consultation:** use the shared list filters, table, status badges and pagination. The standalone detail page groups original data, quote preparation and associated quotations in tabs, with readable configuration labels and a collapsed original JSON section. Search, status, sort and page are URL state.
+- **Préparation de la soumission:** the server proposes recognized Catalog lines with quantities, modes and configuration, already linked to `item:N`. The original request stays visible separately; review, unresolved and custom needs are shown as interventions. Opening a request never saves it. Saved corrections, stable line IDs, notes, manual additions and exclusions take precedence. Explicit editing reuses the product editor; a problematic configuration can be copied for correction. Save changes explicitly, or create directly from valid proposed lines without a preliminary save. Proposals may include any nonempty subset; omitted needs remain open, and only explicit exclusions require reasons. Saves and status changes carry the expected version; conflicts require reviewing/reloading the request.
+- **Proposals:** shared dialogs handle proposal creation and reasoned closure; show all associated quotations with number, status, amount and detail/order links. “Créer une soumission” selects persisted qualified lines, justified exclusions, validity and commercial terms. Retries retain the same intention in memory; a new intention gets a new UUID. Requalifying a request does not update existing quotations.
 - **Lifecycle:** `RECEIVED`, `IN_PROGRESS`, `QUOTED`, `CLOSED`. Quoted requests can produce additional proposals; closure requires a reason.
 - **Privacy:** request forms do not persist personal data in browser storage. API routes are always registered; neither this tab nor CORS provides authentication. Deployment protection and import log redaction must be verified before use with real customer data.
 

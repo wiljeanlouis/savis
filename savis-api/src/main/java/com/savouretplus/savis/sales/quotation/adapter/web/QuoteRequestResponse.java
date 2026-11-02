@@ -10,11 +10,13 @@ import com.savouretplus.savis.sales.quotation.domain.*;
 public record QuoteRequestResponse(UUID publicId,String source,UUID externalId,UUID submissionRequestId,
         String customerName,String customerPhone,String customerEmail,Instant receivedAt,Instant importedAt,
         QuoteRequestStatus status,long version,String originalPayload,QuoteRequestQualification qualification,
-        String closedReason,List<QuoteRequest.Change> history,Set<String> needKeys) {
-    static QuoteRequestResponse from(QuoteRequest r) {
+        String closedReason,List<QuoteRequest.Change> history,Set<String> needKeys,
+        com.savouretplus.savis.sales.quotation.usecase.PrepareQuoteRequest.Preparation preparation) {
+    static QuoteRequestResponse from(QuoteRequest r) { return from(r, null); }
+    static QuoteRequestResponse from(QuoteRequest r, com.savouretplus.savis.sales.quotation.usecase.PrepareQuoteRequest.Preparation preparation) {
         return new QuoteRequestResponse(r.publicId(),r.source(),r.externalId(),r.submissionRequestId(),r.customerName(),
                 r.customerPhone(),r.customerEmail(),r.receivedAt(),r.importedAt(),r.status(),r.version(),r.originalPayload(),
-                r.qualification(),r.closedReason(),r.history(),r.needKeys());
+                r.qualification(),r.closedReason(),r.history(),r.needKeys(),preparation);
     }
     public record Summary(UUID publicId,String customerName,Instant receivedAt,QuoteRequestStatus status,long version) {
         static Summary from(QuoteRequest r) { return new Summary(r.publicId(),r.qualification()==null?r.customerName():r.qualification().customerName(),r.receivedAt(),r.status(),r.version()); }

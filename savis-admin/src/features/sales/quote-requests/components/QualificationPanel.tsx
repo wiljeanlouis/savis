@@ -3,12 +3,15 @@ import { Button } from "@/shared/ui/button";
 import { Card, CardHeader, CardTitle, CardContent } from "@/shared/ui/card";
 import { HugeiconsIcon } from "@hugeicons/react";
 import { Edit02Icon } from "@hugeicons/core-free-icons";
-import type { QuoteRequest } from "../model/types";
+import { effectiveQualification, type QuoteRequest } from "../model/types";
+import { PreparedLines } from "./PreparedLines";
+import { PreparationNeeds } from "./PreparationNeeds";
+import { ProposalForm } from "./ProposalForm";
 import { QualificationForm } from "./QualificationForm";
 import { parseOriginalRequest, needLabel } from "../model/originalRequest";
 export function QualificationPanel({ request }: { request: QuoteRequest }) {
   const [editing, setEditing] = useState(false);
-  const q = request.qualification;
+  const q = effectiveQualification(request);
   const original = parseOriginalRequest(request.originalPayload);
   if (editing)
     return (
@@ -24,7 +27,7 @@ export function QualificationPanel({ request }: { request: QuoteRequest }) {
         <CardHeader className="border-b">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div>
-              <CardTitle>Qualification</CardTitle>
+              <CardTitle>Préparation de la soumission</CardTitle>
               <p className="mt-1 text-muted-foreground">
                 Préparez les besoins retenus avant de créer une proposition
                 commerciale.
@@ -33,7 +36,7 @@ export function QualificationPanel({ request }: { request: QuoteRequest }) {
             {request.status !== "CLOSED" && (
               <Button variant="outline" onClick={() => setEditing(true)}>
                 <HugeiconsIcon icon={Edit02Icon} strokeWidth={2} />
-                {q ? "Modifier la qualification" : "Qualifier la demande"}
+                {q ? "Ajuster les produits proposés" : "Préparer les produits"}
               </Button>
             )}
           </div>
@@ -64,11 +67,20 @@ export function QualificationPanel({ request }: { request: QuoteRequest }) {
             </dl>
           ) : (
             <p className="py-4 text-center text-muted-foreground">
-              Cette demande n’a pas encore été qualifiée.
+              Aucune ligne commerciale proposée. Préparez les besoins à traiter.
             </p>
           )}
         </CardContent>
       </Card>
+      {!request.qualification && q && (
+        <p className="text-sm text-muted-foreground">
+          Préremplissage proposé, sans enregistrement. Vous pouvez créer une
+          soumission directement.
+        </p>
+      )}
+      <PreparedLines request={request} />
+      <PreparationNeeds request={request} />
+      {request.status !== "CLOSED" && <ProposalForm request={request} />}
       {q && Object.keys(q.exclusions).length > 0 && (
         <Card>
           <CardHeader className="border-b">

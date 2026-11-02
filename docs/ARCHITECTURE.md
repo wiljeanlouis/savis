@@ -318,7 +318,7 @@ flowchart TB
       OrderAdapters["Adapters<br/>JPA<br/>Supabase PostgREST<br/>Catalog, BOM, Supply APIs"]
     end
 
-    Quotation["sales.quotation<br/>Devis et conversion"]
+    Quotation["sales.quotation<br/>Soumissions et conversion"]
     Invoice["sales.invoice<br/>Factures et documents"]
     Quotation -->|QuotationOrderApi| OrderUse
     Invoice -->|OrderInvoicingApi| OrderUse
@@ -1119,11 +1119,22 @@ first resolves the stable `proposalRequestId` and canonical command fingerprint,
 then validates status/version for new intentions. The persistent unique pair is
 `(source_quote_request_id,proposal_request_id)`; the source UUID alone is not unique.
 Creation, origin attachment and the request transition share a local transaction.
-Every original need must be covered by retained Catalog lines or justified exclusions.
+A proposal may cover a subset of the original needs. Omitted needs stay open;
+only explicit exclusions require reasons, and inclusion/exclusion contradictions
+and unknown need keys remain forbidden. Read-only preparation decodes public
+selections through a quotation port/adapter, then validates identity, availability
+and configuration through `CatalogOrderingApi`. Published offering UUIDs and
+configuration IDs directly reference Catalog public UUIDs and codes; no matching
+convention or public price is used. Stable line UUIDs derive from request UUID and
+item key. Saved qualification wins in full, without merging or saving on reads.
+Creation can select these prepared UUIDs without a preliminary qualification save.
+Each proposal captures included item/need associations and explicit exclusions in
+`proposalCoverage`, independently of future qualification and Catalog changes.
 `QuotationService` and Catalog remain the pricing authority. Existing snapshots,
 order conversions and invoices do not change when qualification evolves.
 
-Flyway V14–V16 own local reception, qualification/history/version and proposal links.
+Flyway V14–V17 own local reception, qualification/history/version, proposal links
+and inclusion snapshots (V17 leaves historical quotations untouched).
 Supabase migrations `20261031120000` and `20261031130000` add technical sync/privileges
 and correct missing/null type validation and replays after Catalog changes.
 The [QuoteRequest contract](integration/quote-request-implementation.md) documents

@@ -53,14 +53,18 @@ describe("QuoteRequestDetailsPage", () => {
     expect(screen.getByText("Mariage")).toBeInTheDocument();
     expect(screen.getByText("Noix")).toBeInTheDocument();
     expect(
-      screen.queryByRole("button", { name: "Enregistrer la qualification" }),
+      screen.queryByRole("button", { name: "Enregistrer les modifications" }),
     ).not.toBeInTheDocument();
-    await user.click(screen.getByRole("tab", { name: "Qualification" }));
+    await user.click(
+      screen.getByRole("tab", { name: "Préparation de la soumission" }),
+    );
     expect(
-      screen.getByRole("button", { name: "Qualifier la demande" }),
+      screen.getByRole("button", { name: "Préparer les produits" }),
     ).toBeInTheDocument();
-    await user.click(screen.getByRole("tab", { name: "Devis associés" }));
-    expect(screen.getByText("Aucun devis créé.")).toBeInTheDocument();
+    await user.click(
+      screen.getByRole("tab", { name: "Soumissions associées" }),
+    );
+    expect(screen.getByText("Aucune soumission créée.")).toBeInTheDocument();
     await user.click(
       screen.getByRole("button", { name: "Clôturer la demande" }),
     );

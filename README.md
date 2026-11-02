@@ -583,8 +583,10 @@ docker compose \
 
 ## Demandes de soumission Sales
 
-La réception manuelle, la qualification et les propositions multiples appartiennent
-à `sales.quotation`. Voir le [contrat et les procédures QuoteRequest](docs/integration/quote-request-implementation.md)
+La réception manuelle, la préparation de la soumission et les propositions multiples
+appartiennent à `sales.quotation`. Les références Catalog du payload préremplissent
+les lignes valides sans sauvegarde automatique. Les corrections enregistrées
+restent prioritaires et chaque soumission peut couvrir une partie des besoins. Voir le [contrat et les procédures QuoteRequest](docs/integration/quote-request-implementation.md)
 pour les routes, migrations, tests et la reprise. Les routes sont enregistrées
 dès le démarrage ; les protections d'accès et la journalisation des données
 personnelles restent à vérifier avant utilisation avec des données réelles.

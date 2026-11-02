@@ -86,7 +86,7 @@ export function QualificationProducts({
           {commercial.items.length === 0 && (
             <div className="rounded-lg border border-dashed p-6 text-center text-muted-foreground">
               Aucun produit retenu. Ajoutez un produit du catalogue pour
-              préparer un devis.
+              préparer une soumission.
             </div>
           )}
           {commercial.items.map((item) => {

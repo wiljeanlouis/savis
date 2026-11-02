@@ -3,8 +3,8 @@ export interface QualifiedLine {
   id: string;
   productId: string;
   quantity: number;
-  purchaseModeCode: string;
-  choiceCode: string;
+  purchaseModeCode: string | null;
+  choiceCode: string | null;
   allocations: { choiceCode: string; quantity: number }[];
   ingredients: { ingredientCode: string; quantity: number }[];
   needKeys: string[];
@@ -13,11 +13,16 @@ export interface Qualification {
   customerName: string;
   customerPhone: string;
   customerEmail: string | null;
-  internalNotes: string;
+  internalNotes: string | null;
   lines: QualifiedLine[];
   exclusions: Record<string, string>;
 }
 export interface QuoteRequest {
+  preparation?: {
+    qualification: Qualification;
+    saved: boolean;
+    needs: PreparedNeed[];
+  } | null;
   status: RequestStatus;
   version: number;
   qualification: Qualification | null;
@@ -52,6 +57,19 @@ export interface ImportResult {
 export const requestStatusLabels: Record<RequestStatus, string> = {
   RECEIVED: "Reçue",
   IN_PROGRESS: "En cours",
-  QUOTED: "Devis créé",
+  QUOTED: "Soumission créée",
   CLOSED: "Clôturée",
 };
+
+export interface PreparedNeed {
+  needKey: string;
+  requestedName: string | null;
+  productName: string | null;
+  state: "RECOGNIZED" | "REVIEW" | "UNRESOLVED" | "CUSTOM";
+  issue: string | null;
+  requestedLine: QualifiedLine | null;
+}
+
+export function effectiveQualification(request: QuoteRequest) {
+  return request.qualification ?? request.preparation?.qualification;
+}

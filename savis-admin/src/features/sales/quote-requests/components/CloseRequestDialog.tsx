@@ -33,8 +33,8 @@ export function CloseRequestDialog({ request }: { request: QuoteRequest }) {
         <DialogHeader>
           <DialogTitle>Clôturer la demande</DialogTitle>
           <DialogDescription>
-            Indiquez pourquoi cette demande ne sera plus traitée. Les devis déjà
-            créés conservent leur statut.
+            Indiquez pourquoi cette demande ne sera plus traitée. Les
+            soumissions déjà créées conservent leur statut.
           </DialogDescription>
         </DialogHeader>
         <form

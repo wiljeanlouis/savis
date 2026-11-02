@@ -127,6 +127,12 @@ public class CatalogOrderingService implements CatalogOrderingApi {
         return new BomPlan(applicableBoms, warnings);
     }
 
+    @Override
+    public ProductIdentity identify(java.util.UUID productId) {
+        Product product = product(new ProductSelection(productId, null, null, List.of(), List.of()));
+        return new ProductIdentity(product.publicId(), product.name(), product.available());
+    }
+
     private Product product(ProductSelection selection) {
         if (selection == null || selection.productId() == null) {
             throw new IllegalArgumentException("Le produit de la commande est requis");
