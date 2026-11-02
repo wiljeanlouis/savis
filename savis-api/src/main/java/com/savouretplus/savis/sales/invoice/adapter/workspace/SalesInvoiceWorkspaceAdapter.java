@@ -22,12 +22,14 @@ class SalesInvoiceWorkspaceAdapter implements SalesInvoiceWorkspaceApi {
                                 ? "Brouillon · " + invoice.sourceOrderNumber()
                                 : invoice.invoiceNumber(),
                         invoice.status().name(),
+                        invoice.paymentStatus().name(),
+                        invoice.paidAt(),
                         invoice.customerName(),
                         invoice.customerPhone(),
                         invoice.customerEmail(),
                         invoice.note(),
                         invoice.totalCents(),
-                        invoice.updatedAt()))
+                        invoice.issuedAt() == null ? invoice.updatedAt() : invoice.issuedAt()))
                 .toList();
     }
 }

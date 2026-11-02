@@ -4,6 +4,8 @@ import {
   useInvoice,
   useInvoiceDocumentPreview,
   useIssueInvoice,
+  useMarkInvoicePaid,
+  useRevertInvoicePayment,
   useUpdateInvoice,
 } from "@/features/sales/invoices/hooks/useInvoiceApi";
 import type { Invoice } from "@/features/sales/invoices/types";
@@ -19,6 +21,8 @@ vi.mock("@/features/sales/invoices/hooks/useInvoiceApi", () => ({
   useInvoice: vi.fn(),
   useUpdateInvoice: vi.fn(),
   useIssueInvoice: vi.fn(),
+  useMarkInvoicePaid: vi.fn(),
+  useRevertInvoicePayment: vi.fn(),
   useCancelInvoice: vi.fn(),
   useInvoiceDocumentPreview: vi.fn(),
 }));
@@ -33,6 +37,8 @@ const invoice: Invoice = {
   sourceOrderId: "order-1",
   sourceOrderNumber: "ADM-00000001",
   status: "DRAFT",
+  paymentStatus: "UNPAID",
+  paidAt: null,
   customerName: "Ada",
   customerPhone: "+15145550100",
   customerEmail: null,
@@ -55,6 +61,8 @@ const invoice: Invoice = {
 describe("InvoiceDetailsPage", () => {
   const update = vi.fn();
   const issue = vi.fn();
+  const markPaid = vi.fn();
+  const revertPayment = vi.fn();
   const cancel = vi.fn();
 
   beforeEach(() => {
@@ -62,6 +70,8 @@ describe("InvoiceDetailsPage", () => {
     vi.spyOn(window, "confirm").mockReturnValue(true);
     update.mockResolvedValue(invoice);
     issue.mockResolvedValue({ ...invoice, status: "ISSUED" });
+    markPaid.mockResolvedValue({ ...invoice, paymentStatus: "PAID", paidAt: "2026-10-15T12:00:00Z" });
+    revertPayment.mockResolvedValue({ ...invoice, paymentStatus: "UNPAID", paidAt: null });
     cancel.mockResolvedValue({ ...invoice, status: "CANCELLED" });
     vi.mocked(useInvoice).mockReturnValue({
       data: invoice,
@@ -74,6 +84,14 @@ describe("InvoiceDetailsPage", () => {
     } as never);
     vi.mocked(useIssueInvoice).mockReturnValue({
       mutateAsync: issue,
+      isPending: false,
+    } as never);
+    vi.mocked(useMarkInvoicePaid).mockReturnValue({
+      mutateAsync: markPaid,
+      isPending: false,
+    } as never);
+    vi.mocked(useRevertInvoicePayment).mockReturnValue({
+      mutateAsync: revertPayment,
       isPending: false,
     } as never);
     vi.mocked(useCancelInvoice).mockReturnValue({

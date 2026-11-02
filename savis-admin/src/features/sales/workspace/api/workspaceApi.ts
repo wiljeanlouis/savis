@@ -21,10 +21,12 @@ export type SalesWorkspacePage = {
 };
 
 export type SalesWorkspaceBranch = {
-  type: "REQUEST" | "QUOTATION" | "ORDER" | "INVOICE";
+  type: "REQUEST" | "QUOTATION" | "ORDER" | "INVOICE" | "PAYMENT";
   id: string;
   reference: string;
   status: string;
+  paymentStatus: string | null;
+  paidAt: string | null;
   amountCents: number | null;
   lastActivity: string | null;
   action: string | null;

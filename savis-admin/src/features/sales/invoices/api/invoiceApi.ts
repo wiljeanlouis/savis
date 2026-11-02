@@ -27,6 +27,12 @@ export const updateInvoice = async ({
 export const issueInvoice = async (invoiceId: string): Promise<Invoice> =>
   (await api.post<Invoice>(`/invoices/${invoiceId}/issue`)).data;
 
+export const markInvoicePaid = async (invoiceId: string): Promise<Invoice> =>
+  (await api.post<Invoice>(`/invoices/${invoiceId}/mark-paid`)).data;
+
+export const revertInvoicePayment = async (invoiceId: string): Promise<Invoice> =>
+  (await api.post<Invoice>(`/invoices/${invoiceId}/revert-payment`)).data;
+
 export const cancelInvoice = async (invoiceId: string): Promise<Invoice> =>
   (await api.post<Invoice>(`/invoices/${invoiceId}/cancel`)).data;
 

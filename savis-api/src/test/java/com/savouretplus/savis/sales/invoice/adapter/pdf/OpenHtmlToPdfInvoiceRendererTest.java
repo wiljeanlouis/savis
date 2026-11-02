@@ -22,6 +22,7 @@ import com.savouretplus.savis.sales.invoice.domain.Invoice;
 import com.savouretplus.savis.sales.invoice.domain.InvoiceAddress;
 import com.savouretplus.savis.sales.invoice.domain.InvoiceItem;
 import com.savouretplus.savis.sales.invoice.domain.InvoiceStatus;
+import com.savouretplus.savis.sales.invoice.domain.PaymentStatus;
 
 class OpenHtmlToPdfInvoiceRendererTest {
     @Test
@@ -86,7 +87,8 @@ class OpenHtmlToPdfInvoiceRendererTest {
                 List.of(), List.of(), List.of());
         return new Invoice(
                 1L, UUID.randomUUID(), "FAC-00000042", UUID.randomUUID(), "ADM-00000012",
-                InvoiceStatus.ISSUED, "Ada Lovelace", "+15145550101", "ada@example.com",
+                InvoiceStatus.ISSUED, PaymentStatus.UNPAID, null,
+                "Ada Lovelace", "+15145550101", "ada@example.com",
                 new InvoiceAddress("123 rue Principale", null, "Montréal", "QC", "H1H 1H1"),
                 "Prix accepté", 1000, 500, 10, 5, 14515,
                 createdAt, issuedAt, issuedAt, null, List.of(item));

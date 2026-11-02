@@ -19,6 +19,7 @@ import org.springframework.http.MediaType;
 import com.savouretplus.savis.sales.invoice.domain.Invoice;
 import com.savouretplus.savis.sales.invoice.domain.InvoiceItem;
 import com.savouretplus.savis.sales.invoice.domain.InvoiceStatus;
+import com.savouretplus.savis.sales.invoice.domain.PaymentStatus;
 import com.savouretplus.savis.sales.invoice.usecase.GenerateInvoiceDocumentUseCase;
 import com.savouretplus.savis.sales.invoice.usecase.GeneratedInvoiceDocument;
 import com.savouretplus.savis.sales.invoice.usecase.InvoiceService;
@@ -65,6 +66,7 @@ class InvoiceControllerTest {
                 List.of(), List.of(), List.of());
         return new Invoice(
                 null, INVOICE_ID, null, orderId, "ADM-00000001", InvoiceStatus.DRAFT,
+                PaymentStatus.UNPAID, null,
                 "Ada", "+15145550100", null, null, null,
                 0, 0, 0, 0, 1000, now, now, null, null, List.of(item));
     }

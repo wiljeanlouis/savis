@@ -14,6 +14,8 @@ public record Invoice(
         UUID sourceOrderId,
         String sourceOrderNumber,
         InvoiceStatus status,
+        PaymentStatus paymentStatus,
+        Instant paidAt,
         String customerName,
         String customerPhone,
         String customerEmail,
@@ -32,11 +34,12 @@ public record Invoice(
 
     /** Validates lifecycle consistency and exact financial totals. */
     public Invoice {
+        paymentStatus = paymentStatus == null ? PaymentStatus.UNPAID : paymentStatus;
         publicId = publicId != null ? publicId : UUID.randomUUID();
         requireText(sourceOrderNumber, "Le numéro de la commande source est requis");
         requireText(customerName, "Le nom du client est requis");
         requireText(customerPhone, "Le téléphone du client est requis");
-        if (sourceOrderId == null || status == null || createdAt == null || updatedAt == null) {
+        if (sourceOrderId == null || status == null || paymentStatus == null || createdAt == null || updatedAt == null) {
             throw new IllegalArgumentException("La commande source, le statut et les dates de facture sont requis");
         }
         items = items != null ? List.copyOf(items) : List.of();
@@ -45,7 +48,7 @@ public record Invoice(
         }
         customerAddress = customerAddress == null || customerAddress.isEmpty() ? null : customerAddress;
         validateAmounts(items, discountCents, deliveryFeeCents, gstCents, qstCents, totalCents);
-        validateLifecycle(status, invoiceNumber, issuedAt, cancelledAt);
+        validateLifecycle(status, paymentStatus, invoiceNumber, issuedAt, cancelledAt, paidAt);
     }
 
     /** Returns the exact sum of captured line totals. */
@@ -74,6 +77,7 @@ public record Invoice(
         int total = total(subtotalCents(), discountCents, deliveryFeeCents, gstCents, qstCents);
         return new Invoice(
                 id, publicId, null, sourceOrderId, sourceOrderNumber, status,
+                PaymentStatus.UNPAID, null,
                 customerName, customerPhone, customerEmail, customerAddress, note,
                 discountCents, deliveryFeeCents, gstCents, qstCents, total,
                 createdAt, changedAt, null, null, items);
@@ -85,9 +89,39 @@ public record Invoice(
         requireText(number, "Le numéro de facture est requis à l'émission");
         return new Invoice(
                 id, publicId, number, sourceOrderId, sourceOrderNumber, InvoiceStatus.ISSUED,
+                PaymentStatus.UNPAID, null,
                 customerName, customerPhone, customerEmail, customerAddress, note,
                 discountCents, deliveryFeeCents, gstCents, qstCents, totalCents,
                 createdAt, changedAt, changedAt, null, items);
+    }
+
+    /** Marks an issued invoice as fully paid. */
+    public Invoice markPaid(Instant changedAt) {
+        if (status != InvoiceStatus.ISSUED) {
+            throw new IllegalStateException("Seule une facture émise peut être marquée comme payée");
+        }
+        if (paymentStatus == PaymentStatus.PAID) {
+            return this;
+        }
+        return new Invoice(
+                id, publicId, invoiceNumber, sourceOrderId, sourceOrderNumber, status,
+                PaymentStatus.PAID, changedAt,
+                customerName, customerPhone, customerEmail, customerAddress, note,
+                discountCents, deliveryFeeCents, gstCents, qstCents, totalCents,
+                createdAt, changedAt, issuedAt, cancelledAt, items);
+    }
+
+    /** Reverts a previously confirmed settlement. */
+    public Invoice revertPayment(Instant changedAt) {
+        if (paymentStatus != PaymentStatus.PAID) {
+            throw new IllegalStateException("Seule une facture payée peut être corrigée");
+        }
+        return new Invoice(
+                id, publicId, invoiceNumber, sourceOrderId, sourceOrderNumber, status,
+                PaymentStatus.UNPAID, null,
+                customerName, customerPhone, customerEmail, customerAddress, note,
+                discountCents, deliveryFeeCents, gstCents, qstCents, totalCents,
+                createdAt, changedAt, issuedAt, cancelledAt, items);
     }
 
     /** Cancels a draft or issued invoice without creating a credit note. */
@@ -95,8 +129,12 @@ public record Invoice(
         if (status == InvoiceStatus.CANCELLED) {
             return this;
         }
+        if (paymentStatus == PaymentStatus.PAID) {
+            throw new IllegalStateException("Une facture payée ne peut pas être annulée");
+        }
         return new Invoice(
                 id, publicId, invoiceNumber, sourceOrderId, sourceOrderNumber, InvoiceStatus.CANCELLED,
+                PaymentStatus.UNPAID, null,
                 customerName, customerPhone, customerEmail, customerAddress, note,
                 discountCents, deliveryFeeCents, gstCents, qstCents, totalCents,
                 createdAt, changedAt, issuedAt, changedAt, items);
@@ -134,13 +172,15 @@ public record Invoice(
 
     private static void validateLifecycle(
             InvoiceStatus status,
+            PaymentStatus paymentStatus,
             String invoiceNumber,
             Instant issuedAt,
-            Instant cancelledAt) {
+            Instant cancelledAt,
+            Instant paidAt) {
         switch (status) {
             case DRAFT -> {
-                if (invoiceNumber != null || issuedAt != null || cancelledAt != null) {
-                    throw new IllegalArgumentException("Une facture brouillon ne peut pas être émise ou annulée");
+                if (invoiceNumber != null || issuedAt != null || cancelledAt != null || paidAt != null || paymentStatus != PaymentStatus.UNPAID) {
+                    throw new IllegalArgumentException("Une facture brouillon ne peut pas être émise, annulée ou réglée");
                 }
             }
             case ISSUED -> {
@@ -148,10 +188,19 @@ public record Invoice(
                 if (issuedAt == null || cancelledAt != null) {
                     throw new IllegalArgumentException("Les dates de la facture émise sont incohérentes");
                 }
+                if (paymentStatus == PaymentStatus.PAID && paidAt == null) {
+                    throw new IllegalArgumentException("Une facture payée doit enregistrer une date de confirmation");
+                }
+                if (paymentStatus == PaymentStatus.UNPAID && paidAt != null) {
+                    throw new IllegalArgumentException("Une facture non payée ne peut pas conserver une date de paiement");
+                }
             }
             case CANCELLED -> {
                 if (cancelledAt == null || (issuedAt == null) != (invoiceNumber == null)) {
                     throw new IllegalArgumentException("Les données de la facture annulée sont incohérentes");
+                }
+                if (paymentStatus == PaymentStatus.PAID) {
+                    throw new IllegalArgumentException("Une facture annulée ne peut pas être payée");
                 }
             }
         }

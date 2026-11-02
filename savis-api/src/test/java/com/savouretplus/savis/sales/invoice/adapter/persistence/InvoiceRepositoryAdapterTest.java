@@ -18,6 +18,7 @@ import com.savouretplus.savis.sales.invoice.domain.Invoice;
 import com.savouretplus.savis.sales.invoice.domain.InvoiceAddress;
 import com.savouretplus.savis.sales.invoice.domain.InvoiceItem;
 import com.savouretplus.savis.sales.invoice.domain.InvoiceStatus;
+import com.savouretplus.savis.sales.invoice.domain.PaymentStatus;
 import com.savouretplus.savis.sales.invoice.port.InvoiceRepository;
 
 import jakarta.persistence.EntityManager;
@@ -81,6 +82,7 @@ class InvoiceRepositoryAdapterTest {
                 List.of(new InvoiceItem.Choice("vanilla", "Vanille", "Style")), List.of(), List.of());
         return new Invoice(
                 null, null, null, sourceOrderId, "ADM-00000001", InvoiceStatus.DRAFT,
+                PaymentStatus.UNPAID, null,
                 "Ada", "+15145550100", "ada@example.com",
                 new InvoiceAddress("123 rue Principale", null, "Montréal", "QC", "H1H 1H1"),
                 "Snapshot", 100, 50, 10, 5, 2365, now, now, null, null, List.of(item));

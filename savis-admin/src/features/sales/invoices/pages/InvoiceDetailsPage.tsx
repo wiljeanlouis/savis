@@ -27,15 +27,22 @@ import { useState, type FormEvent } from "react";
 import { Link, useParams, useSearchParams } from "react-router";
 import { toast } from "sonner";
 import { InvoiceStatusBadge } from "../components/InvoiceStatusBadge";
+import { PaymentStatusBadge } from "../components/PaymentStatusBadge";
 import {
   useCancelInvoice,
   useInvoice,
   useInvoiceDocumentPreview,
   useIssueInvoice,
+  useMarkInvoicePaid,
+  useRevertInvoicePayment,
   useUpdateInvoice,
 } from "../hooks/useInvoiceApi";
 import type { Invoice, UpdateInvoiceRequest } from "../types";
-import { invoiceDisplayNumber } from "../types";
+import {
+  invoiceDisplayNumber,
+  invoiceStatusLabels,
+  paymentStatusLabels,
+} from "../types";
 
 type DraftForm = Omit<
   UpdateInvoiceRequest,
@@ -58,6 +65,8 @@ export function InvoiceDetailsPage() {
   const invoice = query.data;
   const updateMutation = useUpdateInvoice();
   const issueMutation = useIssueInvoice();
+  const markPaidMutation = useMarkInvoicePaid();
+  const revertPaymentMutation = useRevertInvoicePayment();
   const cancelMutation = useCancelInvoice();
   const documents = useInvoiceDocumentPreview();
   const [editing, setEditing] = useState(false);
@@ -77,6 +86,8 @@ export function InvoiceDetailsPage() {
   const busy =
     updateMutation.isPending ||
     issueMutation.isPending ||
+    markPaidMutation.isPending ||
+    revertPaymentMutation.isPending ||
     cancelMutation.isPending ||
     documents.isPending;
 
@@ -125,6 +136,32 @@ export function InvoiceDetailsPage() {
     }
   }
 
+  async function markPaid() {
+    if (!window.confirm("Confirmer que le montant total de cette facture a été reçu ?"))
+      return;
+    try {
+      await markPaidMutation.mutateAsync(currentInvoice.id);
+      toast.success("Règlement confirmé.");
+    } catch (error) {
+      toast.error("Impossible de confirmer le règlement.", {
+        description: getApiErrorMessage(error),
+      });
+    }
+  }
+
+  async function revertPayment() {
+    if (!window.confirm("Corriger le règlement enregistré pour cette facture ?"))
+      return;
+    try {
+      await revertPaymentMutation.mutateAsync(currentInvoice.id);
+      toast.success("Règlement corrigé.");
+    } catch (error) {
+      toast.error("Impossible de corriger le règlement.", {
+        description: getApiErrorMessage(error),
+      });
+    }
+  }
+
   async function cancel() {
     if (
       !window.confirm(
@@ -158,6 +195,7 @@ export function InvoiceDetailsPage() {
               {invoiceDisplayNumber(invoice)}
             </h1>
             <InvoiceStatusBadge status={invoice.status} />
+            <PaymentStatusBadge status={invoice.paymentStatus} />
           </div>
           <p className="mt-1 text-sm text-muted-foreground">
             Créée le {formatOrderDate(invoice.createdAt)} · commande{" "}
@@ -228,6 +266,26 @@ export function InvoiceDetailsPage() {
                     Émettre
                   </Button>
                 </>
+              ) : null}
+              {invoice.status === "ISSUED" && invoice.paymentStatus === "UNPAID" ? (
+                <Button
+                  type="button"
+                  variant="outline"
+                  disabled={busy}
+                  onClick={() => void markPaid()}
+                >
+                  Marquer comme payée
+                </Button>
+              ) : null}
+              {invoice.status === "ISSUED" && invoice.paymentStatus === "PAID" ? (
+                <Button
+                  type="button"
+                  variant="outline"
+                  disabled={busy}
+                  onClick={() => void revertPayment()}
+                >
+                  Corriger le règlement
+                </Button>
               ) : null}
               {invoice.status !== "CANCELLED" ? (
                 <Button
@@ -388,6 +446,30 @@ function InvoiceReadOnly({ invoice }: { invoice: Invoice }) {
                 value={formatOrderAddress(invoice.customerAddress)}
               />
               <Info label="Notes" value={invoice.note ?? "—"} />
+            </dl>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="border-b">
+            <CardTitle>Règlement</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <dl className="space-y-2">
+              <Info label="Statut" value={invoiceStatusLabels[invoice.status]} />
+              <Info
+                label="Règlement"
+                value={paymentStatusLabels[invoice.paymentStatus]}
+              />
+              <Info
+                label="Date de confirmation"
+                value={
+                  invoice.paidAt
+                    ? formatOrderDate(invoice.paidAt)
+                    : invoice.paymentStatus === "PAID"
+                      ? "—"
+                      : "—"
+                }
+              />
             </dl>
           </CardContent>
         </Card>

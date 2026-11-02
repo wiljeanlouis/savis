@@ -208,12 +208,31 @@ public class SalesWorkspaceService {
                     invoice.id(),
                     invoice.reference(),
                     invoice.status(),
+                    invoice.paymentStatus(),
+                    invoice.paidAt(),
                     invoice.customerName(),
                     invoice.description(),
                     invoice.amountCents(),
                     invoice.lastActivity(),
+                    invoice.orderId(),
                     "Consulter la facture",
                     "/invoices/" + invoice.id());
+            if ("PAID".equals(invoice.paymentStatus())) {
+                node.children.add(new Node(
+                        DocumentType.PAYMENT,
+                        invoice.id(),
+                        "Paiement",
+                        "PAID",
+                        "PAID",
+                        invoice.paidAt(),
+                        "Règlement",
+                        null,
+                        invoice.amountCents(),
+                        invoice.paidAt(),
+                        invoice.orderId(),
+                        null,
+                        null));
+            }
             Node orderNode = orderNodes.get(invoice.orderId());
             if (orderNode == null) {
                 node.warnings.add("La commande d’origine référencée est introuvable.");
@@ -263,7 +282,8 @@ public class SalesWorkspaceService {
         REQUEST,
         QUOTATION,
         ORDER,
-        INVOICE
+        INVOICE,
+        PAYMENT
     }
 
     private static final class Node {
@@ -271,6 +291,8 @@ public class SalesWorkspaceService {
         private final UUID publicId;
         private final String reference;
         private final String status;
+        private final String paymentStatus;
+        private final Instant paidAt;
         private final String customerName;
         private final String description;
         private final Integer amountCents;
@@ -292,7 +314,7 @@ public class SalesWorkspaceService {
                 Instant lastActivity,
                 String action,
                 String actionUrl) {
-            this(type, publicId, reference, status, customerName, description, amountCents, lastActivity, null, action, actionUrl);
+            this(type, publicId, reference, status, null, null, customerName, description, amountCents, lastActivity, null, action, actionUrl);
         }
 
         private Node(
@@ -307,10 +329,29 @@ public class SalesWorkspaceService {
                 UUID orderId,
                 String action,
                 String actionUrl) {
+            this(type, publicId, reference, status, null, null, customerName, description, amountCents, lastActivity, orderId, action, actionUrl);
+        }
+
+        private Node(
+                DocumentType type,
+                UUID publicId,
+                String reference,
+                String status,
+                String paymentStatus,
+                Instant paidAt,
+                String customerName,
+                String description,
+                Integer amountCents,
+                Instant lastActivity,
+                UUID orderId,
+                String action,
+                String actionUrl) {
             this.type = type;
             this.publicId = publicId;
             this.reference = reference;
             this.status = status;
+            this.paymentStatus = paymentStatus;
+            this.paidAt = paidAt;
             this.customerName = customerName;
             this.description = description == null || description.isBlank()
                     ? null
@@ -328,6 +369,8 @@ public class SalesWorkspaceService {
                     publicId.toString(),
                     reference,
                     status,
+                    paymentStatus,
+                    paidAt,
                     amountCents,
                     lastActivity,
                     action,
@@ -376,6 +419,14 @@ public class SalesWorkspaceService {
         }
 
         private static boolean requiresAction(Node node) {
+            if (node.type != DocumentType.PAYMENT) {
+                var invoiceNodes = flatten(node).stream()
+                        .filter(child -> child.type == DocumentType.INVOICE)
+                        .toList();
+                if (!invoiceNodes.isEmpty() && invoiceNodes.stream().allMatch(invoice -> "PAID".equals(invoice.paymentStatus))) {
+                    return false;
+                }
+            }
             if (node.children.stream().anyMatch(child -> requiresAction(child))) {
                 return true;
             }
@@ -394,9 +445,11 @@ public class SalesWorkspaceService {
                     default -> false;
                 };
                 case INVOICE -> switch (node.status) {
-                    case "DRAFT", "ISSUED" -> true;
+                    case "DRAFT" -> true;
+                    case "ISSUED" -> !"PAID".equals(node.paymentStatus);
                     default -> false;
                 };
+                case PAYMENT -> false;
             };
         }
 
@@ -444,8 +497,10 @@ public class SalesWorkspaceService {
                         .findFirst()
                         .orElse(null);
                 if (invoice != null) {
+                    if ("ISSUED".equals(invoice.status)) {
+                        return "PAID".equals(invoice.paymentStatus) ? "branche réglée" : "branche facturée";
+                    }
                     return switch (invoice.status) {
-                        case "ISSUED" -> "branche facturée";
                         case "DRAFT" -> "facture brouillon";
                         default -> "facture annulée";
                     };
@@ -467,10 +522,11 @@ public class SalesWorkspaceService {
                 };
                 case ORDER -> orderSituation(node.status);
                 case INVOICE -> switch (node.status) {
-                    case "ISSUED" -> "branche facturée";
+                    case "ISSUED" -> "PAID".equals(node.paymentStatus) ? "branche réglée" : "branche facturée";
                     case "DRAFT" -> "facture brouillon";
                     default -> "facture annulée";
                 };
+                case PAYMENT -> "paiement confirmé";
             };
         }
 
@@ -492,6 +548,8 @@ public class SalesWorkspaceService {
             }
             return switch (outcome) {
                 case "branche facturée" -> "branches facturées";
+                case "branche réglée" -> "branches réglées";
+                case "paiement confirmé" -> "paiements confirmés";
                 case "facture brouillon" -> "factures en brouillon";
                 case "demande reçue" -> "demandes reçues";
                 case "demande en préparation" -> "demandes en préparation";
@@ -578,6 +636,8 @@ public class SalesWorkspaceService {
             String id,
             String reference,
             String status,
+            String paymentStatus,
+            Instant paidAt,
             Integer amountCents,
             Instant lastActivity,
             String action,

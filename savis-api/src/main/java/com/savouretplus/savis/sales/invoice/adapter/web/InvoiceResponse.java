@@ -8,6 +8,7 @@ import com.savouretplus.savis.sales.invoice.domain.Invoice;
 import com.savouretplus.savis.sales.invoice.domain.InvoiceAddress;
 import com.savouretplus.savis.sales.invoice.domain.InvoiceItem;
 import com.savouretplus.savis.sales.invoice.domain.InvoiceStatus;
+import com.savouretplus.savis.sales.invoice.domain.PaymentStatus;
 
 /** Represents a complete persisted invoice snapshot. */
 public record InvoiceResponse(
@@ -16,6 +17,8 @@ public record InvoiceResponse(
         UUID sourceOrderId,
         String sourceOrderNumber,
         InvoiceStatus status,
+        PaymentStatus paymentStatus,
+        Instant paidAt,
         String customerName,
         String customerPhone,
         String customerEmail,
@@ -38,11 +41,12 @@ public record InvoiceResponse(
     static InvoiceResponse from(Invoice invoice) {
         return new InvoiceResponse(
                 invoice.publicId(), invoice.invoiceNumber(), invoice.sourceOrderId(), invoice.sourceOrderNumber(),
-                invoice.status(), invoice.customerName(), invoice.customerPhone(), invoice.customerEmail(),
-                AddressResponse.from(invoice.customerAddress()), invoice.note(), invoice.subtotalCents(),
-                invoice.discountCents(), invoice.deliveryFeeCents(), invoice.gstCents(), invoice.qstCents(),
-                invoice.taxCents(), invoice.totalCents(), invoice.createdAt(), invoice.updatedAt(),
-                invoice.issuedAt(), invoice.cancelledAt(), invoice.items().stream().map(ItemResponse::from).toList());
+                invoice.status(), invoice.paymentStatus(), invoice.paidAt(), invoice.customerName(),
+                invoice.customerPhone(), invoice.customerEmail(), AddressResponse.from(invoice.customerAddress()),
+                invoice.note(), invoice.subtotalCents(), invoice.discountCents(), invoice.deliveryFeeCents(),
+                invoice.gstCents(), invoice.qstCents(), invoice.taxCents(), invoice.totalCents(),
+                invoice.createdAt(), invoice.updatedAt(), invoice.issuedAt(), invoice.cancelledAt(),
+                invoice.items().stream().map(ItemResponse::from).toList());
     }
 
     /** Represents the captured customer address. */

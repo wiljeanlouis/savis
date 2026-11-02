@@ -13,6 +13,8 @@ public interface SalesInvoiceWorkspaceApi {
             UUID orderId,
             String reference,
             String status,
+            String paymentStatus,
+            Instant paidAt,
             String customerName,
             String customerPhone,
             String customerEmail,

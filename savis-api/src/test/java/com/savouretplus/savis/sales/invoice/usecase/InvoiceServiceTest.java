@@ -24,6 +24,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import com.savouretplus.savis.sales.invoice.domain.Invoice;
 import com.savouretplus.savis.sales.invoice.domain.InvoiceItem;
 import com.savouretplus.savis.sales.invoice.domain.InvoiceStatus;
+import com.savouretplus.savis.sales.invoice.domain.PaymentStatus;
 import com.savouretplus.savis.sales.invoice.port.InvoiceNumberGenerator;
 import com.savouretplus.savis.sales.invoice.port.InvoiceRepository;
 import com.savouretplus.savis.sales.order.api.OrderInvoicingApi;
@@ -120,6 +121,7 @@ class InvoiceServiceTest {
                 List.of(), List.of(), List.of());
         return new Invoice(
                 1L, INVOICE_ID, null, ORDER_ID, "ADM-00000001", InvoiceStatus.DRAFT,
+                PaymentStatus.UNPAID, null,
                 "Ada", "+15145550100", null, null, null,
                 100, 150, 0, 0, 2450, NOW, NOW, null, null, List.of(item));
     }

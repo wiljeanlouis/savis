@@ -9,6 +9,8 @@ import {
   getInvoiceDocument,
   getInvoices,
   issueInvoice,
+  markInvoicePaid,
+  revertInvoicePayment,
   updateInvoice,
 } from "../api/invoiceApi";
 import type { Invoice, InvoiceStatus } from "../types";
@@ -45,6 +47,9 @@ export const useCreateInvoice = () =>
   useInvoiceMutation(createInvoiceFromOrder);
 export const useUpdateInvoice = () => useInvoiceMutation(updateInvoice);
 export const useIssueInvoice = () => useInvoiceMutation(issueInvoice);
+export const useMarkInvoicePaid = () => useInvoiceMutation(markInvoicePaid);
+export const useRevertInvoicePayment = () =>
+  useInvoiceMutation(revertInvoicePayment);
 export const useCancelInvoice = () => useInvoiceMutation(cancelInvoice);
 
 export const useInvoiceDocumentPreview = () => {

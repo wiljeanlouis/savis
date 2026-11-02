@@ -65,6 +65,18 @@ public class InvoiceController {
         return InvoiceResponse.from(invoices.issue(invoiceId));
     }
 
+    /** Marks an issued invoice as fully paid. */
+    @PostMapping("/{invoiceId}/mark-paid")
+    public InvoiceResponse markPaid(@PathVariable UUID invoiceId) {
+        return InvoiceResponse.from(invoices.markPaid(invoiceId));
+    }
+
+    /** Reverts a payment confirmation when the invoice was incorrectly marked as paid. */
+    @PostMapping("/{invoiceId}/revert-payment")
+    public InvoiceResponse revertPayment(@PathVariable UUID invoiceId) {
+        return InvoiceResponse.from(invoices.revertPayment(invoiceId));
+    }
+
     /** Cancels a draft or issued invoice without creating a credit note. */
     @PostMapping("/{invoiceId}/cancel")
     public InvoiceResponse cancel(@PathVariable UUID invoiceId) {

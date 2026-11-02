@@ -14,8 +14,13 @@ import { FileViewIcon } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
 import { Link } from "react-router";
 import type { Invoice } from "../types";
-import { invoiceDisplayNumber, invoiceStatusLabels } from "../types";
+import {
+  invoiceDisplayNumber,
+  invoiceStatusLabels,
+  paymentStatusLabels,
+} from "../types";
 import { InvoiceStatusBadge } from "./InvoiceStatusBadge";
+import { PaymentStatusBadge } from "./PaymentStatusBadge";
 
 export function InvoicesTable({
   invoices,
@@ -91,6 +96,12 @@ export function InvoicesTable({
       accessorFn: (row) => invoiceStatusLabels[row.status],
       header: "Statut",
       cell: ({ row }) => <InvoiceStatusBadge status={row.original.status} />,
+    },
+    {
+      id: "paymentStatus",
+      accessorFn: (row) => paymentStatusLabels[row.paymentStatus],
+      header: "Règlement",
+      cell: ({ row }) => <PaymentStatusBadge status={row.original.paymentStatus} />,
     },
     {
       id: "createdAt",

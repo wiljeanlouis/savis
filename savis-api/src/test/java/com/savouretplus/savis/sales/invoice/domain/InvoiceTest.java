@@ -43,6 +43,7 @@ class InvoiceTest {
         InvoiceItem item = item(2, 1200);
         assertThrows(IllegalArgumentException.class, () -> new Invoice(
                 null, null, null, UUID.randomUUID(), "ADM-00000001", InvoiceStatus.DRAFT,
+                PaymentStatus.UNPAID, null,
                 "Ada", "+15145550100", null, null, null,
                 100, 50, 10, 5, 9999, CREATED, CREATED, null, null, List.of(item)));
         assertThrows(IllegalArgumentException.class, () -> new InvoiceItem(
@@ -54,6 +55,7 @@ class InvoiceTest {
     private Invoice draft() {
         return new Invoice(
                 null, null, null, UUID.randomUUID(), "ADM-00000001", InvoiceStatus.DRAFT,
+                PaymentStatus.UNPAID, null,
                 "Ada", "+15145550100", "ada@example.com", null, "Snapshot",
                 100, 50, 10, 5, 2365, CREATED, CREATED, null, null, List.of(item(2, 1200)));
     }

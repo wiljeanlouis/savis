@@ -10,6 +10,7 @@ import org.hibernate.type.SqlTypes;
 
 import com.savouretplus.savis.sales.invoice.domain.InvoiceItem;
 import com.savouretplus.savis.sales.invoice.domain.InvoiceStatus;
+import com.savouretplus.savis.sales.invoice.domain.PaymentStatus;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -45,6 +46,10 @@ class InvoiceEntity {
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     private InvoiceStatus status;
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
+    private PaymentStatus paymentStatus;
+    private Instant paidAt;
     @Column(nullable = false)
     private String customerName;
     @Column(nullable = false)

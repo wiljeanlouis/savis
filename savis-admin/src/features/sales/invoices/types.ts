@@ -1,6 +1,7 @@
 import type { OrderAddress, OrderItem } from "@/features/sales/orders/types";
 
 export type InvoiceStatus = "DRAFT" | "ISSUED" | "CANCELLED";
+export type PaymentStatus = "UNPAID" | "PAID";
 
 export interface Invoice {
   id: string;
@@ -8,6 +9,8 @@ export interface Invoice {
   sourceOrderId: string;
   sourceOrderNumber: string;
   status: InvoiceStatus;
+  paymentStatus: PaymentStatus;
+  paidAt: string | null;
   customerName: string;
   customerPhone: string;
   customerEmail: string | null;
@@ -43,6 +46,11 @@ export const invoiceStatusLabels: Record<InvoiceStatus, string> = {
   DRAFT: "Brouillon",
   ISSUED: "Émise",
   CANCELLED: "Annulée",
+};
+
+export const paymentStatusLabels: Record<PaymentStatus, string> = {
+  UNPAID: "Non payée",
+  PAID: "Payée",
 };
 
 export const invoiceDisplayNumber = (invoice: Invoice) =>

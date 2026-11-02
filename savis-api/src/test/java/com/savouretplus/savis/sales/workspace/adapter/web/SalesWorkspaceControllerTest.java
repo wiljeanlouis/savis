@@ -61,8 +61,8 @@ class SalesWorkspaceControllerTest {
                         "5145550123", null, null, 12000, now)));
         when(invoices.invoices()).thenReturn(List.of(
                 new SalesInvoiceWorkspaceApi.Invoice(
-                        invoiceId, orderId, "FAC-0009", "ISSUED", "Marie Tremblay",
-                        "5145550123", null, null, 12000, now)));
+                        invoiceId, orderId, "FAC-0009", "ISSUED", "UNPAID", null,
+                        "Marie Tremblay", "5145550123", null, null, 12000, now)));
 
         var page = service.list(0, 20, "");
         assertEquals(1, page.totalElements());
@@ -80,6 +80,7 @@ class SalesWorkspaceControllerTest {
         UUID draftQuoteId = UUID.randomUUID();
         UUID acceptedQuoteId = UUID.randomUUID();
         UUID completedOrderId = UUID.randomUUID();
+        UUID paidInvoiceId = UUID.randomUUID();
         Instant now = Instant.parse("2026-10-31T12:00:00Z");
         when(quotations.requests()).thenReturn(List.of());
         when(quotations.quotations()).thenReturn(List.of(
@@ -92,11 +93,46 @@ class SalesWorkspaceControllerTest {
         when(orders.orders()).thenReturn(List.of(
                 new SalesOrderWorkspaceApi.Order(
                         completedOrderId, "CMD-5002", "QUOTATION", acceptedQuoteId, "COMPLETED",
+                        "Client B", "5145550123", null, null, 2500, now),
+                new SalesOrderWorkspaceApi.Order(
+                        UUID.randomUUID(), "CMD-5003", "QUOTATION", UUID.randomUUID(), "COMPLETED",
+                        "Client C", "5145550123", null, null, 2500, now)));
+        when(invoices.invoices()).thenReturn(List.of(
+                new SalesInvoiceWorkspaceApi.Invoice(
+                        paidInvoiceId, completedOrderId, "FAC-1000", "ISSUED", "PAID", now,
                         "Client B", "5145550123", null, null, 2500, now)));
 
         assertEquals(1, service.list(0, 20, "", "ACTION_REQUIRED").totalElements());
+        assertEquals(2, service.list(0, 20, "", "FINISHED").totalElements());
+        assertEquals(3, service.list(0, 20, "", "ALL").totalElements());
+    }
+
+    @Test
+    void treatsPaidIssuedInvoicesAsFinishedEvenWhenTheCommercialChainIsStillOpen() {
+        UUID requestId = UUID.randomUUID();
+        UUID quotationId = UUID.randomUUID();
+        UUID orderId = UUID.randomUUID();
+        UUID invoiceId = UUID.randomUUID();
+        Instant now = Instant.parse("2026-10-31T12:00:00Z");
+
+        when(quotations.requests()).thenReturn(List.of(
+                new SalesQuotationWorkspaceApi.Request(
+                        requestId, "Client D", "5145550123", null, "QUOTED", now, now)));
+        when(quotations.quotations()).thenReturn(List.of(
+                new SalesQuotationWorkspaceApi.Quotation(
+                        quotationId, "SOU-7001", "ACCEPTED", "Client D", "5145550123", null,
+                        null, 4200, now, requestId, orderId)));
+        when(orders.orders()).thenReturn(List.of(
+                new SalesOrderWorkspaceApi.Order(
+                        orderId, "CMD-7001", "QUOTATION", quotationId, "COMPLETED",
+                        "Client D", "5145550123", null, null, 4200, now)));
+        when(invoices.invoices()).thenReturn(List.of(
+                new SalesInvoiceWorkspaceApi.Invoice(
+                        invoiceId, orderId, "FAC-7001", "ISSUED", "PAID", now,
+                        "Client D", "5145550123", null, null, 4200, now)));
+
         assertEquals(1, service.list(0, 20, "", "FINISHED").totalElements());
-        assertEquals(2, service.list(0, 20, "", "ALL").totalElements());
+        assertEquals(0, service.list(0, 20, "", "ACTION_REQUIRED").totalElements());
     }
 
     @Test
@@ -119,8 +155,8 @@ class SalesWorkspaceControllerTest {
                         "5145550123", null, null, 9000, now)));
         when(invoices.invoices()).thenReturn(List.of(
                 new SalesInvoiceWorkspaceApi.Invoice(
-                        invoiceId, UUID.randomUUID(), "FAC-0009", "ISSUED", "Marie Tremblay",
-                        "5145550123", null, null, 3000, now)));
+                        invoiceId, UUID.randomUUID(), "FAC-0009", "ISSUED", "UNPAID", null,
+                        "Marie Tremblay", "5145550123", null, null, 3000, now)));
 
         var firstPage = service.list(0, 2, "marie");
         var secondPage = service.list(1, 2, "marie");

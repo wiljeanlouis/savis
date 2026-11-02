@@ -58,6 +58,8 @@ public class InvoiceRepositoryAdapter implements InvoiceRepository {
         entity.setSourceOrderId(invoice.sourceOrderId());
         entity.setSourceOrderNumber(invoice.sourceOrderNumber());
         entity.setStatus(invoice.status());
+        entity.setPaymentStatus(invoice.paymentStatus());
+        entity.setPaidAt(invoice.paidAt());
         entity.setCustomerName(invoice.customerName());
         entity.setCustomerPhone(invoice.customerPhone());
         entity.setCustomerEmail(invoice.customerEmail());
@@ -87,10 +89,11 @@ public class InvoiceRepositoryAdapter implements InvoiceRepository {
                 entity.getCustomerProvince(), entity.getCustomerPostalCode());
         return new Invoice(
                 entity.getId(), entity.getPublicId(), entity.getInvoiceNumber(), entity.getSourceOrderId(),
-                entity.getSourceOrderNumber(), entity.getStatus(), entity.getCustomerName(), entity.getCustomerPhone(),
-                entity.getCustomerEmail(), address.isEmpty() ? null : address, entity.getNote(),
-                entity.getDiscountCents(), entity.getDeliveryFeeCents(), entity.getGstCents(), entity.getQstCents(),
-                entity.getTotalCents(), entity.getCreatedAt(), entity.getUpdatedAt(), entity.getIssuedAt(),
-                entity.getCancelledAt(), entity.getItems());
+                entity.getSourceOrderNumber(), entity.getStatus(), entity.getPaymentStatus(), entity.getPaidAt(),
+                entity.getCustomerName(), entity.getCustomerPhone(), entity.getCustomerEmail(),
+                address.isEmpty() ? null : address, entity.getNote(), entity.getDiscountCents(),
+                entity.getDeliveryFeeCents(), entity.getGstCents(), entity.getQstCents(), entity.getTotalCents(),
+                entity.getCreatedAt(), entity.getUpdatedAt(), entity.getIssuedAt(), entity.getCancelledAt(),
+                entity.getItems());
     }
 }

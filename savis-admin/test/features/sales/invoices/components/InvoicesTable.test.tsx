@@ -11,6 +11,8 @@ const base: Invoice = {
   sourceOrderId: "order-1",
   sourceOrderNumber: "ADM-00000001",
   status: "DRAFT",
+  paymentStatus: "UNPAID",
+  paidAt: null,
   customerName: "Ada",
   customerPhone: "+15145550100",
   customerEmail: null,

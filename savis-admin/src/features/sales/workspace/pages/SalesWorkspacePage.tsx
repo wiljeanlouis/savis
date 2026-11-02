@@ -335,6 +335,9 @@ function Branch({
         </Link>
         <p className="text-sm text-muted-foreground">
           {statusLabels[branch.type][branch.status] ?? "Statut indisponible"}
+          {branch.type === "INVOICE" && branch.paymentStatus
+            ? ` · ${paymentStatusLabels[branch.paymentStatus] ?? branch.paymentStatus}`
+            : ""}
           {branch.amountCents !== null
             ? ` · ${formatOrderCurrency(branch.amountCents)}`
             : ""}
@@ -416,6 +419,12 @@ const documentLabels: Record<SalesWorkspaceBranch["type"], string> = {
   QUOTATION: "Soumission",
   ORDER: "Commande",
   INVOICE: "Facture",
+  PAYMENT: "Paiement",
+};
+
+const paymentStatusLabels: Record<string, string> = {
+  UNPAID: "Non payée",
+  PAID: "Payée",
 };
 
 const statusLabels: Record<
@@ -447,5 +456,9 @@ const statusLabels: Record<
     DRAFT: "Brouillon",
     ISSUED: "Émise",
     CANCELLED: "Annulée",
+  },
+  PAYMENT: {
+    PAID: "Payée",
+    UNPAID: "Non payée",
   },
 };

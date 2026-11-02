@@ -12,6 +12,7 @@ import com.savouretplus.savis.sales.invoice.domain.Invoice;
 import com.savouretplus.savis.sales.invoice.domain.InvoiceAddress;
 import com.savouretplus.savis.sales.invoice.domain.InvoiceItem;
 import com.savouretplus.savis.sales.invoice.domain.InvoiceStatus;
+import com.savouretplus.savis.sales.invoice.domain.PaymentStatus;
 import com.savouretplus.savis.sales.invoice.port.InvoiceNumberGenerator;
 import com.savouretplus.savis.sales.invoice.port.InvoiceRepository;
 import com.savouretplus.savis.sales.order.api.OrderInvoicingApi;
@@ -78,6 +79,26 @@ public class InvoiceService {
         return invoices.save(current.issue(numbers.next(), clock.instant()));
     }
 
+    /** Marks an issued invoice as fully paid. */
+    @Transactional
+    public Invoice markPaid(UUID invoiceId) {
+        Invoice current = requireForUpdate(invoiceId);
+        if (current.paymentStatus() == PaymentStatus.PAID) {
+            return current;
+        }
+        return invoices.save(current.markPaid(clock.instant()));
+    }
+
+    /** Reverts an erroneous payment confirmation. */
+    @Transactional
+    public Invoice revertPayment(UUID invoiceId) {
+        Invoice current = requireForUpdate(invoiceId);
+        if (current.paymentStatus() != PaymentStatus.PAID) {
+            throw new IllegalStateException("Seule une facture payée peut être corrigée");
+        }
+        return invoices.save(current.revertPayment(clock.instant()));
+    }
+
     /** Cancels a draft or issued invoice without creating a credit note. */
     @Transactional
     public Invoice cancel(UUID invoiceId) {
@@ -95,6 +116,7 @@ public class InvoiceService {
                 order.address().province(), order.address().postalCode());
         return invoices.save(new Invoice(
                 null, null, null, order.orderId(), order.orderNumber(), InvoiceStatus.DRAFT,
+                PaymentStatus.UNPAID, null,
                 order.customerName(), order.customerPhone(), order.customerEmail(), address, order.note(),
                 order.discountCents(), order.deliveryFeeCents(), 0, 0, order.totalCents(),
                 now, now, null, null, order.items().stream().map(this::item).toList()));

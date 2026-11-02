@@ -20,6 +20,8 @@ const makeInvoice = (index: number): Invoice => ({
   sourceOrderId: `order-${index}`,
   sourceOrderNumber: `CMD-${String(index).padStart(4, "0")}`,
   status: "ISSUED",
+  paymentStatus: "UNPAID",
+  paidAt: null,
   customerName: `Client ${index}`,
   customerPhone: "+15145550100",
   customerEmail: null,
