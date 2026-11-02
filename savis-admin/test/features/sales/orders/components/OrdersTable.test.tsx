@@ -2,7 +2,7 @@ import { OrdersTable } from "@/features/sales/orders/components/OrdersTable";
 import type { OrderSummary } from "@/features/sales/orders/types";
 import { render, screen } from "@testing-library/react";
 import { MemoryRouter } from "react-router";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 
 describe("OrdersTable", () => {
   it("renders one stable product preview and the item count", () => {
@@ -31,7 +31,7 @@ describe("OrdersTable", () => {
 
     render(
       <MemoryRouter>
-        <OrdersTable orders={[order]} />
+        <OrdersTable orders={[order]} sorting={[]} onSort={vi.fn()} />
       </MemoryRouter>,
     );
 

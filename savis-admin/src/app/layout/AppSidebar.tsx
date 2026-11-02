@@ -20,6 +20,12 @@ import {
   PackageIcon,
   GearsFreeIcons,
   MoneyReceiveCircleIcon,
+  Folder01Icon,
+  InboxDownloadIcon,
+  ShoppingCart02Icon,
+  Money03Icon,
+  CheckCircle,
+  LoaderCircle,
 } from "@hugeicons/core-free-icons";
 import { Link } from "react-router";
 import { NavSection } from "./components/NavSection";
@@ -44,15 +50,18 @@ const data = {
           name: "À valider",
           url: "/offers",
           exact: true,
+          icon: <HugeiconsIcon icon={CheckCircle} strokeWidth={2} />,
         },
         {
           name: "Offres fournisseurs",
           url: "/supply/offers",
+          icon: <HugeiconsIcon icon={File01Icon} strokeWidth={2} />,
         },
 
         {
           name: "Tâches d'acquisition",
           url: "/offers/tasks",
+          icon: <HugeiconsIcon icon={LoaderCircle} strokeWidth={2} />,
         },
       ],
     },
@@ -63,14 +72,17 @@ const data = {
         {
           name: "Ressources matérielles",
           url: "/resources",
+          icon: <HugeiconsIcon icon={Database01Icon} strokeWidth={2} />,
         },
         {
           name: "Compositions",
           url: "/boms",
+          icon: <HugeiconsIcon icon={PackageIcon} strokeWidth={2} />,
         },
         {
           name: "Activités et taux horaires",
           url: "/activity-rates",
+          icon: <HugeiconsIcon icon={Analytics01Icon} strokeWidth={2} />,
         },
       ],
     },
@@ -81,6 +93,7 @@ const data = {
         {
           name: "Produits",
           url: "/catalog-products",
+          icon: <HugeiconsIcon icon={PackageIcon} strokeWidth={2} />,
         },
       ],
     },
@@ -89,24 +102,34 @@ const data = {
       icon: <HugeiconsIcon icon={MoneyReceiveCircleIcon} strokeWidth={2} />,
       children: [
         {
+          name: "Espace commercial",
+          url: "/sales/workspace",
+          activeUrls: ["/sales/workspace"],
+          icon: <HugeiconsIcon icon={Folder01Icon} strokeWidth={2} />,
+        },
+        {
           name: "Demandes",
           url: "/sales/quote-requests",
           activeUrls: ["/sales/quote-requests", "/quote-requests"],
+          icon: <HugeiconsIcon icon={InboxDownloadIcon} strokeWidth={2} />,
         },
         {
           name: "Soumissions",
           url: "/sales/quotations",
           activeUrls: ["/sales/quotations", "/quotations"],
+          icon: <HugeiconsIcon icon={File01Icon} strokeWidth={2} />,
         },
         {
           name: "Commandes",
           url: "/sales/orders",
           activeUrls: ["/sales/orders", "/orders"],
+          icon: <HugeiconsIcon icon={ShoppingCart02Icon} strokeWidth={2} />,
         },
         {
           name: "Factures",
           url: "/sales/invoices",
           activeUrls: ["/sales/invoices", "/invoices"],
+          icon: <HugeiconsIcon icon={Money03Icon} strokeWidth={2} />,
         },
       ],
     },

@@ -6,13 +6,14 @@ import type {
 } from "../model/types";
 export const listRequests = async (params: {
   page: number;
+  size: number;
   search: string;
   sort: string;
   status?: string;
 }) =>
   (
     await api.get<QuoteRequestPage>("/quote-requests", {
-      params: { ...params, size: 20 },
+      params,
     })
   ).data;
 export const getRequest = async (id: string) =>

@@ -26,10 +26,10 @@ public class SavisApiModularityTests {
     @Test
     void detectsIndependentSalesChildrenAndCatalog() {
         var sales = modules.getModuleByName("sales").orElseThrow();
-        assertEquals(Set.of("sales.quotation", "sales.order", "sales.invoice"),
+        assertEquals(Set.of("sales.quotation", "sales.order", "sales.invoice", "sales.workspace"),
                 modules.getNestedModules(sales).stream()
                         .map(module -> module.getIdentifier().toString()).collect(Collectors.toSet()));
-        for (String name : Set.of("sales.quotation", "sales.order", "sales.invoice")) {
+        for (String name : Set.of("sales.quotation", "sales.order", "sales.invoice", "sales.workspace")) {
             var child = modules.getModuleByName(name).orElseThrow();
             assertEquals(sales, modules.getParentOf(child).orElseThrow());
             assertEquals("com.savouretplus.savis." + name, child.getBasePackage().getName());

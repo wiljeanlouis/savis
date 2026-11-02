@@ -61,4 +61,12 @@ class QuoteRequestControllerTest {
         mvc.perform(get("/api/quote-requests?sort=customerEmail,desc")).andExpect(status().isBadRequest());
         verifyNoInteractions(requests);
     }
+    @Test void listSupportsTheConfiguredColumnSortsAndPageSize() throws Exception {
+        when(requests.list(2,30,"marie","customerName,asc","RECEIVED"))
+                .thenReturn(new QuoteRequestRepository.Page(java.util.List.of(),45,2,30));
+        mvc.perform(get("/api/quote-requests?page=2&size=30&search=marie&sort=customerName,asc&status=RECEIVED"))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.size").value(30))
+                .andExpect(jsonPath("$.page").value(2)).andExpect(jsonPath("$.totalElements").value(45));
+        verify(requests).list(2,30,"marie","customerName,asc","RECEIVED");
+    }
 }

@@ -110,7 +110,7 @@ Le flux commercial suit les étapes : demande de soumission → soumission → c
 
 - **Routes:** `/sales/quote-requests` lists requests; `/sales/quote-requests/:requestId` opens a request within the Sales workspace.
 - **Reception:** “Importer les demandes” imports a bounded Supabase batch through SAVIS API and displays imported, duplicate, invalid and acknowledgement-failed counts. Receiving a request creates no quotation or order.
-- **Consultation:** use the shared list filters, table, status badges and pagination. The standalone detail page groups original data, quote preparation and associated quotations in tabs, with readable configuration labels and a collapsed original JSON section. Search, status, sort and page are URL state.
+- **Consultation:** use the shared search bar, status filter, sortable table and pagination. Search, status, sort, page and page size are URL state. The standalone detail page groups original data, quote preparation and associated quotations in tabs, with readable configuration labels and a collapsed original JSON section.
 - **Préparation de la soumission:** the server proposes recognized Catalog lines with quantities, modes and configuration, already linked to `item:N`. The original request stays visible separately; review, unresolved and custom needs are shown as interventions. Opening a request never saves it. Saved corrections, stable line IDs, notes, manual additions and exclusions take precedence. Explicit editing reuses the product editor; a problematic configuration can be copied for correction. Save changes explicitly, or create directly from valid proposed lines without a preliminary save. Proposals may include any nonempty subset; omitted needs remain open, and only explicit exclusions require reasons. Saves and status changes carry the expected version; conflicts require reviewing/reloading the request.
 - **Proposals:** shared dialogs handle proposal creation and reasoned closure; show all associated quotations with number, status, amount and detail/order links. “Créer une soumission” selects persisted qualified lines, justified exclusions, validity and commercial terms. Retries retain the same intention in memory; a new intention gets a new UUID. Requalifying a request does not update existing quotations.
 - **Lifecycle:** `RECEIVED`, `IN_PROGRESS`, `QUOTED`, `CLOSED`. Quoted requests can produce additional proposals; closure requires a reason.
@@ -125,6 +125,7 @@ See the [QuoteRequest contract and operations](../docs/integration/quote-request
 #### Soumissions
 
 - **Routes:** `/sales/quotations` lists quotations; `/quotations/new` and `/quotations/:quotationId` provide creation and details.
+- **List:** search by quotation/customer/contact, filter by status, sort columns and paginate; list state is kept in the URL.
 - **Creation:** prepare an independent commercial offer with customer details, catalog-configured items, validity date, discount, and delivery fee.
 - **Editing:** only `DRAFT` quotations expose editing. New quotation drafts persist commercial selections and terms in the current tab’s `sessionStorage`; contact details, address and notes remain in memory and are removed from new storage writes.
 - **Lifecycle:** mark a draft `SENT`, then `ACCEPTED` or `REJECTED`. These actions record status; the interface does not send an email.
@@ -134,6 +135,7 @@ See the [QuoteRequest contract and operations](../docs/integration/quote-request
 #### Commandes
 
 - **Routes:** `/sales/orders` lists orders; `/orders/new` and `/orders/:orderId` provide creation and details.
+- **List:** search by order/customer/contact, filter by status or source, sort columns and paginate; list state is kept in the URL.
 - **Creation:** capture customer, optional address, products, purchase modes, choices, allocations, ingredients, quantities, discount, and delivery fee. Admin estimates the total; SAVIS API validates and prices the order. Order entry does not calculate taxes.
 - **Product search:** debounce requests for up to 20 available catalog products; previously selected products remain in the draft when search changes.
 - **Contact details:** format Canadian phones and postal codes, send phones as E.164, and block invalid contact inputs. Product images use neutral fallbacks when unavailable.
@@ -147,7 +149,7 @@ See the [QuoteRequest contract and operations](../docs/integration/quote-request
 #### Factures
 
 - **Routes:** `/sales/invoices` lists invoices; `/invoices/:invoiceId` shows details. Invoices are created from an order.
-- **List:** filter by `DRAFT`, `ISSUED`, or `CANCELLED` status.
+- **List:** search by invoice/order/customer, filter by `DRAFT`, `ISSUED`, or `CANCELLED` status, sort columns and paginate; list state is kept in the URL.
 - **Draft editing:** update customer details, address, notes, discount, delivery fee, and explicit TPS/TVQ amounts. Product lines come from the order snapshot.
 - **Issuing:** save changes and issue the draft; issued invoices expose consultation and PDF generation instead of draft editing.
 - **Cancellation:** cancel a non-cancelled invoice through its dedicated action.
@@ -162,7 +164,7 @@ See the [QuoteRequest contract and operations](../docs/integration/quote-request
 - **Routing:** React Router’s `createBrowserRouter()` defines screens and route loaders; route `handle` metadata supplies breadcrumbs.
 - **Initial loading:** the root route displays “Chargement…” while an initial route loader resolves, including direct access to `/boms/:id`.
 - **Layout:** `MainLayout` provides the sidebar, header, breadcrumbs, toasts, help, and route outlet, with responsive navigation and light/dark/system themes.
-- **Sales navigation:** `/sales` defaults to orders. Legacy `/quotations`, `/orders`, `/invoices`, and `/supply-offers` list URLs redirect to current workspaces.
+- **Sales navigation:** `/sales` defaults to the commercial workspace at `/sales/workspace`, with dossier details at `/sales/workspace/:dossierId`. Specialized request/quotation/order/invoice screens remain available and are linked from each dossier.
 
 ## State and Data Loading
 

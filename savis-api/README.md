@@ -36,6 +36,7 @@ PostgreSQL, and publishes a customer-facing catalog projection to Supabase.
     - [Quotation Endpoints](#quotation-endpoints)
     - [QuoteRequest Endpoints](#quoterequest-endpoints)
     - [Invoice Endpoints](#invoice-endpoints)
+    - [Sales Workspace Endpoints](#sales-workspace-endpoints)
   - [Supabase Integration](#supabase-integration)
     - [Catalog projection](#catalog-projection)
     - [Customer-order inbox](#customer-order-inbox)
@@ -117,6 +118,8 @@ The slices collaborate through explicit public contracts:
   `QuotationOrderApi` for conversion.
 - Invoice consumes `OrderInvoicingApi` for locked snapshots, without accessing
   Order persistence or repricing through Catalog.
+- The read-only Sales Workspace composes document snapshots through named
+  `workspace` interfaces; it does not own sales aggregates or their lifecycle.
 - Catalog stores BOM UUIDs as values and does not access BOM entities or
   repositories.
 - BOM and Supply validate resource UUIDs through `ResourceCatalogApi`; the API
@@ -506,7 +509,7 @@ already imported, failed, and acknowledgement-failed rows; see
 | Method | Path | Purpose |
 | --- | --- | --- |
 | `POST` | `/api/quote-requests/import` | Import a bounded pending batch and acknowledge committed requests. |
-| `GET` | `/api/quote-requests` | List summaries with bounded pagination, name search, status and stable date sorting. |
+| `GET` | `/api/quote-requests` | List summaries with bounded pagination (`size` 1–100), name search, status and sorting by customer name, received date or status. |
 | `GET` | `/api/quote-requests/{id}` | Retrieve original need, qualification, history, version and read-only `preparation`. |
 | `PUT` | `/api/quote-requests/{id}/qualification` | Save separate qualified data with `expectedVersion`. |
 | `PUT` | `/api/quote-requests/{id}/status` | Change business status with `expectedVersion`; closure requires a reason. |
@@ -537,6 +540,19 @@ not provide access control.
 | `POST` | `/api/invoices/{invoiceId}/issue` | Issue and number an invoice. |
 | `POST` | `/api/invoices/{invoiceId}/cancel` | Cancel an invoice. |
 | `GET` | `/api/invoices/{invoiceId}/pdf` | Download a final invoice PDF. |
+
+### Sales Workspace Endpoints
+
+| Method | Path | Purpose |
+| --- | --- | --- |
+| `GET` | `/api/sales/workspace?page=&size=&search=` | Page logical sales dossiers, grouped by explicit request, quotation, order, and invoice references. |
+| `GET` | `/api/sales/workspace/{dossierId}` | Retrieve a dossier tree, contextual links, and warnings for unresolved or inconsistent references. |
+
+Dossier IDs combine the root document type and public UUID
+(`REQUEST:<uuid>`, `QUOTATION:<uuid>`, `ORDER:<uuid>`, or `INVOICE:<uuid>`).
+This keeps identities stable without using customer names or display references.
+The workspace is read-only and composes named, read-only module contracts; sales
+modules retain ownership of their business rules and writes.
 
 ## Supabase Integration
 

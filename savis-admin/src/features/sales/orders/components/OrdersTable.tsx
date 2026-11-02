@@ -1,11 +1,5 @@
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/shared/ui/table";
+import type { ColumnDef, SortingState } from "@tanstack/react-table";
+import { DataTable } from "@/shared/components/DataTable";
 import { Link } from "react-router";
 import type { OrderSummary } from "../types";
 import { formatPhoneForDisplay, phoneHref } from "../model/contactFormat";
@@ -13,60 +7,103 @@ import {
   formatOrderCurrency,
   formatOrderDate,
   orderSourceLabels,
+  orderStatusLabels,
 } from "../types";
 import { OrderStatusBadge } from "./OrderStatusBadge";
 import { OrderProductImage } from "./OrderProductImage";
 
-export function OrdersTable({ orders }: { orders: OrderSummary[] }) {
+const columns: ColumnDef<OrderSummary>[] = [
+  {
+    id: "orderNumber",
+    accessorFn: (row) => row.orderNumber,
+    header: "Commande",
+    cell: ({ row }) => (
+      <Link
+        className="font-semibold text-primary hover:underline"
+        to={`/orders/${row.original.id}`}
+      >
+        {row.original.orderNumber}
+      </Link>
+    ),
+  },
+  {
+    id: "itemCount",
+    accessorFn: (row) => row.itemCount,
+    header: "Articles",
+    cell: ({ row }) => <OrderItemsPreview order={row.original} />,
+  },
+  {
+    id: "customerName",
+    accessorFn: (row) => row.customerName,
+    header: "Client",
+    cell: ({ row }) => row.original.customerName,
+  },
+  {
+    id: "customerPhone",
+    accessorFn: (row) => row.customerPhone,
+    header: "Téléphone",
+    cell: ({ row }) => (
+      <a
+        className="hover:underline"
+        href={`tel:${phoneHref(row.original.customerPhone)}`}
+      >
+        {formatPhoneForDisplay(row.original.customerPhone)}
+      </a>
+    ),
+  },
+  {
+    id: "totalCents",
+    accessorFn: (row) => row.totalCents,
+    header: "Total",
+    cell: ({ row }) => (
+      <span className="font-medium">
+        {formatOrderCurrency(row.original.totalCents)}
+      </span>
+    ),
+  },
+  {
+    id: "source",
+    accessorFn: (row) => orderSourceLabels[row.source],
+    header: "Source",
+    cell: ({ row }) => orderSourceLabels[row.original.source],
+  },
+  {
+    id: "status",
+    accessorFn: (row) => orderStatusLabels[row.status],
+    header: "Statut",
+    cell: ({ row }) => <OrderStatusBadge status={row.original.status} />,
+  },
+  {
+    id: "placedAt",
+    accessorFn: (row) => row.placedAt,
+    header: "Date",
+    cell: ({ row }) => formatOrderDate(row.original.placedAt),
+  },
+];
+
+export function OrdersTable({
+  orders,
+  sorting,
+  onSort,
+}: {
+  orders: OrderSummary[];
+  sorting: SortingState;
+  onSort: (value: string) => void;
+}) {
   return (
-    <Table>
-      <TableHeader>
-        <TableRow>
-          <TableHead>Commande</TableHead>
-          <TableHead>Articles</TableHead>
-          <TableHead>Client</TableHead>
-          <TableHead>Téléphone</TableHead>
-          <TableHead>Total</TableHead>
-          <TableHead>Source</TableHead>
-          <TableHead>Statut</TableHead>
-          <TableHead>Date</TableHead>
-        </TableRow>
-      </TableHeader>
-      <TableBody>
-        {orders.map((order) => (
-          <TableRow key={order.id}>
-            <TableCell>
-              <Link
-                className="font-semibold text-primary hover:underline"
-                to={`/orders/${order.id}`}
-              >
-                {order.orderNumber}
-              </Link>
-            </TableCell>
-            <TableCell>
-              <OrderItemsPreview order={order} />
-            </TableCell>
-            <TableCell>{order.customerName}</TableCell>
-            <TableCell>
-              <a
-                className="hover:underline"
-                href={`tel:${phoneHref(order.customerPhone)}`}
-              >
-                {formatPhoneForDisplay(order.customerPhone)}
-              </a>
-            </TableCell>
-            <TableCell className="font-medium">
-              {formatOrderCurrency(order.totalCents)}
-            </TableCell>
-            <TableCell>{orderSourceLabels[order.source]}</TableCell>
-            <TableCell>
-              <OrderStatusBadge status={order.status} />
-            </TableCell>
-            <TableCell>{formatOrderDate(order.placedAt)}</TableCell>
-          </TableRow>
-        ))}
-      </TableBody>
-    </Table>
+    <DataTable
+      columns={columns}
+      data={orders}
+      ariaLabel="Liste des commandes"
+      showPagination={false}
+      sorting={sorting}
+      onSortingChange={(updater) => {
+        const next = typeof updater === "function" ? updater(sorting) : updater;
+        if (next[0]) onSort(`${next[0].id}-${next[0].desc ? "desc" : "asc"}`);
+      }}
+      getRowId={(row) => row.id}
+      columnAlignments={{ itemCount: "right", totalCents: "right" }}
+    />
   );
 }
 

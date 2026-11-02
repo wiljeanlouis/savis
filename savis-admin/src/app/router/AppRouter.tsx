@@ -35,6 +35,10 @@ import { QuotationDetailsPage } from "@/features/sales/quotations/pages/Quotatio
 import { InvoicesPage } from "@/features/sales/invoices/pages/InvoicesPage";
 import { InvoiceDetailsPage } from "@/features/sales/invoices/pages/InvoiceDetailsPage";
 import { SalesLayout } from "@/features/sales/pages/SalesLayout";
+import {
+  SalesWorkspaceDossierPage,
+  SalesWorkspacePage,
+} from "@/features/sales/workspace/pages/SalesWorkspacePage";
 import { SupplyOffersPage } from "@/features/supply-offer/pages/SupplyOffersPage";
 
 const router = createBrowserRouter([
@@ -118,7 +122,23 @@ const router = createBrowserRouter([
         children: [
           {
             index: true,
-            element: <Navigate replace to="/sales/orders" />,
+            element: <Navigate replace to="/sales/workspace" />,
+          },
+          {
+            path: "workspace",
+            element: <SalesWorkspacePage />,
+            handle: {
+              breadcrumb: () => <SalesBreadcrumb section="Espace commercial" />,
+            },
+          },
+          {
+            path: "workspace/:dossierId",
+            element: <SalesWorkspaceDossierPage />,
+            handle: {
+              breadcrumb: () => (
+                <SalesBreadcrumb section="Dossier commercial" />
+              ),
+            },
           },
           {
             path: "quote-requests",
@@ -600,7 +620,7 @@ function SalesBreadcrumb({ section }: { section: string }) {
       <BreadcrumbSeparator className="hidden md:block" />
       <BreadcrumbItem className="hidden md:block">
         <BreadcrumbLink asChild>
-          <Link to="/sales/orders">Ventes</Link>
+          <Link to="/sales/workspace">Ventes</Link>
         </BreadcrumbLink>
       </BreadcrumbItem>
       <BreadcrumbSeparator className="hidden md:block" />

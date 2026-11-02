@@ -25,7 +25,7 @@ import {
   UnavailableIcon,
 } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
-import { Link, useNavigate, useParams } from "react-router";
+import { Link, useNavigate, useParams, useSearchParams } from "react-router";
 import { toast } from "sonner";
 import { formatDateOnly } from "../components/QuotationsTable";
 import { QuotationStatusBadge } from "../components/QuotationStatusBadge";
@@ -53,6 +53,11 @@ export function QuotationDetailsPage() {
 
 function QuotationDetailsContent({ quotationId }: { quotationId?: string }) {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const requestedReturnTo = searchParams.get("returnTo");
+  const returnTo = requestedReturnTo?.startsWith("/sales/workspace/")
+    ? requestedReturnTo
+    : null;
   const isCreating = !quotationId;
   const query = useQuotation(quotationId);
   const quotation = query.data;
@@ -120,7 +125,10 @@ function QuotationDetailsContent({ quotationId }: { quotationId?: string }) {
     try {
       const result = await conversion.mutateAsync(quotationId!);
       toast.success("Commande créée à partir de la soumission acceptée.");
-      void navigate(`/orders/${result.orderId}`);
+      const returnQuery = returnTo
+        ? `?returnTo=${encodeURIComponent(returnTo)}`
+        : "";
+      void navigate(`/orders/${result.orderId}${returnQuery}`);
     } catch (cause) {
       toast.error("Impossible de convertir la soumission en commande.", {
         description: getApiErrorMessage(cause),
@@ -152,9 +160,9 @@ function QuotationDetailsContent({ quotationId }: { quotationId?: string }) {
         <div>
           <Link
             className="text-sm text-muted-foreground hover:underline"
-            to="/sales/quotations"
+            to={returnTo ?? "/sales/quotations"}
           >
-            ← Toutes les soumissions
+            ← {returnTo ? "Retour au dossier" : "Toutes les soumissions"}
           </Link>
           <div className="mt-2 flex flex-wrap items-center gap-3">
             <h1 className="text-2xl font-semibold">

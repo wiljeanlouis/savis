@@ -1,4 +1,4 @@
-import { Link, useParams } from "react-router";
+import { Link, useParams, useSearchParams } from "react-router";
 import { ApiErrorAlert } from "@/shared/components/ApiErrorAlert";
 import { Spinner } from "@/shared/ui/spinner";
 import { Card, CardHeader, CardTitle, CardContent } from "@/shared/ui/card";
@@ -17,6 +17,11 @@ import { OriginalRequest } from "../components/OriginalRequest";
 import { useRequest } from "../hooks/useQuoteRequests";
 export function QuoteRequestDetailsPage() {
   const { requestId = "" } = useParams();
+  const [searchParams] = useSearchParams();
+  const requestedReturnTo = searchParams.get("returnTo");
+  const returnTo = requestedReturnTo?.startsWith("/sales/workspace/")
+    ? requestedReturnTo
+    : null;
   const query = useRequest(requestId);
   if (query.isError)
     return (
@@ -39,9 +44,9 @@ export function QuoteRequestDetailsPage() {
         <div>
           <Link
             className="text-sm text-muted-foreground hover:underline"
-            to="/sales/quote-requests"
+            to={returnTo ?? "/sales/quote-requests"}
           >
-            ← Toutes les demandes
+            ← {returnTo ? "Retour au dossier" : "Toutes les demandes"}
           </Link>
           <div className="mt-2 flex flex-wrap items-center gap-3">
             <h1 className="text-2xl font-semibold">

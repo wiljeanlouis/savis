@@ -7,14 +7,19 @@ import {
   SelectValue,
 } from "@/shared/ui/select";
 
-const pageSizeOptions = [10, 20, 30, 50];
+const defaultPageSizeOptions = [10, 20, 50];
 
 interface PageSelectorProps {
   pageSize: number;
   onPageChange: (page: number) => void;
+  options?: number[];
 }
 
-export const PageSelector = ({ pageSize, onPageChange }: PageSelectorProps) => {
+export const PageSelector = ({
+  pageSize,
+  onPageChange,
+  options = defaultPageSizeOptions,
+}: PageSelectorProps) => {
   return (
     <div className="flex shrink-0 items-center gap-2 whitespace-nowrap">
       <span className="text-xs text-muted-foreground">Par page</span>
@@ -31,7 +36,7 @@ export const PageSelector = ({ pageSize, onPageChange }: PageSelectorProps) => {
         </SelectTrigger>
         <SelectContent side="top">
           <SelectGroup>
-            {pageSizeOptions.map((size) => (
+            {options.map((size) => (
               <SelectItem key={size} value={`${size}`}>
                 {size}
               </SelectItem>

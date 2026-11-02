@@ -30,6 +30,7 @@ interface NavItem {
     url: string;
     activeUrls?: string[];
     exact?: boolean;
+    icon?: React.ReactNode;
   }[];
 }
 
@@ -97,6 +98,11 @@ export function NavSection({ title, items }: Props) {
                               className="border border-transparent cursor-pointer transition-colors hover:border-primary hover:bg-sidebar-accent data-[active=true]:border-primary data-[active=true]:bg-sidebar-accent data-[active=true]:text-sidebar-accent-foreground"
                             >
                               <NavLink to={child.url}>
+                                {child.icon ? (
+                                  <span className="flex size-3.5 items-center justify-center [&_svg]:size-3.5">
+                                    {child.icon}
+                                  </span>
+                                ) : null}
                                 <span>{child.name}</span>
                               </NavLink>
                             </SidebarMenuSubButton>

@@ -84,13 +84,15 @@ public class QuoteRequestController {
             @RequestParam(defaultValue = "") String search, @RequestParam(defaultValue = "") String status,
             @RequestParam(defaultValue = "receivedAt,desc") String sort) {
         if (page < 0 || page > 100000 || size < 1 || size > 100 || search.length() > 200
-                || !(sort.equals("receivedAt,desc") || sort.equals("receivedAt,asc")))
+                || !(sort.equals("receivedAt,desc") || sort.equals("receivedAt,asc")
+                        || sort.equals("customerName,asc") || sort.equals("customerName,desc")
+                        || sort.equals("status,asc") || sort.equals("status,desc")))
             throw new QuoteRequestValidationException("Pagination ou tri invalide");
         if (!status.isBlank())
             QuoteRequestStatus.valueOf(status);
         return ResponseEntity.ok().cacheControl(org.springframework.http.CacheControl.noStore())
                 .body(QuoteRequestResponse.Page
-                        .from(repository.list(page, size, search, sort.endsWith("asc"), status)));
+                        .from(repository.list(page, size, search, sort, status)));
     }
 
     @GetMapping("/{id}")

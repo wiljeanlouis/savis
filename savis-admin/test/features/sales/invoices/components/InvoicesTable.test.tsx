@@ -44,7 +44,12 @@ describe("InvoicesTable", () => {
 
     render(
       <MemoryRouter>
-        <InvoicesTable invoices={[base, issued]} onOpen={open} />
+        <InvoicesTable
+          invoices={[base, issued]}
+          sorting={[]}
+          onSort={vi.fn()}
+          onOpen={open}
+        />
       </MemoryRouter>,
     );
 

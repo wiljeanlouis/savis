@@ -76,6 +76,8 @@ Main capabilities:
   order aggregates;
 - manual reception and qualification of public quote requests, with multiple
   independent Catalog-priced quotations per request;
+- a commercial workspace that groups requests, quotations, orders, and invoices
+  into dossiers without changing ownership of their business rules;
 - immutable Docker releases with SBOM and provenance metadata.
 
 Supabase is not the SAVIS business backend. PostgreSQL schemas owned by the API

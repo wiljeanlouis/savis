@@ -320,6 +320,7 @@ flowchart TB
 
     Quotation["sales.quotation<br/>Soumissions et conversion"]
     Invoice["sales.invoice<br/>Factures et documents"]
+    Workspace["sales.workspace<br/>Dossiers commerciaux en lecture seule"]
     Quotation -->|QuotationOrderApi| OrderUse
     Invoice -->|OrderInvoicingApi| OrderUse
     end
@@ -370,6 +371,9 @@ flowchart TB
   QuotationUse --> QuotationAdapters
   QuotationUse -->|CatalogOrderingApi| CatalogUse
   QuotationUse -->|QuotationOrderApi| OrderUse
+  Workspace -->|workspace snapshots| QuotationUse
+  Workspace -->|workspace snapshots| OrderUse
+  Workspace -->|workspace snapshots| InvoiceUse
   InvoiceWeb --> InvoiceUse --> InvoiceDomain
   InvoiceUse --> InvoiceAdapters
   InvoiceUse -->|OrderInvoicingApi| OrderUse
@@ -399,17 +403,22 @@ flowchart TB
   snapshots, then `QuotationOrderApi` to convert an accepted quotation.
 - Invoice consumes `OrderInvoicingApi` to copy a locked eligible order snapshot;
   it does not depend on Order entities or query Catalog again.
+- The read-only `sales.workspace` module composes named snapshots from Quotation,
+  Order, and Invoice. It groups only explicit public-ID relationships and does
+  not own their persistence or lifecycle transitions.
 - Catalog stores BOM UUID values, not JPA relationships to BOM entities.
 - `common` contains shared value objects and PDF font support, not workflow orchestration.
 - HTTP, JPA, RabbitMQ, and Supabase dependencies remain in adapters.
 
 `SavisApiModularityTests` uses Spring Modulith to verify module dependencies and
 generate module documentation snippets. `sales` is a structural parent containing
-three explicitly annotated, closed nested modules: `sales.quotation`,
-`sales.order`, and `sales.invoice`. Their allowlists restrict dependencies to
-existing public named interfaces. Quotation converts through `QuotationOrderApi`;
-Invoice reads immutable order snapshots through `OrderInvoicingApi`. Catalog
-remains outside Sales and depends only on Common and the BOM public contract.
+four explicitly annotated, closed nested modules: `sales.quotation`,
+`sales.order`, `sales.invoice`, and `sales.workspace`. Their allowlists restrict
+dependencies to public named interfaces. Quotation converts through
+`QuotationOrderApi`; Invoice reads immutable order snapshots through
+`OrderInvoicingApi`; Workspace composes read-only snapshots and owns no sales
+aggregate. Catalog remains outside Sales and depends only on Common and the BOM
+public contract.
 The parent contains no shared business implementation because nested modules can
 access parent internals under Spring Modulith rules. Tests assert child ownership,
 API exposure, Catalog independence, and rejection of sibling internal access.
@@ -601,6 +610,10 @@ It is not yet an operational read model.
 - `/sales/{quote-requests,quotations,orders,invoices}` groups sales lists.
   Request details stay at `/sales/quote-requests/:requestId`. Editors/details use
   `/quotations/*`, `/orders/*`, and `/invoices/*`; legacy list URLs redirect.
+- `/sales/workspace` is the commercial dossier list and
+  `/sales/workspace/:dossierId` loads the linked document tree on demand.
+  Document links reuse the existing specialized screens and carry a return path
+  to the dossier.
 - `VITE_API_URL` and `VITE_EXECUTOR_API_URL` override proxy roots at build time.
   Vite uses `SAVIS_API_PROXY_TARGET` and `EXECUTOR_API_PROXY_TARGET` for development.
   Runtime Nginx environment changes do not reconfigure the built bundle.

@@ -24,7 +24,7 @@ import {
 } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
 import { useState, type FormEvent } from "react";
-import { Link, useParams } from "react-router";
+import { Link, useParams, useSearchParams } from "react-router";
 import { toast } from "sonner";
 import { InvoiceStatusBadge } from "../components/InvoiceStatusBadge";
 import {
@@ -49,6 +49,11 @@ type DraftForm = Omit<
 
 export function InvoiceDetailsPage() {
   const { invoiceId } = useParams();
+  const [searchParams] = useSearchParams();
+  const requestedReturnTo = searchParams.get("returnTo");
+  const returnTo = requestedReturnTo?.startsWith("/sales/workspace/")
+    ? requestedReturnTo
+    : null;
   const query = useInvoice(invoiceId);
   const invoice = query.data;
   const updateMutation = useUpdateInvoice();
@@ -144,9 +149,9 @@ export function InvoiceDetailsPage() {
         <div>
           <Link
             className="text-sm text-muted-foreground hover:underline"
-            to="/sales/invoices"
+            to={returnTo ?? "/sales/invoices"}
           >
-            ← Toutes les factures
+            ← {returnTo ? "Retour au dossier" : "Toutes les factures"}
           </Link>
           <div className="mt-2 flex flex-wrap items-center gap-3">
             <h1 className="text-2xl font-semibold">

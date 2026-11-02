@@ -11,7 +11,8 @@ function createSalesRouter(initialEntry: string) {
         path: "/sales",
         element: <SalesLayout />,
         children: [
-          { index: true, element: <Navigate replace to="/sales/orders" /> },
+          { index: true, element: <Navigate replace to="/sales/workspace" /> },
+          { path: "workspace", element: <p>Espace commercial</p> },
           { path: "quotations", element: <p>Liste des soumissions</p> },
           { path: "quote-requests", element: <p>Liste des demandes</p> },
           {
@@ -38,13 +39,15 @@ describe("SalesLayout", () => {
     );
   });
 
-  it("opens orders by default", async () => {
+  it("opens the workspace by default", async () => {
     const router = createSalesRouter("/sales");
 
     render(<RouterProvider router={router} />);
 
-    expect(await screen.findByText("Liste des commandes")).toBeInTheDocument();
-    expect(router.state.location.pathname).toBe("/sales/orders");
+    expect(
+      await screen.findByRole("tab", { name: "Espace commercial" }),
+    ).toHaveAttribute("aria-selected", "true");
+    expect(router.state.location.pathname).toBe("/sales/workspace");
   });
 
   it("keeps the selected tab in the URL and supports browser history", async () => {
@@ -56,7 +59,7 @@ describe("SalesLayout", () => {
     expect(screen.getByText("Liste des soumissions")).toBeInTheDocument();
     expect(screen.getByRole("tablist")).toHaveClass(
       "w-full",
-      "grid-cols-4",
+      "grid-cols-5",
       "group-data-horizontal/tabs:h-10",
       "sm:w-fit",
     );

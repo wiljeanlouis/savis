@@ -12,5 +12,8 @@ public interface QuoteRequestRepository {
     Optional<QuoteRequest> find(UUID id);
     Optional<QuoteRequest> findExternal(String source, UUID externalId);
     Page list(int page, int size, String search, boolean ascending, String status);
+    default Page list(int page, int size, String search, String sort, String status) {
+        return list(page, size, search, "receivedAt,asc".equals(sort), status);
+    }
     record Page(List<QuoteRequest> content, long totalElements, int page, int size) {}
 }

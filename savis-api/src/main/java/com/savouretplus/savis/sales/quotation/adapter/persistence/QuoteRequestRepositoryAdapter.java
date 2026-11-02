@@ -70,7 +70,14 @@ public class QuoteRequestRepositoryAdapter implements QuoteRequestRepository {
     @Override
     @Transactional(readOnly = true)
     public Page list(int page, int size, String search, boolean ascending, String status) {
-        Sort.Direction direction = ascending ? Sort.Direction.ASC : Sort.Direction.DESC;
+        return list(page, size, search, "receivedAt," + (ascending ? "asc" : "desc"), status);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public Page list(int page, int size, String search, String sort, String status) {
+        var parts = sort.split(",", 2);
+        Sort.Direction direction = "asc".equals(parts[1]) ? Sort.Direction.ASC : Sort.Direction.DESC;
         var result = repository.findAll(
                 (r, q, b) -> (search == null || search.isBlank()) && (status == null || status.isBlank())
                         ? b.conjunction()
@@ -80,7 +87,7 @@ public class QuoteRequestRepositoryAdapter implements QuoteRequestRepository {
                                                 .valueOf(status)),
                                 b.like(b.lower(r.get("customerName")),
                                         "%" + escape(search.toLowerCase(java.util.Locale.ROOT)) + "%", '\\')),
-                PageRequest.of(page, size, Sort.by(direction, "receivedAt", "publicId")));
+                PageRequest.of(page, size, Sort.by(direction, parts[0], "publicId")));
         return new Page(result.getContent().stream().map(this::domain).toList(), result.getTotalElements(), page, size);
     }
 

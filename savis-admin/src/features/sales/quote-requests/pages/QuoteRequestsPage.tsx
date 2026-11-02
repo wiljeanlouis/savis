@@ -9,29 +9,53 @@ import {
 } from "@/shared/components/ListFilters";
 import { ListFilterPopover } from "@/shared/components/ListFilterPopover";
 import { PageNavigator } from "@/shared/components/PageNavigator";
+import { PageItemCount } from "@/shared/components/PageItemCount";
+import { PageSelector } from "@/shared/components/PageSelector";
 import { useImportRequests, useRequests } from "../hooks/useQuoteRequests";
 import { requestStatusLabels } from "../model/types";
 import { QuoteRequestsTable } from "../components/QuoteRequestsTable";
+import type { SortingState } from "@tanstack/react-table";
 export function QuoteRequestsPage() {
   const [params, setParams] = useSearchParams();
   const rawPage = Number(params.get("page") ?? 0);
   const page = Number.isInteger(rawPage) && rawPage >= 0 ? rawPage : 0;
+  const rawSize = Number(params.get("size") ?? 20);
+  const size = [10, 20, 50].includes(rawSize) ? rawSize : 20;
   const search = params.get("search") ?? "";
-  const sort =
-    params.get("sort") === "receivedAt,asc"
-      ? "receivedAt,asc"
-      : "receivedAt,desc";
+  const validSorts = [
+    "customerName,asc",
+    "customerName,desc",
+    "receivedAt,asc",
+    "receivedAt,desc",
+    "status,asc",
+    "status,desc",
+  ];
+  const sort = validSorts.includes(params.get("sort") ?? "")
+    ? params.get("sort")!
+    : "receivedAt,desc";
   const rawStatus = params.get("status") ?? "";
   const status = rawStatus in requestStatusLabels ? rawStatus : "";
-  const query = useRequests({ page, search, sort, status });
+  const query = useRequests({ page, size, search, sort, status });
   const importer = useImportRequests();
   function change(key: string, value: string) {
     const next = new URLSearchParams(params);
     if (value) next.set(key, value);
     else next.delete(key);
-    if (key !== "page") next.delete("page");
+    if (key === "page") next.set("page", value);
+    else next.delete("page");
     setParams(next);
   }
+  const sorting: SortingState = [
+    {
+      id: sort.split(",")[0],
+      desc: sort.endsWith(",desc"),
+    },
+  ];
+  const onSort = (value: string) => {
+    const [column, direction] = value.split("-");
+    change("sort", `${column},${direction}`);
+  };
+  const filterCount = Number(!!status);
   return (
     <div className="space-y-6">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
@@ -65,19 +89,15 @@ export function QuoteRequestsPage() {
           value={search}
           onChange={(value) => change("search", value)}
         />
-        <ListSelectFilter
-          label="Trier par"
-          value={sort}
-          onChange={(value) => change("sort", value)}
-          options={[
-            ["receivedAt,desc", "Plus récentes"],
-            ["receivedAt,asc", "Plus anciennes"],
-          ]}
-        />
         <ListFilterPopover
           label="Filtres des demandes"
-          count={Number(!!status)}
-          onClear={() => change("status", "")}
+          count={filterCount}
+          onClear={() => {
+            const next = new URLSearchParams(params);
+            next.delete("status");
+            next.set("page", "0");
+            setParams(next);
+          }}
         >
           <ListSelectFilter
             inPanel
@@ -103,8 +123,22 @@ export function QuoteRequestsPage() {
       ) : (
         query.data && (
           <div className="min-w-0 space-y-3">
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <PageItemCount
+                itemName="demande"
+                totalItems={query.data.totalElements}
+              />
+              <PageSelector
+                pageSize={size}
+                onPageChange={(value) => change("size", String(value))}
+              />
+            </div>
             {query.data.content.length ? (
-              <QuoteRequestsTable requests={query.data.content} />
+              <QuoteRequestsTable
+                requests={query.data.content}
+                sorting={sorting}
+                onSort={onSort}
+              />
             ) : (
               <div className="flex min-h-40 items-center justify-center rounded-xl border border-dashed p-6 text-center text-muted-foreground">
                 Aucune demande ne correspond aux filtres sélectionnés.
@@ -113,8 +147,13 @@ export function QuoteRequestsPage() {
             <nav aria-label="Pagination des demandes">
               <PageNavigator
                 page={page + 1}
-                totalPages={Math.ceil(query.data.totalElements / 20)}
-                goToPreviousPage={() => change("page", String(page - 1))}
+                totalPages={Math.max(
+                  1,
+                  Math.ceil(query.data.totalElements / size),
+                )}
+                goToPreviousPage={() =>
+                  change("page", String(Math.max(0, page - 1)))
+                }
                 goToNextPage={() => change("page", String(page + 1))}
               />
             </nav>

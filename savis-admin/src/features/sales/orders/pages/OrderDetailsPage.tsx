@@ -7,7 +7,13 @@ import { Spinner } from "@/shared/ui/spinner";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/shared/ui/tabs";
 import { Edit02Icon, Money03Icon } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
-import { Link, useBlocker, useNavigate, useParams } from "react-router";
+import {
+  Link,
+  useBlocker,
+  useNavigate,
+  useParams,
+  useSearchParams,
+} from "react-router";
 import { toast } from "sonner";
 import { useCreateInvoice } from "@/features/sales/invoices/hooks/useInvoiceApi";
 import {
@@ -48,6 +54,11 @@ export function OrderDetailsPage() {
 
 function OrderDetailsContent({ orderId }: { orderId: string | undefined }) {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const requestedReturnTo = searchParams.get("returnTo");
+  const returnTo = requestedReturnTo?.startsWith("/sales/workspace/")
+    ? requestedReturnTo
+    : null;
   const isCreating = !orderId;
   const orderQuery = useOrder(orderId);
   const requirementsQuery = useOrderRequirementReport(orderId);
@@ -111,7 +122,10 @@ function OrderDetailsContent({ orderId }: { orderId: string | undefined }) {
     try {
       const invoice = await invoiceCreation.mutateAsync(orderId);
       toast.success("Facture brouillon prête.");
-      navigate(`/invoices/${invoice.id}`);
+      const returnQuery = returnTo
+        ? `?returnTo=${encodeURIComponent(returnTo)}`
+        : "";
+      navigate(`/invoices/${invoice.id}${returnQuery}`);
     } catch (error) {
       toast.error("Impossible de créer la facture.", {
         description: getApiErrorMessage(error),
@@ -172,7 +186,7 @@ function OrderDetailsContent({ orderId }: { orderId: string | undefined }) {
     if (isCreating) {
       editor.resetNewDraft();
       allowNavigation.current = true;
-      navigate("/sales/orders");
+      navigate(returnTo ?? "/sales/orders");
     } else if (orderQuery.data) {
       editor.resetFromOrder(orderQuery.data);
       setEditMode(null);
@@ -188,7 +202,7 @@ function OrderDetailsContent({ orderId }: { orderId: string | undefined }) {
     }
     if (isCreating) editor.resetNewDraft();
     allowNavigation.current = true;
-    navigate("/sales/orders");
+    navigate(returnTo ?? "/sales/orders");
   }
 
   if (!isCreating && orderQuery.isPending) return <CenteredSpinner />;
@@ -227,7 +241,7 @@ function OrderDetailsContent({ orderId }: { orderId: string | undefined }) {
             type="button"
             onClick={returnToOrders}
           >
-            ← Toutes les commandes
+            ← {returnTo ? "Retour au dossier" : "Toutes les commandes"}
           </button>
           <div className="mt-2 flex flex-wrap items-center gap-3">
             <h1 className="text-2xl font-semibold">

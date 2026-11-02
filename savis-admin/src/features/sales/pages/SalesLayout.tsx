@@ -1,5 +1,6 @@
 import { Tabs, TabsList, TabsTrigger } from "@/shared/ui/tabs";
 import {
+  Folder01Icon,
   InboxDownloadIcon,
   File01Icon,
   Money03Icon,
@@ -9,6 +10,12 @@ import { HugeiconsIcon } from "@hugeicons/react";
 import { Outlet, useLocation, useNavigate } from "react-router";
 
 const salesTabs = [
+  {
+    label: "Espace commercial",
+    value: "workspace",
+    to: "/sales/workspace",
+    icon: Folder01Icon,
+  },
   {
     label: "Demandes",
     value: "quote-requests",
@@ -41,7 +48,7 @@ export function SalesLayout() {
   const navigate = useNavigate();
   const activeTab =
     salesTabs.find(({ to }) => pathname === to || pathname.startsWith(`${to}/`))
-      ?.value ?? "orders";
+      ?.value ?? "workspace";
 
   return (
     <div className="space-y-6">
@@ -51,7 +58,7 @@ export function SalesLayout() {
       >
         <TabsList
           aria-label="Sections des ventes"
-          className="grid w-full grid-cols-4 group-data-horizontal/tabs:h-10 sm:w-fit"
+          className="grid w-full grid-cols-5 group-data-horizontal/tabs:h-10 sm:w-fit"
         >
           {salesTabs.map((tab) => (
             <TabsTrigger
