@@ -70,8 +70,16 @@ describe("InvoiceDetailsPage", () => {
     vi.spyOn(window, "confirm").mockReturnValue(true);
     update.mockResolvedValue(invoice);
     issue.mockResolvedValue({ ...invoice, status: "ISSUED" });
-    markPaid.mockResolvedValue({ ...invoice, paymentStatus: "PAID", paidAt: "2026-10-15T12:00:00Z" });
-    revertPayment.mockResolvedValue({ ...invoice, paymentStatus: "UNPAID", paidAt: null });
+    markPaid.mockResolvedValue({
+      ...invoice,
+      paymentStatus: "PAID",
+      paidAt: "2026-10-15T12:00:00Z",
+    });
+    revertPayment.mockResolvedValue({
+      ...invoice,
+      paymentStatus: "UNPAID",
+      paidAt: null,
+    });
     cancel.mockResolvedValue({ ...invoice, status: "CANCELLED" });
     vi.mocked(useInvoice).mockReturnValue({
       data: invoice,

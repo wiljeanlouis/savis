@@ -179,10 +179,10 @@ See the [QuoteRequest contract and operations](../docs/integration/quote-request
 
 Axios clients are defined in `src/shared/api/index.ts`:
 
-| Client | Optional bundle variable | Default proxy | Owner |
-| --- | --- | --- | --- |
-| `api` | `VITE_API_URL` | `/savis-api` | SAVIS API business workflows. |
-| `executorApi` | `VITE_EXECUTOR_API_URL` | `/executor-api` | Offer review and acquisition tasks. |
+| Client        | Optional bundle variable | Default proxy   | Owner                               |
+| ------------- | ------------------------ | --------------- | ----------------------------------- |
+| `api`         | `VITE_API_URL`           | `/savis-api`    | SAVIS API business workflows.       |
+| `executorApi` | `VITE_EXECUTOR_API_URL`  | `/executor-api` | Offer review and acquisition tasks. |
 
 - **Proxy targets:** Vite uses `SAVIS_API_PROXY_TARGET` and `EXECUTOR_API_PROXY_TARGET`; these are development-server settings.
 - **Direct URLs:** optionally set the following in a local `.env` to bypass the frontend proxies:

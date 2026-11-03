@@ -137,7 +137,11 @@ export function InvoiceDetailsPage() {
   }
 
   async function markPaid() {
-    if (!window.confirm("Confirmer que le montant total de cette facture a été reçu ?"))
+    if (
+      !window.confirm(
+        "Confirmer que le montant total de cette facture a été reçu ?",
+      )
+    )
       return;
     try {
       await markPaidMutation.mutateAsync(currentInvoice.id);
@@ -150,7 +154,9 @@ export function InvoiceDetailsPage() {
   }
 
   async function revertPayment() {
-    if (!window.confirm("Corriger le règlement enregistré pour cette facture ?"))
+    if (
+      !window.confirm("Corriger le règlement enregistré pour cette facture ?")
+    )
       return;
     try {
       await revertPaymentMutation.mutateAsync(currentInvoice.id);
@@ -267,7 +273,8 @@ export function InvoiceDetailsPage() {
                   </Button>
                 </>
               ) : null}
-              {invoice.status === "ISSUED" && invoice.paymentStatus === "UNPAID" ? (
+              {invoice.status === "ISSUED" &&
+              invoice.paymentStatus === "UNPAID" ? (
                 <Button
                   type="button"
                   variant="outline"
@@ -277,7 +284,8 @@ export function InvoiceDetailsPage() {
                   Marquer comme payée
                 </Button>
               ) : null}
-              {invoice.status === "ISSUED" && invoice.paymentStatus === "PAID" ? (
+              {invoice.status === "ISSUED" &&
+              invoice.paymentStatus === "PAID" ? (
                 <Button
                   type="button"
                   variant="outline"
@@ -455,7 +463,10 @@ function InvoiceReadOnly({ invoice }: { invoice: Invoice }) {
           </CardHeader>
           <CardContent>
             <dl className="space-y-2">
-              <Info label="Statut" value={invoiceStatusLabels[invoice.status]} />
+              <Info
+                label="Statut"
+                value={invoiceStatusLabels[invoice.status]}
+              />
               <Info
                 label="Règlement"
                 value={paymentStatusLabels[invoice.paymentStatus]}

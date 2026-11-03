@@ -101,7 +101,9 @@ export function InvoicesTable({
       id: "paymentStatus",
       accessorFn: (row) => paymentStatusLabels[row.paymentStatus],
       header: "Règlement",
-      cell: ({ row }) => <PaymentStatusBadge status={row.original.paymentStatus} />,
+      cell: ({ row }) => (
+        <PaymentStatusBadge status={row.original.paymentStatus} />
+      ),
     },
     {
       id: "createdAt",
