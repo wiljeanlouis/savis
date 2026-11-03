@@ -38,7 +38,13 @@ export function SalesWorkspaceList({
         />
       </div>
       <Card>
-        <CardContent className="space-y-3">
+        <CardContent
+          className={
+            data.content.length > 0
+              ? "grid grid-cols-1 gap-3 lg:grid-cols-2"
+              : undefined
+          }
+        >
           {data.content.length === 0 ? (
             <div className="space-y-3 py-8 text-center">
               <p className="text-sm text-muted-foreground">

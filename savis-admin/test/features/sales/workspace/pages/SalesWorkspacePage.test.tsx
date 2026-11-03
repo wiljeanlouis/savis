@@ -279,6 +279,10 @@ describe("Sales workspace", () => {
       screen.getByText("1 branche facturée · 1 soumission en attente"),
     );
     const dossierDetails = screen.getByTestId("workspace-dossier-details");
+    expect(dossierDetails.closest('[data-slot="card-content"]')).toHaveClass(
+      "grid-cols-1",
+      "lg:grid-cols-2",
+    );
     expect(dossierDetails).toHaveTextContent("DEM-11111111");
     expect(dossierDetails).toContainElement(
       screen.getByText("1 branche facturée · 1 soumission en attente"),
