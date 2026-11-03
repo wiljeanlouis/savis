@@ -25,7 +25,10 @@ import {
   ShoppingCart02Icon,
   Invoice03Icon,
   CheckCircle,
-  LoaderCircle,
+  LaptopCheckIcon,
+  ResourcesAddIcon,
+  PuzzleIcon,
+  CreativeMarketIcon,
 } from "@hugeicons/core-free-icons";
 import { Link } from "react-router";
 import { NavSection } from "./components/NavSection";
@@ -61,7 +64,7 @@ const data = {
         {
           name: "Tâches d'acquisition",
           url: "/offers/tasks",
-          icon: <HugeiconsIcon icon={LoaderCircle} strokeWidth={2} />,
+          icon: <HugeiconsIcon icon={LaptopCheckIcon} strokeWidth={2} />,
         },
       ],
     },
@@ -72,12 +75,12 @@ const data = {
         {
           name: "Ressources matérielles",
           url: "/resources",
-          icon: <HugeiconsIcon icon={Database01Icon} strokeWidth={2} />,
+          icon: <HugeiconsIcon icon={ResourcesAddIcon} strokeWidth={2} />,
         },
         {
           name: "Compositions",
           url: "/boms",
-          icon: <HugeiconsIcon icon={PackageIcon} strokeWidth={2} />,
+          icon: <HugeiconsIcon icon={PuzzleIcon} strokeWidth={2} />,
         },
         {
           name: "Activités et taux horaires",
@@ -88,7 +91,7 @@ const data = {
     },
     {
       name: "Catalogue",
-      icon: <HugeiconsIcon icon={PackageIcon} strokeWidth={2} />,
+      icon: <HugeiconsIcon icon={CreativeMarketIcon} strokeWidth={2} />,
       children: [
         {
           name: "Produits",
