@@ -74,4 +74,21 @@ describe("useOrderManagement", () => {
       { description: "Supabase indisponible" },
     );
   });
+
+  it("does not show an error toast when feedback is handled by the caller", async () => {
+    const mutateAsync = vi.fn().mockRejectedValue({
+      response: { data: { detail: "Supabase indisponible" } },
+    });
+    vi.mocked(useImportOrders).mockReturnValue({
+      mutateAsync,
+      isPending: false,
+    } as never);
+
+    const { result } = renderHook(() => useOrderManagement());
+    await act(async () => {
+      await result.current.retrieveWebOrders({ notify: false });
+    });
+
+    expect(toast.error).not.toHaveBeenCalled();
+  });
 });

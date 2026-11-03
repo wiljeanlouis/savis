@@ -1,8 +1,8 @@
-import { ImportResultAlert } from "../components/ImportResultAlert";
 import { useSearchParams } from "react-router";
 import { Button } from "@/shared/ui/button";
 import { Spinner } from "@/shared/ui/spinner";
 import { ApiErrorAlert } from "@/shared/components/ApiErrorAlert";
+import { SalesImportAlert } from "@/features/sales/components/SalesImportAlert";
 import {
   ListSearchInput,
   ListSelectFilter,
@@ -71,13 +71,12 @@ export function QuoteRequestsPage() {
           {importer.isPending ? "Importation…" : "Importer les demandes"}
         </Button>
       </div>
-      {importer.isError && (
-        <ApiErrorAlert
-          title="Impossible d’importer les demandes."
-          error={importer.error}
-        />
-      )}
-      {importer.data && <ImportResultAlert result={importer.data} />}
+      <SalesImportAlert
+        requestResult={importer.data ?? null}
+        requestError={importer.isError ? importer.error : null}
+        orderResult={undefined}
+        orderError={null}
+      />
       <section
         aria-label="Filtres des demandes"
         className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center"

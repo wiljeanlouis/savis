@@ -11,7 +11,7 @@ submissions into `public.customer_orders` with `sync_status = 'pending'`.
 Public roles cannot insert into the table directly. The RPC contract is
 documented in `../docs/integration/customer-order-reception-rpc.md`. There is
 deliberately no polling job. An
-administrator starts the import from **Commandes > Récupérer commandes web** in
+administrator starts the import from **Commandes > Importer les commandes ** in
 SAVIS Admin. The browser calls SAVIS API, and SAVIS API reads Supabase with the
 service-role key. That key must never be configured in the storefront or Admin
 frontend.

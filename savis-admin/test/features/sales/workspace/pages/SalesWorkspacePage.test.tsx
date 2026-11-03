@@ -205,16 +205,42 @@ describe("Sales workspace", () => {
     );
   });
 
-  it("permet d’importer les commandes web depuis les dossiers commerciaux", async () => {
+  it("importe les demandes et les commandes web depuis les dossiers commerciaux", async () => {
     const user = userEvent.setup();
     mount();
 
     await user.click(
-      screen.getByRole("button", { name: "Importer commandes web" }),
+      screen.getByRole("button", {
+        name: "Importer les demandes et commandes",
+      }),
     );
 
     expect(mocks.mutateAsync).toHaveBeenCalledOnce();
-    expect(mocks.mutate).not.toHaveBeenCalled();
+    expect(mocks.mutate).toHaveBeenCalledOnce();
+  });
+
+  it("affiche À traiter par défaut et garde l’ordre demandé des filtres", async () => {
+    const router = mount();
+    const actionRequiredTab = screen.getByRole("tab", { name: "À traiter" });
+    const finishedTab = screen.getByRole("tab", { name: "Terminés" });
+    const allTab = screen.getByRole("tab", { name: "Tous" });
+
+    expect(actionRequiredTab).toHaveAttribute("aria-selected", "true");
+    expect(
+      actionRequiredTab.compareDocumentPosition(finishedTab) &
+        Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+    expect(
+      finishedTab.compareDocumentPosition(allTab) &
+        Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+
+    await userEvent.setup().click(finishedTab);
+
+    await waitFor(() => {
+      expect(router.state.location.search).toBe("?filter=FINISHED");
+    });
+    expect(finishedTab).toHaveAttribute("aria-selected", "true");
   });
 
   it("rend le dossier identifiable et conserve le contexte de la liste", async () => {

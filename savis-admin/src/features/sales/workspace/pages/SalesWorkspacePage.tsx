@@ -1,8 +1,8 @@
-import { ImportResultAlert } from "@/features/sales/quote-requests/components/ImportResultAlert";
 import { ApiErrorAlert } from "@/shared/components/ApiErrorAlert";
 import { Button } from "@/shared/ui/button";
 import { Spinner } from "@/shared/ui/spinner";
 import { Link, useLocation, useParams } from "react-router";
+import { SalesImportAlert } from "@/features/sales/components/SalesImportAlert";
 import { SalesWorkspaceDossier } from "../components/SalesWorkspaceDossier";
 import { SalesWorkspaceFilters } from "../components/SalesWorkspaceFilters";
 import { SalesWorkspaceList } from "../components/SalesWorkspaceList";
@@ -12,7 +12,12 @@ import { useOrderManagement } from "@/features/sales/orders/hooks/useOrderManage
 
 export function SalesWorkspacePage() {
   const location = useLocation();
-  const { isImporting, retrieveWebOrders } = useOrderManagement();
+  const {
+    isImporting: isImportingOrders,
+    importResult: orderImportResult,
+    importError: orderImportError,
+    retrieveWebOrders,
+  } = useOrderManagement();
   const {
     page,
     size,
@@ -39,27 +44,27 @@ export function SalesWorkspacePage() {
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
-          <Button disabled={importer.isPending} onClick={startImport}>
-            {importer.isPending ? <Spinner /> : null}
-            {importer.isPending ? "Importation…" : "Importer les demandes"}
-          </Button>
           <Button
-            disabled={isImporting}
-            onClick={() => void retrieveWebOrders()}
+            disabled={importer.isPending || isImportingOrders}
+            onClick={() => {
+              startImport();
+              void retrieveWebOrders({ notify: false });
+            }}
           >
-            {isImporting ? <Spinner /> : null}
-            {isImporting ? "Importation…" : "Importer commandes web"}
+            {importer.isPending || isImportingOrders ? <Spinner /> : null}
+            {importer.isPending || isImportingOrders
+              ? "Importation…"
+              : "Importer les demandes et commandes"}
           </Button>
         </div>
       </div>
 
-      {importer.isError && (
-        <ApiErrorAlert
-          title="Impossible d’importer les demandes."
-          error={importer.error}
-        />
-      )}
-      {importResult && <ImportResultAlert result={importResult} />}
+      <SalesImportAlert
+        requestResult={importResult}
+        requestError={importer.isError ? importer.error : null}
+        orderResult={orderImportResult}
+        orderError={orderImportError}
+      />
 
       <SalesWorkspaceFilters
         search={search}

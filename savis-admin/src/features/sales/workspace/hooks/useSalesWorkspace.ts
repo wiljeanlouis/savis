@@ -17,7 +17,7 @@ export function useSalesWorkspace() {
       ? rawSize
       : salesWorkspaceDefaultPageSize;
   const search = params.get("search") ?? "";
-  const filter = (params.get("filter") ?? "ALL") as
+  const filter = (params.get("filter") ?? "ACTION_REQUIRED") as
     | "ALL"
     | "ACTION_REQUIRED"
     | "FINISHED";

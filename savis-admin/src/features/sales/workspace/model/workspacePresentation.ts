@@ -16,9 +16,9 @@ export const salesWorkspaceFilterOptions: {
   value: SalesWorkspaceFilter;
   label: string;
 }[] = [
-  { value: "ALL", label: "Tous" },
   { value: "ACTION_REQUIRED", label: "À traiter" },
   { value: "FINISHED", label: "Terminés" },
+  { value: "ALL", label: "Tous" },
 ];
 
 export const workspaceDocumentLabels: Record<

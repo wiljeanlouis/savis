@@ -4,13 +4,33 @@ import userEvent from "@testing-library/user-event";
 import { MemoryRouter, useLocation } from "react-router";
 import { describe, expect, it, vi, beforeEach } from "vitest";
 import { QuoteRequestsPage } from "@/features/sales/quote-requests/pages/QuoteRequestsPage";
-const mocks = vi.hoisted(() => ({ mutate: vi.fn(), list: vi.fn() }));
+const mocks = vi.hoisted(() => ({
+  mutate: vi.fn(),
+  list: vi.fn(),
+  importResult: undefined as
+    | {
+        fetched: number;
+        imported: number;
+        alreadyImported: number;
+        failed: number;
+        acknowledgmentFailed: number;
+        failures: {
+          externalId: string | null;
+          code: string;
+          reason?: string;
+        }[];
+      }
+    | undefined,
+  importError: null as unknown,
+}));
 vi.mock("@/features/sales/quote-requests/hooks/useQuoteRequests", () => ({
   useRequests: mocks.list,
   useImportRequests: () => ({
     mutate: mocks.mutate,
     isPending: false,
-    isError: false,
+    isError: Boolean(mocks.importError),
+    error: mocks.importError,
+    data: mocks.importResult,
   }),
 }));
 function Location() {
@@ -27,6 +47,8 @@ function mount(entry = "/sales/quote-requests") {
 describe("QuoteRequestsPage", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mocks.importResult = undefined;
+    mocks.importError = null;
     mocks.list.mockReturnValue({
       isPending: false,
       isError: false,
@@ -85,6 +107,35 @@ describe("QuoteRequestsPage", () => {
       screen.getByRole("textbox", { name: "Rechercher un client" }),
     ).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Suivant" })).toBeDisabled();
+  });
+
+  it("affiche le résultat d’importation dans l’alerte fermable partagée", async () => {
+    mocks.importResult = {
+      fetched: 2,
+      imported: 1,
+      alreadyImported: 1,
+      failed: 0,
+      acknowledgmentFailed: 0,
+      failures: [],
+    };
+    const user = userEvent.setup();
+    mount();
+
+    const alert = screen.getByRole("alert");
+    expect(alert).toHaveTextContent("Demandes de soumission");
+    expect(alert).toHaveTextContent("1 importées");
+    expect(
+      screen.getByRole("button", {
+        name: "Fermer le message d’importation",
+      }),
+    ).toBeInTheDocument();
+
+    await user.click(
+      screen.getByRole("button", {
+        name: "Fermer le message d’importation",
+      }),
+    );
+    expect(screen.queryByRole("alert")).not.toBeInTheDocument();
   });
 });
 

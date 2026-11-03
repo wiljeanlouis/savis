@@ -18,10 +18,20 @@ import { ListFilterPopover } from "@/shared/components/ListFilterPopover";
 import { PageItemCount } from "@/shared/components/PageItemCount";
 import { PageNavigator } from "@/shared/components/PageNavigator";
 import { PageSelector } from "@/shared/components/PageSelector";
+import { SalesImportAlert } from "@/features/sales/components/SalesImportAlert";
 
 export function OrdersPage() {
-  const { orders, isLoading, isError, error, isImporting, retrieveWebOrders } =
-    useOrderManagement();
+  const {
+    orders,
+    isLoading,
+    isError,
+    error,
+    isImporting,
+    importResult,
+    importError,
+    isImportError,
+    retrieveWebOrders,
+  } = useOrderManagement();
   const list = useSalesList(orders, {
     searchableText: (order) =>
       `${order.orderNumber} ${order.customerName} ${order.customerPhone} ${orderSourceLabels[order.source]}`,
@@ -62,12 +72,19 @@ export function OrdersPage() {
           </Button>
           <Button
             disabled={isImporting}
-            onClick={() => void retrieveWebOrders()}
+            onClick={() => void retrieveWebOrders({ notify: false })}
           >
-            {isImporting ? "Récupération…" : "Récupérer commandes web"}
+            {isImporting ? "Récupération…" : "Importer les commandes "}
           </Button>
         </div>
       </div>
+
+      <SalesImportAlert
+        requestResult={null}
+        requestError={null}
+        orderResult={importResult}
+        orderError={isImportError ? importError : null}
+      />
 
       <section
         aria-label="Recherche et filtres des commandes"

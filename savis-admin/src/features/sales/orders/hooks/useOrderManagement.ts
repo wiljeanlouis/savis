@@ -6,9 +6,10 @@ export function useOrderManagement() {
   const orders = useOrders();
   const importer = useImportOrders();
 
-  async function retrieveWebOrders() {
+  async function retrieveWebOrders({ notify = true } = {}) {
     try {
       const result = await importer.mutateAsync();
+      if (!notify) return result;
       if (result.failedCount || result.acknowledgmentFailedCount) {
         toast.error("L’import est terminé avec des erreurs.", {
           description: `${result.importedCount} importée(s), ${result.failedCount} échouée(s), ${result.acknowledgmentFailedCount} accusé(s) en attente.`,
@@ -22,9 +23,11 @@ export function useOrderManagement() {
       }
       return result;
     } catch (error) {
-      toast.error("Impossible de récupérer les commandes web.", {
-        description: getApiErrorMessage(error),
-      });
+      if (notify) {
+        toast.error("Impossible de récupérer les commandes web.", {
+          description: getApiErrorMessage(error),
+        });
+      }
       return null;
     }
   }
@@ -35,6 +38,9 @@ export function useOrderManagement() {
     isError: orders.isError,
     error: orders.error,
     isImporting: importer.isPending,
+    importResult: importer.data,
+    importError: importer.error,
+    isImportError: importer.isError,
     retrieveWebOrders,
   };
 }
