@@ -34,10 +34,29 @@ export function SalesWorkspaceDossier({
               {dossier.description ? ` · ${dossier.description}` : ""}
             </p>
           </div>
-          <div>
-            <p className="mt-2 break-words text-sm font-medium sm:text-right">
-              {dossier.situation}
-            </p>
+          <div className="min-w-0">
+            <div className="flex flex-wrap items-center justify-start gap-2 sm:justify-end">
+              <p className="break-words text-sm font-medium">
+                {dossier.situation}
+              </p>
+              <span
+                className={
+                  dossier.requiresAction
+                    ? "inline-flex shrink-0 items-center gap-1.5 rounded-full bg-amber-100 px-2.5 py-1 text-xs font-medium text-amber-900 dark:bg-amber-950 dark:text-amber-200"
+                    : "inline-flex shrink-0 items-center gap-1.5 rounded-full bg-emerald-100 px-2.5 py-1 text-xs font-medium text-emerald-900 dark:bg-emerald-950 dark:text-emerald-200"
+                }
+              >
+                <span
+                  aria-hidden="true"
+                  className={
+                    dossier.requiresAction
+                      ? "size-1.5 rounded-full bg-amber-600 dark:bg-amber-400"
+                      : "size-1.5 rounded-full bg-emerald-600 dark:bg-emerald-400"
+                  }
+                />
+                {dossier.requiresAction ? "À traiter" : "Terminé"}
+              </span>
+            </div>
             <p className="mt-1 text-sm text-muted-foreground sm:text-right">
               {dossier.lastActivity
                 ? `Dernière activité · ${formatOrderDate(dossier.lastActivity)}`

@@ -42,6 +42,7 @@ const dossierFixture: SalesWorkspaceDossier = {
   description: null,
   lastActivity: "2026-10-31T12:00:00Z",
   situation: "1 branche facturée · 1 soumission en attente",
+  requiresAction: true,
   root: {
     type: "REQUEST" as const,
     id: "11111111-1111-4111-8111-111111111111",
@@ -52,8 +53,6 @@ const dossierFixture: SalesWorkspaceDossier = {
     issuedAt: null,
     amountCents: null,
     lastActivity: "2026-10-31T12:00:00Z",
-    action: "Préparer une soumission",
-    actionUrl: "/sales/quote-requests/11111111-1111-4111-8111-111111111111",
     warnings: [],
     children: [
       {
@@ -66,8 +65,6 @@ const dossierFixture: SalesWorkspaceDossier = {
         issuedAt: null,
         amountCents: 12000,
         lastActivity: "2026-10-31T12:00:00Z",
-        action: "Reprendre le brouillon",
-        actionUrl: "/quotations/22222222-2222-4222-8222-222222222222",
         warnings: [],
         children: [
           {
@@ -80,9 +77,6 @@ const dossierFixture: SalesWorkspaceDossier = {
             issuedAt: null,
             amountCents: 12000,
             lastActivity: "2026-10-31T12:00:00Z",
-            action: "Créer une facture",
-            actionUrl:
-              "/invoices/new?orderId=44444444-4444-4444-8444-444444444444",
             warnings: [],
             children: [
               {
@@ -95,8 +89,6 @@ const dossierFixture: SalesWorkspaceDossier = {
                 issuedAt: "2026-01-30T12:00:00Z",
                 amountCents: 12000,
                 lastActivity: "2026-10-31T12:00:00Z",
-                action: "Consulter la facture",
-                actionUrl: "/invoices/33333333-3333-4333-8333-333333333333",
                 warnings: [],
                 children: [],
               },
@@ -114,9 +106,6 @@ const dossierFixture: SalesWorkspaceDossier = {
         issuedAt: null,
         amountCents: 24000,
         lastActivity: "2026-10-30T12:00:00Z",
-        action: "Créer une commande",
-        actionUrl:
-          "/orders/new?quotationId=66666666-6666-4666-8666-666666666666",
         warnings: [],
         children: [
           {
@@ -129,8 +118,6 @@ const dossierFixture: SalesWorkspaceDossier = {
             issuedAt: null,
             amountCents: 24000,
             lastActivity: "2026-10-30T12:00:00Z",
-            action: null,
-            actionUrl: null,
             warnings: [],
             children: [],
           },
@@ -195,6 +182,7 @@ describe("Sales workspace", () => {
                     description: null,
                     lastActivity: dossier.lastActivity,
                     situation: dossier.situation,
+                    requiresAction: true,
                     documentCount: 4,
                   },
                 ],
@@ -284,6 +272,7 @@ describe("Sales workspace", () => {
       "lg:grid-cols-2",
     );
     expect(dossierDetails).toHaveTextContent("DEM-11111111");
+    expect(dossierDetails).toHaveTextContent("À traiter");
     expect(dossierDetails).toContainElement(
       screen.getByText("1 branche facturée · 1 soumission en attente"),
     );
@@ -331,39 +320,30 @@ describe("Sales workspace", () => {
       "text-primary",
       "hover:underline",
     );
-    expect(
-      screen.queryByRole("link", { name: "Consulter la facture" }),
-    ).not.toBeInTheDocument();
-    expect(
-      screen.getByRole("link", { name: "Préparer une soumission" }),
-    ).toBeInTheDocument();
     const requestHeader = screen
       .getByRole("link", { name: "DEM-11111111" })
       .closest('[data-testid="workspace-node-header"]');
     expect(requestHeader).toHaveClass("flex", "flex-wrap");
-    expect(requestHeader).toContainElement(
-      screen.getByRole("link", { name: "Préparer une soumission" }),
-    );
     expect(requestHeader).toContainElement(
       screen.getByRole("button", {
         name: "Afficher ou masquer les documents liés à DEM-11111111",
       }),
     );
     expect(
+      screen.queryByRole("link", { name: "Préparer une soumission" }),
+    ).not.toBeInTheDocument();
+    expect(
       requestHeader?.querySelector('[data-testid="workspace-node-controls"]'),
     ).toHaveClass("flex", "flex-wrap", "gap-1");
     expect(
-      screen.getByRole("link", { name: "Reprendre le brouillon" }),
-    ).toBeInTheDocument();
+      screen.queryByRole("link", { name: "Reprendre le brouillon" }),
+    ).not.toBeInTheDocument();
     expect(
-      screen.getByRole("link", { name: "Créer une facture" }),
-    ).toBeInTheDocument();
+      screen.queryByRole("link", { name: "Créer une facture" }),
+    ).not.toBeInTheDocument();
     expect(
-      screen.getByRole("link", { name: "Créer une commande" }),
-    ).toHaveAttribute(
-      "href",
-      expect.stringContaining("/orders/new?quotationId="),
-    );
+      screen.queryByRole("link", { name: "Créer une commande" }),
+    ).not.toBeInTheDocument();
     expect(screen.getByText("SOU-0019")).toBeInTheDocument();
     expect(screen.getByText("CMD-0025")).toBeInTheDocument();
     expect(screen.getByText("Émise")).toBeInTheDocument();
@@ -430,15 +410,6 @@ describe("Sales workspace", () => {
     expect(
       document.querySelector('time[datetime="2026-02-02T12:00:00Z"]'),
     ).toHaveTextContent(formatBusinessDate("2026-02-02T12:00:00Z"));
-    expect(
-      new URL(
-        screen
-          .getByRole("link", { name: "Créer une facture" })
-          .getAttribute("href")!,
-        window.location.origin,
-      ).pathname,
-    ).toBe("/invoices/new");
-
     const documentLinks = [
       {
         reference: "DEM-11111111",
@@ -498,6 +469,10 @@ describe("Sales workspace", () => {
       }),
     );
     await screen.findByText("FAC-0009");
+    expect(screen.getByText("À traiter")).toBeInTheDocument();
+    expect(
+      screen.getByText("À traiter").previousElementSibling,
+    ).toHaveTextContent("1 branche facturée · 1 soumission en attente");
 
     const invoiceDetails =
       screen.getByText("Émise").parentElement?.parentElement;
@@ -591,6 +566,34 @@ describe("Sales workspace", () => {
       expect(screen.queryByText("SOU-0018")).not.toBeInTheDocument();
     });
     expect(screen.getByText("Soumission créée")).toBeInTheDocument();
+  });
+
+  it("espace et décale progressivement les nœuds du parcours commercial", async () => {
+    mount();
+    fireEvent.click(
+      screen.getByRole("link", {
+        name: "Ouvrir le dossier DEM-11111111 pour Marie Tremblay",
+      }),
+    );
+
+    await screen.findByText("SOU-0018");
+    const nestedNodes = screen
+      .getByRole("link", { name: "SOU-0018" })
+      .closest('[data-testid="workspace-children"]');
+
+    expect(nestedNodes).toHaveClass(
+      "mt-4",
+      "space-y-4",
+      "border-l-2",
+      "pl-4",
+      "sm:ml-6",
+      "sm:pl-6",
+    );
+    expect(
+      screen
+        .getByRole("link", { name: "CMD-0024" })
+        .closest('[data-testid="workspace-children"]'),
+    ).toHaveClass("sm:ml-6", "sm:pl-6");
   });
 
   it("affiche des chevrons accessibles et garde les branches indépendantes", async () => {

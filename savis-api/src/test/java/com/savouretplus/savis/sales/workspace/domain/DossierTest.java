@@ -28,9 +28,7 @@ class DossierTest {
                 null,
                 12000,
                 paidAt,
-                orderId,
-                "Consulter la facture",
-                "/invoices/" + invoiceId);
+                orderId);
 
         Dossier dossier = new Dossier(invoice);
 
@@ -52,9 +50,7 @@ class DossierTest {
                 "  Proposition à finaliser  ",
                 12000,
                 Instant.parse("2026-10-31T12:00:00Z"),
-                null,
-                "Reprendre le brouillon",
-                "/quotations/draft");
+                null);
 
         Dossier dossier = new Dossier(quotation);
 

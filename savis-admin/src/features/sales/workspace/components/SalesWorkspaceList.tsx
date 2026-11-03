@@ -79,12 +79,31 @@ export function SalesWorkspaceList({
                       className="min-w-0 flex-1 space-y-0.5"
                       data-testid="workspace-dossier-details"
                     >
-                      <div className="flex min-w-0 flex-col items-start gap-y-0.5">
-                        <span className="break-words font-medium">
-                          {dossier.customerName}
-                        </span>
-                        <span className="break-words text-sm text-primary underline-offset-4 group-hover:underline">
-                          {dossier.reference}
+                      <div className="flex min-w-0 flex-wrap items-start justify-between gap-2">
+                        <div className="flex min-w-0 flex-col items-start gap-y-0.5">
+                          <span className="break-words font-medium">
+                            {dossier.customerName}
+                          </span>
+                          <span className="break-words text-sm text-primary underline-offset-4 group-hover:underline">
+                            {dossier.reference}
+                          </span>
+                        </div>
+                        <span
+                          className={
+                            dossier.requiresAction
+                              ? "inline-flex shrink-0 items-center gap-1.5 rounded-full bg-amber-100 px-2.5 py-1 text-xs font-medium text-amber-900 dark:bg-amber-950 dark:text-amber-200"
+                              : "inline-flex shrink-0 items-center gap-1.5 rounded-full bg-emerald-100 px-2.5 py-1 text-xs font-medium text-emerald-900 dark:bg-emerald-950 dark:text-emerald-200"
+                          }
+                        >
+                          <span
+                            aria-hidden="true"
+                            className={
+                              dossier.requiresAction
+                                ? "size-1.5 rounded-full bg-amber-600 dark:bg-amber-400"
+                                : "size-1.5 rounded-full bg-emerald-600 dark:bg-emerald-400"
+                            }
+                          />
+                          {dossier.requiresAction ? "À traiter" : "Terminé"}
                         </span>
                       </div>
                       <p className="break-words text-sm font-medium">

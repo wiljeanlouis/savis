@@ -545,16 +545,18 @@ not provide access control.
 
 | Method | Path | Purpose |
 | --- | --- | --- |
-| `GET` | `/api/sales/workspace?page=&size=&search=` | Page logical sales dossiers, grouped by explicit request, quotation, order, and invoice references. |
-| `GET` | `/api/sales/workspace/{dossierId}` | Retrieve a dossier tree, contextual links, and warnings for unresolved or inconsistent references. |
+| `GET` | `/api/sales/workspace?page=&size=&search=` | Page logical sales dossiers, grouped by explicit request, quotation, order, and invoice references; summaries include `requiresAction` based on the commercial action policy. |
+| `GET` | `/api/sales/workspace/{dossierId}` | Retrieve a dossier tree, its `requiresAction` state, and warnings for unresolved or inconsistent references. |
 
 Dossier IDs combine the root document type and public UUID
 (`REQUEST:<uuid>`, `QUOTATION:<uuid>`, `ORDER:<uuid>`, or `INVOICE:<uuid>`).
 This keeps identities stable without using customer names or display references.
 The workspace is read-only and composes named, read-only module contracts; sales
-modules retain ownership of their business rules and writes. Each invoice is one
-tree node exposing its billing status and `issuedAt` alongside its payment status
-and `paidAt`; payment is not a separate dossier node.
+modules retain ownership of their business rules and writes. Dossier nodes expose
+document data and relationships, not action labels or URLs; Admin links the
+document reference to its existing consultation screen. Each invoice is one tree
+node exposing its billing status and `issuedAt` alongside its payment status and
+`paidAt`; payment is not a separate dossier node.
 
 ## Supabase Integration
 

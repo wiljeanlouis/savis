@@ -18,8 +18,6 @@ public final class Node {
     private final Integer amountCents;
     private final Instant lastActivity;
     private final UUID orderId;
-    private String action;
-    private final String actionUrl;
     private final List<Node> children = new ArrayList<>();
     private final List<String> warnings = new ArrayList<>();
 
@@ -31,11 +29,9 @@ public final class Node {
             String customerName,
             String description,
             Integer amountCents,
-            Instant lastActivity,
-            String action,
-            String actionUrl) {
-        this(type, publicId, reference, status, null, null, null, customerName, description, amountCents, lastActivity,
-                null, action, actionUrl);
+            Instant lastActivity) {
+        this(type, publicId, reference, status, null, null, null, customerName, description, amountCents,
+                lastActivity, null);
     }
 
     public Node(
@@ -47,29 +43,9 @@ public final class Node {
             String description,
             Integer amountCents,
             Instant lastActivity,
-            UUID orderId,
-            String action,
-            String actionUrl) {
-        this(type, publicId, reference, status, null, null, null, customerName, description, amountCents, lastActivity,
-                orderId, action, actionUrl);
-    }
-
-    public Node(
-            DocumentType type,
-            UUID publicId,
-            String reference,
-            String status,
-            String paymentStatus,
-            Instant paidAt,
-            String customerName,
-            String description,
-            Integer amountCents,
-            Instant lastActivity,
-            UUID orderId,
-            String action,
-            String actionUrl) {
-        this(type, publicId, reference, status, paymentStatus, paidAt, null, customerName, description, amountCents,
-                lastActivity, orderId, action, actionUrl);
+            UUID orderId) {
+        this(type, publicId, reference, status, null, null, null, customerName, description, amountCents,
+                lastActivity, orderId);
     }
 
     public Node(
@@ -84,9 +60,7 @@ public final class Node {
             String description,
             Integer amountCents,
             Instant lastActivity,
-            UUID orderId,
-            String action,
-            String actionUrl) {
+            UUID orderId) {
         this.type = type;
         this.publicId = publicId;
         this.reference = reference;
@@ -99,8 +73,6 @@ public final class Node {
         this.amountCents = amountCents;
         this.lastActivity = lastActivity;
         this.orderId = orderId;
-        this.action = action;
-        this.actionUrl = actionUrl;
     }
 
     public DocumentType type() {
@@ -151,14 +123,6 @@ public final class Node {
         return orderId;
     }
 
-    public String action() {
-        return action;
-    }
-
-    public String actionUrl() {
-        return actionUrl;
-    }
-
     public List<Node> children() {
         return List.copyOf(children);
     }
@@ -173,10 +137,6 @@ public final class Node {
 
     public void addWarning(String warning) {
         warnings.add(warning);
-    }
-
-    public void setAction(String action) {
-        this.action = action;
     }
 
     public void collectMatches(List<String> values) {

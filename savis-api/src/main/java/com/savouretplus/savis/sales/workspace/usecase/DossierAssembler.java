@@ -71,9 +71,7 @@ class DossierAssembler {
                     request.customerName(),
                     null,
                     null,
-                    request.lastActivity(),
-                    request.status().equals("CLOSED") ? "Consulter la demande" : "Préparer une soumission",
-                    "/sales/quote-requests/" + request.id());
+                    request.lastActivity());
             requestNodes.put(request.id(), node);
             Dossier dossier = new Dossier(node);
             dossiers.add(dossier);
@@ -98,9 +96,7 @@ class DossierAssembler {
                     quotation.description(),
                     quotation.amountCents(),
                     quotation.lastActivity(),
-                    quotation.orderId(),
-                    quotationAction(quotation),
-                    "/quotations/" + quotation.id());
+                    quotation.orderId());
             quotationNodes.put(quotation.id(), node);
             quotationSnapshots.put(quotation.id(), quotation);
 
@@ -142,9 +138,7 @@ class DossierAssembler {
                     order.customerName(),
                     order.description(),
                     order.amountCents(),
-                    order.lastActivity(),
-                    orderAction(order.status()),
-                    "/orders/" + order.id());
+                    order.lastActivity());
             orderNodes.put(order.id(), node);
 
             UUID reverseQuotationId = "QUOTATION".equals(order.source()) ? order.sourceId() : null;
@@ -173,7 +167,6 @@ class DossierAssembler {
             if (reverseQuotationId == null || forwardQuotationId == null) {
                 node.addWarning("La relation avec la soumission est partielle.");
             }
-            quotationNode.setAction("Consulter la soumission");
             quotationNode.addChild(node);
             Dossier dossier = dossierByQuotationId.get(quotationId);
             if (dossier == null) {
@@ -216,9 +209,7 @@ class DossierAssembler {
                     invoice.description(),
                     invoice.amountCents(),
                     invoice.lastActivity(),
-                    invoice.orderId(),
-                    "Consulter la facture",
-                    "/invoices/" + invoice.id());
+                    invoice.orderId());
             Node orderNode = orderNodes.get(invoice.orderId());
             if (orderNode == null) {
                 node.addWarning("La commande d’origine référencée est introuvable.");
@@ -235,19 +226,4 @@ class DossierAssembler {
         }
     }
 
-    private String quotationAction(SalesQuotationWorkspaceApi.Quotation quotation) {
-        if (quotation.status().equals("DRAFT")) {
-            return "Reprendre le brouillon";
-        }
-        if (quotation.status().equals("ACCEPTED") && quotation.orderId() == null) {
-            return "Créer une commande";
-        }
-        return "Consulter la soumission";
-    }
-
-    private String orderAction(String status) {
-        return List.of("ACCEPTED", "IN_PREPARATION", "READY", "COMPLETED").contains(status)
-                ? "Créer ou voir la facture"
-                : "Consulter la commande";
-    }
 }

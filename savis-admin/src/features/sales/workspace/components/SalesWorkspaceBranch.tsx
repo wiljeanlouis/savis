@@ -35,12 +35,9 @@ export function SalesWorkspaceBranch({
 }) {
   const [isOpen, setIsOpen] = useState(true);
   const referenceUrl = documentUrl(branch);
-  const isConsultationAction =
-    branch.actionUrl === referenceUrl &&
-    /^Consulter\b/i.test(branch.action ?? "");
   return (
     <Collapsible open={isOpen} onOpenChange={setIsOpen}>
-      <div className="min-w-0 py-2">
+      <div className="min-w-0 py-3">
         <div
           className="flex flex-wrap items-start gap-x-3 gap-y-2"
           data-testid="workspace-node-header"
@@ -100,13 +97,6 @@ export function SalesWorkspaceBranch({
             className="flex flex-wrap items-center gap-1"
             data-testid="workspace-node-controls"
           >
-            {branch.action && branch.actionUrl && !isConsultationAction && (
-              <Button asChild variant="outline">
-                <Link to={withReturnTo(branch.actionUrl, returnTo)}>
-                  {branch.action}
-                </Link>
-              </Button>
-            )}
             {branch.children.length > 0 && (
               <CollapsibleTrigger asChild>
                 <Button
@@ -134,12 +124,15 @@ export function SalesWorkspaceBranch({
         </div>
         {branch.children.length > 0 && (
           <CollapsibleContent>
-            <div className="relative ml-3 mt-2 space-y-1 border-l border-border/70 pl-4">
+            <div
+              className="relative ml-3 mt-4 space-y-4 border-l-2 border-border/70 pl-4 sm:ml-6 sm:pl-6"
+              data-testid="workspace-children"
+            >
               {branch.children.map((child) => (
                 <div key={`${child.type}:${child.id}`} className="relative">
                   <span
                     aria-hidden="true"
-                    className="absolute -left-4 top-6 w-4 border-t border-border/70"
+                    className="absolute -left-4 top-7 w-4 border-t border-border/70 sm:-left-6 sm:w-6"
                   />
                   <SalesWorkspaceBranch branch={child} returnTo={returnTo} />
                 </div>
@@ -243,7 +236,7 @@ function UnavailableStatusBadge() {
   return <Badge variant="outline">Statut indisponible</Badge>;
 }
 
-function documentUrl(branch: SalesWorkspaceBranchType): string | null {
+function documentUrl(branch: SalesWorkspaceBranchType): string {
   const documentId = encodeURIComponent(branch.id);
 
   switch (branch.type) {
@@ -258,8 +251,7 @@ function documentUrl(branch: SalesWorkspaceBranchType): string | null {
   }
 }
 
-function withReturnTo(actionUrl: string | null, returnTo: string) {
-  if (!actionUrl) return returnTo;
-  const separator = actionUrl.includes("?") ? "&" : "?";
-  return `${actionUrl}${separator}returnTo=${encodeURIComponent(returnTo)}`;
+function withReturnTo(url: string, returnTo: string) {
+  const separator = url.includes("?") ? "&" : "?";
+  return `${url}${separator}returnTo=${encodeURIComponent(returnTo)}`;
 }

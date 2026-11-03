@@ -67,16 +67,23 @@ class SalesWorkspaceControllerTest {
         var page = service.list(0, 20, "");
         assertEquals(1, page.totalElements());
         assertEquals(4, page.content().getFirst().documentCount());
+        assertEquals(true, page.content().getFirst().requiresAction());
         assertEquals("1 branche facturée · 1 soumission en attente", page.content().getFirst().situation());
 
+        mvc.perform(get("/api/sales/workspace"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.content[0].requiresAction").value(true));
         mvc.perform(get("/api/sales/workspace/{dossierId}", "REQUEST:" + requestId))
                 .andExpect(status().isOk())
+                .andExpect(jsonPath("$.requiresAction").value(true))
                 .andExpect(jsonPath("$.root.children.length()").value(2))
                 .andExpect(jsonPath("$.root.children[0].children[0].children[0].type").value("INVOICE"))
                 .andExpect(jsonPath("$.root.children[0].children[0].children[0].status").value("ISSUED"))
                 .andExpect(jsonPath("$.root.children[0].children[0].children[0].paymentStatus").value("UNPAID"))
                 .andExpect(jsonPath("$.root.children[0].children[0].children[0].issuedAt").value(now.toString()))
                 .andExpect(jsonPath("$.root.children[0].children[0].children[0].paidAt").doesNotExist())
+                .andExpect(jsonPath("$.root.action").doesNotExist())
+                .andExpect(jsonPath("$.root.actionUrl").doesNotExist())
                 .andExpect(jsonPath("$.root.children[0].children[0].children[0].children.length()").value(0));
     }
 
@@ -107,9 +114,16 @@ class SalesWorkspaceControllerTest {
                         paidInvoiceId, completedOrderId, "FAC-1000", "ISSUED", "PAID", now, now,
                         "Client B", "5145550123", null, null, 2500, now)));
 
+        var all = service.list(0, 20, "", "ALL");
         assertEquals(1, service.list(0, 20, "", "ACTION_REQUIRED").totalElements());
         assertEquals(2, service.list(0, 20, "", "FINISHED").totalElements());
-        assertEquals(3, service.list(0, 20, "", "ALL").totalElements());
+        assertEquals(3, all.totalElements());
+        assertEquals(true, all.content().stream()
+                .filter(dossier -> dossier.id().equals("QUOTATION:" + draftQuoteId))
+                .findFirst().orElseThrow().requiresAction());
+        assertEquals(false, all.content().stream()
+                .filter(dossier -> dossier.id().equals("QUOTATION:" + acceptedQuoteId))
+                .findFirst().orElseThrow().requiresAction());
     }
 
     @Test

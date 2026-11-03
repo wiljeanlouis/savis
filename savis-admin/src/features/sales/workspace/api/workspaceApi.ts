@@ -7,6 +7,7 @@ export type SalesWorkspaceSummary = {
   description: string | null;
   lastActivity: string | null;
   situation: string;
+  requiresAction: boolean;
   documentCount: number;
 };
 
@@ -30,8 +31,6 @@ export type SalesWorkspaceBranch = {
   issuedAt: string | null;
   amountCents: number | null;
   lastActivity: string | null;
-  action: string | null;
-  actionUrl: string | null;
   warnings: string[];
   children: SalesWorkspaceBranch[];
 };
@@ -43,6 +42,7 @@ export type SalesWorkspaceDossier = {
   description: string | null;
   lastActivity: string | null;
   situation: string;
+  requiresAction: boolean;
   root: SalesWorkspaceBranch;
 };
 

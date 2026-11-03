@@ -97,6 +97,7 @@ public class SalesWorkspaceService {
                 dossier.description(),
                 dossier.lastActivity(),
                 dossier.situation(),
+                dossier.requiresAction(),
                 dossier.documentCount());
     }
 
@@ -109,6 +110,7 @@ public class SalesWorkspaceService {
                 dossier.description(),
                 dossier.lastActivity(),
                 dossier.situation(),
+                dossier.requiresAction(),
                 toBranch(dossier.root()));
     }
 
@@ -123,8 +125,6 @@ public class SalesWorkspaceService {
                 node.issuedAt(),
                 node.amountCents(),
                 node.lastActivity(),
-                node.action(),
-                node.actionUrl(),
                 node.warnings(),
                 node.children().stream()
                         .sorted(Comparator.comparing(Node::lastActivity,
@@ -148,6 +148,7 @@ public class SalesWorkspaceService {
             String description,
             Instant lastActivity,
             String situation,
+            boolean requiresAction,
             int documentCount) {
     }
 
@@ -158,6 +159,7 @@ public class SalesWorkspaceService {
             String description,
             Instant lastActivity,
             String situation,
+            boolean requiresAction,
             SalesWorkspaceBranch root) {
     }
 
@@ -171,8 +173,6 @@ public class SalesWorkspaceService {
             Instant issuedAt,
             Integer amountCents,
             Instant lastActivity,
-            String action,
-            String actionUrl,
             List<String> warnings,
             List<SalesWorkspaceBranch> children) {
     }
