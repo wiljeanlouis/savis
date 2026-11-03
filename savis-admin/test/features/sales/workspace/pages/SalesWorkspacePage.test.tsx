@@ -149,6 +149,9 @@ describe("Sales workspace", () => {
     ).toBeInTheDocument();
     expect(screen.getByText("SOU-0018")).toBeInTheDocument();
     expect(screen.getByText("FAC-0009")).toBeInTheDocument();
+    expect(screen.getByTestId("workspace-icon-request")).toBeInTheDocument();
+    expect(screen.getByTestId("workspace-icon-quotation")).toBeInTheDocument();
+    expect(screen.getByTestId("workspace-icon-invoice")).toBeInTheDocument();
   });
 
   it("offre des branches repliables avec des statuts traduits", async () => {

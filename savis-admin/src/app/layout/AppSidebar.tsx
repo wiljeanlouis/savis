@@ -23,7 +23,7 @@ import {
   Folder01Icon,
   InboxDownloadIcon,
   ShoppingCart02Icon,
-  Money03Icon,
+  Invoice03Icon,
   CheckCircle,
   LoaderCircle,
 } from "@hugeicons/core-free-icons";
@@ -129,7 +129,7 @@ const data = {
           name: "Factures",
           url: "/sales/invoices",
           activeUrls: ["/sales/invoices", "/invoices"],
-          icon: <HugeiconsIcon icon={Money03Icon} strokeWidth={2} />,
+          icon: <HugeiconsIcon icon={Invoice03Icon} strokeWidth={2} />,
         },
       ],
     },
