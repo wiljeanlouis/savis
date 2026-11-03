@@ -4,6 +4,5 @@ public enum DocumentType {
     REQUEST,
     QUOTATION,
     ORDER,
-    INVOICE,
-    PAYMENT
+    INVOICE
 }

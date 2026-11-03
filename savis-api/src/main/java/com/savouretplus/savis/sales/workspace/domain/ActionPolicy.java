@@ -8,13 +8,11 @@ public final class ActionPolicy {
     }
 
     public static boolean requiresAction(Node node) {
-        if (node.type() != DocumentType.PAYMENT) {
-            var invoices = flatten(node).stream()
-                    .filter(child -> child.type() == DocumentType.INVOICE)
-                    .toList();
-            if (!invoices.isEmpty() && invoices.stream().allMatch(invoice -> "PAID".equals(invoice.paymentStatus()))) {
-                return false;
-            }
+        var invoices = flatten(node).stream()
+                .filter(child -> child.type() == DocumentType.INVOICE)
+                .toList();
+        if (!invoices.isEmpty() && invoices.stream().allMatch(invoice -> "PAID".equals(invoice.paymentStatus()))) {
+            return false;
         }
         if (node.children().stream().anyMatch(ActionPolicy::requiresAction)) {
             return true;
@@ -38,7 +36,6 @@ public final class ActionPolicy {
                 case "ISSUED" -> !"PAID".equals(node.paymentStatus());
                 default -> false;
             };
-            case PAYMENT -> false;
         };
     }
 

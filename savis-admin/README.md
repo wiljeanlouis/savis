@@ -164,7 +164,7 @@ See the [QuoteRequest contract and operations](../docs/integration/quote-request
 - **Routing:** React Router’s `createBrowserRouter()` defines screens and route loaders; route `handle` metadata supplies breadcrumbs.
 - **Initial loading:** the root route displays “Chargement…” while an initial route loader resolves, including direct access to `/boms/:id`.
 - **Layout:** `MainLayout` provides the sidebar, header, breadcrumbs, toasts, help, and route outlet, with responsive navigation and light/dark/system themes.
-- **Sales navigation:** `/sales` defaults to the commercial workspace at `/sales/workspace`, with dossier details at `/sales/workspace/:dossierId`. Specialized request/quotation/order/invoice screens remain available and are linked from each dossier.
+- **Sales navigation:** `/sales` defaults to the commercial workspace at `/sales/workspace`, with dossier details at `/sales/workspace/:dossierId`. Select a customer name to open its dossier; document references open their consultation screens, while business actions remain separate. Document nodes display a status with its date and the amount beside the reference where available. Invoices stay a single node with distinct billing and payment statuses and their associated dates; payment is not a separate dossier step. Specialized request/quotation/order/invoice screens remain available and are linked from each dossier.
 
 ## State and Data Loading
 

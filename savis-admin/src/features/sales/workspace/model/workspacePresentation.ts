@@ -2,7 +2,6 @@ import {
   File01Icon,
   InboxDownloadIcon,
   Invoice03Icon,
-  Money01Icon,
   ShoppingCart02Icon,
 } from "@hugeicons/core-free-icons";
 import type {
@@ -30,7 +29,6 @@ export const workspaceDocumentLabels: Record<
   QUOTATION: "Soumission",
   ORDER: "Commande",
   INVOICE: "Facture",
-  PAYMENT: "Paiement",
 };
 
 export const workspaceDocumentIcons: Record<
@@ -41,46 +39,4 @@ export const workspaceDocumentIcons: Record<
   QUOTATION: File01Icon,
   ORDER: ShoppingCart02Icon,
   INVOICE: Invoice03Icon,
-  PAYMENT: Money01Icon,
-};
-
-export const workspacePaymentStatusLabels: Record<string, string> = {
-  UNPAID: "Non payée",
-  PAID: "Payée",
-};
-
-export const workspaceStatusLabels: Record<
-  SalesWorkspaceBranch["type"],
-  Record<string, string>
-> = {
-  REQUEST: {
-    RECEIVED: "Reçue",
-    IN_PROGRESS: "En préparation",
-    QUOTED: "Soumise",
-    CLOSED: "Clôturée",
-  },
-  QUOTATION: {
-    DRAFT: "Brouillon",
-    SENT: "Envoyée",
-    ACCEPTED: "Acceptée",
-    REJECTED: "Refusée",
-  },
-  ORDER: {
-    NEW: "Nouvelle",
-    ACCEPTED: "Confirmée",
-    IN_PREPARATION: "En préparation",
-    READY: "Prête",
-    COMPLETED: "Terminée",
-    CANCELLED: "Annulée",
-    REJECTED: "Refusée",
-  },
-  INVOICE: {
-    DRAFT: "Brouillon",
-    ISSUED: "Émise",
-    CANCELLED: "Annulée",
-  },
-  PAYMENT: {
-    PAID: "Payée",
-    UNPAID: "Non payée",
-  },
 };

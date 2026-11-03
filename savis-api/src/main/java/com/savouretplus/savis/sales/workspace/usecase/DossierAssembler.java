@@ -211,6 +211,7 @@ class DossierAssembler {
                     invoice.status(),
                     invoice.paymentStatus(),
                     invoice.paidAt(),
+                    invoice.issuedAt(),
                     invoice.customerName(),
                     invoice.description(),
                     invoice.amountCents(),
@@ -218,23 +219,6 @@ class DossierAssembler {
                     invoice.orderId(),
                     "Consulter la facture",
                     "/invoices/" + invoice.id());
-            if ("PAID".equals(invoice.paymentStatus())) {
-                node.addChild(new Node(
-                        DocumentType.PAYMENT,
-                        invoice.id(),
-                        "Paiement",
-                        "PAID",
-                        "PAID",
-                        invoice.paidAt(),
-                        "Règlement",
-                        null,
-                        invoice.amountCents(),
-                        invoice.paidAt(),
-                        invoice.orderId(),
-                        null,
-                        null));
-            }
-
             Node orderNode = orderNodes.get(invoice.orderId());
             if (orderNode == null) {
                 node.addWarning("La commande d’origine référencée est introuvable.");

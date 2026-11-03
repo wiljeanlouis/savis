@@ -23,34 +23,21 @@ class DossierTest {
                 "ISSUED",
                 "PAID",
                 paidAt,
+                issuedAt,
                 "Marie Tremblay",
                 null,
                 12000,
-                issuedAt,
+                paidAt,
                 orderId,
                 "Consulter la facture",
                 "/invoices/" + invoiceId);
-        invoice.addChild(new Node(
-                DocumentType.PAYMENT,
-                invoiceId,
-                "Paiement",
-                "PAID",
-                "PAID",
-                paidAt,
-                "Règlement",
-                null,
-                12000,
-                paidAt,
-                orderId,
-                null,
-                null));
 
         Dossier dossier = new Dossier(invoice);
 
         assertFalse(dossier.requiresAction());
-        assertEquals("1 paiement confirmé", dossier.situation());
+        assertEquals("1 branche réglée", dossier.situation());
         assertEquals(paidAt, dossier.lastActivity());
-        assertEquals(1, dossier.documentCount());
+        assertEquals(0, dossier.documentCount());
         assertTrue(dossier.matches("marie"));
     }
 

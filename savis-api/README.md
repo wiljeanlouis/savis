@@ -552,7 +552,9 @@ Dossier IDs combine the root document type and public UUID
 (`REQUEST:<uuid>`, `QUOTATION:<uuid>`, `ORDER:<uuid>`, or `INVOICE:<uuid>`).
 This keeps identities stable without using customer names or display references.
 The workspace is read-only and composes named, read-only module contracts; sales
-modules retain ownership of their business rules and writes.
+modules retain ownership of their business rules and writes. Each invoice is one
+tree node exposing its billing status and `issuedAt` alongside its payment status
+and `paidAt`; payment is not a separate dossier node.
 
 ## Supabase Integration
 

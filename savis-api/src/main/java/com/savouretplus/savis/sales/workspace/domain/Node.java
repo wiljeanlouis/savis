@@ -12,6 +12,7 @@ public final class Node {
     private final String status;
     private final String paymentStatus;
     private final Instant paidAt;
+    private final Instant issuedAt;
     private final String customerName;
     private final String description;
     private final Integer amountCents;
@@ -33,8 +34,8 @@ public final class Node {
             Instant lastActivity,
             String action,
             String actionUrl) {
-        this(type, publicId, reference, status, null, null, customerName, description, amountCents, lastActivity, null,
-                action, actionUrl);
+        this(type, publicId, reference, status, null, null, null, customerName, description, amountCents, lastActivity,
+                null, action, actionUrl);
     }
 
     public Node(
@@ -49,7 +50,7 @@ public final class Node {
             UUID orderId,
             String action,
             String actionUrl) {
-        this(type, publicId, reference, status, null, null, customerName, description, amountCents, lastActivity,
+        this(type, publicId, reference, status, null, null, null, customerName, description, amountCents, lastActivity,
                 orderId, action, actionUrl);
     }
 
@@ -67,12 +68,32 @@ public final class Node {
             UUID orderId,
             String action,
             String actionUrl) {
+        this(type, publicId, reference, status, paymentStatus, paidAt, null, customerName, description, amountCents,
+                lastActivity, orderId, action, actionUrl);
+    }
+
+    public Node(
+            DocumentType type,
+            UUID publicId,
+            String reference,
+            String status,
+            String paymentStatus,
+            Instant paidAt,
+            Instant issuedAt,
+            String customerName,
+            String description,
+            Integer amountCents,
+            Instant lastActivity,
+            UUID orderId,
+            String action,
+            String actionUrl) {
         this.type = type;
         this.publicId = publicId;
         this.reference = reference;
         this.status = status;
         this.paymentStatus = paymentStatus;
         this.paidAt = paidAt;
+        this.issuedAt = issuedAt;
         this.customerName = customerName;
         this.description = normalizeDescription(description);
         this.amountCents = amountCents;
@@ -104,6 +125,10 @@ public final class Node {
 
     public Instant paidAt() {
         return paidAt;
+    }
+
+    public Instant issuedAt() {
+        return issuedAt;
     }
 
     public String customerName() {

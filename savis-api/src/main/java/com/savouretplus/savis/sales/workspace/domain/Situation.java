@@ -56,7 +56,6 @@ public final class Situation {
                 case "DRAFT" -> "facture brouillon";
                 default -> "facture annulée";
             };
-            case PAYMENT -> "paiement confirmé";
         };
     }
 
@@ -79,7 +78,6 @@ public final class Situation {
         return switch (outcome) {
             case "branche facturée" -> "branches facturées";
             case "branche réglée" -> "branches réglées";
-            case "paiement confirmé" -> "paiements confirmés";
             case "facture brouillon" -> "factures en brouillon";
             case "demande reçue" -> "demandes reçues";
             case "demande en préparation" -> "demandes en préparation";

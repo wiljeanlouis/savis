@@ -61,7 +61,7 @@ class SalesWorkspaceControllerTest {
                         "5145550123", null, null, 12000, now)));
         when(invoices.invoices()).thenReturn(List.of(
                 new SalesInvoiceWorkspaceApi.Invoice(
-                        invoiceId, orderId, "FAC-0009", "ISSUED", "UNPAID", null,
+                        invoiceId, orderId, "FAC-0009", "ISSUED", "UNPAID", null, now,
                         "Marie Tremblay", "5145550123", null, null, 12000, now)));
 
         var page = service.list(0, 20, "");
@@ -72,7 +72,12 @@ class SalesWorkspaceControllerTest {
         mvc.perform(get("/api/sales/workspace/{dossierId}", "REQUEST:" + requestId))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.root.children.length()").value(2))
-                .andExpect(jsonPath("$.root.children[0].children[0].children[0].type").value("INVOICE"));
+                .andExpect(jsonPath("$.root.children[0].children[0].children[0].type").value("INVOICE"))
+                .andExpect(jsonPath("$.root.children[0].children[0].children[0].status").value("ISSUED"))
+                .andExpect(jsonPath("$.root.children[0].children[0].children[0].paymentStatus").value("UNPAID"))
+                .andExpect(jsonPath("$.root.children[0].children[0].children[0].issuedAt").value(now.toString()))
+                .andExpect(jsonPath("$.root.children[0].children[0].children[0].paidAt").doesNotExist())
+                .andExpect(jsonPath("$.root.children[0].children[0].children[0].children.length()").value(0));
     }
 
     @Test
@@ -99,7 +104,7 @@ class SalesWorkspaceControllerTest {
                         "Client C", "5145550123", null, null, 2500, now)));
         when(invoices.invoices()).thenReturn(List.of(
                 new SalesInvoiceWorkspaceApi.Invoice(
-                        paidInvoiceId, completedOrderId, "FAC-1000", "ISSUED", "PAID", now,
+                        paidInvoiceId, completedOrderId, "FAC-1000", "ISSUED", "PAID", now, now,
                         "Client B", "5145550123", null, null, 2500, now)));
 
         assertEquals(1, service.list(0, 20, "", "ACTION_REQUIRED").totalElements());
@@ -128,7 +133,7 @@ class SalesWorkspaceControllerTest {
                         "Client D", "5145550123", null, null, 4200, now)));
         when(invoices.invoices()).thenReturn(List.of(
                 new SalesInvoiceWorkspaceApi.Invoice(
-                        invoiceId, orderId, "FAC-7001", "ISSUED", "PAID", now,
+                        invoiceId, orderId, "FAC-7001", "ISSUED", "PAID", now, now,
                         "Client D", "5145550123", null, null, 4200, now)));
 
         assertEquals(1, service.list(0, 20, "", "FINISHED").totalElements());
@@ -155,7 +160,7 @@ class SalesWorkspaceControllerTest {
                         "5145550123", null, null, 9000, now)));
         when(invoices.invoices()).thenReturn(List.of(
                 new SalesInvoiceWorkspaceApi.Invoice(
-                        invoiceId, UUID.randomUUID(), "FAC-0009", "ISSUED", "UNPAID", null,
+                        invoiceId, UUID.randomUUID(), "FAC-0009", "ISSUED", "UNPAID", null, now,
                         "Marie Tremblay", "5145550123", null, null, 3000, now)));
 
         var firstPage = service.list(0, 2, "marie");

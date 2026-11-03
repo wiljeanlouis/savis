@@ -102,7 +102,7 @@ const data = {
       icon: <HugeiconsIcon icon={MoneyReceiveCircleIcon} strokeWidth={2} />,
       children: [
         {
-          name: "Espace commercial",
+          name: "Dossiers commerciaux",
           url: "/sales/workspace",
           activeUrls: ["/sales/workspace"],
           icon: <HugeiconsIcon icon={Folder01Icon} strokeWidth={2} />,

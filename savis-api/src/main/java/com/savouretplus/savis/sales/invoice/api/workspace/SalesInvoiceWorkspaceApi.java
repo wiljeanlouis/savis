@@ -15,6 +15,7 @@ public interface SalesInvoiceWorkspaceApi {
             String status,
             String paymentStatus,
             Instant paidAt,
+            Instant issuedAt,
             String customerName,
             String customerPhone,
             String customerEmail,

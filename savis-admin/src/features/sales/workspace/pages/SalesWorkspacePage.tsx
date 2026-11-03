@@ -29,9 +29,6 @@ export function SalesWorkspacePage() {
     <div className="space-y-6">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <p className="text-sm font-medium text-muted-foreground">
-            Espace commercial
-          </p>
           <h1 className="text-2xl font-semibold tracking-tight">
             Dossiers commerciaux
           </h1>

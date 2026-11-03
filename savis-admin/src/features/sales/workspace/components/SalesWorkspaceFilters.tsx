@@ -28,11 +28,18 @@ export function SalesWorkspaceFilters({
         />
       </div>
 
-      <div aria-label="Filtrer les dossiers" className="flex shrink-0 gap-2">
+      <div
+        aria-label="Filtrer les dossiers"
+        className="w-full shrink-0 sm:w-auto"
+      >
         <Tabs value={filter} onValueChange={onFilterChange} className="w-auto">
-          <TabsList className="h-9">
+          <TabsList className="grid h-9 w-full grid-cols-3 sm:w-auto sm:grid-flow-col sm:auto-cols-max sm:grid-cols-none">
             {salesWorkspaceFilterOptions.map((option) => (
-              <TabsTrigger key={option.value} value={option.value}>
+              <TabsTrigger
+                key={option.value}
+                value={option.value}
+                className="px-3"
+              >
                 {option.label}
               </TabsTrigger>
             ))}

@@ -24,12 +24,15 @@ class SalesInvoiceWorkspaceAdapter implements SalesInvoiceWorkspaceApi {
                         invoice.status().name(),
                         invoice.paymentStatus().name(),
                         invoice.paidAt(),
+                        invoice.issuedAt(),
                         invoice.customerName(),
                         invoice.customerPhone(),
                         invoice.customerEmail(),
                         invoice.note(),
                         invoice.totalCents(),
-                        invoice.issuedAt() == null ? invoice.updatedAt() : invoice.issuedAt()))
+                        invoice.paidAt() != null
+                                ? invoice.paidAt()
+                                : invoice.issuedAt() == null ? invoice.updatedAt() : invoice.issuedAt()))
                 .toList();
     }
 }

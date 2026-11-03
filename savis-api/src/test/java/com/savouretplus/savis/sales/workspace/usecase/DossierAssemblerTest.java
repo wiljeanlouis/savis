@@ -31,7 +31,7 @@ class DossierAssemblerTest {
     }
 
     @Test
-    void assemblesOwnedSnapshotsIntoRequestQuotationOrderInvoiceAndPaymentTree() {
+    void assemblesOwnedSnapshotsIntoRequestQuotationOrderAndInvoiceTree() {
         UUID requestId = UUID.randomUUID();
         UUID quotationId = UUID.randomUUID();
         UUID orderId = UUID.randomUUID();
@@ -47,7 +47,7 @@ class DossierAssemblerTest {
                 orderId, "CMD-001", "QUOTATION", quotationId, "COMPLETED", "Client",
                 null, null, null, 12000, now)));
         when(invoices.invoices()).thenReturn(List.of(new SalesInvoiceWorkspaceApi.Invoice(
-                invoiceId, orderId, "FAC-001", "ISSUED", "PAID", now, "Client",
+                invoiceId, orderId, "FAC-001", "ISSUED", "PAID", now, now, "Client",
                 null, null, null, 12000, now)));
 
         var dossier = assembler.assemble().getFirst();
@@ -60,8 +60,12 @@ class DossierAssemblerTest {
         assertEquals(DocumentType.QUOTATION, quotation.type());
         assertEquals(DocumentType.ORDER, order.type());
         assertEquals(DocumentType.INVOICE, invoice.type());
-        assertEquals(DocumentType.PAYMENT, invoice.children().getFirst().type());
-        assertEquals(4, dossier.documentCount());
+        assertEquals("ISSUED", invoice.status());
+        assertEquals("PAID", invoice.paymentStatus());
+        assertEquals(now, invoice.issuedAt());
+        assertEquals(now, invoice.paidAt());
+        assertEquals(0, invoice.children().size());
+        assertEquals(3, dossier.documentCount());
         assertEquals("1 branche réglée", dossier.situation());
     }
 
