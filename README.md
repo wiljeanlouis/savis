@@ -295,7 +295,7 @@ npm run format
 
 ```bash
 cd savis-api
-./mvnw spring-boot:run
+./mvnw spring-boot:run -Dspring-boot.run.profiles=dev
 ```
 
 Run the test suite:
@@ -396,6 +396,7 @@ The runtime stack contains:
 | ------------------ | --------------------------------- |
 | `postgres`         | Shared PostgreSQL server          |
 | `rabbitmq`         | Event transport and Celery broker |
+| `backend_migrate`  | One-shot Flyway migration          |
 | `backend_api`      | Spring Boot API                   |
 | `executor_migrate` | One-shot Alembic migration        |
 | `executor_api`     | FastAPI and RabbitMQ subscriber   |
@@ -446,6 +447,7 @@ The supported target is an Ubuntu host with:
 - Docker Engine and Docker Compose;
 - Google Chrome stable, `socat`, and a graphical session;
 - access to the private GHCR images;
+- Bash, Python 3, `flock` (util-linux), and Node.js 24/npm when Supabase is enabled;
 - a production environment file outside Git.
 
 ### Install Chrome CDP Services
@@ -536,11 +538,17 @@ The script:
 1. validates the environment and immutable image digests;
 2. verifies Chrome CDP and available disk space;
 3. backs up PostgreSQL when it is already running;
-4. pulls the release images;
-5. applies Supabase migrations when enabled;
-6. runs Alembic migrations;
-7. starts services in dependency order and waits for health checks;
-8. updates the `current` release symlink after success.
+4. verifies a release-specific migration review and separate Supabase backup evidence;
+5. pulls images, starts PostgreSQL/RabbitMQ, and explicitly waits for health;
+6. applies Supabase migrations when enabled, then one-shot Flyway and Alembic;
+7. replaces APIs and waits for readiness, then starts Worker, Beat, and Admin;
+8. validates health before updating `current` and `current-version`.
+
+Review and export the required approval variables **before running deployment**.
+See [migration review and recovery](deploy/MIGRATIONS.md) for the review token,
+Supabase backup attestation, configurable timeouts, first-install confirmation,
+and application rollback limits. Docker PostgreSQL backups do not cover Supabase.
+Normal production API startup never runs Flyway; Hibernate only validates.
 
 Production operation commands for CDP, backups, RabbitMQ, logs, health checks,
 and deployment verification are collected in

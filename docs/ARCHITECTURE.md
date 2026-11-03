@@ -174,6 +174,7 @@ flowchart LR
     ExecutorApi["Container<br/>Executor API<br/>FastAPI and Rabbit subscriber"]
     Worker["Container<br/>Executor Worker<br/>Celery and Playwright"]
     Beat["Container<br/>Executor Beat<br/>Periodic scheduler"]
+    ApiMigrate["Container<br/>Backend Migrate<br/>One-shot Flyway process"]
     Migrate["Container<br/>Executor Migrate<br/>One-shot Alembic process"]
     Rabbit[("Container<br/>RabbitMQ")]
     Postgres[("Container<br/>PostgreSQL")]
@@ -191,7 +192,8 @@ flowchart LR
   Api -->|JPA / schema savis_api| Postgres
   ExecutorApi -->|SQLAlchemy / schema savis_executor| Postgres
   Worker -->|SQLAlchemy / schema savis_executor| Postgres
-  Migrate -->|Alembic migrations| Postgres
+  ApiMigrate -->|Flyway / schema savis_api| Postgres
+  Migrate -->|Alembic / schema savis_executor| Postgres
 
   Api -->|offer requests| Rabbit
   Rabbit -->|offer results and invalidations| Api
@@ -219,6 +221,7 @@ flowchart LR
 | `executor_api`       | Exposes offers/tasks and subscribes to offer requests          | `savis_executor` schema |
 | `executor_worker`    | Executes slow provider collection and refresh                  | `savis_executor` schema |
 | `executor_beat`      | Schedules due refreshes and stale-task cleanup                 | Celery schedule state   |
+| `backend_migrate`    | Applies forward-only API migrations                            | Flyway history table    |
 | `executor_migrate`   | Applies forward-only Executor migrations                       | Alembic version table   |
 | `postgres`           | Hosts independently owned API and Executor schemas             | Docker volume           |
 | `rabbitmq`           | Carries integration messages and Celery tasks                  | Durable broker data     |
@@ -1235,15 +1238,16 @@ flowchart LR
 
 | Owner          | Migration mechanism                                      | Runtime policy                      |
 | -------------- | -------------------------------------------------------- | ----------------------------------- |
-| SAVIS API      | Flyway under `savis-api/src/main/resources/db/migration` | Hibernate `ddl-auto=validate`       |
+| SAVIS API      | Flyway under `savis-api/src/main/resources/db/migration` | Explicit `backend_migrate`; Hibernate `validate` |
 | SAVIS Executor | Alembic under `savis-executor/alembic/versions`          | Explicit `executor_migrate` process |
 | Supabase       | SQL under `supabase/migrations`                          | Applied by Supabase CLI             |
 
-The current API migration chain runs from V1 to V13: commerce tables were added
+The current API migration chain runs from V1 to V18: commerce tables were added
 in V5 (orders), V8 (quotations) and V9 (invoices); V11–V13 introduce resources and
 link BOM components and Supply offers to them. Invoice retains a database foreign
 key to the source order public UUID; this does not permit cross-module repository
-access. Executor has an initial schema and a follow-up active-refresh uniqueness
+access. V14–V17 add quote requests and proposal details; V18 adds invoice
+payment status. Executor has an initial schema and a follow-up active-refresh uniqueness
 migration. Supabase has its own timestamped catalog/inbox/RPC migrations.
 
 API tests use H2 in PostgreSQL compatibility mode with
@@ -1436,15 +1440,21 @@ The production deployment script:
 1. validates the environment, release metadata, image digest format, and disk
    space;
 2. verifies Chrome and the relay;
-3. backs up the existing PostgreSQL database;
-4. pulls immutable images;
-5. applies Supabase migrations when enabled;
-6. runs Alembic before starting Executor processes;
-7. starts API and Executor API and waits for readiness;
-8. starts worker, Beat, and Admin;
-9. waits for Admin health before updating the `current` symlink.
+3. validates release-specific migration review and backs up existing PostgreSQL;
+4. checks separate Supabase backup evidence and pulls immutable images;
+5. starts PostgreSQL/RabbitMQ and explicitly waits for health;
+6. applies Supabase migrations when enabled;
+7. runs one-shot Flyway (`backend_migrate`) and Alembic (`executor_migrate`);
+8. replaces API and Executor API and waits for readiness;
+9. starts Worker, Beat, and Admin and verifies applicable health checks;
+10. promotes `current` and `current-version` after complete validation.
 
-Flyway runs as part of API startup before API readiness succeeds.
+Flyway runs in the same immutable API image through a dedicated `migrate`
+entrypoint without a Spring context. Normal API startup disables Flyway and
+Hibernate only validates. A release-specific review attests old/new compatibility
+and separate Supabase backup evidence before any migration. See the
+[migration and recovery procedure](../deploy/MIGRATIONS.md); application rollback
+never implies database restoration.
 
 ### Backup and Recovery
 

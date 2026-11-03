@@ -83,3 +83,13 @@ The existing local application database is not reset.
 La réception manuelle, la qualification et les propositions multiples appartiennent
 à `sales.quotation`. Voir le [contrat et les procédures QuoteRequest](../docs/integration/quote-request-implementation.md)
 pour les routes, migrations, tests et la reprise.
+
+## Production deployment safety
+
+Production and CI pin Supabase CLI 3.0.0. Hosted pushes use
+`--remote=<URL> --yes --skip-vault` with a preceding dry run, without
+`--include-all`, seeds, or roles. `SUPABASE_ENABLED=false` skips remote migration.
+The deployment requires explicit release-specific migration review and separate
+Supabase backup/restore evidence; the Docker PostgreSQL dump does not cover this
+database. Follow [deployment migrations and recovery](../deploy/MIGRATIONS.md).
+No automatic hosted restoration or migration-history repair is performed.

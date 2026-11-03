@@ -16,33 +16,6 @@ cleanup() {
 
 trap cleanup EXIT
 
-wait_for_completed() {
-  local service="$1"
-  local deadline=$((SECONDS + timeout_seconds))
-  local container_id
-  local exit_code
-
-  while (( SECONDS < deadline )); do
-    container_id="$("${compose[@]}" ps -q "${service}" 2>/dev/null || true)"
-    if [[ -n "${container_id}" ]]; then
-      exit_code="$(docker inspect -f '{{.State.ExitCode}}' "${container_id}")"
-      if [[ "${exit_code}" == "0" ]]; then
-        return 0
-      fi
-      if [[ "$(docker inspect -f '{{.State.Status}}' "${container_id}")" == "exited" ]]; then
-        echo "${service} exited with code ${exit_code}."
-        "${compose[@]}" logs --no-color "${service}"
-        return 1
-      fi
-    fi
-    sleep 2
-  done
-
-  echo "Timed out waiting for ${service} to complete."
-  "${compose[@]}" logs --no-color "${service}"
-  return 1
-}
-
 wait_for_healthy() {
   local service="$1"
   local deadline=$((SECONDS + timeout_seconds))
@@ -75,13 +48,35 @@ psql() {
 }
 
 echo "Starting PostgreSQL database smoke stack..."
-"${compose[@]}" up -d --build postgres rabbitmq executor_migrate backend_api
+"${compose[@]}" up -d --build postgres rabbitmq
+"${compose[@]}" build backend_migrate backend_api executor_migrate
+wait_for_healthy postgres
+wait_for_healthy rabbitmq
 
-echo "Waiting for Alembic migrations..."
-wait_for_completed executor_migrate
+# Blocking one-shot runs propagate nonzero exit codes and must be repeatable.
+"${compose[@]}" run --rm --no-deps backend_migrate
+api_history="$(psql -Atc "select count(*) from savis_api.flyway_schema_history")"
+"${compose[@]}" run --rm --no-deps executor_migrate
+"${compose[@]}" run --rm --no-deps backend_migrate
+"${compose[@]}" run --rm --no-deps executor_migrate
+[[ "$(psql -Atc "select count(*) from savis_api.flyway_schema_history")" == "${api_history}" ]]
+[[ "$(psql -Atc "select count(*) from savis_executor.alembic_version")" == 1 ]]
 
-echo "Waiting for Spring Boot readiness after Flyway/JPA validation..."
+# A failed connection must produce a failing process for each migrator.
+if "${compose[@]}" run --rm --no-deps -e SPRING_DATASOURCE_URL=jdbc:postgresql://127.0.0.1:1/savis backend_migrate; then
+  echo "Flyway unexpectedly succeeded against an unavailable database"; exit 1
+fi
+if "${compose[@]}" run --rm --no-deps -e DATABASE_URL=postgresql+psycopg://savis:savis@127.0.0.1:1/savis executor_migrate; then
+  echo "Alembic unexpectedly succeeded against an unavailable database"; exit 1
+fi
+"${compose[@]}" up -d --no-deps backend_api
+
+echo "Waiting for Spring Boot readiness after separate migrations/JPA validation..."
 wait_for_healthy backend_api
+
+if "${compose[@]}" logs --no-color backend_api | grep -Fq 'org.flywaydb'; then
+  echo "Flyway must not execute during normal API startup"; exit 1
+fi
 
 echo "Checking migrated schemas..."
 psql -c "select schema_name from information_schema.schemata where schema_name in ('savis_api', 'savis_executor') order by schema_name;"

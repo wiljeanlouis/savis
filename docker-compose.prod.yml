@@ -35,6 +35,8 @@ services:
   executor_migrate:
     image: ${SAVIS_EXECUTOR_IMAGE:?SAVIS_EXECUTOR_IMAGE is required}
     command: ["alembic", "upgrade", "head"]
+    healthcheck:
+      disable: true
     restart: "no"
     environment: &executor_environment
       RABBIT_MQ_URL: amqp://${RABBIT_MQ_USER}:${RABBIT_MQ_PASSWORD}@rabbitmq:5672/%2f
@@ -45,13 +47,28 @@ services:
         condition: service_healthy
     networks: [backend]
 
+  backend_migrate:
+    image: ${SAVIS_API_IMAGE:?SAVIS_API_IMAGE is required}
+    command: ["migrate"]
+    restart: "no"
+    healthcheck:
+      disable: true
+    environment: &backend_database
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/${DB_NAME}
+      SPRING_DATASOURCE_USERNAME: ${DB_USER}
+      SPRING_DATASOURCE_PASSWORD: ${DB_PASSWORD}
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks: [backend]
+
   backend_api:
     image: ${SAVIS_API_IMAGE:?SAVIS_API_IMAGE is required}
     restart: unless-stopped
     environment:
-      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/${DB_NAME}
-      SPRING_DATASOURCE_USERNAME: ${DB_USER}
-      SPRING_DATASOURCE_PASSWORD: ${DB_PASSWORD}
+      <<: *backend_database
+      SPRING_FLYWAY_ENABLED: "false"
+      SPRING_JPA_HIBERNATE_DDL_AUTO: validate
       SPRING_RABBITMQ_HOST: rabbitmq
       SPRING_RABBITMQ_PORT: "5672"
       SPRING_RABBITMQ_USERNAME: ${RABBIT_MQ_USER}
@@ -60,6 +77,8 @@ services:
       SUPABASE_URL: ${SUPABASE_URL:-}
       SUPABASE_SERVICE_ROLE_KEY: ${SUPABASE_SERVICE_ROLE_KEY:-}
     depends_on:
+      backend_migrate:
+        condition: service_completed_successfully
       postgres:
         condition: service_healthy
       rabbitmq:
@@ -92,6 +111,12 @@ services:
     networks: [backend]
 
   executor_worker:
+    healthcheck:
+      test: ["CMD-SHELL", "celery -A app.adapters.celery.celery_app inspect ping --destination celery@$$HOSTNAME --timeout 5 | grep -q pong"]
+      interval: 30s
+      timeout: 10s
+      start_period: 60s
+      retries: 5
     image: ${SAVIS_EXECUTOR_IMAGE:?SAVIS_EXECUTOR_IMAGE is required}
     command:
       [
@@ -123,6 +148,8 @@ services:
     networks: [backend]
 
   executor_beat:
+    healthcheck:
+      disable: true
     image: ${SAVIS_EXECUTOR_IMAGE:?SAVIS_EXECUTOR_IMAGE is required}
     command:
       [

@@ -281,3 +281,12 @@ Verify after deployment:
 curl --fail http://127.0.0.1:8088/health
 $COMPOSE ps
 ```
+
+## Migration review and application rollback
+
+Before deploying, follow [MIGRATIONS.md](MIGRATIONS.md): release-specific
+compatibility approval, separate Supabase backup attestation, one-shot Flyway and
+Alembic, and configurable health deadlines are required. `backend_migrate` uses
+the API image command `migrate`; normal production API startup disables Flyway.
+Rollback changes application images only and requires compatibility with the
+current database. It never restores either database automatically.

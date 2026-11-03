@@ -122,15 +122,17 @@ jobs:
           SAVIS_ADMIN_IMAGE: ghcr.io/wiljeanlouis/savis-admin@sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb
           SAVIS_EXECUTOR_IMAGE: ghcr.io/wiljeanlouis/savis-executor@sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
         run: docker compose -f docker-compose.prod.yml config --quiet
+      - name: Test deployment orchestration
+        run: python3 -m unittest discover -s test/deploy -v
       - name: Start local Supabase
-        run: npx --yes supabase start
+        run: npx --yes supabase@3.0.0 start
       - name: Lint Supabase migrations
-        run: npx --yes supabase db lint --local --level warning
+        run: npx --yes supabase@3.0.0 db lint --level warning
       - name: Test Supabase contracts and concurrency in a disposable database
         run: python3 test/integration/quote_requests_supabase.py
       - name: Stop local Supabase
         if: always()
-        run: npx --yes supabase stop --no-backup
+        run: npx --yes supabase@3.0.0 stop --no-backup
 
   result:
     name: CI successful

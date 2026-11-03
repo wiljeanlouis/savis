@@ -35,8 +35,8 @@ try:
     assert results[0].strip() == results[1].strip(), "concurrent submissions must return one reception"
     assert sql("select count(*) from public.quote_requests;").strip() == "1", "one durable reception expected"
     if os.environ.get("SAVIS_TEST_SUPABASE_LINT") == "1":
-        subprocess.run(["npx", "--yes", "supabase", "db", "lint", "--db-url",
-                        f"postgresql://postgres:postgres@127.0.0.1:54322/{database}", "--level", "warning"], cwd=root, check=True)
+        subprocess.run(["npx", "--yes", "supabase@3.0.0", "db", "lint",
+                        f"--remote=postgresql://postgres:postgres@127.0.0.1:54322/{database}", "--level", "warning"], cwd=root, check=True)
     print("ok - complete migrations, SQL contracts, privileges and concurrent submissions", flush=True)
 finally:
     subprocess.run(["docker", "exec", container, "dropdb", "-U", "postgres", database], check=True)
