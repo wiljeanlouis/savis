@@ -248,6 +248,16 @@ describe("Sales workspace", () => {
     ).toContainElement(
       screen.getByText("1 branche facturée · 1 soumission en attente"),
     );
+    const dossierDetails = screen.getByTestId("workspace-dossier-details");
+    expect(dossierDetails).toContainElement(
+      screen.getByRole("link", { name: "DEM-11111111" }),
+    );
+    expect(dossierDetails).toContainElement(
+      screen.getByText("1 branche facturée · 1 soumission en attente"),
+    );
+    expect(dossierDetails).toContainElement(
+      screen.getByText(/Dernière activité/),
+    );
     expect(
       screen.getByText("Marie Tremblay").closest("article"),
     ).toContainElement(screen.getByText(/Dernière activité/));
@@ -293,6 +303,21 @@ describe("Sales workspace", () => {
     expect(
       screen.getByRole("link", { name: "Préparer une soumission" }),
     ).toBeInTheDocument();
+    const requestHeader = screen
+      .getByRole("link", { name: "DEM-11111111" })
+      .closest('[data-testid="workspace-node-header"]');
+    expect(requestHeader).toHaveClass("flex", "flex-wrap");
+    expect(requestHeader).toContainElement(
+      screen.getByRole("link", { name: "Préparer une soumission" }),
+    );
+    expect(requestHeader).toContainElement(
+      screen.getByRole("button", {
+        name: "Afficher ou masquer les documents liés à DEM-11111111",
+      }),
+    );
+    expect(
+      requestHeader?.querySelector('[data-testid="workspace-node-controls"]'),
+    ).toHaveClass("flex", "flex-wrap", "gap-1");
     expect(
       screen.getByRole("link", { name: "Reprendre le brouillon" }),
     ).toBeInTheDocument();
@@ -432,7 +457,7 @@ describe("Sales workspace", () => {
       formatBusinessDate("2026-01-30T12:00:00Z"),
     );
     expect(invoiceDetails).toHaveTextContent("Non payée");
-    expect(invoiceDetails).toHaveTextContent("Date non disponible");
+    expect(invoiceDetails).not.toHaveTextContent("Date non disponible");
     expect(invoiceDetails?.querySelectorAll("time")).toHaveLength(1);
     expect(screen.queryByText("Facturation :")).not.toBeInTheDocument();
     expect(screen.queryByText("Paiement :")).not.toBeInTheDocument();

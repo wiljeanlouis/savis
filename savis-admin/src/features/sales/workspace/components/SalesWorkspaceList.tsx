@@ -59,7 +59,7 @@ export function SalesWorkspaceList({
               return (
                 <article
                   key={dossier.id}
-                  className="flex flex-col gap-2 rounded-md border p-3 sm:flex-row sm:items-center sm:gap-3 sm:py-2.5"
+                  className="flex items-start gap-3 rounded-md border p-3 sm:py-2.5"
                 >
                   <HugeiconsIcon
                     icon={Folder01Icon}
@@ -67,7 +67,10 @@ export function SalesWorkspaceList({
                     strokeWidth={2}
                     aria-hidden="true"
                   />
-                  <div className="min-w-0 flex-1 space-y-0.5">
+                  <div
+                    className="min-w-0 flex-1 space-y-0.5"
+                    data-testid="workspace-dossier-details"
+                  >
                     <div className="flex min-w-0 flex-col items-start gap-y-0.5">
                       <span className="break-words font-medium">
                         {dossier.customerName}
@@ -79,21 +82,15 @@ export function SalesWorkspaceList({
                         {dossier.reference}
                       </Link>
                     </div>
-                    {dossier.description && (
-                      <p className="break-words text-sm text-muted-foreground">
-                        {dossier.description}
-                      </p>
-                    )}
-                  </div>
-                  <div className="flex min-w-0 flex-col gap-0.5 text-sm sm:items-end sm:text-right">
-                    <span className="break-words font-medium">
+
+                    <p className="break-words text-sm font-medium">
                       {dossier.situation}
-                    </span>
-                    <span className="text-muted-foreground">
+                    </p>
+                    <p className="break-words text-sm text-muted-foreground">
                       {dossier.lastActivity
                         ? `Dernière activité · ${formatOrderDate(dossier.lastActivity)}`
                         : "Aucune activité datée"}
-                    </span>
+                    </p>
                   </div>
                 </article>
               );

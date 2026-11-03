@@ -41,7 +41,10 @@ export function SalesWorkspaceBranch({
   return (
     <Collapsible open={isOpen} onOpenChange={setIsOpen}>
       <div className="min-w-0 py-2">
-        <div className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-x-3 gap-y-2">
+        <div
+          className="flex flex-wrap items-start gap-x-3 gap-y-2"
+          data-testid="workspace-node-header"
+        >
           <div className="min-w-0 space-y-1">
             <div className="flex min-w-0 flex-wrap items-center gap-x-3 gap-y-1">
               <span className="flex shrink-0 items-center gap-1.5 text-xs font-medium uppercase tracking-wide text-muted-foreground">
@@ -93,7 +96,10 @@ export function SalesWorkspaceBranch({
               </p>
             ))}
           </div>
-          <div className="flex min-w-10 items-center justify-end gap-1">
+          <div
+            className="flex flex-wrap items-center gap-1"
+            data-testid="workspace-node-controls"
+          >
             {branch.action && branch.actionUrl && !isConsultationAction && (
               <Button asChild variant="outline">
                 <Link to={withReturnTo(branch.actionUrl, returnTo)}>
@@ -204,7 +210,9 @@ function InvoiceStatusDetails({
         ) : (
           <UnavailableStatusBadge />
         )}
-        <StatusDate value={branch.paidAt} />
+        {branch.paymentStatus !== "UNPAID" && (
+          <StatusDate value={branch.paidAt} />
+        )}
       </p>
     </div>
   );
