@@ -239,7 +239,11 @@ describe("Sales workspace", () => {
     expect(searchAndFilters).toHaveClass("sm:flex-row");
 
     expect(screen.getByText("Marie Tremblay")).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: "DEM-11111111" })).toHaveAttribute(
+    expect(
+      screen.getByRole("link", {
+        name: "Ouvrir le dossier DEM-11111111 pour Marie Tremblay",
+      }),
+    ).toHaveAttribute(
       "href",
       `/sales/workspace/REQUEST%3A11111111-1111-4111-8111-111111111111${listSearch}`,
     );
@@ -249,9 +253,7 @@ describe("Sales workspace", () => {
       screen.getByText("1 branche facturée · 1 soumission en attente"),
     );
     const dossierDetails = screen.getByTestId("workspace-dossier-details");
-    expect(dossierDetails).toContainElement(
-      screen.getByRole("link", { name: "DEM-11111111" }),
-    );
+    expect(dossierDetails).toHaveTextContent("DEM-11111111");
     expect(dossierDetails).toContainElement(
       screen.getByText("1 branche facturée · 1 soumission en attente"),
     );
@@ -265,7 +267,9 @@ describe("Sales workspace", () => {
       screen.queryByRole("button", { name: "Ouvrir le dossier" }),
     ).not.toBeInTheDocument();
 
-    const dossierLink = screen.getByRole("link", { name: "DEM-11111111" });
+    const dossierLink = screen.getByRole("link", {
+      name: "Ouvrir le dossier DEM-11111111 pour Marie Tremblay",
+    });
     const user = userEvent.setup();
     for (let tabCount = 0; tabCount < 20; tabCount += 1) {
       if (document.activeElement === dossierLink) break;
@@ -334,6 +338,16 @@ describe("Sales workspace", () => {
     expect(screen.getByText("CMD-0025")).toBeInTheDocument();
     expect(screen.getByText("Émise")).toBeInTheDocument();
     expect(screen.getAllByText("Payée")).toHaveLength(1);
+    expect(screen.getByText("Payée")).toHaveClass(
+      "border-emerald-600/40",
+      "bg-emerald-50",
+      "text-emerald-800",
+    );
+    expect(screen.getByText("Émise")).toHaveClass(
+      "border-blue-600/40",
+      "bg-blue-50",
+      "text-blue-800",
+    );
     expect(screen.queryByText("Facturation :")).not.toBeInTheDocument();
     expect(screen.queryByText("Paiement :")).not.toBeInTheDocument();
     expect(screen.queryByText("PAI-0004")).not.toBeInTheDocument();
@@ -448,7 +462,11 @@ describe("Sales workspace", () => {
     invoiceData.children = [];
 
     mount();
-    fireEvent.click(screen.getByRole("link", { name: "DEM-11111111" }));
+    fireEvent.click(
+      screen.getByRole("link", {
+        name: "Ouvrir le dossier DEM-11111111 pour Marie Tremblay",
+      }),
+    );
     await screen.findByText("FAC-0009");
 
     const invoiceDetails =
@@ -457,6 +475,11 @@ describe("Sales workspace", () => {
       formatBusinessDate("2026-01-30T12:00:00Z"),
     );
     expect(invoiceDetails).toHaveTextContent("Non payée");
+    expect(screen.getByText("Non payée")).toHaveClass(
+      "border-amber-600/40",
+      "bg-amber-50",
+      "text-amber-800",
+    );
     expect(invoiceDetails).not.toHaveTextContent("Date non disponible");
     expect(invoiceDetails?.querySelectorAll("time")).toHaveLength(1);
     expect(screen.queryByText("Facturation :")).not.toBeInTheDocument();
@@ -473,7 +496,11 @@ describe("Sales workspace", () => {
     invoiceData.paidAt = null;
 
     mount();
-    fireEvent.click(screen.getByRole("link", { name: "DEM-11111111" }));
+    fireEvent.click(
+      screen.getByRole("link", {
+        name: "Ouvrir le dossier DEM-11111111 pour Marie Tremblay",
+      }),
+    );
     await screen.findByText("FAC-0009");
 
     const invoiceDetails =
@@ -490,7 +517,9 @@ describe("Sales workspace", () => {
       name: "Résultats par page",
     });
     const dossierCount = screen.getByText("1 dossier");
-    const dossierLink = screen.getByRole("link", { name: "DEM-11111111" });
+    const dossierLink = screen.getByRole("link", {
+      name: "Ouvrir le dossier DEM-11111111 pour Marie Tremblay",
+    });
 
     expect(
       dossierCount.compareDocumentPosition(pageSelector) &
@@ -517,7 +546,11 @@ describe("Sales workspace", () => {
 
   it("offre des branches repliables avec des statuts traduits", async () => {
     mount();
-    fireEvent.click(screen.getByRole("link", { name: "DEM-11111111" }));
+    fireEvent.click(
+      screen.getByRole("link", {
+        name: "Ouvrir le dossier DEM-11111111 pour Marie Tremblay",
+      }),
+    );
     await screen.findByText("SOU-0018");
     fireEvent.click(
       screen.getByRole("button", {
@@ -532,7 +565,11 @@ describe("Sales workspace", () => {
 
   it("affiche des chevrons accessibles et garde les branches indépendantes", async () => {
     const router = mount();
-    fireEvent.click(screen.getByRole("link", { name: "DEM-11111111" }));
+    fireEvent.click(
+      screen.getByRole("link", {
+        name: "Ouvrir le dossier DEM-11111111 pour Marie Tremblay",
+      }),
+    );
 
     const rootToggle = await screen.findByRole("button", {
       name: "Afficher ou masquer les documents liés à DEM-11111111",
@@ -617,9 +654,13 @@ describe("Sales workspace", () => {
     expect(screen.getByText("CMD-0025")).toBeInTheDocument();
   });
 
-  it("navigue depuis une référence sans activer le contrôle de repliage", async () => {
+  it("ouvre le dossier et navigue dans les documents sans activer le repliage", async () => {
     const router = mount();
-    fireEvent.click(screen.getByRole("link", { name: "DEM-11111111" }));
+    fireEvent.click(
+      screen.getByRole("link", {
+        name: "Ouvrir le dossier DEM-11111111 pour Marie Tremblay",
+      }),
+    );
     await screen.findByRole("button", {
       name: "Afficher ou masquer les documents liés à DEM-11111111",
     });
