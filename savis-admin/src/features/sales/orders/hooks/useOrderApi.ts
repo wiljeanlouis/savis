@@ -67,7 +67,10 @@ export const useImportOrders = () => {
   return useMutation({
     mutationFn: importOrders,
     onSuccess: async () => {
-      await client.invalidateQueries({ queryKey: ORDERS_QUERY_KEY });
+      await Promise.all([
+        client.invalidateQueries({ queryKey: ORDERS_QUERY_KEY }),
+        client.invalidateQueries({ queryKey: ["sales", "workspace"] }),
+      ]);
     },
   });
 };

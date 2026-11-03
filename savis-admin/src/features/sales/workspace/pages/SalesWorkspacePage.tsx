@@ -8,9 +8,11 @@ import { SalesWorkspaceFilters } from "../components/SalesWorkspaceFilters";
 import { SalesWorkspaceList } from "../components/SalesWorkspaceList";
 import { useSalesWorkspace } from "../hooks/useSalesWorkspace";
 import { useSalesWorkspaceDossier } from "../hooks/useSalesWorkspaceDossier";
+import { useOrderManagement } from "@/features/sales/orders/hooks/useOrderManagement";
 
 export function SalesWorkspacePage() {
   const location = useLocation();
+  const { isImporting, retrieveWebOrders } = useOrderManagement();
   const {
     page,
     size,
@@ -36,10 +38,19 @@ export function SalesWorkspacePage() {
             Retrouvez les demandes, soumissions, commandes et factures liées.
           </p>
         </div>
-        <Button disabled={importer.isPending} onClick={startImport}>
-          {importer.isPending ? <Spinner /> : null}
-          {importer.isPending ? "Importation…" : "Importer les demandes"}
-        </Button>
+        <div className="flex flex-wrap gap-2">
+          <Button disabled={importer.isPending} onClick={startImport}>
+            {importer.isPending ? <Spinner /> : null}
+            {importer.isPending ? "Importation…" : "Importer les demandes"}
+          </Button>
+          <Button
+            disabled={isImporting}
+            onClick={() => void retrieveWebOrders()}
+          >
+            {isImporting ? <Spinner /> : null}
+            {isImporting ? "Importation…" : "Importer commandes web"}
+          </Button>
+        </div>
       </div>
 
       {importer.isError && (

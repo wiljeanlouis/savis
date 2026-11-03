@@ -11,6 +11,7 @@ import { beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 const mocks = vi.hoisted(() => ({
   useQuery: vi.fn(),
   mutate: vi.fn(),
+  mutateAsync: vi.fn(),
   invalidateQueries: vi.fn(),
 }));
 
@@ -18,6 +19,7 @@ vi.mock("@tanstack/react-query", () => ({
   useQuery: mocks.useQuery,
   useMutation: () => ({
     mutate: mocks.mutate,
+    mutateAsync: mocks.mutateAsync,
     isPending: false,
     isError: false,
   }),
@@ -168,6 +170,14 @@ function mount(initialEntry = "/sales/workspace") {
 describe("Sales workspace", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mocks.mutateAsync.mockResolvedValue({
+      fetchedCount: 0,
+      importedCount: 0,
+      alreadyImportedCount: 0,
+      failedCount: 0,
+      acknowledgmentFailedCount: 0,
+      failures: [],
+    });
     dossier = structuredClone(dossierFixture);
     mocks.useQuery.mockImplementation(
       ({ queryKey }: { queryKey: unknown[] }) =>
@@ -193,6 +203,18 @@ describe("Sales workspace", () => {
               },
             },
     );
+  });
+
+  it("permet d’importer les commandes web depuis les dossiers commerciaux", async () => {
+    const user = userEvent.setup();
+    mount();
+
+    await user.click(
+      screen.getByRole("button", { name: "Importer commandes web" }),
+    );
+
+    expect(mocks.mutateAsync).toHaveBeenCalledOnce();
+    expect(mocks.mutate).not.toHaveBeenCalled();
   });
 
   it("rend le dossier identifiable et conserve le contexte de la liste", async () => {
