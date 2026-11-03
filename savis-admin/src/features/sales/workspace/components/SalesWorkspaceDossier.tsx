@@ -1,5 +1,3 @@
-import { ArrowLeft01Icon, Folder01Icon } from "@hugeicons/core-free-icons";
-import { HugeiconsIcon } from "@hugeicons/react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/shared/ui/card";
 import { Link } from "react-router";
 import { formatOrderDate } from "../../orders/types";
@@ -22,21 +20,9 @@ export function SalesWorkspaceDossier({
           className="inline-flex min-h-9 items-center gap-2 rounded-sm text-sm text-muted-foreground underline-offset-4 hover:text-foreground hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
           to={{ pathname: "/sales/workspace", search: listSearch }}
         >
-          <HugeiconsIcon
-            icon={ArrowLeft01Icon}
-            className="size-4"
-            strokeWidth={2}
-            aria-hidden="true"
-          />
-          Tous les dossiers
+          ← Tous les dossiers
         </Link>
-        <div className="flex min-w-0 items-start gap-3">
-          <HugeiconsIcon
-            icon={Folder01Icon}
-            className="mt-1 size-6 shrink-0 text-muted-foreground"
-            strokeWidth={2}
-            aria-hidden="true"
-          />
+        <div className="flex justify-between min-w-0 items-start gap-3">
           <div className="min-w-0">
             <h1 className="break-words text-2xl font-semibold tracking-tight">
               {dossier.customerName}
@@ -47,10 +33,12 @@ export function SalesWorkspaceDossier({
               </span>
               {dossier.description ? ` · ${dossier.description}` : ""}
             </p>
-            <p className="mt-2 break-words text-sm font-medium">
+          </div>
+          <div>
+            <p className="mt-2 break-words text-sm font-medium sm:text-right">
               {dossier.situation}
             </p>
-            <p className="mt-1 text-sm text-muted-foreground">
+            <p className="mt-1 text-sm text-muted-foreground sm:text-right">
               {dossier.lastActivity
                 ? `Dernière activité · ${formatOrderDate(dossier.lastActivity)}`
                 : "Aucune activité datée"}

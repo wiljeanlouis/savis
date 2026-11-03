@@ -69,12 +69,9 @@ export function SalesWorkspaceList({
                   />
                   <div className="min-w-0 flex-1 space-y-0.5">
                     <div className="flex min-w-0 flex-col items-start gap-y-0.5">
-                      <Link
-                        className="rounded-sm font-medium text-foreground underline-offset-4 hover:text-primary hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
-                        to={dossierLocation}
-                      >
+                      <span className="break-words font-medium">
                         {dossier.customerName}
-                      </Link>
+                      </span>
                       <Link
                         className="rounded-sm text-sm text-primary underline-offset-4 hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
                         to={dossierLocation}
