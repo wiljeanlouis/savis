@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.14.0](https://github.com/wiljeanlouis/savis/compare/v1.13.2...v1.14.0) (2026-11-03)
+
+
+### Features
+
+* improve sale module by adding quoteRequest importation and Sales journey ([e744052](https://github.com/wiljeanlouis/savis/commit/e744052987d2983907ef729b76a061a9e0bb2e08))
+
 ## [1.13.2](https://github.com/wiljeanlouis/savis/compare/v1.13.1...v1.13.2) (2026-11-01)
 
 
