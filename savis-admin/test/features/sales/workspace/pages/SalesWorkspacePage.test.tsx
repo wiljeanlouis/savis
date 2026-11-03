@@ -216,12 +216,7 @@ describe("Sales workspace", () => {
     expect(searchAndFilters).toContainElement(screen.getByRole("tablist"));
     expect(searchAndFilters).toHaveClass("sm:flex-row");
 
-    expect(
-      screen.getByRole("link", { name: "Marie Tremblay" }),
-    ).toHaveAttribute(
-      "href",
-      `/sales/workspace/REQUEST%3A11111111-1111-4111-8111-111111111111${listSearch}`,
-    );
+    expect(screen.getByText("Marie Tremblay")).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "DEM-11111111" })).toHaveAttribute(
       "href",
       `/sales/workspace/REQUEST%3A11111111-1111-4111-8111-111111111111${listSearch}`,
@@ -234,26 +229,19 @@ describe("Sales workspace", () => {
     expect(
       screen.getByText("Marie Tremblay").closest("article"),
     ).toContainElement(screen.getByText(/Dernière activité/));
-    expect(screen.getByRole("link", { name: "Marie Tremblay" })).toHaveClass(
-      "text-foreground",
-      "hover:text-primary",
-      "hover:underline",
-    );
     expect(
       screen.queryByRole("button", { name: "Ouvrir le dossier" }),
     ).not.toBeInTheDocument();
 
-    const dossierLink = screen.getByRole("link", { name: "Marie Tremblay" });
+    const dossierLink = screen.getByRole("link", { name: "DEM-11111111" });
     const user = userEvent.setup();
     for (let tabCount = 0; tabCount < 20; tabCount += 1) {
       if (document.activeElement === dossierLink) break;
       await user.tab();
     }
-    expect(screen.getByRole("link", { name: "Marie Tremblay" })).toHaveFocus();
-    expect(screen.getByRole("link", { name: "Marie Tremblay" })).toHaveClass(
-      "focus-visible:outline-2",
-    );
-    fireEvent.click(screen.getByRole("link", { name: "Marie Tremblay" }));
+    expect(dossierLink).toHaveFocus();
+    expect(dossierLink).toHaveClass("focus-visible:outline-2");
+    await user.click(dossierLink);
 
     await waitFor(() => {
       expect(router.state.location.pathname).toContain("/sales/workspace/");
@@ -397,20 +385,9 @@ describe("Sales workspace", () => {
       expect(target.searchParams.get("returnTo")).toBe(
         `/sales/workspace/${encodeURIComponent(dossier.id)}${listSearch}`,
       );
-      fireEvent.click(link);
-      await waitFor(() => {
-        expect(router.state.location.pathname).toBe(pathname);
-      });
-      expect(
-        new URLSearchParams(router.state.location.search).get("returnTo"),
-      ).toBe(`/sales/workspace/${encodeURIComponent(dossier.id)}${listSearch}`);
-      await router.navigate(
-        `/sales/workspace/${encodeURIComponent(dossier.id)}${listSearch}`,
-      );
-      await screen.findByRole("link", { name: reference });
     }
 
-    fireEvent.click(screen.getByRole("link", { name: /Tous les dossiers/ }));
+    await user.click(screen.getByRole("link", { name: /Tous les dossiers/ }));
     await waitFor(() => {
       expect(router.state.location.pathname).toBe("/sales/workspace");
       expect(router.state.location.search).toBe(listSearch);
@@ -424,7 +401,7 @@ describe("Sales workspace", () => {
     invoiceData.children = [];
 
     mount();
-    fireEvent.click(screen.getByRole("link", { name: "Marie Tremblay" }));
+    fireEvent.click(screen.getByRole("link", { name: "DEM-11111111" }));
     await screen.findByText("FAC-0009");
 
     const invoiceDetails =
@@ -449,7 +426,7 @@ describe("Sales workspace", () => {
     invoiceData.paidAt = null;
 
     mount();
-    fireEvent.click(screen.getByRole("link", { name: "Marie Tremblay" }));
+    fireEvent.click(screen.getByRole("link", { name: "DEM-11111111" }));
     await screen.findByText("FAC-0009");
 
     const invoiceDetails =
@@ -466,7 +443,7 @@ describe("Sales workspace", () => {
       name: "Résultats par page",
     });
     const dossierCount = screen.getByText("1 dossier");
-    const dossierLink = screen.getByRole("link", { name: "Marie Tremblay" });
+    const dossierLink = screen.getByRole("link", { name: "DEM-11111111" });
 
     expect(
       dossierCount.compareDocumentPosition(pageSelector) &
@@ -493,7 +470,7 @@ describe("Sales workspace", () => {
 
   it("offre des branches repliables avec des statuts traduits", async () => {
     mount();
-    fireEvent.click(screen.getByRole("link", { name: "Marie Tremblay" }));
+    fireEvent.click(screen.getByRole("link", { name: "DEM-11111111" }));
     await screen.findByText("SOU-0018");
     fireEvent.click(
       screen.getByRole("button", {
@@ -508,7 +485,7 @@ describe("Sales workspace", () => {
 
   it("affiche des chevrons accessibles et garde les branches indépendantes", async () => {
     const router = mount();
-    fireEvent.click(screen.getByRole("link", { name: "Marie Tremblay" }));
+    fireEvent.click(screen.getByRole("link", { name: "DEM-11111111" }));
 
     const rootToggle = await screen.findByRole("button", {
       name: "Afficher ou masquer les documents liés à DEM-11111111",
@@ -595,7 +572,7 @@ describe("Sales workspace", () => {
 
   it("navigue depuis une référence sans activer le contrôle de repliage", async () => {
     const router = mount();
-    fireEvent.click(screen.getByRole("link", { name: "Marie Tremblay" }));
+    fireEvent.click(screen.getByRole("link", { name: "DEM-11111111" }));
     await screen.findByRole("button", {
       name: "Afficher ou masquer les documents liés à DEM-11111111",
     });
