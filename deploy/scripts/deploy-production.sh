@@ -110,10 +110,7 @@ logged curl --fail --silent --show-error --connect-timeout 5 --max-time 10 http:
 
 previous_version=none
 [[ ! -f "${deploy_root}/current-version" ]] || read -r previous_version <"${deploy_root}/current-version"
-fingerprint="$(python3 "${safety}" fingerprint "${release_dir}")"
-review_token="${SAVIS_VERSION}:${previous_version}:${fingerprint}"
 python3 "${safety}" report "${release_dir}"
-[[ "${SAVIS_MIGRATIONS_APPROVED_FOR:-}" == "${review_token}" ]] || fail "Review pending migrations for all three databases and compatibility with running applications; set SAVIS_MIGRATIONS_APPROVED_FOR=${review_token} after explicit validation (see deploy/MIGRATIONS.md)"
 
 phase=postgres-backup
 postgres_id="$(compose ps -aq postgres 2>"${log_file}")" || {
@@ -135,11 +132,10 @@ else
   [[ "${SAVIS_INITIAL_INSTALL:-false}" == true ]] || fail "No PostgreSQL container: explicitly verify first installation with SAVIS_INITIAL_INSTALL=true; otherwise recover the database container and back up first"
   echo "First install explicitly confirmed: no PostgreSQL container to back up."
 fi
-phase=supabase-backup-verification
+phase=supabase-configuration
 if [[ "${SUPABASE_ENABLED:-false}" == true ]]; then
   command -v npx >/dev/null 2>&1 || fail "npx is required for Supabase migrations"
   [[ -n "${SUPABASE_DB_URL:-}" ]] || fail "SUPABASE_DB_URL is required"
-  [[ "${SUPABASE_BACKUP_VERIFIED_FOR:-}" == "${review_token}" && -n "${SUPABASE_BACKUP_REFERENCE:-}" ]] || fail "Verify a separate Supabase backup and restoration procedure; set SUPABASE_BACKUP_VERIFIED_FOR to the review token and SUPABASE_BACKUP_REFERENCE to a non-secret evidence reference"
 fi
 
 phase=infrastructure

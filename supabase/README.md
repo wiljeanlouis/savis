@@ -89,7 +89,11 @@ pour les routes, migrations, tests et la reprise.
 Production and CI pin Supabase CLI 3.0.0. Hosted pushes use
 `--remote=<URL> --yes --skip-vault` with a preceding dry run, without
 `--include-all`, seeds, or roles. `SUPABASE_ENABLED=false` skips remote migration.
-The deployment requires explicit release-specific migration review and separate
-Supabase backup/restore evidence; the Docker PostgreSQL dump does not cover this
-database. Follow [deployment migrations and recovery](../deploy/MIGRATIONS.md).
-No automatic hosted restoration or migration-history repair is performed.
+The deployment reports potential destructive SQL as warnings only and does not
+require per-release migration approval or a Supabase backup attestation. The
+Docker PostgreSQL dump does not cover Supabase: raw customer orders and quote
+requests, their replay ledgers and inbox sync state, and optional notification
+state can exist only here until imported. Manage Supabase backup/restore
+protection separately; it is not a deployment gate. Follow
+[deployment migrations and recovery](../deploy/MIGRATIONS.md). No automatic
+hosted restoration or migration-history repair is performed.

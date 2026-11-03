@@ -31,7 +31,7 @@ if name == 'npx':
     dry = '--dry-run' in args
     with log.open('a') as f: f.write('supabase-plan\n' if dry else 'supabase-apply\n')
     print('postgresql://postgres:TOPSECRET@host/db TOPSECRET service-secret')
-    if os.environ.get('FAIL') == 'supabase' and not dry: sys.exit(12)
+    if os.environ.get('FAIL') == ('supabase-dry-run' if dry else 'supabase'): sys.exit(12)
     sys.exit(0)
 if name != 'docker': sys.exit(0)
 if args[0] == 'inspect':
@@ -63,6 +63,9 @@ if cmd == 'ps':
             print(service)
     sys.exit(0)
 if cmd == 'exec':
+    if os.environ.get('FAIL') == 'postgres-backup':
+        print('TOPSECRET postgresql://secret@host/db', file=sys.stderr)
+        sys.exit(14)
     print('fake-dump')
     sys.exit(0)
 if cmd in ('logs',):
@@ -108,14 +111,14 @@ class DeploymentTest(unittest.TestCase):
             path = self.bin / command
             path.write_text(DOUBLE)
             path.chmod(0o755)
-        token = 'v2.0.0:v1.0.0:' + SAFETY.fingerprint(self.release)
         self.env = dict(os.environ, PATH=str(self.bin) + os.pathsep + os.environ['PATH'],
                         SAVIS_ENV_FILE=str(self.envfile), SAVIS_DEPLOY_ROOT=str(self.deploy),
                         CALL_LOG=str(self.root / 'calls'), SUPABASE_ENABLED='true',
                         SUPABASE_DB_URL='postgresql://postgres:TOPSECRET@host/db',
-                        SAVIS_MIGRATIONS_APPROVED_FOR=token, SUPABASE_BACKUP_VERIFIED_FOR=token,
-                        SUPABASE_BACKUP_REFERENCE='verified-backup-ticket',
                         SAVIS_HEALTH_TIMEOUT_SECONDS='1', SAVIS_HEALTH_POLL_SECONDS='1')
+        self.env.pop('SAVIS_MIGRATIONS_APPROVED_FOR', None)
+        self.env.pop('SUPABASE_BACKUP_VERIFIED_FOR', None)
+        self.env.pop('SUPABASE_BACKUP_REFERENCE', None)
 
     def run_deploy(self, **changes):
         self.env.update(changes)
@@ -142,9 +145,24 @@ class DeploymentTest(unittest.TestCase):
         self.assertTrue(list((self.deploy / 'backups').glob('*.dump')))
 
     def test_supabase_disabled(self):
-        result, calls = self.run_deploy(SUPABASE_ENABLED='false', SUPABASE_DB_URL='', SUPABASE_BACKUP_VERIFIED_FOR='')
+        result, calls = self.run_deploy(SUPABASE_ENABLED='false', SUPABASE_DB_URL='')
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertNotIn('supabase', calls)
+
+    def test_supabase_dry_run_failure_stops_before_apply(self):
+        result, calls = self.run_deploy(FAIL='supabase-dry-run')
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn('supabase-plan', calls)
+        self.assertNotIn('supabase-apply', calls)
+        self.assertNotIn('migrate', calls)
+        self.assert_preserved()
+
+    def test_postgres_backup_failure_stops_before_migrations(self):
+        result, calls = self.run_deploy(FAIL='postgres-backup')
+        self.assertNotEqual(result.returncode, 0)
+        self.assertNotIn('supabase-plan', calls)
+        self.assertNotIn('migrate', calls)
+        self.assert_preserved()
 
     def test_migration_failures_stop_before_replacement(self):
         for service in ['supabase', 'backend_migrate', 'executor_migrate']:
@@ -168,24 +186,16 @@ class DeploymentTest(unittest.TestCase):
                 self.assertIn('application-replacement', result.stderr)
                 self.assert_preserved()
 
-    def test_missing_review_prevents_migrations(self):
-        result, calls = self.run_deploy(SAVIS_MIGRATIONS_APPROVED_FOR='')
-        self.assertNotEqual(result.returncode, 0)
-        self.assertNotIn('migrate', calls)
-        self.assert_preserved()
-
-    def test_missing_supabase_backup_prevents_migrations(self):
-        result, calls = self.run_deploy(SUPABASE_BACKUP_VERIFIED_FOR='')
-        self.assertNotEqual(result.returncode, 0)
-        self.assertNotIn('migrate', calls)
-        self.assert_preserved()
-
-    def test_review_invalidated_by_sql_change(self):
+    def test_potentially_destructive_sql_is_warning_only(self):
         (self.release / 'supabase/migrations/20990101000000_drop.sql').write_text('drop table customer_orders;')
         result, calls = self.run_deploy()
-        self.assertNotEqual(result.returncode, 0)
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn('WARNING: potential destructive SQL operation in 20990101000000_drop.sql', result.stdout)
         self.assertIn('20990101000000_drop.sql', result.stdout)
-        self.assertNotIn('migrate', calls)
+        self.assertIn('supabase-plan', calls)
+        self.assertIn('supabase-apply', calls)
+        self.assertIn('backend_migrate', calls)
+        self.assertIn('executor_migrate', calls)
 
     def test_redaction(self):
         with unittest.mock.patch.dict(os.environ, {'DB_PASSWORD': 'some:complex/password'}):

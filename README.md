@@ -538,17 +538,18 @@ The script:
 1. validates the environment and immutable image digests;
 2. verifies Chrome CDP and available disk space;
 3. backs up PostgreSQL when it is already running;
-4. verifies a release-specific migration review and separate Supabase backup evidence;
+4. reports potentially destructive Supabase SQL as warnings only;
 5. pulls images, starts PostgreSQL/RabbitMQ, and explicitly waits for health;
 6. applies Supabase migrations when enabled, then one-shot Flyway and Alembic;
 7. replaces APIs and waits for readiness, then starts Worker, Beat, and Admin;
 8. validates health before updating `current` and `current-version`.
 
-Review and export the required approval variables **before running deployment**.
-See [migration review and recovery](deploy/MIGRATIONS.md) for the review token,
-Supabase backup attestation, configurable timeouts, first-install confirmation,
-and application rollback limits. Docker PostgreSQL backups do not cover Supabase.
-Normal production API startup never runs Flyway; Hibernate only validates.
+No per-release migration approval or Supabase backup attestation is required.
+See [migration and recovery details](deploy/MIGRATIONS.md) for warning-only SQL
+detection, technical deployment gates, Supabase's non-reconstructible submission
+inboxes, configurable timeouts, first-install confirmation, and rollback limits.
+Docker PostgreSQL backups do not cover Supabase. Normal production API startup
+never runs Flyway; Hibernate only validates.
 
 Production operation commands for CDP, backups, RabbitMQ, logs, health checks,
 and deployment verification are collected in

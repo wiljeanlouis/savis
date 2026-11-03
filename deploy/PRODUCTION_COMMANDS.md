@@ -284,9 +284,11 @@ $COMPOSE ps
 
 ## Migration review and application rollback
 
-Before deploying, follow [MIGRATIONS.md](MIGRATIONS.md): release-specific
-compatibility approval, separate Supabase backup attestation, one-shot Flyway and
-Alembic, and configurable health deadlines are required. `backend_migrate` uses
-the API image command `migrate`; normal production API startup disables Flyway.
-Rollback changes application images only and requires compatibility with the
-current database. It never restores either database automatically.
+See [MIGRATIONS.md](MIGRATIONS.md) for the automated migration sequence,
+warning-only SQL detection, independent PostgreSQL backup, Supabase-only
+submission data and its recovery risks, one-shot Flyway and Alembic, and
+configurable health deadlines. No per-release human approval is required.
+`backend_migrate` uses the API image command `migrate`; normal production API
+startup disables Flyway. Rollback changes application images only and requires
+compatibility with the current database. It never restores either database
+automatically.
