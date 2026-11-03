@@ -46,12 +46,12 @@ Catégories disponibles :
 
 Sous-catégories actuellement disponibles pour Décoration :
 
-| Valeur SAVIS    | Libellé dans le formulaire | Code envoyé à la vitrine |
-| --------------- | -------------------------- | ------------------------ |
-| `DECORATIVE_ARCH` | Arche décorative          | `decorative-arch`        |
-| `CENTERPIECE`   | Centre de table            | `centerpiece`             |
-| `BIRTHDAY`      | Anniversaire               | `birthday`                |
-| `WEDDING`       | Mariage                    | `wedding`                 |
+| Valeur SAVIS      | Libellé dans le formulaire | Code envoyé à la vitrine |
+| ----------------- | -------------------------- | ------------------------ |
+| `DECORATIVE_ARCH` | Arche décorative           | `decorative-arch`        |
+| `CENTERPIECE`     | Centre de table            | `centerpiece`            |
+| `BIRTHDAY`        | Anniversaire               | `birthday`               |
+| `WEDDING`         | Mariage                    | `wedding`                |
 
 Le dropdown Sous-catégorie affiche uniquement les valeurs compatibles avec la Catégorie sélectionnée :
 
@@ -82,7 +82,7 @@ Exemple : un pâté simple vendu à l'unité.
 | Slug                   | Identifiant URL public, par exemple `pate-simple`.           |
 | Nom                    | Nom lisible par le client.                                   |
 | Description            | Description courte du produit.                               |
-| Nature commerciale    | Bien ou Service selon ce qui est vendu.                      |
+| Nature commerciale     | Bien ou Service selon ce qui est vendu.                      |
 | Configuration          | Standard.                                                    |
 | Catégorie              | Catégorie active du catalogue.                               |
 | Sous-catégorie         | Classement optionnel compatible avec la Catégorie.           |
@@ -126,7 +126,7 @@ Exemple : un pâté avec choix de farce : poulet, bœuf, morue.
 | ---------------------- | ---------------------------------------------------------------------- |
 | Configuration          | Choix unique.                                                          |
 | BOM communs            | BOMs communs à toutes les options, par exemple la pâte ou l'emballage. |
-| Options       | Section qui contient les options disponibles.                          |
+| Options                | Section qui contient les options disponibles.                          |
 | Libellé du groupe      | Nom du choix affiché, par exemple `Farce`.                             |
 | Choix obligatoire      | Cocher si le client doit choisir une option.                           |
 | Code                   | Code unique de l'option, par exemple `poulet`.                         |
@@ -170,7 +170,7 @@ Exemple : une boîte de 12 pâtés où le client choisit 6 poulet et 6 bœuf.
 | Quantité               | Nombre d'unités dans ce format, par exemple `12`.           |
 | Prix                   | Prix de vente du format.                                    |
 | Répartition            | `Choix unique` ou `Composition`.                            |
-| Options       | Groupe des options possibles pour le lot.                   |
+| Options                | Groupe des options possibles pour le lot.                   |
 
 #### Règles à respecter
 
@@ -303,6 +303,6 @@ Points importants :
 | Ordre                   | Ordre d'affichage. Plus petit signifie plus haut dans la liste.                                      |
 | Modes d'achat           | Formats de vente avec prix et quantité.                                                              |
 | Répartition             | Règle de choix pour un mode d'achat : aucune, choix unique ou composition.                           |
-| Options        | Groupe de choix affiché au client.                                                                   |
+| Options                 | Groupe de choix affiché au client.                                                                   |
 | Ingrédients et extras   | Ingrédients ou extras personnalisables.                                                              |
 | Configuration d'analyse | Sélection temporaire utilisée pour analyser un prix ; ce n'est pas encore un panier ou une commande. |

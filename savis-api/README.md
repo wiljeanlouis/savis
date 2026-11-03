@@ -12,21 +12,47 @@ PostgreSQL, and publishes a customer-facing catalog projection to Supabase.
 
 ## Navigation
 
-- [Responsibilities](#responsibilities)
-- [Runtime Context](#runtime-context)
-- [Architecture](#architecture)
-- [Business Slices](#business-slices)
-- [HTTP API](#http-api)
-- [Supabase Integration](#supabase-integration)
-- [RabbitMQ Contracts](#rabbitmq-contracts)
-- [Persistence](#persistence)
-- [Configuration](#configuration)
-- [Technology](#technology)
-- [Local Development](#local-development)
-- [Docker](#docker)
-- [Health and Operations](#health-and-operations)
-- [Tests](#tests)
-- [Further Documentation](#further-documentation)
+- [SAVIS API](#savis-api)
+  - [Navigation](#navigation)
+  - [Responsibilities](#responsibilities)
+  - [Runtime Context](#runtime-context)
+  - [Architecture](#architecture)
+  - [Business Slices](#business-slices)
+    - [Resource](#resource)
+    - [Supply](#supply)
+    - [BOM](#bom)
+    - [Catalog](#catalog)
+    - [Order](#order)
+    - [Quotation](#quotation)
+    - [Invoice](#invoice)
+  - [HTTP API](#http-api)
+    - [Errors](#errors)
+    - [Resource Endpoints](#resource-endpoints)
+    - [Supply Endpoints](#supply-endpoints)
+    - [BOM Endpoints](#bom-endpoints)
+    - [Activity-Rate Endpoints](#activity-rate-endpoints)
+    - [Product Endpoints](#product-endpoints)
+    - [Order Endpoints](#order-endpoints)
+    - [Quotation Endpoints](#quotation-endpoints)
+    - [QuoteRequest Endpoints](#quoterequest-endpoints)
+    - [Invoice Endpoints](#invoice-endpoints)
+    - [Sales Workspace Endpoints](#sales-workspace-endpoints)
+  - [Supabase Integration](#supabase-integration)
+    - [Catalog projection](#catalog-projection)
+    - [Customer-order inbox](#customer-order-inbox)
+    - [Quote-request inbox](#quote-request-inbox)
+  - [RabbitMQ Contracts](#rabbitmq-contracts)
+    - [Component Requests](#component-requests)
+    - [Offer Results](#offer-results)
+    - [Offer Invalidations](#offer-invalidations)
+  - [Persistence](#persistence)
+  - [Configuration](#configuration)
+  - [Technology](#technology)
+  - [Local Development](#local-development)
+  - [Docker](#docker)
+  - [Health and Operations](#health-and-operations)
+  - [Tests](#tests)
+  - [Further Documentation](#further-documentation)
 
 ## Responsibilities
 
@@ -92,13 +118,21 @@ The slices collaborate through explicit public contracts:
   `QuotationOrderApi` for conversion.
 - Invoice consumes `OrderInvoicingApi` for locked snapshots, without accessing
   Order persistence or repricing through Catalog.
+- The read-only Sales Workspace composes document snapshots through named
+  `workspace` interfaces; it does not own sales aggregates or their lifecycle.
 - Catalog stores BOM UUIDs as values and does not access BOM entities or
   repositories.
 - BOM and Supply validate resource UUIDs through `ResourceCatalogApi`; the API
   exposes an immutable reference view and never exposes Resource persistence.
 
 `SavisApiModularityTests` uses Spring Modulith to verify module boundaries and
-generate documentation snippets.
+generate documentation snippets. Sales children are explicitly declared closed
+nested modules with stable IDs `sales.quotation`, `sales.order`, and
+`sales.invoice` and public-interface dependency allowlists. Order retains the
+`order` named interface (`QuotationOrderApi`, `OrderInvoicingApi`). Catalog
+remains a separate top-level module and has no Sales dependency. Negative fixture
+tests prove that sibling entity and repository access fails verification.
+See [Sales audit, options, and module graphs](../docs/SALES_REFACTORING.md).
 
 ## Business Slices
 
@@ -233,7 +267,16 @@ configuration, generate its PDF, and convert acceptance into an order.
   an `ACCEPTED` order from agreed snapshots without repricing against Catalog.
 - Quotation PDFs use persisted snapshots and the quotation validity date.
   Business coordinates and payment conditions are fixed template values.
-- Supabase quote requests are separate inbox data and are not imported here.
+- `QuoteRequest` is a distinct aggregate in this same nested module. Manual
+  import receives and preserves the initial customer need without creating a
+  quotation or order. Qualification uses `RECEIVED`, `IN_PROGRESS`, `QUOTED`,
+  and `CLOSED` (mandatory closing reason), with an explicitly compared client version.
+- One request can produce multiple independent quotations. Each creation intention
+  has a stable UUID and canonical fingerprint; identical replays return the
+  original quotation, conflicting replays return 409. Existing quotations retain
+  their snapshots and optional `sourceQuoteRequestId` through later edits.
+- See the [QuoteRequest contract](../docs/integration/quote-request-implementation.md)
+  for qualification, transaction boundaries, HTTP payloads and operational limitations.
 
 ### Invoice
 
@@ -461,6 +504,31 @@ already imported, failed, and acknowledgement-failed rows; see
 | `POST` | `/api/quotations/{quotationId}/convert` | Convert an accepted quotation to an order. |
 | `GET` | `/api/quotations/{quotationId}/pdf` | Download the quotation PDF. |
 
+### QuoteRequest Endpoints
+
+| Method | Path | Purpose |
+| --- | --- | --- |
+| `POST` | `/api/quote-requests/import` | Import a bounded pending batch and acknowledge committed requests. |
+| `GET` | `/api/quote-requests` | List summaries with bounded pagination (`size` 1–100), name search, status and sorting by customer name, received date or status. |
+| `GET` | `/api/quote-requests/{id}` | Retrieve original need, qualification, history, version and read-only `preparation`. |
+| `PUT` | `/api/quote-requests/{id}/qualification` | Save separate qualified data with `expectedVersion`. |
+| `PUT` | `/api/quote-requests/{id}/status` | Change business status with `expectedVersion`; closure requires a reason. |
+| `GET` | `/api/quote-requests/{id}/quotations` | List every linked quotation. |
+| `POST` | `/api/quote-requests/{id}/quotations` | Create a Catalog-priced proposal with `proposalRequestId` and `expectedVersion`. |
+
+Expected business validation/conflict responses expose a controlled French reason
+in Problem Details `detail`; unexpected technical exception messages stay hidden.
+Import failures include `externalId`, stable `code` and a user-facing `reason`,
+without echoing submitted contact details or remote error bodies.
+
+These routes are registered unconditionally. `SUPABASE_ENABLED` controls remote
+inbox access only; there is no QuoteRequest activation flag. Authentication and
+authorization remain external deployment responsibilities. Current import logging
+includes full Supabase rows; review the
+[security prerequisites](../docs/integration/quote-request-implementation.md#sécurité--protections-à-vérifier-avant-exposition)
+before using personal data. Responses use `Cache-Control: no-store`, which does
+not provide access control.
+
 ### Invoice Endpoints
 
 | Method | Path | Purpose |
@@ -472,6 +540,23 @@ already imported, failed, and acknowledgement-failed rows; see
 | `POST` | `/api/invoices/{invoiceId}/issue` | Issue and number an invoice. |
 | `POST` | `/api/invoices/{invoiceId}/cancel` | Cancel an invoice. |
 | `GET` | `/api/invoices/{invoiceId}/pdf` | Download a final invoice PDF. |
+
+### Sales Workspace Endpoints
+
+| Method | Path | Purpose |
+| --- | --- | --- |
+| `GET` | `/api/sales/workspace?page=&size=&search=` | Page logical sales dossiers, grouped by explicit request, quotation, order, and invoice references; summaries include `requiresAction` based on the commercial action policy. |
+| `GET` | `/api/sales/workspace/{dossierId}` | Retrieve a dossier tree, its `requiresAction` state, and warnings for unresolved or inconsistent references. |
+
+Dossier IDs combine the root document type and public UUID
+(`REQUEST:<uuid>`, `QUOTATION:<uuid>`, `ORDER:<uuid>`, or `INVOICE:<uuid>`).
+This keeps identities stable without using customer names or display references.
+The workspace is read-only and composes named, read-only module contracts; sales
+modules retain ownership of their business rules and writes. Dossier nodes expose
+document data and relationships, not action labels or URLs; Admin links the
+document reference to its existing consultation screen. Each invoice is one tree
+node exposing its billing status and `issuedAt` alongside its payment status and
+`paidAt`; payment is not a separate dossier node.
 
 ## Supabase Integration
 
@@ -504,6 +589,21 @@ can acknowledge a still-pending row without duplicating it. Failed source rows
 require review and reset to `pending` before retry. The import response reports
 local-import and acknowledgement failures separately. With Supabase disabled,
 local business operations remain available, but publication and import are rejected.
+
+### Quote-request inbox
+
+`POST /api/quote-requests/import` reads at most 100 pending rows, ordered by
+`created_at,id`, and validates them individually. Local uniqueness on
+`(source,external_id)` and a canonical payload fingerprint prevent duplicate or
+contradictory imports. Each local transaction completes before the Supabase
+acknowledgement. An acknowledgement retry preserves qualification and history.
+The response separates invalid imports from acknowledgement failures and returns
+stable error codes. Rows marked `failed` require privileged review/reset.
+
+Supabase tracks `sync_status`, `synced_at` and `sync_error` independently from its
+public business `status`. `SUPABASE_ENABLED=false` or an unavailable/missing inbox
+schema makes the import return 503; local request consultation and qualification
+remain available. The service-role key stays exclusively in this backend.
 
 ## RabbitMQ Contracts
 
@@ -601,7 +701,8 @@ Main tables:
 - `order_item_choice_selections`;
 - `order_item_choice_allocations`;
 - `order_item_ingredient_selections`;
-- `quotations` (item snapshots in JSONB);
+- `quote_requests` (immutable original JSONB, separate qualification, history and version);
+- `quotations` (item snapshots in JSONB and optional request origin);
 - `invoices` (item snapshots in JSONB);
 - `event_publication`, managed by Spring Modulith for event-publication
   infrastructure.
@@ -636,9 +737,11 @@ Flyway owns schema evolution through versioned SQL files under
 `src/main/resources/db/migration`. Hibernate validates the mapped model against
 the migrated schema at startup and does not modify production tables.
 
-The Flyway chain runs from V1 through V13, including orders (V5–V6), quotations
-(V8), invoices (V9), resources (V11), BOM-resource links (V12), and offer-resource
-links (V13). Add forward migrations rather than editing applied SQL.
+The Flyway chain runs from V1 through V16, including orders (V5–V6), quotations
+(V8), invoices (V9), resources (V11), BOM-resource links (V12), offer-resource
+links (V13), QuoteRequest reception (V14), qualification/history/version (V15),
+and the 1:N proposal link with persistent idempotency keys (V16). Add forward
+migrations rather than editing applied SQL.
 
 For Resource-link migration checks, see the
 [Business Reference](../docs/SAVIS_API_BUSINESS_REFERENCE.md#resource-backed-bom-components)
@@ -826,3 +929,27 @@ For container-level Flyway/Alembic integration verification, run
 - [System architecture](../docs/ARCHITECTURE.md)
 - [Supabase schema and public access](../supabase/README.md)
 - [Local stack and production operations](../README.md)
+
+### Quote preparation and partial proposals
+
+`GET /api/quote-requests/{id}` adds `preparation: {qualification, needs, saved}`.
+Each need exposes `needKey`, `requestedName`, `productName`, `state`
+(`RECOGNIZED`, `REVIEW`, `UNRESOLVED`, `CUSTOM`), `issue` and `requestedLine`.
+The qualification is either the existing saved object, unchanged, or valid
+Catalog selections decoded from the immutable public payload. Reads do not save,
+change status/version or create quotations. Public `offering_id` is Catalog's
+public UUID; purchase-mode `id`, `choice_id` and ingredient `id` are published
+Catalog codes. Prices and display labels from the public payload have no authority.
+`CatalogOrderingApi.identify(UUID)` resolves identity/availability before the
+existing `snapshot` validates configuration. No new module or synchronization.
+
+The existing proposal POST accepts `lineIds` from saved qualification or, when
+absent, deterministic prepared lines. Its body remains unchanged. Any nonempty
+subset is valid; omitted needs stay open, explicit exclusions require reasons,
+and contradictions/unknown needs are rejected. Catalog prices again at creation.
+Locking, version checks, atomic persistence and proposal idempotence are unchanged.
+Quotation responses add nullable `proposalCoverage` with `inclusions` mapping
+quotation item UUIDs to need keys, and `exclusions` mapping need keys to reasons.
+These capture the creation decisions; they are not recalculated after draft edits.
+Flyway V17 adds nullable `quotations.proposal_inclusions` JSONB, without backfill or
+changes to existing quotations. Existing Order/Invoice origin links remain intact.

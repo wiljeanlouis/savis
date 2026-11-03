@@ -309,7 +309,8 @@ flowchart TB
       CatalogAdapters["Adapters<br/>JPA<br/>BOM public API<br/>Supabase"]
     end
 
-    subgraph Orders["Order module"]
+    subgraph Sales["Sales domain"]
+    subgraph Orders["sales.order module"]
       OrderWeb["Web adapter<br/>OrderController"]
       OrderUse["Use cases<br/>OrderService<br/>ImportOrdersUseCase"]
       OrderDomain["Domain<br/>Order aggregate and snapshots"]
@@ -317,10 +318,18 @@ flowchart TB
       OrderAdapters["Adapters<br/>JPA<br/>Supabase PostgREST<br/>Catalog, BOM, Supply APIs"]
     end
 
+    Quotation["sales.quotation<br/>Soumissions et conversion"]
+    Invoice["sales.invoice<br/>Factures et documents"]
+    Workspace["sales.workspace<br/>Dossiers commerciaux en lecture seule"]
+    Quotation -->|QuotationOrderApi| OrderUse
+    Invoice -->|OrderInvoicingApi| OrderUse
+    end
+    Quotation -->|CatalogOrderingApi| CatalogUse
+
     subgraph Quotations["Quotation module"]
       QuotationWeb["Web adapter<br/>QuotationController"]
       QuotationUse["QuotationService<br/>Document use case"]
-      QuotationDomain["Quotation aggregate<br/>commercial snapshots"]
+      QuotationDomain["QuoteRequest and Quotation aggregates<br/>qualified needs and commercial snapshots"]
       QuotationAdapters["Repository and renderer ports<br/>JPA, OpenHTMLtoPDF"]
     end
 
@@ -362,6 +371,9 @@ flowchart TB
   QuotationUse --> QuotationAdapters
   QuotationUse -->|CatalogOrderingApi| CatalogUse
   QuotationUse -->|QuotationOrderApi| OrderUse
+  Workspace -->|workspace snapshots| QuotationUse
+  Workspace -->|workspace snapshots| OrderUse
+  Workspace -->|workspace snapshots| InvoiceUse
   InvoiceWeb --> InvoiceUse --> InvoiceDomain
   InvoiceUse --> InvoiceAdapters
   InvoiceUse -->|OrderInvoicingApi| OrderUse
@@ -391,12 +403,26 @@ flowchart TB
   snapshots, then `QuotationOrderApi` to convert an accepted quotation.
 - Invoice consumes `OrderInvoicingApi` to copy a locked eligible order snapshot;
   it does not depend on Order entities or query Catalog again.
+- The read-only `sales.workspace` module composes named snapshots from Quotation,
+  Order, and Invoice. It groups only explicit public-ID relationships and does
+  not own their persistence or lifecycle transitions.
 - Catalog stores BOM UUID values, not JPA relationships to BOM entities.
 - `common` contains shared value objects and PDF font support, not workflow orchestration.
 - HTTP, JPA, RabbitMQ, and Supabase dependencies remain in adapters.
 
 `SavisApiModularityTests` uses Spring Modulith to verify module dependencies and
-generate module documentation snippets.
+generate module documentation snippets. `sales` is a structural parent containing
+four explicitly annotated, closed nested modules: `sales.quotation`,
+`sales.order`, `sales.invoice`, and `sales.workspace`. Their allowlists restrict
+dependencies to public named interfaces. Quotation converts through
+`QuotationOrderApi`; Invoice reads immutable order snapshots through
+`OrderInvoicingApi`; Workspace composes read-only snapshots and owns no sales
+aggregate. Catalog remains outside Sales and depends only on Common and the BOM
+public contract.
+The parent contains no shared business implementation because nested modules can
+access parent internals under Spring Modulith rules. Tests assert child ownership,
+API exposure, Catalog independence, and rejection of sibling internal access.
+See [the preliminary audit, alternatives, and before/after graphs](SALES_REFACTORING.md).
 
 ### Pricing Boundary
 
@@ -486,6 +512,15 @@ within the same task attempt.
 
 ## Admin Components
 
+Admin mirrors the Sales grouping with `src/features/sales/quote-requests`,
+`src/features/sales/quotations`,
+`sales/orders`, and `sales/invoices`; tests mirror those paths. The parent keeps
+the existing tab layout in `sales/pages/SalesLayout.tsx`. Each child owns its
+API client functions, query hooks, types and UI. Catalog remains an independent
+feature. This directory refactoring preserves routes, HTTP/JSON contracts,
+query keys and draft storage keys. Unlike the backend, Admin has no Spring
+Modulith boundary model; its existing cross-child presentation reuse is retained.
+
 ### C4 Level 3
 
 ```mermaid
@@ -503,12 +538,13 @@ flowchart TB
       Tasks["bom-component/task"]
       Rates["activity-rate"]
       Catalog["catalog"]
-      Orders["orders"]
-      Resources["resource"]
-      SupplyOffers["supply-offer"]
-      Sales["sales workspace"]
-      Quotations["quotations"]
-      Invoices["invoices"]
+     
+      subgraph SalesFeatures["sales"]
+        SalesLayout["pages/SalesLayout"]
+        Quotations["quotations"]
+        Orders["orders"]
+        Invoices["invoices"]
+      end
     end
   end
 
@@ -519,12 +555,13 @@ flowchart TB
   Components --> Tasks
   Router --> Rates
   Router --> Catalog
-  Router --> Sales
-  Sales --> Orders
-  Sales --> Quotations
-  Sales --> Invoices
-  Router --> Resources
-  Router --> SupplyOffers
+  Router --> SalesLayout
+  SalesLayout --> Quotations
+  SalesLayout --> Orders
+  SalesLayout --> Invoices
+  Router --> Orders
+  Router --> Quotations
+  Router --> Invoices
 
   Bom --> ApiClients
   Components --> ApiClients
@@ -542,6 +579,8 @@ flowchart TB
   Rates --> SharedUi
   Catalog --> SharedUi
   Orders --> SharedUi
+  Quotations --> SharedUi
+  Invoices --> SharedUi
 ```
 
 | Client        | Default production path | Target         |
@@ -561,13 +600,20 @@ It is not yet an operational read model.
   hooks, models, components and pages; `src/shared` owns Axios clients and UI primitives.
 - TanStack Query owns server state and feature query invalidation. Supported
   list filters, sorting, pagination and selected details are URL state.
-- Resource, Supply, Executor offer and task lists use backend pagination.
+- QuoteRequest, Resource, Supply, Executor offer and task lists use backend pagination.
   BOM and Catalog consultation filter and paginate the loaded collection.
 - BOM and product creation drafts use `localStorage`; new order and quotation
-  drafts use tab-local `sessionStorage`. These are unsaved browser drafts,
-  not business persistence.
-- `/sales/{quotations,orders,invoices}` groups sales lists. Editors/details use
+  drafts use tab-local `sessionStorage`. Quotation storage writes retain commercial
+  selections and terms, but exclude customer contacts, address and notes. QuoteRequest
+  forms remain in memory and never replace autonomous quotation drafts. Browser
+  drafts are not business persistence.
+- `/sales/{quote-requests,quotations,orders,invoices}` groups sales lists.
+  Request details stay at `/sales/quote-requests/:requestId`. Editors/details use
   `/quotations/*`, `/orders/*`, and `/invoices/*`; legacy list URLs redirect.
+- `/sales/workspace` is the commercial dossier list and
+  `/sales/workspace/:dossierId` loads the linked document tree on demand.
+  Document links reuse the existing specialized screens and carry a return path
+  to the dossier.
 - `VITE_API_URL` and `VITE_EXECUTOR_API_URL` override proxy roots at build time.
   Vite uses `SAVIS_API_PROXY_TARGET` and `EXECUTOR_API_PROXY_TARGET` for development.
   Runtime Nginx environment changes do not reconfigure the built bundle.
@@ -1058,6 +1104,56 @@ do not make production quantities incomplete. Inventory-aware missing and
 purchase quantities remain intentionally unset until an inventory module owns
 on-hand stock.
 
+### QuoteRequest Reception, Qualification and Proposals
+
+`QuoteRequest` and `Quotation` are distinct aggregates inside `sales.quotation`.
+Sales remains a structural parent, with no central service, repository or aggregate.
+Supabase receives the public need; SAVIS manually imports a bounded pending batch
+and persists the original payload before acknowledging the remote receipt.
+Each row is decoded independently. Local uniqueness on `(source,external_id)` and
+a canonical fingerprint protect retries and concurrent import without replacing
+qualification. Supabase receipt UUID, logical submission UUID and SAVIS UUID remain
+separate. Technical synchronization fields do not duplicate the business workflow.
+
+```mermaid
+flowchart LR
+  Public["SavouretPlus"] -->|submit_quote_request| Inbox["Supabase quote_requests"]
+  Inbox -->|manual import| Request["QuoteRequest<br/>original and separate qualification"]
+  Request -->|explicit creation: 0..N| Proposal["Quotation<br/>Catalog price snapshots"]
+  Proposal -->|independent acceptance| Order["Order"]
+  Order --> Invoice["Invoice"]
+```
+
+The request workflow is `RECEIVED → IN_PROGRESS → QUOTED`, with reasoned closure
+via `CLOSED`. Quoted requests can be requalified and produce additional independent
+proposals; rejecting a proposal does not close its request. Qualification saves
+compare the client's expected version under the request lock. Proposal creation
+first resolves the stable `proposalRequestId` and canonical command fingerprint,
+then validates status/version for new intentions. The persistent unique pair is
+`(source_quote_request_id,proposal_request_id)`; the source UUID alone is not unique.
+Creation, origin attachment and the request transition share a local transaction.
+A proposal may cover a subset of the original needs. Omitted needs stay open;
+only explicit exclusions require reasons, and inclusion/exclusion contradictions
+and unknown need keys remain forbidden. Read-only preparation decodes public
+selections through a quotation port/adapter, then validates identity, availability
+and configuration through `CatalogOrderingApi`. Published offering UUIDs and
+configuration IDs directly reference Catalog public UUIDs and codes; no matching
+convention or public price is used. Stable line UUIDs derive from request UUID and
+item key. Saved qualification wins in full, without merging or saving on reads.
+Creation can select these prepared UUIDs without a preliminary qualification save.
+Each proposal captures included item/need associations and explicit exclusions in
+`proposalCoverage`, independently of future qualification and Catalog changes.
+`QuotationService` and Catalog remain the pricing authority. Existing snapshots,
+order conversions and invoices do not change when qualification evolves.
+
+Flyway V14–V17 own local reception, qualification/history/version, proposal links
+and inclusion snapshots (V17 leaves historical quotations untouched).
+Supabase migrations `20261031120000` and `20261031130000` add technical sync/privileges
+and correct missing/null type validation and replays after Catalog changes.
+The [QuoteRequest contract](integration/quote-request-implementation.md) documents
+all seven HTTP routes, payloads, recovery, verification and deployment prerequisites.
+The controller is registered unconditionally; there is no activation flag.
+
 ### Commercial Quotation and Order Conversion
 
 ```mermaid
@@ -1295,8 +1391,14 @@ throughput.
 - Supabase RLS controls public catalog reads and customer submissions.
 - Chrome relay port `9223` must be blocked from the public network.
 - The Admin browser never writes directly to Supabase.
-- Only SAVIS API reads or acknowledges the order inbox with the service-role
-  key. Supabase email notification does not call SAVIS API.
+- Only SAVIS API reads or acknowledges the order and quote-request inboxes with
+  the service-role key. Quote-request service-role updates are restricted to
+  synchronization columns. Supabase email notification does not call SAVIS API.
+- QuoteRequest routes have no activation flag or application access control.
+  The current Supabase adapter logs complete received rows at INFO, potentially
+  including contact details and allergies. Securing access and redacting these
+  logs are prerequisites before exposure or imports with real customer data;
+  `Cache-Control: no-store` does not address either issue.
 
 ## Delivery Architecture
 
@@ -1418,7 +1520,9 @@ and statements against source rather than starting the runtime stack.
 - Bulk catalog publication does not currently remove projections for products
   that were changed from published to unpublished; use single-product removal
   to reconcile those projections.
-- Public event quote requests have no import into internal commercial quotations.
+- Public event quote requests have manual import and qualification in
+  `sales.quotation`; only explicit operator action creates Catalog-backed proposals.
+  Custom commercial lines remain outside this phase.
 - Failed order inbox rows require manual review and reset to `pending` before retry.
 - Executor has no transactional result outbox; Supabase publication has no atomic
   local/remote commit or automatic reconciliation.

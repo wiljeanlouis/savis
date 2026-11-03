@@ -1,3 +1,5 @@
+import { QuoteRequestsPage } from "@/features/sales/quote-requests/pages/QuoteRequestsPage";
+import { QuoteRequestDetailsPage } from "@/features/sales/quote-requests/pages/QuoteRequestDetailsPage";
 import { catalogReturnTo } from "@/features/catalog/model/catalogProductNavigation";
 import { ResourcesPage } from "@/features/resource/pages/ResourcesPage";
 import {
@@ -26,13 +28,17 @@ import { ActivityRatesPage } from "@/features/activity-rate/pages/ActivityRatesP
 import { CatalogProductAnalysisPage } from "@/features/catalog/pages/CatalogProductAnalysisPage";
 import { CatalogProductsPage } from "@/features/catalog/pages/CatalogProductsPage";
 import { CatalogProductEditorPage } from "@/features/catalog/pages/CatalogProductEditorPage";
-import { OrdersPage } from "@/features/orders/pages/OrdersPage";
-import { OrderDetailsPage } from "@/features/orders/pages/OrderDetailsPage";
-import { QuotationsPage } from "@/features/quotations/pages/QuotationsPage";
-import { QuotationDetailsPage } from "@/features/quotations/pages/QuotationDetailsPage";
-import { InvoicesPage } from "@/features/invoices/pages/InvoicesPage";
-import { InvoiceDetailsPage } from "@/features/invoices/pages/InvoiceDetailsPage";
+import { OrdersPage } from "@/features/sales/orders/pages/OrdersPage";
+import { OrderDetailsPage } from "@/features/sales/orders/pages/OrderDetailsPage";
+import { QuotationsPage } from "@/features/sales/quotations/pages/QuotationsPage";
+import { QuotationDetailsPage } from "@/features/sales/quotations/pages/QuotationDetailsPage";
+import { InvoicesPage } from "@/features/sales/invoices/pages/InvoicesPage";
+import { InvoiceDetailsPage } from "@/features/sales/invoices/pages/InvoiceDetailsPage";
 import { SalesLayout } from "@/features/sales/pages/SalesLayout";
+import {
+  SalesWorkspaceDossierPage,
+  SalesWorkspacePage,
+} from "@/features/sales/workspace/pages/SalesWorkspacePage";
 import { SupplyOffersPage } from "@/features/supply-offer/pages/SupplyOffersPage";
 
 const router = createBrowserRouter([
@@ -116,7 +122,30 @@ const router = createBrowserRouter([
         children: [
           {
             index: true,
-            element: <Navigate replace to="/sales/orders" />,
+            element: <Navigate replace to="/sales/workspace" />,
+          },
+          {
+            path: "workspace",
+            element: <SalesWorkspacePage />,
+            handle: {
+              breadcrumb: () => <SalesBreadcrumb section="Espace commercial" />,
+            },
+          },
+          {
+            path: "workspace/:dossierId",
+            element: <SalesWorkspaceDossierPage />,
+            handle: {
+              breadcrumb: () => (
+                <SalesBreadcrumb section="Dossier commercial" />
+              ),
+            },
+          },
+          {
+            path: "quote-requests",
+            element: <QuoteRequestsPage />,
+            handle: {
+              breadcrumb: () => <SalesBreadcrumb section="Demandes" />,
+            },
           },
           {
             path: "quotations",
@@ -140,6 +169,13 @@ const router = createBrowserRouter([
             },
           },
         ],
+      },
+      {
+        path: "/sales/quote-requests/:requestId",
+        element: <QuoteRequestDetailsPage />,
+        handle: {
+          breadcrumb: () => <SalesBreadcrumb section="Détail de la demande" />,
+        },
       },
       {
         path: "/quotations",
@@ -584,7 +620,7 @@ function SalesBreadcrumb({ section }: { section: string }) {
       <BreadcrumbSeparator className="hidden md:block" />
       <BreadcrumbItem className="hidden md:block">
         <BreadcrumbLink asChild>
-          <Link to="/sales/orders">Ventes</Link>
+          <Link to="/sales/workspace">Ventes</Link>
         </BreadcrumbLink>
       </BreadcrumbItem>
       <BreadcrumbSeparator className="hidden md:block" />
