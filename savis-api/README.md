@@ -737,10 +737,11 @@ Flyway owns schema evolution through versioned SQL files under
 `src/main/resources/db/migration`. Hibernate validates the mapped model against
 the migrated schema at startup and does not modify production tables.
 
-The Flyway chain runs from V1 through V16, including orders (V5–V6), quotations
+The Flyway chain runs from V1 through V18, including orders (V5–V6), quotations
 (V8), invoices (V9), resources (V11), BOM-resource links (V12), offer-resource
 links (V13), QuoteRequest reception (V14), qualification/history/version (V15),
-and the 1:N proposal link with persistent idempotency keys (V16). Add forward
+the 1:N proposal link with persistent idempotency keys (V16), proposal inclusions
+(V17), and invoice payment status (V18). Add forward
 migrations rather than editing applied SQL.
 
 For Resource-link migration checks, see the
@@ -820,7 +821,7 @@ automatically. The Supabase service-role key belongs in backend configuration on
 Run the application:
 
 ```bash
-./mvnw spring-boot:run
+./mvnw spring-boot:run -Dspring-boot.run.profiles=dev
 ```
 
 Build the executable JAR:
@@ -830,7 +831,9 @@ Build the executable JAR:
 ```
 
 Run these commands from `savis-api/`. PostgreSQL and RabbitMQ must be reachable.
-The API starts at `http://localhost:8080`; Flyway runs during startup.
+The API starts at `http://localhost:8080`. Use the `dev` profile to run Flyway
+at local startup (`./mvnw spring-boot:run -Dspring-boot.run.profiles=dev`).
+Normal startup disables Flyway; production runs `backend_migrate` first.
 
 To run the complete SAVIS environment from the repository root:
 
@@ -872,7 +875,8 @@ docker compose logs -f backend_api
 curl --fail http://localhost:8080/actuator/health
 ```
 
-Flyway errors occur during startup, before Hibernate validation. Investigate the
+In production, Flyway errors occur in `backend_migrate` before application replacement;
+normal startup only performs Hibernate validation. The `dev` profile retains startup migrations. Investigate the
 failed migration and source data; do not conceal checksum mismatches with repair
 or rewrite an applied migration. Production startup and recovery procedures are
 in [Production Commands](../deploy/PRODUCTION_COMMANDS.md).
@@ -953,3 +957,7 @@ quotation item UUIDs to need keys, and `exclusions` mapping need keys to reasons
 These capture the creation decisions; they are not recalculated after draft edits.
 Flyway V17 adds nullable `quotations.proposal_inclusions` JSONB, without backfill or
 changes to existing quotations. Existing Order/Invoice origin links remain intact.
+
+Production migration separation, release review, and rollback limits are documented
+in [deploy/MIGRATIONS.md](../deploy/MIGRATIONS.md). The image command `migrate`
+uses Flyway directly against `savis_api` without starting Spring or business work.

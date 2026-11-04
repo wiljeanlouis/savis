@@ -38,6 +38,22 @@ services:
       postgres:
         condition: service_healthy
 
+  backend_migrate:
+    build:
+      context: ../../../savis-api
+      dockerfile: Dockerfile
+      target: production
+    command: ["migrate"]
+    healthcheck:
+      disable: true
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/savis
+      SPRING_DATASOURCE_USERNAME: savis
+      SPRING_DATASOURCE_PASSWORD: savis
+    depends_on:
+      postgres:
+        condition: service_healthy
+
   backend_api:
     build:
       context: ../../../savis-api
@@ -52,6 +68,7 @@ services:
       SPRING_RABBITMQ_USERNAME: savis
       SPRING_RABBITMQ_PASSWORD: savis
       SUPABASE_ENABLED: "false"
+      SPRING_FLYWAY_ENABLED: "false"
     healthcheck:
       test:
         [

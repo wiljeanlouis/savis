@@ -124,6 +124,7 @@ jobs:
           mkdir -p "${package}/supabase"
           cp docker-compose.prod.yml "${package}/"
           cp -R deploy "${package}/"
+          cp supabase/config.toml "${package}/supabase/"
           cp -R supabase/migrations "${package}/supabase/"
           cat >"${package}/release.env" <<EOF
           SAVIS_VERSION=${VERSION}
