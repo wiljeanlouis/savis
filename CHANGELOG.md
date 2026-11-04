@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.15.0](https://github.com/wiljeanlouis/savis/compare/v1.14.0...v1.15.0) (2026-11-04)
+
+
+### Features
+
+* improve ci ([#181](https://github.com/wiljeanlouis/savis/issues/181)) ([3b5834d](https://github.com/wiljeanlouis/savis/commit/3b5834d2818de81fdf78a98ef4c8193aafb39c11))
+
 ## [1.14.0](https://github.com/wiljeanlouis/savis/compare/v1.13.2...v1.14.0) (2026-11-03)
 
 
