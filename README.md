@@ -134,7 +134,7 @@ concurrency `1` because scraping tasks share one persistent Chrome session.
 
 - Docker Engine with Docker Compose;
 - Node.js 24 and `npm`;
-- Google Chrome on macOS for the local CDP session;
+- Google Chrome on Linux or macOS for the local CDP session;
 - optional for standalone development: Java 25, Python 3.14.4+, and `uv`.
 
 The Makefile invokes the Supabase CLI through `npx`.
@@ -161,7 +161,7 @@ make run-local
 
 This command:
 
-1. starts a dedicated Chrome CDP session on macOS;
+1. starts a dedicated Chrome CDP session on Linux;
 2. starts the local Supabase stack;
 3. generates `.env.supabase.local` from the local Supabase credentials;
 4. optionally configures the sibling `../savouretplus` checkout;
@@ -320,12 +320,19 @@ uv run pytest
 uv run alembic upgrade head --sql >/dev/null
 ```
 
-Provider scraping requires an accessible Chrome CDP endpoint. Start the macOS
+Provider scraping requires an accessible Chrome CDP endpoint. Start the Linux
 session from the repository root:
 
 ```bash
 make chrome-cdp-start
 ```
+
+On macOS, use `make chrome-cdp-start-macos`. The Linux script detects
+`google-chrome-stable` or `google-chrome` on `PATH`; set `CHROME_APP_PATH` to
+use another executable. Both scripts accept `CHROME_CDP_PORT` (default `9222`)
+and `CHROME_CDP_PROFILE_DIR`. On Linux, Chrome runs in the background and writes
+its output to `chrome.log` inside the profile directory (default
+`~/.savis/maxi-cdp-profile`).
 
 ## Configuration
 
@@ -573,7 +580,8 @@ docker compose \
 | ----------------------------- | ---------------------------------------------------------- |
 | `make help`                   | List Make targets                                          |
 | `make run-local`              | Start SAVIS and local Supabase                             |
-| `make chrome-cdp-start`       | Start Chrome CDP on macOS                                  |
+| `make chrome-cdp-start`       | Start Chrome CDP on Linux                                  |
+| `make chrome-cdp-start-macos` | Start Chrome CDP on macOS                                  |
 | `make logs`                   | Follow Compose logs                                        |
 | `make stop`                   | Stop SAVIS and Supabase                                    |
 | `make clean`                  | Remove SAVIS volumes and local Supabase data               |

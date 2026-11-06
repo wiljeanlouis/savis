@@ -19,7 +19,9 @@ import com.savouretplus.savis.sales.workspace.domain.DocumentType;
 import com.savouretplus.savis.sales.workspace.domain.Filter;
 import com.savouretplus.savis.sales.workspace.domain.Node;
 
-/** Provides read-only commercial workspace queries over owned sales snapshots. */
+/**
+ * Provides read-only commercial workspace queries over owned sales snapshots.
+ */
 @Service
 public class SalesWorkspaceService {
     private final DossierAssembler assembler;

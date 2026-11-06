@@ -19,7 +19,10 @@ import com.savouretplus.savis.sales.order.api.OrderInvoicingApi;
 
 import lombok.AllArgsConstructor;
 
-/** Coordinates invoice creation, draft editing and irreversible lifecycle transitions. */
+/**
+ * Coordinates invoice creation, draft editing and irreversible lifecycle
+ * transitions.
+ */
 @Service
 @AllArgsConstructor
 public class InvoiceService {
@@ -28,7 +31,10 @@ public class InvoiceService {
     private final OrderInvoicingApi orders;
     private final Clock clock;
 
-    /** Creates one draft invoice per eligible order, or returns the existing invoice. */
+    /**
+     * Creates one draft invoice per eligible order, or returns the existing
+     * invoice.
+     */
     @Transactional
     public Invoice createFromOrder(UUID orderId) {
         OrderInvoicingApi.OrderSnapshot order = orders.snapshotForInvoice(orderId);
@@ -49,7 +55,10 @@ public class InvoiceService {
         return invoices.findByPublicId(invoiceId).orElseThrow(() -> new InvoiceNotFoundException(invoiceId));
     }
 
-    /** Updates customer details and financial adjustments while the invoice remains a draft. */
+    /**
+     * Updates customer details and financial adjustments while the invoice remains
+     * a draft.
+     */
     @Transactional
     public Invoice update(UUID invoiceId, UpdateInvoiceCommand command) {
         if (command == null) {
@@ -111,9 +120,10 @@ public class InvoiceService {
 
     private Invoice create(OrderInvoicingApi.OrderSnapshot order) {
         Instant now = clock.instant();
-        InvoiceAddress address = order.address() == null ? null : new InvoiceAddress(
-                order.address().line1(), order.address().line2(), order.address().city(),
-                order.address().province(), order.address().postalCode());
+        InvoiceAddress address = order.address() == null ? null
+                : new InvoiceAddress(
+                        order.address().line1(), order.address().line2(), order.address().city(),
+                        order.address().province(), order.address().postalCode());
         return invoices.save(new Invoice(
                 null, null, null, order.orderId(), order.orderNumber(), InvoiceStatus.DRAFT,
                 PaymentStatus.UNPAID, null,

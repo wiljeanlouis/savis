@@ -14,12 +14,12 @@ import com.savouretplus.savis.sales.workspace.usecase.SalesWorkspaceService;
 import lombok.RequiredArgsConstructor;
 
 @RestController
-@RequestMapping("/api/sales")
+@RequestMapping("/api/sales/workspace")
 @RequiredArgsConstructor
 public class SalesWorkspaceController {
     private final SalesWorkspaceService workspace;
 
-    @GetMapping("/workspace")
+    @GetMapping
     public ResponseEntity<SalesWorkspaceService.SalesWorkspacePage> list(
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size,
@@ -37,7 +37,7 @@ public class SalesWorkspaceController {
         }
     }
 
-    @GetMapping("/workspace/{dossierId}")
+    @GetMapping("/{dossierId}")
     public ResponseEntity<SalesWorkspaceService.SalesWorkspaceDossier> get(@PathVariable String dossierId) {
         return ResponseEntity.ok()
                 .cacheControl(CacheControl.noStore())

@@ -17,7 +17,10 @@ public class GenerateInvoiceDocumentUseCase {
     private final InvoiceService invoices;
     private final InvoiceDocumentRenderer renderer;
 
-    /** Generates a PDF for an issued invoice, including an issued invoice later cancelled. */
+    /**
+     * Generates a PDF for an issued invoice, including an issued invoice later
+     * cancelled.
+     */
     @Transactional(readOnly = true)
     public GeneratedInvoiceDocument generate(UUID invoiceId) {
         Invoice invoice = invoices.get(invoiceId);
