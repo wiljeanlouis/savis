@@ -12,6 +12,7 @@ interface GetTasksParams {
   size: number;
   status?: SavisTaskStatus;
   type?: SavisTaskType;
+  search?: string;
   sortBy?: string;
   sortDirection?: "asc" | "desc";
 }
@@ -23,9 +24,11 @@ export const getBomComponentTasks = async ({
   type,
   sortBy,
   sortDirection,
+  search,
 }: GetTasksParams): Promise<SavisTasksPage> => {
   const { data }: { data: SavisTasksPage } = await executorApi.get("/tasks", {
     params: {
+      search: search?.trim() || undefined,
       status,
       type,
       page,

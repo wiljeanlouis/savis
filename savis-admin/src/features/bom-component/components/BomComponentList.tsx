@@ -1,10 +1,11 @@
+import { NoData } from "@/shared/components/NoData";
+import { ListLoading } from "@/shared/components/ListLoading";
 import { useRef, useState } from "react";
 import { Link } from "react-router";
 import { PageSelector } from "@/shared/components/PageSelector";
 import { PageNavigator } from "@/shared/components/PageNavigator";
 import { PageItemCount } from "@/shared/components/PageItemCount";
 import { ApiErrorAlert } from "@/shared/components/ApiErrorAlert";
-import { Spinner } from "@/shared/ui/spinner";
 import { Button } from "@/shared/ui/button";
 import { DetailSheet } from "@/shared/components/DetailSheet";
 import { BomComponentListFilters } from "./BomComponentListFilters";
@@ -67,12 +68,7 @@ export const BomComponentList = () => {
           </div>
         </div>
         {list.isLoading ? (
-          <div
-            className="flex min-h-64 items-center justify-center"
-            aria-label="Chargement des offres"
-          >
-            <Spinner />
-          </div>
+          <ListLoading message="Chargement des offres…" />
         ) : list.isError ? (
           <ApiErrorAlert
             title="Impossible de charger les offres à valider."
@@ -83,24 +79,9 @@ export const BomComponentList = () => {
             </Button>
           </ApiErrorAlert>
         ) : !items.length ? (
-          <div
-            role="status"
-            className="flex min-h-52 flex-col items-center justify-center gap-2 rounded-xl border border-dashed bg-card/50 px-5 py-8 text-center"
-          >
-            <span
-              className="mb-1 flex size-10 items-center justify-center rounded-full bg-muted text-lg text-muted-foreground"
-              aria-hidden="true"
-            >
-              ✓
-            </span>
-            <p className="font-medium">
-              Aucune offre ne correspond aux filtres sélectionnés.
-            </p>
-            <p className="max-w-sm text-sm text-muted-foreground">
-              Modifiez le statut ou le terme de recherche pour consulter
-              d’autres offres.
-            </p>
-          </div>
+          <NoData description="Modifiez le statut ou le terme de recherche pour consulter d’autres offres.">
+            Aucune offre ne correspond aux filtres sélectionnés.
+          </NoData>
         ) : (
           <>
             <BomComponentReviewTable

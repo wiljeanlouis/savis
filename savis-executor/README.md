@@ -265,6 +265,7 @@ Refresh one offer:
 
 - pagination: `page`, `size`;
 - filters: `status`, `type`;
+- search: `search`, a case-insensitive literal substring of the task UUID, JSON payload, or error message (trimmed, applied before counting and pagination);
 - sorting: `sort_by`, `sort_direction`.
 
 Task sort fields are `type`, `status`, `created_at`, `updated_at`, and

@@ -5,6 +5,7 @@
 from datetime import UTC, datetime, timedelta
 from uuid import uuid7
 
+import pytest
 from sqlalchemy import create_engine
 from sqlalchemy.orm import Session, sessionmaker
 
@@ -167,3 +168,44 @@ def test_mark_stale_in_progress_as_failed() -> None:
     assert count == 1
     assert entity is not None
     assert entity.status == SavisTaskStatus.FAILED.value
+
+
+@pytest.mark.parametrize(
+    "search", ["FARINE", "supplier.example", "indisponible", "50%_bio"],
+)
+def test_list_searches_payload_and_errors_before_pagination(search: str) -> None:
+    repository, _session_factory = _repository()
+    for _ in range(2):
+        task = SavisTask.create(
+            SavisTaskType.GET_OFFERS,
+            {"search_term": "Farine 50%_bio", "url": "https://supplier.example"},
+        )
+        task.status = SavisTaskStatus.FAILED
+        task.error_message = "Produit indisponible"
+        repository.save(task)
+    repository.save(
+        SavisTask.create(SavisTaskType.GET_OFFERS, {"search_term": "sucre"}),
+    )
+    tasks, total = repository.list(
+        status=SavisTaskStatus.FAILED,
+        task_type=SavisTaskType.GET_OFFERS,
+        search=f" {search} ",
+        page=2,
+        size=1,
+    )
+    assert total == TOTAL_TWO_TASKS
+    assert len(tasks) == 1
+    assert tasks[0].payload["search_term"] == "Farine 50%_bio"
+
+
+def test_list_searches_id_and_treats_wildcards_literally() -> None:
+    repository, _session_factory = _repository()
+    task = repository.save(
+        SavisTask.create(SavisTaskType.GET_OFFERS, {"search_term": "farine"}),
+    )
+    tasks, total = repository.list(search=str(task.id))
+    assert total == 1
+    assert tasks[0].id == task.id
+    assert repository.list(search="%_") == ([], 0)
+    assert repository.list(search="inconnu") == ([], 0)
+    assert repository.list(search="   ")[1] == 1

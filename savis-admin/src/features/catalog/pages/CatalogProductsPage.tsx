@@ -1,3 +1,5 @@
+import { NoData } from "@/shared/components/NoData";
+import { ListLoading } from "@/shared/components/ListLoading";
 import { useRef } from "react";
 import { DetailSheet } from "@/shared/components/DetailSheet";
 import { Link } from "react-router";
@@ -6,7 +8,6 @@ import { PageItemCount } from "@/shared/components/PageItemCount";
 import { PageNavigator } from "@/shared/components/PageNavigator";
 import { PageSelector } from "@/shared/components/PageSelector";
 import { Button } from "@/shared/ui/button";
-import { Spinner } from "@/shared/ui/spinner";
 import { CatalogProductDataTable } from "../components/CatalogProductDataTable";
 import { CatalogProductDetails } from "../components/CatalogProductDetails";
 import { CatalogProductListFilters } from "../components/CatalogProductListFilters";
@@ -42,13 +43,7 @@ export function CatalogProductsPage() {
         reset={list.resetFilters}
       />
       {management.isLoading ? (
-        <div
-          role="status"
-          className="flex min-h-64 items-center justify-center gap-2"
-        >
-          <Spinner />
-          Chargement des produits…
-        </div>
+        <ListLoading message="Chargement des produits…" />
       ) : management.isError ? (
         <ApiErrorAlert
           title="Impossible de charger les produits."
@@ -82,14 +77,11 @@ export function CatalogProductsPage() {
                 onSort={(value) => list.update("sort", value)}
               />
             ) : (
-              <div
-                role="status"
-                className="border-y border-dashed py-8 text-center text-sm text-muted-foreground"
-              >
+              <NoData>
                 {management.products.length
                   ? "Aucun produit ne correspond aux filtres sélectionnés."
                   : "Aucun produit dans le catalogue."}
-              </div>
+              </NoData>
             )}
             <PageNavigator
               page={list.page}

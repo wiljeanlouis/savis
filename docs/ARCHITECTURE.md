@@ -489,6 +489,12 @@ flowchart TB
   Providers --> Browser
 ```
 
+
+Executor task consultation (`GET /api/tasks`) supports an optional `search`
+parameter, passed by Admin through the task use case and persistence port.
+The SQLAlchemy adapter matches literal, case-insensitive substrings in UUIDs,
+JSON payloads and errors before applying pagination and computing totals.
+
 ### Execution Rules
 
 - Core models and use cases are provider-neutral.

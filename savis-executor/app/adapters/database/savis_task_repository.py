@@ -5,7 +5,18 @@ from __future__ import annotations
 from datetime import UTC, datetime
 from uuid import UUID
 
-from sqlalchemy import JSON, DateTime, String, Text, and_, func, select, update
+from sqlalchemy import (
+    JSON,
+    DateTime,
+    String,
+    Text,
+    and_,
+    cast,
+    func,
+    or_,
+    select,
+    update,
+)
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Mapped, Session, mapped_column, sessionmaker
 
@@ -104,6 +115,7 @@ class SqlAlchemySavisTaskRepository(SavisTaskRepository):
         size: int = 20,
         sort_by: SavisTaskSortField = SavisTaskSortField.CREATED_AT,
         sort_direction: SortDirection = SortDirection.DESC,
+        search: str | None = None,
     ) -> tuple[list[SavisTask], int]:
         """List paged tasks and total count."""
         sort_column = {
@@ -130,6 +142,15 @@ class SqlAlchemySavisTaskRepository(SavisTaskRepository):
             count_statement = count_statement.where(
                 SavisTaskEntity.type == task_type.value,
             )
+        if search and search.strip():
+            term = search.strip()
+            search_filter = or_(
+                SavisTaskEntity.id.icontains(term, autoescape=True),
+                cast(SavisTaskEntity.payload, Text).icontains(term, autoescape=True),
+                SavisTaskEntity.error_message.icontains(term, autoescape=True),
+            )
+            statement = statement.where(search_filter)
+            count_statement = count_statement.where(search_filter)
         with self.session_factory() as session:
             total = session.scalar(count_statement) or 0
             entities = session.scalars(

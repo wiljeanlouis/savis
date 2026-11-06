@@ -52,7 +52,7 @@ The following sections follow the visible sidebar order and labels.
 
 - **Route:** `/offers/tasks` displays Executor acquisition and refresh history.
 - **Inspection:** view task type (`GET_OFFER`, `GET_OFFERS`, `REFRESH_OFFER`), status (`IN_PROGRESS`, `COMPLETED`, `FAILED`), JSON payload, timestamps, and full error details.
-- **Navigation:** sorting and pagination remain in the URL; frontend code belongs to `src/features/bom-component/task/`.
+- **Navigation:** the shared search bar and filter popover (status/type) keep search, filters, sorting and pagination in the URL. Executor searches task identifiers, parameters and errors before pagination. Changing search or filters returns to page one; clearing filters preserves search. Frontend code belongs to `src/features/bom-component/task/`.
 
 ### Production
 
@@ -171,6 +171,7 @@ See the [QuoteRequest contract and operations](../docs/integration/quote-request
 - **Server state:** TanStack Query hooks own feature query keys and invalidate affected data after successful mutations.
 - **BOM caching:** `["boms"]` holds the unpriced list for 60 seconds and serves catalog selectors. Selected details use a separate query; the editor route loader fetches saved valuation.
 - **Cost contract:** BOM details expose `costing`; `price` is null when incomplete. List responses leave both fields null; the dedicated `/boms/{id}/price` operation returns detailed valuation.
+- **List presentation:** `ListLoading` provides shared skeleton rows and an accessible loading label. `NoData` provides the shared empty-state frame, with feature-specific French messages and optional guidance/actions. Lists and `DataTable` reuse these components.
 - **List state:** URL parameters preserve supported filters, sorting, pagination, and detail selection. Quote-request/supply/resource/task lists use backend pagination; BOM/catalog lists paginate the loaded collection.
 - **Forms:** component state holds current inputs; BOM/product drafts use `localStorage`, while new order drafts and nonpersonal quotation draft data use `sessionStorage`. QuoteRequest forms remain in memory and do not replace autonomous quotation drafts.
 - **Boundaries:** backend amounts remain authoritative; Admin adds presentation formatting and estimates where described above.

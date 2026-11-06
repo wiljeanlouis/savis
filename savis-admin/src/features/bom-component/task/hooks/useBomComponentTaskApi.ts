@@ -18,6 +18,7 @@ export const useGetBomComponentTasks = (
   sortDirection?: "asc" | "desc",
   status?: SavisTaskStatus,
   type?: SavisTaskType,
+  search?: string,
 ) => {
   return useQuery({
     queryKey: [
@@ -28,9 +29,18 @@ export const useGetBomComponentTasks = (
       sortDirection,
       status,
       type,
+      search,
     ],
     queryFn: () =>
-      getBomComponentTasks({ page, size, sortBy, sortDirection, status, type }),
+      getBomComponentTasks({
+        page,
+        size,
+        sortBy,
+        sortDirection,
+        status,
+        type,
+        search,
+      }),
   });
 };
 

@@ -1,3 +1,4 @@
+import { NoData } from "@/shared/components/NoData";
 import {
   flexRender,
   getCoreRowModel,
@@ -229,7 +230,7 @@ export function DataTable<TData, TValue>({
           ) : (
             <TableRow>
               <TableCell colSpan={columns.length} className="h-24 text-center">
-                {emptyMessage}
+                <NoData>{emptyMessage}</NoData>
               </TableCell>
             </TableRow>
           )}

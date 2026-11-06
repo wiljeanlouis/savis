@@ -1,7 +1,7 @@
+import { ListLoading } from "@/shared/components/ListLoading";
 import { NoData } from "@/shared/components/NoData";
 import { ApiErrorAlert } from "@/shared/components/ApiErrorAlert";
 import { Button } from "@/shared/ui/button";
-import { Spinner } from "@/shared/ui/spinner";
 import { Add01Icon } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
 import { Link } from "react-router";
@@ -94,16 +94,14 @@ export function QuotationsPage() {
       </section>
 
       {query.isPending ? (
-        <div className="flex min-h-64 items-center justify-center">
-          <Spinner />
-        </div>
+        <ListLoading message="Chargement des soumissions…" />
       ) : query.isError ? (
         <ApiErrorAlert
           title="Impossible de charger les soumissions."
           error={query.error}
         />
       ) : quotations.length === 0 ? (
-        <NoData />
+        <NoData>Aucune soumission.</NoData>
       ) : (
         <div className="min-w-0 space-y-3">
           <div className="flex flex-wrap items-center justify-between gap-2">
@@ -124,9 +122,9 @@ export function QuotationsPage() {
               onOpen={(id) => void documents.open(id)}
             />
           ) : (
-            <div className="flex min-h-40 items-center justify-center rounded-xl border border-dashed p-6 text-center text-muted-foreground">
+            <NoData>
               Aucune soumission ne correspond aux filtres sélectionnés.
-            </div>
+            </NoData>
           )}
           <PageNavigator
             page={list.page}

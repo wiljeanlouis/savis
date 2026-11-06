@@ -172,9 +172,11 @@ def test_list_tasks_filters_by_status_and_type(
             size: int,
             sort_by: SavisTaskSortField,
             sort_direction: SortDirection,
+            search: str | None,
         ) -> tuple[list[SavisTask], int, int]:
             self.filters.append((status, task_type))
             assert (page, size) == (PAGE_TWO, 5)
+            assert search == "farine"
             assert sort_by == SavisTaskSortField.STATUS
             assert sort_direction == SortDirection.ASC
             return [task], TOTAL_SIX, PAGE_TWO
@@ -192,6 +194,7 @@ def test_list_tasks_filters_by_status_and_type(
             "type": "GET_OFFERS",
             "page": PAGE_TWO,
             "size": 5,
+            "search": "farine",
             "sort_by": "status",
             "sort_direction": "asc",
         },

@@ -55,6 +55,7 @@ async def list_tasks(  # noqa: PLR0913
     task_type: Annotated[SavisTaskType | None, Query(alias="type")] = None,
     sort_by: SavisTaskSortField = SavisTaskSortField.CREATED_AT,
     sort_direction: SortDirection = SortDirection.DESC,
+    search: str | None = None,
 ) -> SavisTasksPageResponse:
     """List paginated tasks, optionally filtered by status and type."""
     tasks, total_items, total_pages = savis_task_use_case.list(
@@ -64,6 +65,7 @@ async def list_tasks(  # noqa: PLR0913
         size,
         sort_by,
         sort_direction,
+        search,
     )
     return SavisTasksPageResponse(
         items=[_task_response(task) for task in tasks],
