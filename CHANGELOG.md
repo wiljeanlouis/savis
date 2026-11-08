@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.15.1](https://github.com/wiljeanlouis/savis/compare/v1.15.0...v1.15.1) (2026-11-08)
+
+
+### Bug Fixes
+
+* improve UI, code and healthcheck ([#183](https://github.com/wiljeanlouis/savis/issues/183)) ([008dccf](https://github.com/wiljeanlouis/savis/commit/008dccfd21bc482d4d4e41c099bd80f282e865b1))
+
 ## [1.15.0](https://github.com/wiljeanlouis/savis/compare/v1.14.0...v1.15.0) (2026-11-04)
 
 
