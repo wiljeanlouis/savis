@@ -10,7 +10,10 @@ import java.util.stream.Stream;
 import com.savouretplus.savis.common.Money;
 import com.savouretplus.savis.common.Quantity;
 
-/** Immutable valuation of the existing BOM scope: components and activities only. */
+/**
+ * Immutable valuation of the existing BOM scope: components and activities
+ * only.
+ */
 public record BomCost(List<Line> components, List<Line> activities,
         BigDecimal yieldQuantity, List<Diagnostic> issues) {
     public BomCost {
@@ -20,7 +23,9 @@ public record BomCost(List<Line> components, List<Line> activities,
         issues = List.copyOf(issues);
     }
 
-    public enum Status { KNOWN, MISSING, NOT_APPLICABLE }
+    public enum Status {
+        KNOWN, MISSING, NOT_APPLICABLE
+    }
 
     public record Diagnostic(String code, String source, String message, boolean blocking) {
         public Diagnostic {
@@ -30,9 +35,13 @@ public record BomCost(List<Line> components, List<Line> activities,
         }
     }
 
-    /** Supplier values actually used; consumption cost is not a whole-package purchase budget. */
+    /**
+     * Supplier values actually used; consumption cost is not a whole-package
+     * purchase budget.
+     */
     public record Source(UUID selectedOfferId, UUID usedOfferId, LocalDateTime observedAt,
-            Money packagePrice, Quantity packageSize) {}
+            Money packagePrice, Quantity packageSize) {
+    }
 
     public record Line(String label, Status status, Money amount, BigDecimal quantity,
             String unit, Money hourlyRate, Source source, List<Diagnostic> diagnostics) {
@@ -57,9 +66,17 @@ public record BomCost(List<Line> components, List<Line> activities,
         }
     }
 
-    public Money componentSubtotal() { return subtotal(components); }
-    public Money activitySubtotal() { return subtotal(activities); }
-    public Money knownSubtotal() { return componentSubtotal().add(activitySubtotal()); }
+    public Money componentSubtotal() {
+        return subtotal(components);
+    }
+
+    public Money activitySubtotal() {
+        return subtotal(activities);
+    }
+
+    public Money knownSubtotal() {
+        return componentSubtotal().add(activitySubtotal());
+    }
 
     public boolean complete() {
         return yieldQuantity.signum() > 0
@@ -68,7 +85,9 @@ public record BomCost(List<Line> components, List<Line> activities,
                 && diagnostics().stream().noneMatch(Diagnostic::blocking);
     }
 
-    public Money totalCost() { return complete() ? knownSubtotal() : null; }
+    public Money totalCost() {
+        return complete() ? knownSubtotal() : null;
+    }
 
     public List<Diagnostic> diagnostics() {
         return Stream.concat(issues.stream(), Stream.concat(components.stream(), activities.stream())

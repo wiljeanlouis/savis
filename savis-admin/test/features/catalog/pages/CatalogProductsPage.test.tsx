@@ -281,7 +281,9 @@ describe("Catalog product table and drawer", () => {
     expect(screen.getByText("Aucun produit dans le catalogue.")).toBeVisible();
     management.isLoading = true;
     view.refresh();
-    expect(screen.getByText("Chargement des produits…")).toBeVisible();
+    expect(
+      screen.getByRole("status", { name: "Chargement des produits…" }),
+    ).toBeVisible();
     management.isLoading = false;
     management.isError = true;
     view.refresh();

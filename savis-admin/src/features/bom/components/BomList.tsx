@@ -1,3 +1,5 @@
+import { NoData } from "@/shared/components/NoData";
+import { ListLoading } from "@/shared/components/ListLoading";
 import { useRef } from "react";
 import { DetailSheet } from "@/shared/components/DetailSheet";
 import { Link } from "react-router";
@@ -50,7 +52,7 @@ export const BomList = () => {
         yieldUnits={yieldUnits}
       />
       {management.isLoading ? (
-        <p role="status">Chargement des compositions…</p>
+        <ListLoading message="Chargement des compositions…" />
       ) : management.isError ? (
         <ApiErrorAlert
           title="Impossible de charger les compositions."
@@ -80,14 +82,11 @@ export const BomList = () => {
                 onSelect={(id) => update("selected", id, false)}
               />
             ) : (
-              <p
-                role="status"
-                className="border-y border-dashed py-8 text-center text-sm text-muted-foreground"
-              >
+              <NoData>
                 {management.boms?.length
                   ? "Aucune composition ne correspond aux filtres sélectionnés."
                   : "Aucune composition."}
-              </p>
+              </NoData>
             )}
             <PageNavigator
               page={page}

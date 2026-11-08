@@ -1,3 +1,4 @@
+import { ListLoading } from "@/shared/components/ListLoading";
 import { ApiErrorAlert } from "@/shared/components/ApiErrorAlert";
 import { Button } from "@/shared/ui/button";
 import { Spinner } from "@/shared/ui/spinner";
@@ -74,9 +75,7 @@ export function SalesWorkspacePage() {
       />
 
       {query.isPending ? (
-        <div className="flex min-h-64 items-center justify-center">
-          <Spinner />
-        </div>
+        <ListLoading message="Chargement des dossiers commerciaux…" />
       ) : query.isError ? (
         <ApiErrorAlert
           title="Impossible de charger les dossiers commerciaux."

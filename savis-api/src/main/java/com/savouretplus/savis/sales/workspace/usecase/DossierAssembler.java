@@ -19,6 +19,12 @@ import com.savouretplus.savis.sales.workspace.domain.DocumentType;
 import com.savouretplus.savis.sales.workspace.domain.Node;
 import lombok.RequiredArgsConstructor;
 
+/**
+ * Rebuilds commercial trees from the public read contracts of the owning modules.
+ * Links use public UUIDs only, never customer names or display references. Missing
+ * parents remain visible as independent roots with warnings; conflicting order
+ * links are not merged. No aggregate is written or repaired during assembly.
+ */
 @Component
 @RequiredArgsConstructor
 class DossierAssembler {
@@ -26,6 +32,12 @@ class DossierAssembler {
     private final SalesOrderWorkspaceApi orders;
     private final SalesInvoiceWorkspaceApi invoices;
 
+    /**
+     * Loads all snapshots, attaches requests, quotations, orders and invoices in
+     * that order, and removes duplicate roots by dossier identity.
+     *
+     * @return reconstructed dossiers before search, sorting and pagination
+     */
     List<Dossier> assemble() {
         Map<UUID, Node> requestNodes = new LinkedHashMap<>();
         Map<UUID, Dossier> requestDossiers = new HashMap<>();

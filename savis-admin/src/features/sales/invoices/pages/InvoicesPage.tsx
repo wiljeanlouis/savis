@@ -1,5 +1,6 @@
+import { NoData } from "@/shared/components/NoData";
+import { ListLoading } from "@/shared/components/ListLoading";
 import { ApiErrorAlert } from "@/shared/components/ApiErrorAlert";
-import { Spinner } from "@/shared/ui/spinner";
 import { InvoicesTable } from "../components/InvoicesTable";
 import { useInvoiceDocumentPreview, useInvoices } from "../hooks/useInvoiceApi";
 import { invoiceDisplayNumber, invoiceStatusLabels } from "../types";
@@ -81,9 +82,7 @@ export function InvoicesPage() {
       </section>
 
       {query.isPending ? (
-        <div className="flex min-h-64 items-center justify-center">
-          <Spinner />
-        </div>
+        <ListLoading message="Chargement des factures…" />
       ) : query.isError ? (
         <ApiErrorAlert
           title="Impossible de charger les factures."
@@ -99,9 +98,7 @@ export function InvoicesPage() {
             />
           </div>
           {invoices.length === 0 ? (
-            <div className="flex min-h-40 items-center justify-center rounded-xl border border-dashed p-6 text-center text-muted-foreground">
-              Aucune facture dans le registre.
-            </div>
+            <NoData>Aucune facture dans le registre.</NoData>
           ) : list.totalItems > 0 ? (
             <InvoicesTable
               invoices={list.items}
@@ -113,9 +110,9 @@ export function InvoicesPage() {
               onOpen={(id) => void documents.open(id)}
             />
           ) : (
-            <div className="flex min-h-40 items-center justify-center rounded-xl border border-dashed p-6 text-center text-muted-foreground">
+            <NoData>
               Aucune facture ne correspond aux filtres sélectionnés.
-            </div>
+            </NoData>
           )}
           <PageNavigator
             page={list.page}

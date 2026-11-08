@@ -6,8 +6,10 @@ import java.util.UUID;
 
 /** Read-only snapshots used by the commercial workspace. */
 public interface SalesQuotationWorkspaceApi {
+    /** @return all locally imported requests, loaded in batches by the owning adapter */
     List<Request> requests();
 
+    /** @return all owned quotations as detached read snapshots, before workspace pagination */
     List<Quotation> quotations();
 
     record Request(
@@ -20,6 +22,11 @@ public interface SalesQuotationWorkspaceApi {
             Instant lastActivity) {
     }
 
+    /**
+     * Document snapshot with public UUID references and integer-cent amounts.
+     * Lifecycle strings retain the owning module's enum names. Last activity is
+     * supplied by the owner and is not necessarily the latest database update.
+     */
     record Quotation(
             UUID id,
             String reference,

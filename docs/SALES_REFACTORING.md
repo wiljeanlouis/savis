@@ -140,3 +140,29 @@ Admin validation: `npm test -- --run test/features/sales` passed all 31 tests
 in 16 files; `npm test -- --run` passed all 255 tests in 56 files.
 `npm run lint`, `npm run build`, and `git diff --check` passed. Existing Vite
 configuration and bundle-size warnings remain informational.
+
+## Current extension: commercial workspace
+
+The audit and validation counts above describe the original three-slice relocation.
+The current implementation adds a fourth closed nested module, `sales.workspace`,
+which composes the three owners' named `workspace` interfaces. Sales remains a
+structural parent; the query service lives inside Workspace. No workspace table or
+central write workflow is introduced. Quote requests remain inside Quotation, and
+invoice payment remains inside Invoice.
+
+```mermaid
+flowchart LR
+  subgraph sales
+    workspace -->|workspace| quotation
+    workspace -->|workspace| order
+    workspace -->|workspace| invoice
+    quotation -->|QuotationOrderApi| order
+    invoice -->|OrderInvoicingApi| order
+  end
+```
+
+The owner adapters access only their own repositories. Workspace reconstructs
+request → quotation → order → invoice branches by public UUID, preserves orphans
+and reports relationship warnings. See the current
+[architecture flow](ARCHITECTURE.md#commercial-workspace-read-flow) and
+[HTTP query contract](../savis-api/README.md#sales-workspace-endpoints).

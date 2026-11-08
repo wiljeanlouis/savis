@@ -209,6 +209,7 @@ class SavisTaskUseCase:
         size: int = 20,
         sort_by: SavisTaskSortField = SavisTaskSortField.CREATED_AT,
         sort_direction: SortDirection = SortDirection.DESC,
+        search: str | None = None,
     ) -> tuple[list[SavisTask], int, int]:
         """List paginated tasks, optionally filtered by status and type."""
         tasks, total_items = self.task_repository.list(
@@ -218,6 +219,7 @@ class SavisTaskUseCase:
             size=size,
             sort_by=sort_by,
             sort_direction=sort_direction,
+            search=search,
         )
         total_pages = ceil(total_items / size) if total_items else 0
         return tasks, total_items, total_pages

@@ -2,11 +2,19 @@ package com.savouretplus.savis.sales.workspace.domain;
 
 import java.util.Locale;
 
+/** Workspace attention filters; FINISHED means the inverse of ACTION_REQUIRED. */
 public enum Filter {
     ALL,
     ACTION_REQUIRED,
     FINISHED;
 
+    /**
+     * Parses a case-insensitive filter, accepting A_TRAITER, TERMINES and TERMINE.
+     *
+     * @param raw filter value; null or blank selects ALL
+     * @return normalized filter
+     * @throws IllegalArgumentException when the value is unsupported
+     */
     public static Filter from(String raw) {
         if (raw == null) {
             return ALL;

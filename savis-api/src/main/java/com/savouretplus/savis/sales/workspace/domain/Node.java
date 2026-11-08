@@ -5,6 +5,12 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
+/**
+ * Ephemeral document projection used while assembling one workspace response.
+ * Children and diagnostic warnings are mutable during assembly and exposed as
+ * defensive copies. Status strings belong to the source module; amounts are
+ * nullable integer cents. Descriptions are stripped and limited to 140 characters.
+ */
 public final class Node {
     private final DocumentType type;
     private final UUID publicId;
@@ -139,6 +145,12 @@ public final class Node {
         warnings.add(warning);
     }
 
+    /**
+     * Collects reference and customer name throughout the subtree for search.
+     * Descriptions, contact details and diagnostic warnings are not searched.
+     *
+     * @param values destination collection; may receive null values
+     */
     public void collectMatches(List<String> values) {
         values.add(reference);
         values.add(customerName);

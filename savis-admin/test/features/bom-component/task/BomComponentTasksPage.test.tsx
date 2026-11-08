@@ -8,11 +8,9 @@ import { getBomComponentTasks } from "@/features/bom-component/task/api/bomCompo
 vi.mock("@/features/bom-component/task/api/bomComponentTaskApi", () => ({
   getBomComponentTasks: vi.fn(),
 }));
-function mount() {
+function mount(entry = "/offers/tasks?status=FAILED&type=REFRESH_OFFER") {
   render(
-    <MemoryRouter
-      initialEntries={["/offers/tasks?status=FAILED&type=REFRESH_OFFER"]}
-    >
+    <MemoryRouter initialEntries={[entry]}>
       <QueryClientProvider
         client={
           new QueryClient({ defaultOptions: { queries: { retry: false } } })
@@ -94,6 +92,7 @@ describe("Acquisition tasks", () => {
     expect(getBomComponentTasks).toHaveBeenLastCalledWith({
       page: 1,
       size: 20,
+      search: "",
       sortBy: "created_at",
       sortDirection: "desc",
       status: "FAILED",
@@ -102,6 +101,51 @@ describe("Acquisition tasks", () => {
     expect(
       screen.getByRole("button", { name: "Actualiser" }),
     ).toBeInTheDocument();
+  });
+  it("recherche côté serveur, revient à la première page et efface les filtres", async () => {
+    vi.mocked(getBomComponentTasks).mockImplementation(async (options) => ({
+      items: [],
+      page: options.page,
+      size: options.size,
+      total_items: 0,
+      total_pages: 0,
+    }));
+    const user = userEvent.setup();
+    mount(
+      "/offers/tasks?status=FAILED&type=REFRESH_OFFER&page=3&search=farine",
+    );
+    const search = screen.getByRole("textbox", {
+      name: "Rechercher dans les tâches d’acquisition",
+    });
+    expect(search).toHaveValue("farine");
+    await screen.findByText(
+      "Aucune tâche ne correspond aux filtres sélectionnés.",
+    );
+    await user.clear(search);
+    await user.type(search, "sucre");
+    expect(getBomComponentTasks).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        page: 1,
+        search: "sucre",
+        status: "FAILED",
+        type: "REFRESH_OFFER",
+      }),
+    );
+    await user.click(screen.getByRole("button", { name: "Filtres · 2" }));
+    expect(
+      screen.getByRole("combobox", { name: "Statut des tâches" }),
+    ).toBeInTheDocument();
+    await user.click(
+      screen.getByRole("button", { name: "Effacer les filtres" }),
+    );
+    expect(getBomComponentTasks).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        page: 1,
+        search: "sucre",
+        status: undefined,
+        type: undefined,
+      }),
+    );
   });
   it("shows retryable errors instead of treating failures as empty results", async () => {
     vi.mocked(getBomComponentTasks).mockRejectedValueOnce(

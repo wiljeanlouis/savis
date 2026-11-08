@@ -1,3 +1,5 @@
+import { NoData } from "@/shared/components/NoData";
+import { ListLoading } from "@/shared/components/ListLoading";
 import { ResourceOffersDrawer } from "../components/ResourceOffersDrawer";
 import { useRef, useState } from "react";
 import { useSearchParams } from "react-router";
@@ -8,7 +10,6 @@ import { PageNavigator } from "@/shared/components/PageNavigator";
 import { PageItemCount } from "@/shared/components/PageItemCount";
 import { PageSelector } from "@/shared/components/PageSelector";
 import { ApiErrorAlert } from "@/shared/components/ApiErrorAlert";
-import { Spinner } from "@/shared/ui/spinner";
 import { ResourcesTable } from "../components/ResourcesTable";
 import { ResourceListFilters } from "../components/ResourceListFilters";
 import { useResources } from "../hooks/useResources";
@@ -147,13 +148,7 @@ export function ResourcesPage() {
         </div>
       </div>
       {list.isPending ? (
-        <div
-          role="status"
-          aria-label="Chargement des ressources"
-          className="flex min-h-64 items-center justify-center"
-        >
-          <Spinner />
-        </div>
+        <ListLoading message="Chargement des ressources…" />
       ) : list.isError ? (
         <ApiErrorAlert
           title="Impossible de charger les ressources."
@@ -164,9 +159,9 @@ export function ResourcesPage() {
           </Button>
         </ApiErrorAlert>
       ) : list.data.content.length === 0 ? (
-        <div className="flex min-h-40 items-center justify-center rounded-xl border border-dashed p-6 text-center text-muted-foreground">
+        <NoData>
           Aucune ressource ne correspond aux filtres sélectionnés.
-        </div>
+        </NoData>
       ) : (
         <div ref={listRef} className="min-w-0 space-y-3">
           <ResourcesTable

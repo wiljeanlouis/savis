@@ -1,20 +1,14 @@
+import { NoData } from "@/shared/components/NoData";
+import { ListLoading } from "@/shared/components/ListLoading";
 import { ApiErrorAlert } from "@/shared/components/ApiErrorAlert";
 import { Button } from "@/shared/ui/button";
-import {
-  Select,
-  SelectTrigger,
-  SelectValue,
-  SelectContent,
-  SelectItem,
-} from "@/shared/ui/select";
 import { getApiErrorMessage } from "@/shared/api/apiError";
 import { DataTable } from "@/shared/components/DataTable";
 import { PageNavigator } from "@/shared/components/PageNavigator";
 import { PageSelector } from "@/shared/components/PageSelector";
 import { PageItemCount } from "@/shared/components/PageItemCount";
-import { Label } from "@/shared/ui/label";
+import { BomComponentTaskFilters } from "./BomComponentTaskFilters";
 import { Badge } from "@/shared/ui/badge";
-import { Spinner } from "@/shared/ui/spinner";
 import type {
   ColumnDef,
   OnChangeFn,
@@ -120,6 +114,7 @@ const columns: ColumnDef<SavisTask>[] = [
 
 export const BomComponentTaskList = () => {
   const [searchParams, setSearchParams] = useSearchParams();
+  const search = searchParams.get("search") ?? "";
   const rawStatus = searchParams.get("status") ?? "ALL";
   const status = Object.hasOwn(statusLabel, rawStatus)
     ? (rawStatus as SavisTaskStatus)
@@ -145,6 +140,7 @@ export const BomComponentTaskList = () => {
     currentSort ? (currentSort.desc ? "desc" : "asc") : undefined,
     status,
     type,
+    search,
   );
 
   useEffect(() => {
@@ -186,82 +182,32 @@ export const BomComponentTaskList = () => {
 
   return (
     <div className="space-y-6">
-      <section
-        aria-label="Filtres des tâches"
-        className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center"
-      >
-        <div className="flex items-center gap-2">
-          <Label
-            htmlFor="task-status"
-            className="whitespace-nowrap text-muted-foreground"
-          >
-            Filtrer par statut
-          </Label>
-          <Select
-            value={status ?? "ALL"}
-            onValueChange={(value) =>
-              updateSearchParams({ status: value, page: "1" })
-            }
-          >
-            <SelectTrigger
-              id="task-status"
-              className="flex-1 sm:w-48 sm:flex-none"
-              aria-label="Statut des tâches"
-            >
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="ALL">Tous les statuts</SelectItem>
-              {Object.entries(statusLabel).map(([value, label]) => (
-                <SelectItem key={value} value={value}>
-                  {label}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-        <div className="flex items-center gap-2">
-          <Label
-            htmlFor="task-type"
-            className="whitespace-nowrap text-muted-foreground"
-          >
-            Type de tâche
-          </Label>
-          <Select
-            value={type ?? "ALL"}
-            onValueChange={(value) =>
-              updateSearchParams({ type: value, page: "1" })
-            }
-          >
-            <SelectTrigger
-              id="task-type"
-              className="flex-1 sm:w-48 sm:flex-none"
-              aria-label="Type de tâche"
-            >
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="ALL">Tous les types</SelectItem>
-              {Object.entries(taskTypeLabel).map(([value, label]) => (
-                <SelectItem key={value} value={value}>
-                  {label}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-      </section>
+      <BomComponentTaskFilters
+        search={search}
+        status={status ?? "ALL"}
+        type={type ?? "ALL"}
+        onSearchChange={(value) =>
+          updateSearchParams({ search: value, page: "1" })
+        }
+        onStatusChange={(value) =>
+          updateSearchParams({ status: value, page: "1" })
+        }
+        onTypeChange={(value) => updateSearchParams({ type: value, page: "1" })}
+        onClear={() =>
+          updateSearchParams({ status: "ALL", type: "ALL", page: "1" })
+        }
+      />
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="flex flex-wrap items-center gap-3">
-          <Button variant="outline" size="sm" onClick={() => void refetch()}>
-            Actualiser
-          </Button>
           <PageItemCount
             itemName="tâche"
             totalItems={isPending || isError ? undefined : data?.total_items}
           />
         </div>
         <div className="flex items-center gap-2">
+          <Button variant="outline" size="sm" onClick={() => void refetch()}>
+            Actualiser
+          </Button>
           <PageSelector
             pageSize={pageSize}
             onPageChange={handlePageSizeChange}
@@ -269,12 +215,7 @@ export const BomComponentTaskList = () => {
         </div>
       </div>
       {isPending ? (
-        <div
-          className="flex min-h-64 items-center justify-center"
-          aria-label="Chargement des tâches"
-        >
-          <Spinner />
-        </div>
+        <ListLoading message="Chargement des tâches…" />
       ) : isError ? (
         <ApiErrorAlert
           title="Impossible de charger les tâches d'acquisition."
@@ -285,9 +226,7 @@ export const BomComponentTaskList = () => {
           </Button>
         </ApiErrorAlert>
       ) : !data?.items.length ? (
-        <div className="rounded-xl border border-dashed p-10 text-center text-muted-foreground">
-          Aucune tâche ne correspond aux filtres sélectionnés.
-        </div>
+        <NoData>Aucune tâche ne correspond aux filtres sélectionnés.</NoData>
       ) : (
         <>
           <DataTable

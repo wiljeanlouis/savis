@@ -35,4 +35,6 @@ CMD ["celery", "-A", "app.adapters.celery.celery_app", "beat", "--loglevel=info"
 
 FROM python-base AS worker
 
+HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=5 \
+  CMD ["python", "-m", "app.adapters.celery.worker_health"]
 CMD ["celery", "-A", "app.adapters.celery.celery_app", "worker", "--loglevel=info", "--concurrency=1", "--without-mingle", "--without-gossip"]

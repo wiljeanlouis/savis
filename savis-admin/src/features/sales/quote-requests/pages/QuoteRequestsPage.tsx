@@ -1,3 +1,5 @@
+import { NoData } from "@/shared/components/NoData";
+import { ListLoading } from "@/shared/components/ListLoading";
 import { useSearchParams } from "react-router";
 import { Button } from "@/shared/ui/button";
 import { Spinner } from "@/shared/ui/spinner";
@@ -111,9 +113,7 @@ export function QuoteRequestsPage() {
         </ListFilterPopover>
       </section>
       {query.isPending ? (
-        <div className="flex min-h-64 items-center justify-center">
-          <Spinner />
-        </div>
+        <ListLoading message="Chargement des demandes…" />
       ) : query.isError ? (
         <ApiErrorAlert
           title="Impossible de charger les demandes."
@@ -139,9 +139,9 @@ export function QuoteRequestsPage() {
                 onSort={onSort}
               />
             ) : (
-              <div className="flex min-h-40 items-center justify-center rounded-xl border border-dashed p-6 text-center text-muted-foreground">
+              <NoData>
                 Aucune demande ne correspond aux filtres sélectionnés.
-              </div>
+              </NoData>
             )}
             <nav aria-label="Pagination des demandes">
               <PageNavigator

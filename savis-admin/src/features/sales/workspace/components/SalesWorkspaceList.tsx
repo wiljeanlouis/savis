@@ -1,3 +1,4 @@
+import { NoData } from "@/shared/components/NoData";
 import { PageNavigator } from "@/shared/components/PageNavigator";
 import { PageItemCount } from "@/shared/components/PageItemCount";
 import { PageSelector } from "@/shared/components/PageSelector";
@@ -46,14 +47,19 @@ export function SalesWorkspaceList({
           }
         >
           {data.content.length === 0 ? (
-            <div className="space-y-3 py-8 text-center">
-              <p className="text-sm text-muted-foreground">
-                Aucun dossier ne correspond aux critères actuels.
-              </p>
-              <Button type="button" variant="outline" onClick={onResetFilters}>
-                Réinitialiser les filtres
-              </Button>
-            </div>
+            <NoData
+              action={
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={onResetFilters}
+                >
+                  Réinitialiser les filtres
+                </Button>
+              }
+            >
+              Aucun dossier ne correspond aux critères actuels.
+            </NoData>
           ) : (
             data.content.map((dossier) => {
               const dossierPath = `/sales/workspace/${encodeURIComponent(dossier.id)}`;

@@ -19,7 +19,9 @@ import com.savouretplus.savis.sales.workspace.domain.DocumentType;
 import com.savouretplus.savis.sales.workspace.domain.Filter;
 import com.savouretplus.savis.sales.workspace.domain.Node;
 
-/** Provides read-only commercial workspace queries over owned sales snapshots. */
+/**
+ * Provides read-only commercial workspace queries over owned sales snapshots.
+ */
 @Service
 public class SalesWorkspaceService {
     private final DossierAssembler assembler;
@@ -40,6 +42,17 @@ public class SalesWorkspaceService {
         return list(page, size, search, Filter.ALL);
     }
 
+    /**
+     * Reconstructs all dossiers, filters them and sorts by descending last activity
+     * (nulls last), then applies in-memory pagination.
+     *
+     * @param page zero-based page, from 0 to 100000
+     * @param size page size, from 1 to 100
+     * @param search case-insensitive reference/customer substring, at most 200 characters
+     * @param filter attention filter or supported French alias; null means ALL
+     * @return page whose totals count filtered dossiers, not documents
+     * @throws IllegalArgumentException for invalid pagination, search or filter
+     */
     public SalesWorkspacePage list(int page, int size, String search, String filter) {
         return list(page, size, search, Filter.from(filter));
     }
@@ -67,6 +80,13 @@ public class SalesWorkspaceService {
                 totalElements == 0 ? 0 : (int) Math.ceil((double) totalElements / size));
     }
 
+    /**
+     * Rebuilds the current trees and resolves a root identity.
+     *
+     * @param dossierId exact root type and UUID, for example ORDER: followed by its UUID
+     * @return dossier details with document children and relationship warnings
+     * @throws ResponseStatusException with HTTP 404 for malformed or absent roots
+     */
     public SalesWorkspaceDossier get(String dossierId) {
         String[] parts = dossierId == null ? new String[0] : dossierId.split(":", 2);
         DocumentType type;
@@ -133,6 +153,7 @@ public class SalesWorkspaceService {
                         .toList());
     }
 
+    /** Page of filtered dossiers; page indexes start at zero and totals exclude filtered-out dossiers. */
     public record SalesWorkspacePage(
             List<SalesWorkspaceSummary> content,
             int page,
@@ -141,6 +162,7 @@ public class SalesWorkspaceService {
             int totalPages) {
     }
 
+    /** List projection; documentCount counts descendants only, while description belongs to the root. */
     public record SalesWorkspaceSummary(
             String id,
             String customerName,
@@ -152,6 +174,7 @@ public class SalesWorkspaceService {
             int documentCount) {
     }
 
+    /** Detail projection of one current root and its reconstructed document tree. */
     public record SalesWorkspaceDossier(
             String id,
             String customerName,
@@ -163,6 +186,7 @@ public class SalesWorkspaceService {
             SalesWorkspaceBranch root) {
     }
 
+    /** Document projection; nullable payment fields apply to invoices, and warnings diagnose UUID links. */
     public record SalesWorkspaceBranch(
             String type,
             String id,

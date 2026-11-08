@@ -53,6 +53,12 @@ public final class Dossier {
                 .orElse(null);
     }
 
+    /**
+     * Searches references and customer names across the whole tree.
+     *
+     * @param needle already lower-cased search text, using Locale.ROOT
+     * @return whether any non-null searchable field contains the text
+     */
     public boolean matches(String needle) {
         List<String> values = new ArrayList<>();
         root.collectMatches(values);
@@ -68,6 +74,7 @@ public final class Dossier {
         return Situation.describe(root);
     }
 
+    /** @return number of descendant documents, excluding the root */
     public int documentCount() {
         return flatten(root).size() - 1;
     }

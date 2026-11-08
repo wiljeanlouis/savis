@@ -1,8 +1,8 @@
+import { ListLoading } from "@/shared/components/ListLoading";
 import { NoData } from "@/shared/components/NoData";
 import { getApiErrorMessage } from "@/shared/api/apiError";
 import { DeleteAlert } from "@/shared/components/DeleteAlert";
 import { Badge } from "@/shared/ui/badge";
-import { Spinner } from "@/shared/ui/spinner";
 import {
   Table,
   TableBody,
@@ -104,11 +104,9 @@ export function ActivityRatesPage() {
       </div>
 
       {activityRatesQuery.isPending ? (
-        <div className="flex h-full items-center justify-center">
-          <Spinner />
-        </div>
+        <ListLoading message="Chargement des taux horaires…" />
       ) : activityRates.length === 0 ? (
-        <NoData />
+        <NoData>Aucun taux horaire.</NoData>
       ) : (
         <div className="min-w-0">
           <Table>

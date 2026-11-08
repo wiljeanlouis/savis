@@ -322,7 +322,9 @@ describe("Procurement review", () => {
       new Error("indisponible"),
     );
     mount();
-    expect(screen.getByLabelText("Chargement des offres")).toBeInTheDocument();
+    expect(
+      screen.getByRole("status", { name: "Chargement des offres…" }),
+    ).toBeInTheDocument();
     expect(await screen.findByRole("alert")).toHaveTextContent(
       "Impossible de charger",
     );

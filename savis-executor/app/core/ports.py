@@ -108,6 +108,7 @@ class SavisTaskRepository(ABC):
         size: int = 20,
         sort_by: SavisTaskSortField = SavisTaskSortField.CREATED_AT,
         sort_direction: SortDirection = SortDirection.DESC,
+        search: str | None = None,
     ) -> tuple[list[SavisTask], int]:
         """List paged tasks and return total count."""
 

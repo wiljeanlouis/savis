@@ -11,6 +11,11 @@ import com.savouretplus.savis.sales.quotation.domain.*;
 import com.savouretplus.savis.sales.quotation.port.*;
 import lombok.RequiredArgsConstructor;
 
+/**
+ * Creates a Catalog-priced proposal from selected qualification lines under the
+ * parent request lock. Replays use the request/proposal UUID pair and a canonical
+ * command fingerprint; conflicting payloads fail instead of creating a duplicate.
+ */
 @Service @RequiredArgsConstructor
 public class CreateQuoteRequestProposal {
     private final QuoteRequestRepository requests;

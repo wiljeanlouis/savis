@@ -1,3 +1,4 @@
+/** Owns invoice drafts, issuance, cancellation and payment confirmation from order snapshots. */
 @org.springframework.modulith.ApplicationModule(
     id = "sales.invoice",
     allowedDependencies = {"sales.order::order", "common::pdf"})

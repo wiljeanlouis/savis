@@ -5,7 +5,7 @@ system, container, component, and dynamic views.
 
 It focuses on ownership, dependencies, runtime behavior, persistence, and
 delivery. Reviewed against the repository source and deployment definitions on
-2026-10-31. This describes implemented behavior; external notification infrastructure
+2026-10-31; Sales and Workspace reviewed on 2026-11-06. This describes implemented behavior; external notification infrastructure
 and future capabilities are identified separately.
 
 Setup instructions and feature details belong in the
@@ -488,6 +488,12 @@ flowchart TB
   Ports --> Providers
   Providers --> Browser
 ```
+
+
+Executor task consultation (`GET /api/tasks`) supports an optional `search`
+parameter, passed by Admin through the task use case and persistence port.
+The SQLAlchemy adapter matches literal, case-insensitive substrings in UUIDs,
+JSON payloads and errors before applying pagination and computing totals.
 
 ### Execution Rules
 
@@ -1208,6 +1214,81 @@ persisted commercial snapshots using repository templates and bundled fonts.
 Rendering does not reprice the document; Invoice PDF generation requires a
 previously issued invoice, including one subsequently cancelled. Documents are generated on demand, not stored in Supabase.
 
+### Commercial Workspace Read Flow
+
+Workspace is the fourth closed nested Sales module. It has no table, repository,
+write endpoint or independent commercial lifecycle. Its only module dependencies
+are `sales.quotation::workspace`, `sales.order::workspace` and
+`sales.invoice::workspace`. The owning adapters project their own aggregates into
+`SalesQuotationWorkspaceApi`, `SalesOrderWorkspaceApi` and
+`SalesInvoiceWorkspaceApi` records. The existing write flow remains:
+request → zero or more independent quotations → accepted quotation conversion →
+order → invoice issuance → payment confirmation. Admin and web orders, and manual
+quotations, can enter this chain without an originating request.
+
+```mermaid
+sequenceDiagram
+  actor Operator
+  participant Admin
+  participant HTTP as SalesWorkspaceController
+  participant Query as SalesWorkspaceService / DossierAssembler
+  participant Owners as Quotation / Order / Invoice workspace APIs
+  Operator->>Admin: Open commercial workspace
+  Admin->>HTTP: GET /api/sales/workspace?page=0&size=10&filter=ALL
+  HTTP->>Query: list(page, size, search, filter)
+  Query->>Owners: Load all local document snapshots
+  Owners-->>Query: Requests, quotations, orders, invoices
+  Note over Query: Assemble explicit UUID links and compute attention and situation
+  Note over Query: Search, filter, sort, then paginate in memory
+  Query-->>Admin: Dossier summaries and filtered totals (Cache-Control: no-store)
+  Operator->>Admin: Open a dossier
+  Admin->>HTTP: GET /api/sales/workspace/{TYPE:uuid}
+  HTTP->>Query: Reassemble and resolve root identity
+  Query->>Owners: Reload snapshots
+  Query-->>Admin: Document tree with warnings (Cache-Control: no-store)
+```
+
+**Relationships and identity.** `DossierAssembler` starts with imported requests,
+attaches quotations by `requestId`, then orders using the quotation's `orderId`
+and/or an order with `source=QUOTATION` and `sourceId` pointing back to the
+quotation. A one-sided link is attached with a partial-relationship warning.
+Conflicting forward and reverse links leave the order as a separate root with a
+warning. Invoices attach by `orderId`. Missing parents leave their documents
+visible as independent roots with warnings; a quotation pointing to a missing
+order also receives a warning. Customer names and references never establish
+relationships. Identity is `<ROOT_TYPE>:<public UUID>`; restoring a missing parent
+can therefore change the root identity. Payment remains invoice state, not a node.
+
+**Attention and display.** `ActionPolicy` first considers all invoices in the
+subtree: a nonempty set where every invoice is paid makes that subtree finished,
+even when ancestor statuses remain active. Otherwise child attention propagates,
+then the current node requires action for request `RECEIVED`, `IN_PROGRESS` or
+`QUOTED`; quotation `DRAFT` or `SENT`, or `ACCEPTED` with no order reference or no
+child; order `NEW`, `ACCEPTED`, `IN_PREPARATION` or `READY`; invoice `DRAFT`, or
+`ISSUED` and unpaid. Other cases require no action. `FINISHED` is the inverse of
+this policy, not a persisted closed status. `Situation` independently generates
+French branch summaries, preferring a direct invoice and otherwise following the
+first child; requests group equal outcomes across their quotation branches.
+Warnings diagnose references without repairing them or independently forcing action.
+
+**Query contract and limits.** Pages are zero-based (0–100000), size is 1–100
+(default 10), and search accepts at most 200 characters. Search is a trimmed,
+case-insensitive substring over references and customer names anywhere in a tree;
+it excludes descriptions and contact fields. Filters are `ALL`, `ACTION_REQUIRED`
+and `FINISHED`, accepting French aliases `A_TRAITER`, `TERMINES` and `TERMINE`.
+Dossiers sort by the maximum non-null node activity, newest first, nulls last.
+Summary `documentCount` excludes the root; totals count filtered dossiers.
+Malformed or unresolved root IDs return 404; invalid list parameters return 400.
+
+Every list and detail query loads all local snapshots and reconstructs the trees;
+request snapshots are fetched in batches of 100. Pagination does not bound that
+work. There is no materialized read model or shared read transaction across the
+owner calls, so concurrent writes can appear between snapshot reads. Activity is
+owner-defined: request reception/import/history maximum, quotation update time,
+order lifecycle maximum (falling back to import), and invoice paid time, otherwise
+issued time, otherwise update time. It is not a universal database modification
+clock. See the [HTTP contract](../savis-api/README.md#sales-workspace-endpoints).
+
 ### Public Event Quote Reception
 
 `public.submit_quote_request(payload jsonb)` stores raw event requests in
@@ -1358,6 +1439,7 @@ A dead-letter strategy for rejected integration messages is not yet implemented;
 | API        | `/actuator/health/readiness`               | Spring readiness state (default health group) |
 | Executor   | `/health`                                  | PostgreSQL and RabbitMQ are reachable         |
 | Executor   | `/health/live`                             | HTTP process is alive                         |
+| Worker     | Local consumer-loop heartbeat             | Refreshed every 10s; expires after 90s         |
 | Admin      | `/health`                                  | Nginx is serving                              |
 | PostgreSQL | `pg_isready`                               | Database accepts connections                  |
 | RabbitMQ   | `rabbitmq-diagnostics ping`                | Broker node responds                          |
@@ -1372,6 +1454,12 @@ on healthy infrastructure. Chrome is checked separately by deployment.
 Production deployment fails when API, Executor, or Admin does not expose a
 healthy Docker status. Failure diagnostics include container logs and recent
 health-check output.
+
+Worker readiness uses a local file updated by the AMQP consumer event loop,
+not Celery remote control. Its consumer bootstep cancels the timer and removes
+the file on shutdown or detected connection loss, then resumes after reconnect.
+Prefork tasks do not block the loop; the probe does not validate Chrome or task
+success. Remote control remains disabled to avoid transient control queues.
 
 ### Concurrency and Backpressure
 

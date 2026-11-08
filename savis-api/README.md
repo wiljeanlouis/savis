@@ -93,12 +93,14 @@ views and cross-system business flows.
 
 ## Architecture
 
-The codebase is a Spring Modulith application with seven vertical business
+The codebase is a Spring Modulith application with vertical business
 slices under `src/main/java/com/savouretplus/savis/`:
 
 ```text
 bom/          resource/     supply/       catalog/
-order/        quotation/    invoice/      common/
+sales/
+  quotation/  order/       invoice/      workspace/
+common/
 ```
 
 Each business slice separates `domain` (invariants and value objects), `usecase`
@@ -127,8 +129,9 @@ The slices collaborate through explicit public contracts:
 
 `SavisApiModularityTests` uses Spring Modulith to verify module boundaries and
 generate documentation snippets. Sales children are explicitly declared closed
-nested modules with stable IDs `sales.quotation`, `sales.order`, and
-`sales.invoice` and public-interface dependency allowlists. Order retains the
+nested modules with stable IDs `sales.quotation`, `sales.order`,
+`sales.invoice`, and `sales.workspace`, with public-interface dependency allowlists.
+Order retains the
 `order` named interface (`QuotationOrderApi`, `OrderInvoicingApi`). Catalog
 remains a separate top-level module and has no Sales dependency. Negative fixture
 tests prove that sibling entity and repository access fails verification.
@@ -545,18 +548,33 @@ not provide access control.
 
 | Method | Path | Purpose |
 | --- | --- | --- |
-| `GET` | `/api/sales/workspace?page=&size=&search=` | Page logical sales dossiers, grouped by explicit request, quotation, order, and invoice references; summaries include `requiresAction` based on the commercial action policy. |
+| `GET` | `/api/sales/workspace?page=&size=&search=&filter=` | Page logical sales dossiers, grouped by explicit request, quotation, order, and invoice references; summaries include `requiresAction` based on the commercial action policy. |
 | `GET` | `/api/sales/workspace/{dossierId}` | Retrieve a dossier tree, its `requiresAction` state, and warnings for unresolved or inconsistent references. |
 
 Dossier IDs combine the root document type and public UUID
 (`REQUEST:<uuid>`, `QUOTATION:<uuid>`, `ORDER:<uuid>`, or `INVOICE:<uuid>`).
-This keeps identities stable without using customer names or display references.
+Identity follows the current root, without using customer names or display references;
+reattaching an orphan to a recovered parent can change its dossier ID.
 The workspace is read-only and composes named, read-only module contracts; sales
 modules retain ownership of their business rules and writes. Dossier nodes expose
 document data and relationships, not action labels or URLs; Admin links the
 document reference to its existing consultation screen. Each invoice is one tree
 node exposing its billing status and `issuedAt` alongside its payment status and
 `paidAt`; payment is not a separate dossier node.
+
+List defaults are `page=0`, `size=10`, `search=` and `filter=ALL`. Page must be
+0–100000, size 1–100, and search at most 200 characters. Search matches references
+and customer names throughout the tree, case-insensitively. Filters accept `ALL`,
+`ACTION_REQUIRED` (`A_TRAITER`) and `FINISHED` (`TERMINES` or `TERMINE`). Finished
+means no attention under the workspace policy, rather than a stored document status.
+All-paid invoice subtrees take precedence over active ancestor statuses.
+
+Both endpoints send `Cache-Control: no-store`. Invalid list parameters return 400;
+malformed or absent dossier roots return 404. Summaries sort by descending latest
+branch activity (nulls last); `documentCount` excludes the root, and page totals
+count filtered dossiers. Every call rebuilds all dossiers before pagination, without
+a shared transaction across owner reads. For relationship recovery, attention rules
+and scaling limits, see the [workspace runtime flow](../docs/ARCHITECTURE.md#commercial-workspace-read-flow).
 
 ## Supabase Integration
 

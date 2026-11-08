@@ -48,7 +48,9 @@ describe("SupplyOffersPage", () => {
     mockPageState({ isPending: true });
     render(<SupplyOffersPage />);
 
-    expect(screen.getByLabelText("Chargement des offres")).toBeInTheDocument();
+    expect(
+      screen.getByRole("status", { name: "Chargement des offres…" }),
+    ).toBeInTheDocument();
   });
 
   it("renders an empty state", () => {

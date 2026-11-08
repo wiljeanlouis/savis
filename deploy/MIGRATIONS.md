@@ -127,7 +127,9 @@ separate data recovery operation that may lose intervening writes.
 deadline, inspection errors are explicit, exited/dead containers and missing
 healthchecks fail, and temporary `unhealthy` states may recover. `running` alone
 never satisfies PostgreSQL, RabbitMQ, API, Executor API, Worker, or Admin readiness.
-Worker health uses Celery ping to its own node. Beat has no readiness endpoint;
+Worker health checks a local AMQP consumer-loop heartbeat refreshed every 10
+seconds and rejected after 90 seconds without progress; remote control stays
+disabled. Beat has no readiness endpoint;
 its inherited HTTP healthcheck is disabled and only its process is checked.
 That does not establish scheduler progress; operational monitoring remains needed.
 

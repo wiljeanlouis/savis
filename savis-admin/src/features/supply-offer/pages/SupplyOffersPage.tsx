@@ -1,3 +1,5 @@
+import { NoData } from "@/shared/components/NoData";
+import { ListLoading } from "@/shared/components/ListLoading";
 import { useQuery } from "@tanstack/react-query";
 import { getResourcesByIds } from "@/features/resource/api/resourceApi";
 import { ManualOfferDialog } from "../components/ManualOfferDialog";
@@ -7,7 +9,6 @@ import { PageItemCount } from "@/shared/components/PageItemCount";
 import { PageSelector } from "@/shared/components/PageSelector";
 import { Button } from "@/shared/ui/button";
 import { ApiErrorAlert } from "@/shared/components/ApiErrorAlert";
-import { Spinner } from "@/shared/ui/spinner";
 import { SupplyOfferListFilters } from "../components/SupplyOfferListFilters";
 import { SupplyOfferDetailsDialog } from "../components/SupplyOfferDetailsDialog";
 import { SupplyOffersTable } from "../components/SupplyOffersTable";
@@ -89,12 +90,7 @@ export function SupplyOffersPage() {
       </div>
 
       {query.isPending ? (
-        <div
-          className="flex min-h-64 items-center justify-center"
-          aria-label="Chargement des offres"
-        >
-          <Spinner />
-        </div>
+        <ListLoading message="Chargement des offres…" />
       ) : query.isError ? (
         <ApiErrorAlert
           title="Impossible de charger les offres fournisseurs."
@@ -109,9 +105,7 @@ export function SupplyOffersPage() {
           </Button>
         </ApiErrorAlert>
       ) : offers.length === 0 ? (
-        <div className="flex min-h-40 items-center justify-center rounded-xl border border-dashed p-6 text-center text-muted-foreground">
-          Aucune offre ne correspond aux filtres sélectionnés.
-        </div>
+        <NoData>Aucune offre ne correspond aux filtres sélectionnés.</NoData>
       ) : (
         <>
           {resources.isError && (
