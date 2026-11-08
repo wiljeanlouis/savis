@@ -3,10 +3,19 @@ package com.savouretplus.savis.sales.workspace.domain;
 import java.util.ArrayList;
 import java.util.List;
 
+/** Computes the workspace attention flag without changing document lifecycle state. */
 public final class ActionPolicy {
     private ActionPolicy() {
     }
 
+    /**
+     * Evaluates a branch recursively. A nonempty set of entirely paid invoices
+     * closes the subtree before ancestor statuses are examined. Otherwise child
+     * attention propagates upwards, followed by the current document's policy.
+     *
+     * @param node root of the subtree to inspect
+     * @return whether the subtree requires commercial attention
+     */
     public static boolean requiresAction(Node node) {
         var invoices = flatten(node).stream()
                 .filter(child -> child.type() == DocumentType.INVOICE)

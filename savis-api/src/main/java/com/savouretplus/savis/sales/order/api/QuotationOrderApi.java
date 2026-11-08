@@ -10,6 +10,12 @@ public interface QuotationOrderApi {
 
     /**
      * Creates the order once, or returns the order already created for the quotation.
+     * The caller validates acceptance before invoking this contract. Persisted
+     * terms are copied without repricing against the current Catalog.
+     *
+     * @param quotation accepted terms with a non-null quotation public UUID
+     * @return new or existing order public UUID, keyed by QUOTATION source and quotation UUID
+     * @throws IllegalArgumentException if the quotation or its UUID is absent
      */
     UUID create(QuotationSnapshot quotation);
 

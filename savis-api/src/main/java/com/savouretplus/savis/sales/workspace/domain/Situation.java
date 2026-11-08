@@ -2,10 +2,18 @@ package com.savouretplus.savis.sales.workspace.domain;
 
 import java.util.List;
 
+/** Produces French display summaries from branch outcomes, independently of the attention flag. */
 public final class Situation {
     private Situation() {
     }
 
+    /**
+     * Groups immediate request branches by their displayed outcome and counts them.
+     * Within a branch, a direct invoice takes precedence over the first child.
+     *
+     * @param node dossier root
+     * @return counted French outcomes separated by a middle dot
+     */
     public static String describe(Node node) {
         List<String> outcomes = node.type() == DocumentType.REQUEST && !node.children().isEmpty()
                 ? node.children().stream().map(Situation::branchSituation).toList()

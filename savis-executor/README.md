@@ -526,6 +526,22 @@ the host and local Docker connects through
 `http://host.docker.internal:9222`. Celery uses concurrency one so scraping
 tasks do not compete for the same browser.
 
+The worker image checks readiness with
+`python -m app.adapters.celery.worker_health`. A consumer bootstep refreshes
+`/tmp/savis-worker-heartbeat` every 10 seconds on the AMQP event loop after task
+consumer setup. Missing files and timestamps older than 90 seconds fail the
+check. Shutdown and detected broker disconnections cancel the timer and remove
+the file; reconnection requires a new loop tick. Long tasks run in the prefork
+child and do not prevent the main loop from refreshing the file.
+
+Remote control remains disabled: `celery inspect ping` is not a supported
+healthcheck and can declare transient non-exclusive queues rejected by RabbitMQ
+4.3. The heartbeat proves consumer-loop progress, not successful scraping or
+Chrome availability. Docker marks failures unhealthy but does not automatically
+restart a running unhealthy container. The worker smoke test waits for Docker
+health using the image's production probe, checks broker outage recovery, and
+verifies that the heartbeat keeps advancing while a long prefork task runs.
+
 ## Production Chrome Provisioning
 
 Chrome is host infrastructure, not a process owned by Celery or by the

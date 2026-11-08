@@ -5,6 +5,7 @@ from datetime import timedelta
 from celery import Celery
 from kombu import Exchange, Queue
 
+from app.adapters.celery.worker_health import WorkerHeartbeat
 from app.config import EnvParams
 
 env_params = EnvParams()
@@ -19,6 +20,7 @@ celery_app = Celery(
     broker=env_params.RABBIT_MQ_URL,
     include=["app.adapters.celery.celery_tasks"],
 )
+celery_app.steps["consumer"].add(WorkerHeartbeat)
 
 task_exchange = Exchange(
     CELERY_TASK_EXCHANGE_NAME,

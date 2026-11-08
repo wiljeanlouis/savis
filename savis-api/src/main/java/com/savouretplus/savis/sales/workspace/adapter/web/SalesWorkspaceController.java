@@ -13,6 +13,7 @@ import org.springframework.web.server.ResponseStatusException;
 import com.savouretplus.savis.sales.workspace.usecase.SalesWorkspaceService;
 import lombok.RequiredArgsConstructor;
 
+/** Exposes uncached read-only commercial dossier queries under /api/sales/workspace. */
 @RestController
 @RequestMapping("/api/sales/workspace")
 @RequiredArgsConstructor

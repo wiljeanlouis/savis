@@ -77,7 +77,8 @@ Main capabilities:
 - manual reception and qualification of public quote requests, with multiple
   independent Catalog-priced quotations per request;
 - a commercial workspace that groups requests, quotations, orders, and invoices
-  into dossiers without changing ownership of their business rules;
+  into dossiers without changing ownership of their business rules (see the
+  [workspace runtime flow](docs/ARCHITECTURE.md#commercial-workspace-read-flow));
 - immutable Docker releases with SBOM and provenance metadata.
 
 Supabase is not the SAVIS business backend. PostgreSQL schemas owned by the API
@@ -416,6 +417,8 @@ Production readiness checks:
 - API: `/actuator/health/readiness`;
 - Executor: `/health`, including PostgreSQL and RabbitMQ checks;
 - Executor liveness: `/health/live`;
+- Executor worker: local consumer-loop heartbeat, refreshed every 10 seconds and
+  rejected after 90 seconds without progress (no Celery remote-control queues);
 - Admin: `/health`;
 - PostgreSQL: `pg_isready`;
 - RabbitMQ: `rabbitmq-diagnostics ping`.

@@ -10,6 +10,13 @@ public interface OrderInvoicingApi {
 
     /**
      * Locks the source order and returns its captured commercial terms.
+     * The caller must keep invoice creation in the same transaction so the lock
+     * covers duplicate detection and persistence. Catalog is not consulted.
+     *
+     * @param orderId source order public UUID
+     * @return persisted snapshot for an ACCEPTED, IN_PREPARATION, READY or COMPLETED order
+     * @throws InvoiceSourceOrderNotFoundException if the order does not exist
+     * @throws IllegalStateException if its lifecycle status is not invoiceable
      */
     OrderSnapshot snapshotForInvoice(UUID orderId);
 
