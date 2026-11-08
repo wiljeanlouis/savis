@@ -36,7 +36,9 @@ import com.savouretplus.savis.sales.order.domain.OrderSource;
 import com.savouretplus.savis.sales.order.domain.OrderStatus;
 import com.savouretplus.savis.sales.order.port.OrderRepository;
 
-@SpringBootTest
+// Worker-thread transactions commit, so keep their data out of other test contexts.
+@SpringBootTest(properties = "spring.datasource.url=jdbc:h2:mem:invoice-concurrency;MODE=PostgreSQL;"
+        + "DATABASE_TO_LOWER=TRUE;DEFAULT_NULL_ORDERING=HIGH;INIT=CREATE SCHEMA IF NOT EXISTS savis_api")
 @ActiveProfiles("test")
 class InvoiceConcurrencyTest {
     @Autowired InvoiceService service;
