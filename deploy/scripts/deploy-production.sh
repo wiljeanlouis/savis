@@ -104,9 +104,13 @@ available_kb="$(df -Pk "${deploy_root}" | awk 'NR == 2 {print $4}')"
 (( available_kb >= 5 * 1024 * 1024 )) || fail "At least 5 GiB of free disk space is required"
 export XDG_RUNTIME_DIR="${XDG_RUNTIME_DIR:-/run/user/$(id -u)}"
 for service in savis-chrome-cdp.service savis-chrome-cdp-proxy.service; do
-  logged systemctl --user is-active --quiet "${service}"
+  if ! logged systemctl --user is-active "${service}"; then
+    echo "WARNING: ${service} is inactive or unavailable; deployment continues. Scraping requires Chrome CDP." >&2
+  fi
 done
-logged curl --fail --silent --show-error --connect-timeout 5 --max-time 10 http://127.0.0.1:9223/json/version
+if ! logged curl --fail --silent --show-error --connect-timeout 5 --max-time 10 http://127.0.0.1:9223/json/version; then
+  echo "WARNING: Chrome CDP is unreachable; deployment continues. Scraping requires Chrome CDP." >&2
+fi
 
 previous_version=none
 [[ ! -f "${deploy_root}/current-version" ]] || read -r previous_version <"${deploy_root}/current-version"

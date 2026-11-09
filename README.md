@@ -546,7 +546,7 @@ tar -xzf savis-v1.2.0.tar.gz
 The script:
 
 1. validates the environment and immutable image digests;
-2. verifies Chrome CDP and available disk space;
+2. verifies available disk space and reports non-blocking warnings if Chrome CDP is unavailable;
 3. backs up PostgreSQL when it is already running;
 4. reports potentially destructive Supabase SQL as warnings only;
 5. pulls images, starts PostgreSQL/RabbitMQ, and explicitly waits for health;

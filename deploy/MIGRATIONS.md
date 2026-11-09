@@ -7,7 +7,9 @@ automatically. Never modify applied migrations, run `clean`, `reset`, `repair`,
 ## Sequence and migration runners
 
 `deploy-production.sh` validates the release, immutable digests, Compose,
-dependencies, disk space (5 GiB), and Chrome. A host `flock` prevents concurrent
+dependencies, and disk space (5 GiB). Chrome service and CDP endpoint checks
+produce warnings when unavailable, without blocking deployment; scraping still
+requires Chrome CDP. A host `flock` prevents concurrent
 runs of this script. No per-release human migration approval or Supabase backup
 attestation is required. Before migration, it automatically backs up the
 existing Docker PostgreSQL database. It starts PostgreSQL/RabbitMQ and waits for

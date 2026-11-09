@@ -94,6 +94,9 @@ docker inspect --format '{{range .State.Health.Log}}{{println .End .ExitCode .Ou
 
 ## Chrome CDP
 
+Inactive Chrome services or an unreachable CDP endpoint produce warnings during
+deployment and do not block it. Scraping requires Chrome CDP to be available.
+
 These are `systemd --user` services. Run them as the `savis` graphical user,
 not through root's user manager.
 
