@@ -24,7 +24,8 @@ if name == 'sleep': sys.exit(0)
 if name == 'df':
     print('Filesystem 1024-blocks Used Available Capacity Mounted on\nfake 99999999 0 99999999 0% /')
     sys.exit(0)
-if name in ('curl', 'systemctl'): sys.exit(0)
+if name in ('curl', 'systemctl'):
+    sys.exit(3 if os.environ.get('FAIL') == name else 0)
 if name == 'npx':
     assert args[:5] == ['--yes', 'supabase@3.0.0', 'db', 'push', '--remote=' + os.environ['SUPABASE_DB_URL']]
     assert '--yes' in args[5:] and '--include-all' not in args and '--skip-vault' in args
@@ -148,6 +149,17 @@ class DeploymentTest(unittest.TestCase):
         result, calls = self.run_deploy(SUPABASE_ENABLED='false', SUPABASE_DB_URL='')
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertNotIn('supabase', calls)
+
+    def test_chrome_unavailable_does_not_block_deployment(self):
+        for command, warning in [('systemctl', 'inactive or unavailable'), ('curl', 'CDP is unreachable')]:
+            with self.subTest(command=command):
+                result, calls = self.run_deploy(FAIL=command)
+                self.assertEqual(result.returncode, 0, result.stderr)
+                self.assertIn(warning, result.stderr)
+                self.assertIn('up -d --no-deps executor_worker executor_beat frontend_admin', calls)
+                self.assertEqual((self.deploy / 'current').resolve(), self.release)
+                self.assertEqual((self.deploy / 'current-version').read_text(), 'v2.0.0\n')
+                (self.root / 'calls').unlink()
 
     def test_supabase_dry_run_failure_stops_before_apply(self):
         result, calls = self.run_deploy(FAIL='supabase-dry-run')
