@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.15.2](https://github.com/wiljeanlouis/savis/compare/v1.15.1...v1.15.2) (2026-11-09)
+
+
+### Bug Fixes
+
+* enhance deployment script to warn on inactive Chrome services and unreachable CDP ([#185](https://github.com/wiljeanlouis/savis/issues/185)) ([2f6db1d](https://github.com/wiljeanlouis/savis/commit/2f6db1de040da3412166ec1e8931ba6666648524))
+
 ## [1.15.1](https://github.com/wiljeanlouis/savis/compare/v1.15.0...v1.15.1) (2026-11-08)
 
 
