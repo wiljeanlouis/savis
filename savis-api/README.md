@@ -823,6 +823,20 @@ Additional runtime settings:
 
 ## Local Development
 
+### VS Code null analysis
+
+Keep `java.compile.nullAnalysis.mode` set to `automatic`. To reduce JDT warnings
+about implicit receivers in method references through unannotated JDK functional
+interfaces, set `java.settings.url` to `savis-api/java-compiler.prefs` when opening
+the monorepo (or `java-compiler.prefs` when opening this application alone).
+Workspace settings under `.vscode/` are local and ignored by Git.
+
+This compatibility setting suppresses unchecked nullness conversions, including
+other conversions from unspecified nullness to non-null types. It preserves
+null dereference and explicit nullable-contract diagnostics. It does not make
+the project fully checked for null safety. After changing it, run **Java: Clean
+Java Language Server Workspace** from the command palette if diagnostics persist.
+
 Requirements:
 
 - Java 25;

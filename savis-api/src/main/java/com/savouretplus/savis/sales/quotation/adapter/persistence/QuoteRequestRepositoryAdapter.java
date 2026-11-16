@@ -85,8 +85,9 @@ public class QuoteRequestRepositoryAdapter implements QuoteRequestRepository {
                                 : b.equal(r.get("status"),
                                         com.savouretplus.savis.sales.quotation.domain.QuoteRequestStatus
                                                 .valueOf(status)),
-                                b.like(b.lower(r.get("customerName")),
-                                        "%" + escape(search.toLowerCase(java.util.Locale.ROOT)) + "%", '\\')),
+                                search == null || search.isBlank() ? b.conjunction()
+                                        : b.like(b.lower(r.get("customerName")),
+                                                "%" + escape(search.toLowerCase(java.util.Locale.ROOT)) + "%", '\\')),
                 PageRequest.of(page, size, Sort.by(direction, parts[0], "publicId")));
         return new Page(result.getContent().stream().map(this::domain).toList(), result.getTotalElements(), page, size);
     }

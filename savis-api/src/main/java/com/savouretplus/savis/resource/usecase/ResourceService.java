@@ -16,7 +16,6 @@ import com.savouretplus.savis.resource.port.ResourcePage;
 import com.savouretplus.savis.resource.port.ResourceSort;
 import com.savouretplus.savis.resource.port.ResourceRepository;
 import com.savouretplus.savis.resource.api.ResourceCatalogApi;
-import com.savouretplus.savis.resource.api.ResourceCatalogApi.ResourceReference;
 
 @Service
 @Transactional

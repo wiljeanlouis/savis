@@ -2,7 +2,6 @@ package com.savouretplus.savis.sales.quotation.adapter.web;
 
 import com.savouretplus.savis.sales.quotation.domain.QuoteRequestValidationException;
 import java.util.UUID;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.server.ResponseStatusException;
 import org.springframework.http.HttpStatus;
@@ -10,7 +9,6 @@ import org.springframework.http.ResponseEntity;
 
 import com.savouretplus.savis.sales.quotation.port.QuotationRepository;
 import com.savouretplus.savis.sales.quotation.port.QuoteRequestRepository;
-import com.savouretplus.savis.sales.quotation.domain.QuoteRequest;
 import com.savouretplus.savis.sales.quotation.domain.QuoteRequestQualification;
 import com.savouretplus.savis.sales.quotation.domain.QuoteRequestStatus;
 import com.savouretplus.savis.sales.quotation.usecase.CreateQuoteRequestProposal;

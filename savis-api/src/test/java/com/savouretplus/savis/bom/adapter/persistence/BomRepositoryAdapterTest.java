@@ -12,6 +12,7 @@ import java.util.UUID;
 
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
+import org.springframework.data.domain.Sort;
 
 import com.savouretplus.savis.bom.domain.Bom;
 import com.savouretplus.savis.bom.domain.BomComponent;
@@ -20,6 +21,18 @@ import com.savouretplus.savis.common.Quantity;
 import com.savouretplus.savis.common.Unit;
 
 class BomRepositoryAdapterTest {
+    @Test
+    void listsBomsInAscendingIdOrder() {
+        BomJpaRepository jpa = org.mockito.Mockito.mock(BomJpaRepository.class);
+        when(jpa.findAll(org.mockito.ArgumentMatchers.any(Sort.class))).thenReturn(List.of());
+
+        assertEquals(List.of(), new BomRepositoryAdapter(jpa).findAll());
+
+        ArgumentCaptor<Sort> sort = ArgumentCaptor.forClass(Sort.class);
+        verify(jpa).findAll(sort.capture());
+        assertEquals(Sort.by("id").ascending(), sort.getValue());
+    }
+
     @Test
     void updatesExistingComponentInPlaceAndPreservesItsRowId() {
         UUID bomId = UUID.randomUUID();

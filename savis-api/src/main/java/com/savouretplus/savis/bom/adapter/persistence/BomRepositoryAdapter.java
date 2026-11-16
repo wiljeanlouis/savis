@@ -6,6 +6,7 @@ import java.util.Optional;
 import java.util.UUID;
 
 import org.springframework.data.domain.Sort;
+import org.springframework.data.core.TypedPropertyPath;
 import org.springframework.stereotype.Repository;
 
 import com.savouretplus.savis.bom.domain.Activity;
@@ -79,7 +80,7 @@ public class BomRepositoryAdapter implements BomRepositoryPort {
     @Override
     public List<Bom> findAll() {
         try {
-            return jpaRepository.findAll(Sort.by("id").ascending())
+            return jpaRepository.findAll(Sort.by(TypedPropertyPath.path(BomEntity::getId)).ascending())
                     .stream()
                     .map(this::toDomain)
                     .toList();

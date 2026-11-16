@@ -40,7 +40,7 @@ class ImportQuoteRequestsTest {
     @Test void uniquenessRaceIsRecoveredOutsideInsertTransaction() {
         UUID id=UUID.randomUUID();var request=request(id);
         when(inbox.pending(100)).thenReturn(List.of("row"));when(inbox.receptionId("row")).thenReturn(id);when(inbox.decode("row")).thenReturn(request);
-        when(repository.findExternal("savouretplus",id)).thenReturn(Optional.empty(),Optional.of(request));
+        when(repository.findExternal("savouretplus",id)).thenReturn(Optional.empty()).thenReturn(Optional.of(request));
         when(repository.insert(request)).thenThrow(new org.springframework.dao.DataIntegrityViolationException("unique"));
         assertEquals(1,importer.execute().alreadyImported());verify(inbox).acknowledge(id,true);
     }

@@ -44,7 +44,7 @@ public class QuoteRequestSelectionMapper implements QuoteRequestSelections {
             } catch (IllegalArgumentException error) {
                 issue = "La référence ou la configuration transmise doit être corrigée";
             }
-            result.add(new Selection(key, item.path("name").asText(), productId, line, issue));
+            result.add(new Selection(key, item.path("name").asString(), productId, line, issue));
         }
         return List.copyOf(result);
     }
@@ -55,8 +55,8 @@ public class QuoteRequestSelectionMapper implements QuoteRequestSelections {
     }
     private static String required(JsonNode node, String field) {
         var value = node.path(field);
-        if (!value.isTextual() || value.asText().isBlank()) throw new IllegalArgumentException();
-        return value.asText();
+        if (!value.isString() || value.asString().isBlank()) throw new IllegalArgumentException();
+        return value.asString();
     }
     private static int positiveQuantity(JsonNode item) {
         var value = item.path("requested_quantity");

@@ -1,0 +1,4 @@
+# JDT cannot verify null contracts across unannotated JDK functional interfaces.
+# Keep null analysis enabled; suppress only unchecked nullness conversions.
+# This also suppresses other conversions from unspecified to non-null types.
+org.eclipse.jdt.core.compiler.problem.nullUncheckedConversion=ignore

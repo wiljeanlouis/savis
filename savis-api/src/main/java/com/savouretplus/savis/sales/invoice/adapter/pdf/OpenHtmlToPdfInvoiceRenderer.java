@@ -76,7 +76,7 @@ public class OpenHtmlToPdfInvoiceRenderer implements InvoiceDocumentRenderer {
         String html = templates.process("order/order-document", context);
         try (ByteArrayOutputStream output = new ByteArrayOutputStream()) {
             PdfRendererBuilder builder = CommercialPdfFonts.registerOn(new PdfRendererBuilder());
-            builder.useFastMode().withHtmlContent(html, null).toStream(output).run();
+            builder.withHtmlContent(html, null).toStream(output).run();
             return output.toByteArray();
         } catch (Exception exception) {
             throw new IllegalStateException("Impossible de générer la facture PDF", exception);

@@ -81,14 +81,14 @@ public class SupabaseQuoteRequestInbox implements QuoteRequestInbox {
     @Override
     public UUID receptionId(String row) {
         log.info("Fetching reception ID for row: {}", row);
-        return UUID.fromString(json.readTree(row).path("id").asText());
+        return UUID.fromString(json.readTree(row).path("id").asString());
     }
 
     @Override
     public QuoteRequest decode(String row) {
         log.info("Decoding row: {}", row);
         JsonNode reception = json.readTree(row), payload = reception.path("payload");
-        if (!payload.isObject() || !"QUOTE_REQUEST".equals(payload.path("type").asText())
+        if (!payload.isObject() || !"QUOTE_REQUEST".equals(payload.path("type").asString())
                 || !payload.path("customer").isObject() || !payload.path("event_details").isObject()
                 || !payload.path("requested_services").isArray() || payload.path("requested_services").isEmpty()
                 || !payload.path("items").isArray() || payload.path("items").size() > 100
@@ -118,7 +118,7 @@ public class SupabaseQuoteRequestInbox implements QuoteRequestInbox {
                 Set.of("traiteur", "decoration", "organisation"));
         var services = new HashSet<String>();
         for (JsonNode service : payload.path("requested_services")) {
-            if (!service.isTextual() || !services.add(service.asText()))
+            if (!service.isString() || !services.add(service.asString()))
                 throw invalid();
         }
         if (!services.equals(combinations.get(requestType)))
@@ -126,20 +126,19 @@ public class SupabaseQuoteRequestInbox implements QuoteRequestInbox {
         JsonNode customer = payload.path("customer");
         String original = canonical(payload);
         var needs = new java.util.HashSet<String>();
-        int index = 0;
-        for (JsonNode ignored : payload.path("items"))
-            needs.add("item:" + index++);
+        for (int index = 0; index < payload.path("items").size(); index++)
+            needs.add("item:" + index);
         for (JsonNode service : payload.path("requested_services")) {
-            if (!service.isTextual()
-                    || !java.util.Set.of("traiteur", "decoration", "organisation").contains(service.asText()))
+            if (!service.isString()
+                    || !java.util.Set.of("traiteur", "decoration", "organisation").contains(service.asString()))
                 throw invalid();
-            needs.add("service:" + service.asText());
+            needs.add("service:" + service.asString());
         }
         return new QuoteRequest(null, UUID.randomUUID(), required(reception, "source", 100), receptionId(row),
-                payload.hasNonNull("request_id") ? UUID.fromString(payload.path("request_id").asText()) : null,
+                payload.hasNonNull("request_id") ? UUID.fromString(payload.path("request_id").asString()) : null,
                 fingerprint(original), original, required(customer, "name", 200), required(customer, "phone", 50),
-                customer.path("email").isTextual() ? customer.path("email").asText() : null,
-                Instant.parse(reception.path("created_at").asText()), clock.instant(),
+                customer.path("email").isString() ? customer.path("email").asString() : null,
+                Instant.parse(reception.path("created_at").asString()), clock.instant(),
                 com.savouretplus.savis.sales.quotation.domain.QuoteRequestStatus.RECEIVED, 0, null, null, List.of(),
                 needs);
     }
@@ -156,15 +155,15 @@ public class SupabaseQuoteRequestInbox implements QuoteRequestInbox {
                 .queryParam("select", "id").build()).header("Prefer", "return=representation").body(body)
                 .retrieve().body(String.class);
         JsonNode affected = json.readTree(result);
-        if (!affected.isArray() || affected.size() != 1 || !id.toString().equals(affected.get(0).path("id").asText()))
+        if (!affected.isArray() || affected.size() != 1 || !id.toString().equals(affected.get(0).path("id").asString()))
             throw new InboxUnavailableException();
     }
 
     private String required(JsonNode node, String key, int max) {
         var value = node.path(key);
-        if (!value.isTextual() || value.asText().isBlank() || value.asText().length() > max)
+        if (!value.isString() || value.asString().isBlank() || value.asString().length() > max)
             throw new QuoteRequestValidationException("Le champ « " + key + " » est requis et doit contenir au plus " + max + " caractères");
-        return value.asText();
+        return value.asString();
     }
 
     private QuoteRequestValidationException invalid() {
