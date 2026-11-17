@@ -29,12 +29,12 @@
 	</scm>
 	<properties>
 		<java.version>25</java.version>
-		<spring-modulith.version>2.1.0</spring-modulith.version>
-		<springdoc-openapi-starter-webmvc-ui.version>3.1.0</springdoc-openapi-starter-webmvc-ui.version>
+		<spring-modulith.version>2.1.2</spring-modulith.version>
+		<springdoc-openapi-starter-webmvc-ui.version>3.2.0</springdoc-openapi-starter-webmvc-ui.version>
 		<mapstruct.version>1.6.3</mapstruct.version>
 		<wiremock.version>3.13.2</wiremock.version>
-		<openhtmltopdf.version>1.1.97</openhtmltopdf.version>
-		<libphonenumber.version>9.0.39</libphonenumber.version>
+		<openhtmltopdf.version>1.1.105</openhtmltopdf.version>
+		<libphonenumber.version>9.0.42</libphonenumber.version>
 	</properties>
 		<dependencies>
 			<dependency>
